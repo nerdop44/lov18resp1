@@ -25,7 +25,7 @@
 								<field name="company_currency_id" column_invisible="True"/>
 								<field name="foreign_currency_id" column_invisible="True"/>
 								<field name="name"/>
-								<field name="move_id"/>
+								<!--<field name="move_id"/>-->
 								<field name="aliquot"/>
 								<field name="related_percentage_tax_base" optional="hide"/>
 								<!-- Amounts -->
