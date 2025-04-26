@@ -18,7 +18,7 @@
 				</xpath>-->
 				<xpath expr="//notebook" position="inside">
 					<page name="iva_retention" string="IVA Retentions">
-						<field name="retention_iva_line_ids" nolabel="1" readonly="1">
+						<field name="retention_iva_line_ids" nolabel="1" readonly="1" widget="one2many_list">
 							<list editable='bottom'>
 								<!-- Invisible Fields -->
 								<field name="invoice_type" column_invisible="True"/>
