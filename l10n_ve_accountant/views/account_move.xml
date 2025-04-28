@@ -1,149 +1,92 @@
-<odoo>
-    <record id="view_account_move_form_binaural_invoice" model="ir.ui.view">
-        <field name="name">view.account.move.form.binaural.invoice</field>
-        <field name="model">account.move</field>
-        <field name="inherit_id" ref="account.view_move_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//header" position="after">
-                <field name="foreign_balance" invisible="1"/>
-                <div class="alert alert-warning mb-0" role="alert" invisible="foreign_balance == 0">
-                Warning: This account move has a foreign balance of
-                    <field name="foreign_balance"/>.
-                </div>
-            </xpath>
-            <xpath expr="//header/button[@name='button_cancel']" position="after">
-                <button name="action_update_account_id" string="Update account lines" type="object" groups="base.group_no_one"/>
-            </xpath>
-            <xpath expr="//field[@name='partner_id']" position="replace">
-                <field name="partner_id" nolabel="1" context="{'res_partner_search_mode': (context.get('default_move_type', 'entry') in ('out_invoice', 'out_refund', 'out_receipt') and 'customer') or (context.get('default_move_type', 'entry') in ('in_invoice', 'in_refund', 'in_receipt') and 'supplier') or False, 'show_address': 1, 'default_is_company': True}" domain="[('type', '!=', 'private'), ('company_id', 'in', (False, company_id))]" options="{&quot;always_reload&quot;: True, &quot;no_quick_create&quot;: True}" invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')"/>
-            </xpath>
-<!--            <xpath expr="//field[@name='partner_id']" position="after">
-                <field name="vat" invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')"/>
-            </xpath>-->
-            <xpath expr="//notebook" position="inside">
-                <page string="Foreign currency" name="foreign_currency">
-                    <group col="12" class="oe_invoice_lines_tab">
-                        <group colspan="8">
-                            <field name="foreign_currency_id" invisible='1'/>
-                            <field name="manually_set_rate"/>
-                            <field
-                                    name="foreign_inverse_rate"
-                                    invisible="1"
-                                    string="Foreign inverse rate"
-                                />
-                            <t groups="base.group_no_one">
-                                <field name="foreign_inverse_rate"/>
-                            </t>
-                            <field name="foreign_rate" readonly="state == 'posted'"/>
-                        </group>
-                        <group colspan="4">
-                            <group class="oe_subtotal_footer"
-                                invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt') or payment_state == 'invoicing_legacy'">
-                                <field name="tax_totals" 
-                                    widget="account-tax-foreign-totals-field" 
-                                    nolabel="1" 
-                                    colspan="2"
-                                    readonly="state != 'draft' or (move_type not in ('in_invoice', 'in_refund') and not quick_edit_mode)"/>
-                                <field name="invoice_payments_widget" colspan="2" nolabel="1" widget="payment"/>
-                            </group>
-                            <field name="invoice_outstanding_credits_debits_widget"
-                                class="oe_invoice_outstanding_credits_debits"
-                                colspan="2" nolabel="1" widget="payment"
-                                invisible="state != 'posted'"/>
-                        </group>
-                    </group>
-                </page>
-            </xpath>
-            <xpath expr="//page/field[@name='invoice_line_ids']/list/field[@name='price_unit']" position="after">
-                <field name="foreign_price"/>
-            </xpath>
-            <xpath expr="//page/field[@name='invoice_line_ids']/list/field[@name='price_subtotal']" position="after">
-                <field name="foreign_currency_id" column_invisible="True"/> <!--True-->
-                <field name="foreign_subtotal"
-                    />
-                <field name="foreign_price_total"
-                    column_invisible="parent.tax_calculation_rounding_method == 'round_globally'"/>
-                <field name="foreign_rate" optional="hide"/>
-                <field
-		    name="foreign_inverse_rate"
-		    groups="base.group_no_one"
-		    string="Foreign inverse rate"
-		    optional="hide"
-		    readonly="1"
-		/>
-            </xpath>
-            <xpath expr="//page/field[@name='line_ids']/list/field[@name='balance']" position="after">
-                <field name="foreign_currency_id" column_invisible="True"/> <!--True-->
-                <field
-		    name="foreign_debit"
-		    optional="show"
-		    sum="Total Foreign Debit"
-		    readonly="1"
-		/>
-                <field
-		    name="foreign_credit"
-		    optional="show"
-		    sum="Total Foreign Credit"
-		    readonly="1"
-		/>
-                <field name="foreign_debit_adjustment" optional="hide"/>
-                <field name="foreign_credit_adjustment" optional="hide"/>
-                <field name="foreign_balance" optional="hide" groups="base.group_no_one"/>
-                <field name="foreign_rate" optional="hide" groups="base.group_no_one"/>
-                <field
-		    name="foreign_inverse_rate"
-		    groups="base.group_no_one"
-		    optional="hide"
-		    readonly="1"
-		/>
-            </xpath>
-            <field name="payment_reference" position="after">
-                <field name="financial_document" invisible="move_type not in ['out_refund', 'out_invoice']" />
-            </field>
 
-        </field>
-                     
-    </record>
-    <!-- <record id="view_invoice_tree" model="ir.ui.view"> -->
-    <!--     <field name="name">account.move.list</field> -->
-    <!--     <field name="model">account.move</field> -->
-    <!--     <field name="inherit_id" ref="account.view_invoice_tree"/> -->
-    <!--     <field name="arch" type="xml"> -->
-    <!--         <xpath expr="//field[@name='journal_id']" position="after"> -->
-    <!--             <field name="foreign_currency_id" column_invisible="True"/> -->
-    <!--             <field name="foreign_rate" optional="show"/> -->
-    <!--             <field --> 
-    <!--                 name="foreign_total_billed" --> 
-    <!--                 sum="Foreign Amount total" --> 
-    <!--                 widget="monetary" --> 
-    <!--                 options="{'currency_field': 'foreign_currency_id'}" -->
-    <!--                 decoration-bf="1" -->
-    <!--                 optional="hide"/> -->
-    <!--         </xpath> -->
-    <!--     </field> -->
-    <!-- </record> -->
-    <record id="view_account_move_form_binaural_invoice" model="ir.ui.view">
-        <field name="name">view.account.move.form.binaural.invoice</field>
-        <field name="model">account.move</field>
-        <field name="inherit_id" ref="account.view_move_form"/> <!-- Heredando de la vista de formulario del modelo account.move -->
-        <field name="arch" type="xml">
-            <xpath expr="//field[@name='invoice_line_ids']" position="inside">
-                <list>
-                    <field name="product_id" optional="show"/> <!-- Mostrar el campo de producto -->
-                    <field name="quantity" optional="show"/> <!-- Mostrar el campo de cantidad -->
-                    <field name="account_id" optional="show"/> <!-- Mostrar el campo de cuenta contable -->
-                    <field name="price_unit" optional="show"/> <!-- Mostrar el campo de precio unitario -->
-                    <field name="price_subtotal" optional="show"/> <!-- Mostrar el campo de subtotal -->
-                    <field name="foreign_currency_id" column_invisible="True"/>
-                    <field name="foreign_debit" optional="show" sum="Total Foreign Debit" readonly="1"/>
-                    <field name="foreign_credit" optional="show" sum="Total Foreign Credit" readonly="1"/>
-                    <field name="foreign_debit_adjustment" optional="hide"/>
-                    <field name="foreign_credit_adjustment" optional="hide"/>
-                    <field name="foreign_balance" optional="hide" groups="base.group_no_one"/>
-                    <field name="foreign_rate" optional="hide" groups="base.group_no_one"/>
-                    <field name="foreign_inverse_rate" groups="base.group_no_one" optional="hide" readonly="1"/>
-                </list>
-            </xpath>
-        </field>
-    </record>
+<odoo>
+	<data>
+
+		<record id="account_move_form_binaural_payment_extension" model="ir.ui.view">
+			<field name="name">account.move.form.binaural.payment.extension</field>
+			<field name="model">account.move</field>
+			<field name="inherit_id" ref="account.view_move_form"/>
+			<field name="arch" type="xml">
+<!--                <xpath expr="//field[@name='vat']/.." position="after">
+					<field name="generate_iva_retention" invisible="move_type not in ('in_invoice', 'in_receipt', 'in_refund')" />
+					<field name="iva_voucher_number" readonly="1" invisible="move_type == 'entry'"/>
+					<field name="islr_voucher_number" readonly="1" invisible="move_type == 'entry'"/>
+					<field name="municipal_voucher_number" readonly="1" invisible="move_type == 'entry'"/>
+					<field name="base_currency_is_vef" invisible="1"/>
+					<field name="company_currency_id" invisible="1"/>
+					<field name="foreign_currency_id" invisible="1"/>
+				</xpath>-->
+				<xpath expr="//notebook" position="inside">
+					<page name="iva_retention" string="IVA Retentions">
+						<field name="retention_iva_line_ids" nolabel="1" readonly="1" widget="one2many_list">
+							<list editable='bottom'>
+								<!-- Invisible Fields -->
+								<field name="invoice_type" column_invisible="True"/>
+								<field name="company_currency_id" column_invisible="True"/>
+								<field name="foreign_currency_id" column_invisible="True"/>
+								<field name="name"/>
+								<!--<field name="move_id"/>-->
+								<field name="aliquot"/>
+								<field name="related_percentage_tax_base" optional="hide"/>
+								<!-- Amounts -->
+								<field name="invoice_total" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
+								<field name="invoice_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
+								<field name="iva_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
+								<field name="retention_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
+								<!-- Foreign Amounts -->
+								<field name="foreign_invoice_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef" />
+								<field name="foreign_iva_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef" />
+								<field name="foreign_invoice_total" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef" />
+								<field name="foreign_retention_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef" />
+								<field name="foreign_currency_rate" optional="hide"/>
+								<field name="state"/>
+							</list>
+						</field>
+					</page>
+					<page name="islr_retention" string="ISLR Retentions">
+						<field name="retention_islr_line_ids" nolabel="1" readonly="move_type not in ('in_invoice', 'in_refund') or state != 'draft'">
+							<list editable='bottom'>
+								<!-- Invisible Fields -->
+								<field name="invoice_type" column_invisible="True"/>
+								<field name="company_currency_id" column_invisible="True"/>
+								<field name="foreign_currency_id" column_invisible="True"/>
+								<field name="name"/>
+								<field name="payment_concept_id"/>
+								<field name="invoice_total" force_save="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" readonly="1" column_invisible="not parent.base_currency_is_vef"/>
+								<field name="foreign_invoice_total" force_save="1" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="1" column_invisible="parent.base_currency_is_vef"/>
+								<field name="invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef"/>
+								<field name="foreign_invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
+								<field name="related_pay_from" force_save="1" readonly="1" />
+								<field name="related_percentage_tax_base" force_save="1" readonly="1" />
+								<field name="related_percentage_fees" force_save="1" readonly="1" />
+								<field name="related_amount_subtract_fees" force_save="1" readonly="1" />
+								<field name="foreign_currency_rate" force_save="1" readonly="1" optional="hide" />
+								<field name="retention_amount" force_save="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" readonly="1" column_invisible="not parent.base_currency_is_vef"/>
+								<field name="foreign_retention_amount" widget="monetary" force_save="1" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
+								<field name="state"/>
+							</list>
+						</field>
+					</page>
+					<page name="municipal_retention" string="Municipal Retentions">
+						<field name="retention_municipal_line_ids" nolabel="1" readonly="move_type not in ('in_invoice', 'in_refund') or state != 'draft'">
+							<list editable='bottom'>
+								<field name="name" force_save="1" readonly="1"/>
+								<field name="economic_activity_id" force_save="1"/>
+								<field name="aliquot" readonly="1" force_save="1"/>
+								<field name="invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef"/>
+								<field name="invoice_total" force_save="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" readonly="1" column_invisible="not parent.base_currency_is_vef"/>
+								<field name="retention_amount" force_save="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" readonly="1" column_invisible="not parent.base_currency_is_vef"/>
+								<field name="foreign_invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
+								<field name="foreign_invoice_total" force_save="1" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="1" column_invisible="parent.base_currency_is_vef"/>
+								<field name="foreign_retention_amount" widget="monetary" force_save="1" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
+								<field name="foreign_currency_rate" force_save="1" readonly="1" optional="hide" />
+								<field name="state" force_save="1"/>
+							</list>
+						</field>
+					</page>
+				</xpath>
+			</field>
+		</record>
+	
+    </data>
 </odoo>

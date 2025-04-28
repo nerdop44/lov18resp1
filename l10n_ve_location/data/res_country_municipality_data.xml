@@ -1,6 +1,6 @@
 <odoo>
-  <data>
-    <!-- Municipios de Venezuela -->
+<!--  <data>
+     Municipios de Venezuela
     <record id="res_country_municipality_1" model="res.country.municipality">
       <field name="name">Libertador</field>
       <field name="code">1</field>
@@ -2339,5 +2339,5 @@
       <field name="country_id" ref="base.ve"/>
     </record>
 
-  </data>
+  </data>-->
 </odoo>

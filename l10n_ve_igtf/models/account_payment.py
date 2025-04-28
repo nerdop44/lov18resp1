@@ -311,18 +311,21 @@ class AccountPaymentIgtf(models.Model):
 
     def action_draft(self):
         # if payment have reconciled_invoice_ids or reconciled_bill_ids and is_igtf is True clear bi_igtf of the reconciled invoices
-        def get_payment_amount_invoice(self, invoice):
-            self.ensure_one()
+        def get_payment_amount_invoice(payment, invoice): #def get_payment_amount_invoice(self, invoice):
+            payment.ensure_one()  # Asegúrate de que solo se procese un pago self.ensure_one()
             if invoice.bi_igtf < self.amount:
-                payments = invoice.invoice_payments_widget.get("content", False)
-                for payment in payments:
-                    payment_id = payment.get("account_payment_id", False)
-                    if not payment_id:
-                        continue
+                payments_widget = invoice.invoice_payments_widget if invoice.invoice_payments_widget else {}
+                payments = payments_widget.get("content", False)  # Ahora payments_widget es un diccionario vacío si era False
+                if payments:  # Verifica que payments no sea False
+                #payments = invoice.invoice_payments_widget.get("content", False)
+                    for payment in payments:
+                        payment_id = payment.get("account_payment_id", False)
+                        if not payment_id:
+                            continue
 
-                    if self.id == payment_id:
-                        return abs(payment["amount"])
-            return self.amount
+                        if payment.id == payment_id: #if self.id == payment_id:
+                            return abs(payment["amount"])
+            return payment.amount #return self.amount
 
         for payment in self:
             if (

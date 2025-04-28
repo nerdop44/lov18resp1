@@ -90,6 +90,13 @@ class AccountMove(models.Model):
         store=True,
     )
 
+    # Agregar el campo retention_iva_line_ids
+    retention_iva_line_ids = fields.One2many(
+        'retention.iva.line',  # Asegúrate de que este modelo exista
+        'move_id',  # Campo que relaciona con account.move
+        string='Retention IVA Lines'
+    )
+
     _sql_constraints = [
         (
             "unique_name",
@@ -651,7 +658,9 @@ class AccountMove(models.Model):
         for move in self:
             move.foreign_taxable_income = False
             if move.is_invoice() and move.invoice_line_ids:
-                move.foreign_taxable_income = move.tax_totals["foreign_amount_untaxed"]
+                 _logger.info("Tax totals: %s", move.tax_totals)  # Agregar registro para depuración
+               # move.foreign_taxable_income = move.tax_totals["foreign_amount_untaxed"]
+            move.foreign_taxable_income = move.tax_totals.get("foreign_amount_untaxed", 0)  # Usar get para evitar KeyError
 
     @api.depends("tax_totals")
     def _compute_foreign_total_billed(self):

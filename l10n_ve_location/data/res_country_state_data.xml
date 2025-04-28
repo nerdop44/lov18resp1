@@ -1,7 +1,7 @@
 <odoo>
-  <data>
+  <!--<data>
   
-    <!-- VENEZUELAN CITIES -->
+   VENEZUELAN CITIES 
     <record id="res_country_state_1" model="res.country.state">
       <field name="name">Distrito Capital</field>
       <field name="code">DC</field>
@@ -151,5 +151,5 @@
       <field name="code">DF</field>
       <field name="country_id" ref="base.ve"/>
     </record>
-  </data>
+  </data>-->
 </odoo>
