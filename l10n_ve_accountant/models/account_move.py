@@ -15,6 +15,13 @@ _logger = logging.getLogger(__name__)
 class AccountMove(models.Model):
     _inherit = "account.move"
 
+    line_ids = fields.One2many(
+        'account.move.line',
+        'move_id',  # Este es el campo que debe estar definido en AccountMoveLine
+        string='Journal Items',
+        copy=True,
+    )
+
     def _valid_field_parameter(self, field_name, parameter):
         if parameter == 'states':
             return True  # Permite el uso del parámetro 'states'
