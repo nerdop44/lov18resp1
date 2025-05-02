@@ -267,6 +267,45 @@ class AccountRetention(models.Model):
                 result = retention._load_retention_lines_for_iva_customer_retention()
             return result
 
+#    def _load_retention_lines_for_iva_supplier_retention(self):
+#        self.ensure_one()
+#        self.date_accounting = fields.Date.today()
+#        search_domain = [
+#            ("company_id", "=", self.company_id.id),
+#            ("partner_id", "=", self.partner_id.id),
+#            ("state", "=", "posted"),
+#            ("move_type", "in", ("in_refund", "in_invoice")),
+#            ("amount_residual", ">", 0),
+#        ]
+#        invoices_with_taxes = search_invoices_with_taxes(
+#            self.env["account.move"], search_domain
+#        ).filtered(
+#            lambda i: not any(
+#                i.retention_iva_line_ids.filtered(
+#                    lambda l: l.state in ("draft", "emitted")
+#                )
+#            )
+#        )
+#        if not any(invoices_with_taxes):
+#            raise UserError(
+#                _("There are no invoices with taxes to be retained for the supplier.")
+#            )
+#        self.clear_retention()
+#        lines = load_retention_lines(invoices_with_taxes, self.env["account.retention"])
+#
+#        lines_per_invoice_counter = defaultdict(int)
+#        for line in lines:
+#            lines_per_invoice_counter[str(line[2]["move_id"])] += 1
+#
+#        return {
+#            "value": {
+#                "retention_line_ids": lines,
+#                "original_lines_per_invoice_counter": json.dumps(
+#                    lines_per_invoice_counter
+#                ),
+#            }
+#        }
+
     def _load_retention_lines_for_iva_supplier_retention(self):
         self.ensure_one()
         self.date_accounting = fields.Date.today()
@@ -291,20 +330,67 @@ class AccountRetention(models.Model):
                 _("There are no invoices with taxes to be retained for the supplier.")
             )
         self.clear_retention()
-        lines = load_retention_lines(invoices_with_taxes, self.env["account.retention"])
+        retention_lines_data = [
+            self.compute_retention_lines_data(i) for i in invoices_with_taxes
+        ]
 
         lines_per_invoice_counter = defaultdict(int)
-        for line in lines:
-            lines_per_invoice_counter[str(line[2]["move_id"])] += 1
+        lines_to_create = []
+        # Cambio: Iterar sobre la lista de listas de diccionarios
+        for lines in retention_lines_data:
+            # Cambio: Iterar sobre cada diccionario de datos de línea
+            for line_data in lines:
+                # Cambio: Acceder al 'move_id' de forma segura
+                lines_per_invoice_counter[str(line_data.get("move_id"))] += 1
+                # No hay cambio aquí, se sigue creando el comando
+                lines_to_create.append(Command.create(line_data))
 
         return {
             "value": {
-                "retention_line_ids": lines,
+                "retention_line_ids": lines_to_create,
                 "original_lines_per_invoice_counter": json.dumps(
                     lines_per_invoice_counter
                 ),
             }
         }
+    
+#    def _load_retention_lines_for_iva_customer_retention(self):
+#        self.ensure_one()
+#        search_domain = [
+#            ("company_id", "=", self.company_id.id),
+#            ("partner_id", "=", self.partner_id.id),
+#            ("state", "=", "posted"),
+#            ("move_type", "in", ("out_refund", "out_invoice")),
+#            ("amount_residual", ">", 0),
+#        ]
+#        invoices_with_taxes = search_invoices_with_taxes(
+#            self.env["account.move"], search_domain
+#        ).filtered(
+#            lambda i: not any(
+#                i.retention_iva_line_ids.filtered(
+#                    lambda l: l.state in ("draft", "emitted")
+#                )
+#            )
+#        )
+#        if not any(invoices_with_taxes):
+#            raise UserError(
+#                _("There are no invoices with taxes to be retained for the customer.")
+#            )
+#        self.clear_retention()
+#        lines = load_retention_lines(invoices_with_taxes, self.env["account.retention"])
+#
+#        lines_per_invoice_counter = defaultdict(int)
+#        for line in lines:
+#            lines_per_invoice_counter[str(line[2]["move_id"])] += 1
+#
+#        return {
+#            "value": {
+#                "retention_line_ids": lines,
+#                "original_lines_per_invoice_counter": json.dumps(
+#                    lines_per_invoice_counter
+#                ),
+#            }
+#        }
 
     def _load_retention_lines_for_iva_customer_retention(self):
         self.ensure_one()
@@ -329,21 +415,30 @@ class AccountRetention(models.Model):
                 _("There are no invoices with taxes to be retained for the customer.")
             )
         self.clear_retention()
-        lines = load_retention_lines(invoices_with_taxes, self.env["account.retention"])
+        retention_lines_data = [
+            self.compute_retention_lines_data(i) for i in invoices_with_taxes
+        ]
 
         lines_per_invoice_counter = defaultdict(int)
-        for line in lines:
-            lines_per_invoice_counter[str(line[2]["move_id"])] += 1
+        lines_to_create = []
+        # Cambio: Iterar sobre la lista de listas de diccionarios
+        for lines in retention_lines_data:
+            # Cambio: Iterar sobre cada diccionario de datos de línea
+            for line_data in lines:
+                # Cambio: Acceder al 'move_id' de forma segura
+                lines_per_invoice_counter[str(line_data.get("move_id"))] += 1
+                # No hay cambio aquí, se sigue creando el comando
+                lines_to_create.append(Command.create(line_data))
 
         return {
             "value": {
-                "retention_line_ids": lines,
+                "retention_line_ids": lines_to_create,
                 "original_lines_per_invoice_counter": json.dumps(
                     lines_per_invoice_counter
                 ),
             }
         }
-
+    
     def _validate_retention_journals(self):
         """
         Validate that the company has the journals configured for the retention type.
@@ -1176,82 +1271,84 @@ class AccountRetention(models.Model):
             
             return result
 
-    def _load_retention_lines_for_iva_supplier_retention(self):
-        self.ensure_one()
-        self.date_accounting = fields.Date.today()
-        search_domain = [
-            ("company_id", "=", self.company_id.id),
-            ("partner_id", "=", self.partner_id.id),
-            ("state", "=", "posted"),
-            ("move_type", "in", ("in_refund", "in_invoice")),
-            ("amount_residual", ">", 0),
-        ]
-        invoices_with_taxes = search_invoices_with_taxes(
-            self.env["account.move"], search_domain
-        ).filtered(
-            lambda i: not any(
-                i.retention_iva_line_ids.filtered(
-                    lambda l: l.state in ("draft", "emitted")
-                )
-            )
-        )
-        if not any(invoices_with_taxes):
-            raise UserError(
-                _("There are no invoices with taxes to be retained for the supplier.")
-            )
-        self.clear_retention()
-        lines = load_retention_lines(invoices_with_taxes, self.env["account.retention"])
+#    def _load_retention_lines_for_iva_supplier_retention(self):
+#        self.ensure_one()
+#        self.date_accounting = fields.Date.today()
+#        search_domain = [
+#            ("company_id", "=", self.company_id.id),
+#            ("partner_id", "=", self.partner_id.id),
+#            ("state", "=", "posted"),
+#            ("move_type", "in", ("in_refund", "in_invoice")),
+#            ("amount_residual", ">", 0),
+#        ]
+#        invoices_with_taxes = search_invoices_with_taxes(
+#            self.env["account.move"], search_domain
+#        ).filtered(
+#            lambda i: not any(
+#                i.retention_iva_line_ids.filtered(
+#                    lambda l: l.state in ("draft", "emitted")
+#                )
+#            )
+#        )
+#        if not any(invoices_with_taxes):
+#            raise UserError(
+#                _("There are no invoices with taxes to be retained for the supplier.")
+#            )
+#        self.clear_retention()
+#        lines = load_retention_lines(invoices_with_taxes, self.env["account.retention"])
+#
+#        lines_per_invoice_counter = defaultdict(int)
+#        for line in lines:
+#            lines_per_invoice_counter[str(line[2]["move_id"])] += 1
+#
+#        return {
+#            "value": {
+#                "retention_line_ids": lines,
+#                "original_lines_per_invoice_counter": json.dumps(
+#                    lines_per_invoice_counter
+#                ),
+#            }
+#        }
 
-        lines_per_invoice_counter = defaultdict(int)
-        for line in lines:
-            lines_per_invoice_counter[str(line[2]["move_id"])] += 1
 
-        return {
-            "value": {
-                "retention_line_ids": lines,
-                "original_lines_per_invoice_counter": json.dumps(
-                    lines_per_invoice_counter
-                ),
-            }
-        }
-
-    def _load_retention_lines_for_iva_customer_retention(self):
-        self.ensure_one()
-        search_domain = [
-            ("company_id", "=", self.company_id.id),
-            ("partner_id", "=", self.partner_id.id),
-            ("state", "=", "posted"),
-            ("move_type", "in", ("out_refund", "out_invoice")),
-            ("amount_residual", ">", 0),
-        ]
-        invoices_with_taxes = search_invoices_with_taxes(
-            self.env["account.move"], search_domain
-        ).filtered(
-            lambda i: not any(
-                i.retention_iva_line_ids.filtered(
-                    lambda l: l.state in ("draft", "emitted")
-                )
-            )
-        )
-        if not any(invoices_with_taxes):
-            raise UserError(
-                _("There are no invoices with taxes to be retained for the customer.")
-            )
-        self.clear_retention()
-        lines = load_retention_lines(invoices_with_taxes, self.env["account.retention"])
-
-        lines_per_invoice_counter = defaultdict(int)
-        for line in lines:
-            lines_per_invoice_counter[str(line[2]["move_id"])] += 1
-
-        return {
-            "value": {
-                "retention_line_ids": lines,
-                "original_lines_per_invoice_counter": json.dumps(
-                    lines_per_invoice_counter
-                ),
-            }
-        }
+    
+#    def _load_retention_lines_for_iva_customer_retention(self):
+#        self.ensure_one()
+#        search_domain = [
+#            ("company_id", "=", self.company_id.id),
+#            ("partner_id", "=", self.partner_id.id),
+#            ("state", "=", "posted"),
+#            ("move_type", "in", ("out_refund", "out_invoice")),
+#            ("amount_residual", ">", 0),
+#        ]
+#        invoices_with_taxes = search_invoices_with_taxes(
+#            self.env["account.move"], search_domain
+#        ).filtered(
+#            lambda i: not any(
+#                i.retention_iva_line_ids.filtered(
+#                    lambda l: l.state in ("draft", "emitted")
+#                )
+#            )
+#        )
+#        if not any(invoices_with_taxes):
+#            raise UserError(
+#                _("There are no invoices with taxes to be retained for the customer.")
+#            )
+#        self.clear_retention()
+#        lines = load_retention_lines(invoices_with_taxes, self.env["account.retention"])
+#
+#        lines_per_invoice_counter = defaultdict(int)
+#        for line in lines:
+#            lines_per_invoice_counter[str(line[2]["move_id"])] += 1
+#
+#        return {
+#            "value": {
+#                "retention_line_ids": lines,
+#                "original_lines_per_invoice_counter": json.dumps(
+#                    lines_per_invoice_counter
+#                ),
+#            }
+#        }
 
     def _validate_retention_journals(self):
         """
