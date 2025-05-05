@@ -26,6 +26,42 @@ class AccountMove(models.Model):
 
     next_installment_date = fields.Date(compute="_compute_next_installment_date")
 
+    # INICIO DE LAS MODIFICACIONES SUGERIDAS PARA RELACIONAR CON account.retention.line
+    retention_iva_line_ids = fields.One2many(
+        'account.retention.line',
+        'move_id',
+        string='Retenciones de IVA',
+        domain=[('type_retention', '=', 'iva')],
+        readonly=True,
+        copy=False,
+        # Este campo One2many crea la relación inversa para las líneas de retención de IVA.
+        # 'account.retention.line' es el modelo relacionado.
+        # 'move_id' es el campo Many2one en 'account.retention.line' que conecta con este modelo.
+    )
+    retention_islr_line_ids = fields.One2many(
+        'account.retention.line',
+        'move_id',
+        string='Retenciones de ISLR',
+        domain=[('type_retention', '=', 'islr')],
+        readonly=True,
+        copy=False,
+        # Este campo One2many crea la relación inversa para las líneas de retención de ISLR.
+        # 'account.retention.line' es el modelo relacionado.
+        # 'move_id' es el campo Many2one en 'account.retention.line' que conecta con este modelo.
+    )
+    retention_municipal_line_ids = fields.One2many(
+        'account.retention.line',
+        'move_id',
+        string='Retenciones Municipales',
+        domain=[('type_retention', '=', 'municipal')],
+        readonly=True,
+        copy=False,
+        # Este campo One2many crea la relación inversa para las líneas de retención municipales.
+        # 'account.retention.line' es el modelo relacionado.
+        # 'move_id' es el campo Many2one en 'account.retention.line' que conecta con este modelo.
+    )
+    # FIN DE LAS MODIFICACIONES SUGERIDAS
+   
     @api.constrains("correlative", "journal_id.is_contingency")
     def _check_correlative(self):
         AccountMove = self.env["account.move"]
