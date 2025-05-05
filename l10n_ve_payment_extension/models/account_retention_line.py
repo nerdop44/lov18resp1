@@ -40,7 +40,8 @@ class AccountRetentionLine(models.Model):
     base_ret = fields.Float("Retained base", digits=(16, 2))
     imp_ret = fields.Float(string="tax incurred", digits=(16, 2))
     retention_rate = fields.Float(store=True, digits="Tasa")
-    move_id = fields.Many2one("account.move", "move", ondelete="cascade", store=True)
+    move_id = fields.Many2one("account.move", string="Journal Entry", ondelete="cascade", store=True)
+    #move_id = fields.Many2one("account.move", "move", ondelete="cascade", store=True)
     is_retention_client = fields.Boolean(default=True)
     display_invoice_number = fields.Char(
         string="Invoice Number", compute="_compute_display_invoice_number", store=True
