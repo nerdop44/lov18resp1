@@ -125,7 +125,7 @@ class AccountRetentionLine(models.Model):
     foreign_iva_amount = fields.Float(string="Foreign IVA")
     foreign_currency_rate = fields.Float(string="Rate")
 
-    @api.depends("retention_id.type_retention", "move_id")
+    @api.depends("retention_id.type_retention")#, "move_id")
     def _compute_name(self):
         for record in self:
             if record.name:
@@ -138,24 +138,26 @@ class AccountRetentionLine(models.Model):
             type_retention = "islr"
             if record.retention_id.type_retention:
                 type_retention = record.retention_id.type_retention
-            elif record.move_id:
-                if record in record.move_id.retention_iva_line_ids:
-                    type_retention = "iva"
-                elif record in record.move_id.retention_municipal_line_ids:
-                    type_retention = "municipal"
+            #elif record.move_id:
+            #    if record in record.move_id.retention_iva_line_ids:
+            #        type_retention = "iva"
+            #    elif record in record.move_id.retention_municipal_line_ids:
+            #        type_retention = "municipal"
 
             record.name = names.get(type_retention, _("Retention"))
 
-    @api.depends("retention_id", "move_id")
+    @api.depends("retention_id")#, "move_id")
     def _compute_economic_activity_id(self):
         for line in self:
-            if line.economic_activity_id:
-                continue
-            if line.retention_id and line.retention_id.type_retention == "municipal":
-                line.economic_activity_id = line.retention_id.partner_id.economic_activity_id
-            if line.move_id and line.id in line.move_id.retention_municipal_line_ids.ids:
-                line.economic_activity_id = line.move_id.partner_id.economic_activity_id
-
+            #if line.economic_activity_id:
+            #    continue
+            #if line.retention_id and line.retention_id.type_retention == "municipal":
+            #    line.economic_activity_id = line.retention_id.partner_id.economic_activity_id
+            #if line.move_id and line.id in line.move_id.retention_municipal_line_ids.ids:
+            #    line.economic_activity_id = line.move_id.partner_id.economic_activity_id
+            if not line.economic_activity_id and line.retention_id and line.retention_id.type_retention == "municipal":
+            line.economic_activity_id = line.retention_id.partner_id.economic_activity_id
+            
     def unlink(self):
         for record in self:
             record.payment_id.unlink()
