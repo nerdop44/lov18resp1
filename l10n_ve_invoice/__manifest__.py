@@ -10,7 +10,7 @@
     # any module necessary for this one to work correctly
     "depends": [
         "l10n_ve_base",
-        "l10n_ve_accountant",
+        #"l10n_ve_accountant",
         "l10n_ve_contact",
         "l10n_ve_tax",
     ],
