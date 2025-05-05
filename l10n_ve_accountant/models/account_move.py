@@ -99,7 +99,8 @@ class AccountMove(models.Model):
 
     # Agregar el campo retention_iva_line_ids
     retention_iva_line_ids = fields.One2many(
-        'retention.iva.line',  # Asegúrate de que este modelo exista
+        'account.retention.line',  # Corregido a account.retention.line
+        #'retention.iva.line',  # Asegúrate de que este modelo exista
         'move_id',  # Campo que relaciona con account.move
         string='Retention IVA Lines'
     )
