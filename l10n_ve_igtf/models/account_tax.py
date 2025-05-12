@@ -40,8 +40,15 @@ class AccountTax(models.Model):
             - foreign_amount_total_igtf: float
             - formatted_foreign_amount_total_igtf: str
         """
-        _logger.debug("Base Lines: %s", base_lines)
-        _logger.debug("Currency: %s", currency)
+       
+       ## _logger.debug("Base Lines: %s", base_lines)
+       ## _logger.debug("Currency: %s", currency)
+        _logger.critical("EJECUTANDO _prepare_tax_totals DEL MODULO IGTF")  # MODIFICADO
+        _logger.info("Base Lines: %s", base_lines)  # MODIFICADO
+        _logger.info("Currency: %s", currency)  # MODIFICADO
+        _logger.info("igtf_base_amount (param): %s", igtf_base_amount)  # MODIFICADO
+        _logger.info("is_company_currency_requested: %s", is_company_currency_requested)  # MODIFICADO
+        _logger.info("Tax Lines: %s", tax_lines)  # MODIFICADO
 
         res = super()._prepare_tax_totals(
             base_lines,
@@ -50,8 +57,8 @@ class AccountTax(models.Model):
             is_company_currency_requested=is_company_currency_requested,
         )
         
-        _logger.debug("Initial Res: %s", res)
-
+        ##_logger.debug("Initial Res: %s", res)
+        _logger.info("Resultado de super(): %s", res)  # MODIFICADO
         invoice = self.env["account.move"]
         order = False
         apply_igtf = False
