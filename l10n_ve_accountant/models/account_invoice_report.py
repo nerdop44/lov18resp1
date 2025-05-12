@@ -1,6 +1,5 @@
 from odoo import api, fields, models, _
 from lxml import etree
-from odoo.sql_db import SQL
 
 
 class AccountInvoiceReport(models.Model):
@@ -58,23 +57,10 @@ class AccountInvoiceReport(models.Model):
             The query with the foreign_rate and foreign_total_billed fields
 
         """
-        # Obtén la consulta del método padre
-        base_select = super()._select()
-        
-        # Asegúrate de que todos los componentes sean del tipo correcto
-        return SQL("%s, line.foreign_currency_id, line.foreign_rate, line.foreign_subtotal, line.foreign_price_total", base_select)
-
-
-#        return super()._select() + ", line.foreign_currency_id, line.foreign_rate, line.foreign_subtotal, line.foreign_price_total"
-#        return (
-#            super()._select()
-#            + ", line.foreign_currency_id, line.foreign_rate,  line.foreign_subtotal, line.foreign_price_total"
-#        )
-
-#        return (
-#            str(super()._select())  # Asegúrate de que sea una cadena
-#            + ", line.foreign_currency_id, line.foreign_rate, line.foreign_subtotal, line.foreign_price_total"
-#         )
+        return (
+            super()._select()
+            + ", line.foreign_currency_id, line.foreign_rate,  line.foreign_subtotal, line.foreign_price_total"
+        )
 
     @api.model
     def get_view(self, view_id=None, view_type=None, **options):
