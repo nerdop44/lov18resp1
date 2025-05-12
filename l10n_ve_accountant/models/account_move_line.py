@@ -14,9 +14,6 @@ _logger = logging.getLogger(__name__)
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
 
-    # Modificación: Asegúrate de que este campo esté definido
-    move_id = fields.Many2one('account.move', string='Move', required=True)  # Definición del campo move_id
-
     not_foreign_recalculate = fields.Boolean()
     foreign_currency_id = fields.Many2one(
         related="move_id.foreign_currency_id", store=True
@@ -497,5 +494,3 @@ class AccountMoveLine(models.Model):
     def _onchange_price_unit(self):
         if self.price_unit < 0:
             raise ValidationError(_("The price entered cannot be negative"))
-
-
