@@ -46,20 +46,81 @@ class AccountPaymentRegister(models.TransientModel):
             if not bool(payment.foreign_rate):
                 return
 
-            batch_result = payment._get_batches()#[0]
-            if not batch_result:  # Verifica si la lista está vacía
-                payment.foreign_inverse_rate = 0.0  # O maneja el caso como desees
-                payment.amount = 0.0  # O maneja el caso como desees
-                return            
-                
-            payment.foreign_inverse_rate = Rate.compute_inverse_rate(payment.foreign_rate)
-            total_amount_residual_in_wizard_currency = (
-                payment._get_total_amount_in_wizard_currency_to_full_reconcile(
-                    batch_result[0], early_payment_discount=False
-                )[0]
-            )
-            payment.amount = total_amount_residual_in_wizard_currency
+            ##batch_result = payment._get_batches()[0]
+            ##payment.foreign_inverse_rate = Rate.compute_inverse_rate(payment.foreign_rate)
+            ##total_amount_residual_in_wizard_currency = (
+            ##    payment._get_total_amount_in_wizard_currency_to_full_reconcile(
+            ##        batch_result, early_payment_discount=False
+            ##    )[0]
+            ##)
+            ##payment.amount = total_amount_residual_in_wizard_currency
 
+
+
+            payment.foreign_inverse_rate = Rate.compute_inverse_rate(payment.foreign_rate)
+            total_amount_residual = 0.0
+            import logging
+            _logger = logging.getLogger(__name__)
+
+            if self.env.context.get('active_model') == 'account.move' and self.env.context.get('active_ids'):
+                invoices = self.env['account.move'].browse(self.env.context.get('active_ids'))
+                for invoice in invoices:
+                    if invoice.currency_id == payment.currency_id:
+                        total_amount_residual += invoice.amount_residual
+                    else:
+                        total_amount_residual += invoice.currency_id._convert(
+                            invoice.amount_residual,
+                            payment.currency_id,
+                            payment.company_id,
+                            payment.payment_date,
+                        )
+            elif payment.partner_id and payment.payment_type == 'outbound':
+                # Handle general payments to customers without specific invoices selected
+                domain = [
+                    ['partner_id', '=', payment.partner_id.id],
+                    ['move_type', '=', 'in_invoice'],
+                    ['payment_state', '!=', 'paid'],
+                ]
+                _logger.warning(f"OUTBOUND - Partner ID: {payment.partner_id.id}, Payment Type: {payment.payment_type}")
+                _logger.warning(f"OUTBOUND - Search Domain: {domain}")
+                moves = self.env['account.move'].sudo().search(domain)
+                _logger.warning(f"OUTBOUND - Search Result: {moves}")
+                for move in moves:
+                    _logger.warning(f"OUTBOUND - Move ID: {move.id}, Currency: {move.currency_id.id}, Residual: {move.amount_residual}")
+                    if move.currency_id == payment.currency_id:
+                        total_amount_residual += move.amount_residual
+                    else:
+                        total_amount_residual += move.currency_id._convert(
+                            move.amount_residual,
+                            payment.currency_id,
+                            payment.company_id,
+                            payment.payment_date,
+                        )
+            elif payment.partner_id and payment.payment_type == 'inbound':
+                # Handle general payments from suppliers without specific bills selected
+                domain = [
+                    ['partner_id', '=', payment.partner_id.id],
+                    ['move_type', '=', 'out_invoice'],
+                    ['payment_state', '!=', 'paid'],
+                ]
+                _logger.warning(f"INBOUND - Partner ID: {payment.partner_id.id}, Payment Type: {payment.payment_type}")
+                _logger.warning(f"INBOUND - Search Domain: {domain}")
+                moves = self.env['account.move'].sudo().search(domain)
+                _logger.warning(f"INBOUND - Search Result: {moves}")
+                for move in moves:
+                    _logger.warning(f"INBOUND - Move ID: {move.id}, Currency: {move.currency_id.id}, Residual: {move.amount_residual}")
+                    if move.currency_id == payment.currency_id:
+                        total_amount_residual += move.amount_residual
+                    else:
+                        total_amount_residual += move.currency_id._convert(
+                            move.amount_residual,
+                            payment.currency_id,
+                            payment.company_id,
+                            payment.payment_date,
+                        )
+
+            payment.amount = total_amount_residual
+    
     @api.onchange("payment_date")
     def _onchange_invoice_date(self):
         """
@@ -86,46 +147,20 @@ class AccountPaymentRegister(models.TransientModel):
         )
         return payment_vals
 
-    @api.depends("can_edit_wizard", "amount", "foreign_inverse_rate")
-    def _compute_payment_difference(self):
-        for wizard in self:
-            if wizard.can_edit_wizard:
-                batch_result = wizard._get_batches()#[0]
-                if not batch_result:  # Verifica si la lista está vacía
-                    wizard.payment_difference = 0.0  # No hay lotes, no hay diferencia que calcular
-                    return
-                total_amount_residual_in_wizard_currency = (
-                    wizard._get_total_amount_in_wizard_currency_to_full_reconcile(
-                        batch_result[0], early_payment_discount=False
-                    )[0]
-                )
-                wizard.payment_difference = total_amount_residual_in_wizard_currency - wizard.amount
-            else:
-                wizard.payment_difference = 0.0
+#    @api.depends("can_edit_wizard", "amount", "foreign_inverse_rate")
+#    def _compute_payment_difference(self):
+#        for wizard in self:
+#            if wizard.can_edit_wizard:
+#                # batch_result = wizard._get_batches()[0]
+#                # total_amount_residual_in_wizard_currency = (
+#                #     wizard._get_total_amount_in_wizard_currency_to_full_reconcile(
+#                #         batch_result, early_payment_discount=False
+#                #     )[0]
+#                # )
+#                # wizard.payment_difference = total_amount_residual_in_wizard_currency - #wizard.amount
+#            else:
+#                wizard.payment_difference = 0.0
 
-    def _get_batches(self):
-        """
-        This method retrieves the batches of payments that are being processed.
-        It returns a list of dictionaries, each containing the lines of a payment batch.
-        """
-        # Aquí puedes definir la lógica para obtener los lotes de pagos.
-        # Por ejemplo, podrías buscar los pagos que están en estado 'draft' o 'posted'.
-        batches = []
-        
-        # Suponiendo que estás buscando pagos relacionados con el registro actual
-        payments = self.env['account.payment'].search([('state', 'in', ['draft', 'posted'])])
-        if not payments:
-            return batches
-            
-        for payment in payments:
-            # Agregar cada pago como un lote
-            batches.append({
-                'lines': payment.line_ids,  # Suponiendo que cada pago tiene líneas asociadas
-            })
-        
-        return batches
-
-    
     def _get_total_amount_in_wizard_currency_to_full_reconcile(
         self, batch_result, early_payment_discount=True
     ):
