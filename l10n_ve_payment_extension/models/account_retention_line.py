@@ -40,8 +40,7 @@ class AccountRetentionLine(models.Model):
     base_ret = fields.Float("Retained base", digits=(16, 2))
     imp_ret = fields.Float(string="tax incurred", digits=(16, 2))
     retention_rate = fields.Float(store=True, digits="Tasa")
-    move_id = fields.Many2one("account.move", string="Journal Entry", ondelete="cascade", store=True)
-    #move_id = fields.Many2one("account.move", "move", ondelete="cascade", store=True)
+    move_id = fields.Many2one("account.move", "move", ondelete="cascade", store=True)
     is_retention_client = fields.Boolean(default=True)
     display_invoice_number = fields.Char(
         string="Invoice Number", compute="_compute_display_invoice_number", store=True
@@ -125,7 +124,7 @@ class AccountRetentionLine(models.Model):
     foreign_iva_amount = fields.Float(string="Foreign IVA")
     foreign_currency_rate = fields.Float(string="Rate")
 
-    @api.depends("retention_id.type_retention")#, "move_id")
+    @api.depends("retention_id.type_retention", "move_id")
     def _compute_name(self):
         for record in self:
             if record.name:
@@ -138,26 +137,24 @@ class AccountRetentionLine(models.Model):
             type_retention = "islr"
             if record.retention_id.type_retention:
                 type_retention = record.retention_id.type_retention
-            #elif record.move_id:
-            #    if record in record.move_id.retention_iva_line_ids:
-            #        type_retention = "iva"
-            #    elif record in record.move_id.retention_municipal_line_ids:
-            #        type_retention = "municipal"
+            elif record.move_id:
+                if record in record.move_id.retention_iva_line_ids:
+                    type_retention = "iva"
+                elif record in record.move_id.retention_municipal_line_ids:
+                    type_retention = "municipal"
 
             record.name = names.get(type_retention, _("Retention"))
 
-    @api.depends("retention_id")#, "move_id")
+    @api.depends("retention_id", "move_id")
     def _compute_economic_activity_id(self):
         for line in self:
-            #if line.economic_activity_id:
-            #    continue
-            #if line.retention_id and line.retention_id.type_retention == "municipal":
-            #    line.economic_activity_id = line.retention_id.partner_id.economic_activity_id
-            #if line.move_id and line.id in line.move_id.retention_municipal_line_ids.ids:
-            #    line.economic_activity_id = line.move_id.partner_id.economic_activity_id
-            if not line.economic_activity_id and line.retention_id and line.retention_id.type_retention == "municipal":
-            line.economic_activity_id = line.retention_id.partner_id.economic_activity_id
-            
+            if line.economic_activity_id:
+                continue
+            if line.retention_id and line.retention_id.type_retention == "municipal":
+                line.economic_activity_id = line.retention_id.partner_id.economic_activity_id
+            if line.move_id and line.id in line.move_id.retention_municipal_line_ids.ids:
+                line.economic_activity_id = line.move_id.partner_id.economic_activity_id
+
     def unlink(self):
         for record in self:
             record.payment_id.unlink()
@@ -372,16 +369,42 @@ class AccountRetentionLine(models.Model):
     )
     def _constraint_amounts(self):
         for record in self:
-            if any(
-                (
-                    record.retention_amount == 0,
-                    record.invoice_total == 0,
-                    record.foreign_retention_amount == 0,
-                    record.invoice_amount == 0,
-                    record.foreign_invoice_amount == 0,
-                )
+            # Solo verificar si el monto de retención es cero
+            if record.retention_amount == 0 and record.foreign_retention_amount == 0:
+                raise ValidationError(_("You can not create a retention line with 0 retention amount."))
+
+            is_vef_the_base_currency = self.env.company.currency_id == self.env.ref("base.VEF")
+            is_client_retention = record.retention_id.type == "out_invoice"
+            if (
+                is_vef_the_base_currency
+                and is_client_retention
+                and record.retention_amount > record.move_id.amount_residual
             ):
-                raise ValidationError(_("You can not create a retention with 0 amount."))
+                raise ValidationError(
+                    _(
+                        "The total amount of the retention is greater than the residual amount of"
+                        " the invoice."
+                    )
+                )
+#            if (
+#                record.retention_amount == 0
+#                and record.invoice_total == 0
+#                and record.foreign_retention_amount == 0
+#                and record.invoice_amount == 0
+#                and record.foreign_invoice_amount == 0
+#            ):
+#                continue  # Permitir líneas con todos los montos en cero
+#
+#            if any(
+#                (
+#                    record.retention_amount == 0,
+#                    record.invoice_total == 0,
+#                    record.foreign_retention_amount == 0,
+#                    record.invoice_amount == 0,
+#                    record.foreign_invoice_amount == 0,
+#                )
+#            ):
+#                raise ValidationError(_("You can not create a retention with 0 amount."))
 
             is_vef_the_base_currency = self.env.company.currency_id == self.env.ref("base.VEF")
             is_client_retention = record.retention_id.type == "out_invoice"
