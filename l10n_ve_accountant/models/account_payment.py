@@ -43,11 +43,11 @@ class AccountPayment(models.Model):
     concept = fields.Char()
 
     @api.model_create_multi
-    def create(self, vals_tree):
+    def create(self, vals_list):
         """
         Override the create method to set the rate of the payment to its move.
         """
-        payments = super().create(vals_tree)
+        payments = super().create(vals_list)
         for payment in payments.with_context(skip_account_move_synchronization=True):
             payment.move_id.write(
                 {
