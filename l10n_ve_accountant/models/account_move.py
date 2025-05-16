@@ -642,9 +642,19 @@ class AccountMove(models.Model):
         Compute the foreign taxable income of the invoice
         """
         for move in self:
-            move.foreign_taxable_income = False
-            if move.is_invoice() and move.invoice_line_ids:
-                move.foreign_taxable_income = move.tax_totals["foreign_amount_untaxed"]
+            move.foreign_taxable_income = 0.0  # Inicializar en 0.0 para facturas en moneda local
+            if move.is_invoice() and move.invoice_line_ids and move.foreign_currency_id and move.currency_id != move.foreign_currency_id:
+                if 'foreign_amount_untaxed' in move.tax_totals:
+                    move.foreign_taxable_income = move.tax_totals['foreign_amount_untaxed']
+                    
+#    def _compute_foreign_taxable_income(self):
+#        """
+#        Compute the foreign taxable income of the invoice
+#        """
+#        for move in self:
+#            move.foreign_taxable_income = False
+#            if move.is_invoice() and move.invoice_line_ids:
+#                move.foreign_taxable_income = move.tax_totals["foreign_amount_untaxed"]
 
     @api.depends("tax_totals")
     def _compute_foreign_total_billed(self):
