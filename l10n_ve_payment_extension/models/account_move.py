@@ -67,33 +67,87 @@ class AccountMoveRetention(models.Model):
         """
         Override the action_post method to create the retentions payment.
         """
+        _logger.info("action_post called for account.move with IDs: %s", self.ids)
         res = super().action_post()
+        _logger.info("super().action_post() returned for account.move with IDs: %s", self.ids)
         for move in self:
+            _logger.info("Processing move with ID: %s, type: %s", move.id, move.move_type)
             if move.move_type not in ("in_invoice", "in_refund"):
+                _logger.info("Move %s is not a supplier invoice/refund, skipping retention creation.", move.id)
                 continue
 
             if move.retention_islr_line_ids and not move.islr_voucher_number:
-                move._validate_islr_retention()
-                retention = move._create_supplier_retention("islr")
-                retention.action_post()
-                move.islr_voucher_number = retention.number
+                _logger.info("Move %s has ISLR retention lines, creating retention.", move.id)
+                try:
+                    move._validate_islr_retention()
+                    retention = move._create_supplier_retention("islr")
+                    _logger.info("ISLR retention %s created for move %s, calling retention.action_post().", retention.id, move.id)
+                    retention.action_post()
+                    move.islr_voucher_number = retention.number
+                    _logger.info("ISLR retention %s posted and number set on move %s.", retention.id, move.id)
+                except UserError as e:
+                    _logger.warning("UserError during ISLR retention creation for move %s: %s", move.id, e)
 
             if move.retention_municipal_line_ids:
-                move._validate_municipal_retention()
-                retention = move._create_supplier_retention("municipal")
-                retention.action_post()
+                _logger.info("Move %s has municipal retention lines, creating retention.", move.id)
+                try:
+                    move._validate_municipal_retention()
+                    retention = move._create_supplier_retention("municipal")
+                    _logger.info("Municipal retention %s created for move %s, calling retention.action_post().", retention.id, move.id)
+                    retention.action_post()
+                    _logger.info("Municipal retention %s posted for move %s.", retention.id, move.id)
+                except UserError as e:
+                    _logger.warning("UserError during municipal retention creation for move %s: %s", move.id, e)
 
-            # The IVA retention will not be generated if the invoice already has a retention that
-            # is not cancelled
             if (
                 move.generate_iva_retention
                 and not move.retention_iva_line_ids.filtered(lambda l: l.state != "cancel")
             ):
-                move._validate_iva_retention()
-                retention = move._create_supplier_retention("iva")
-                retention.action_post()
-                move.iva_voucher_number = retention.number
+                _logger.info("Move %s is set to generate IVA retention, creating retention.", move.id)
+                try:
+                    #move.ensure_one() # Añadir esta línea
+                    move._validate_iva_retention()
+                    retention = move._create_supplier_retention("iva")
+                    _logger.info("IVA retention %s created for move %s, calling retention.action_post().", retention.id, move.id)
+                    retention.action_post()
+                    move.iva_voucher_number = retention.number
+                    _logger.info("IVA retention %s posted and number set on move %s.", retention.id, move.id)
+                except UserError as e:
+                    _logger.warning("UserError during IVA retention creation for move %s: %s", move.id, e)
+        _logger.info("action_post finished for account.move with IDs: %s", self.ids)
         return res
+    
+#    def action_post(self):
+#        """
+#        Override the action_post method to create the retentions payment.
+#        """
+#        res = super().action_post()
+#        for move in self:
+#            if move.move_type not in ("in_invoice", "in_refund"):
+#                continue
+#
+#            if move.retention_islr_line_ids and not move.islr_voucher_number:
+#                move._validate_islr_retention()
+#                retention = move._create_supplier_retention("islr")
+#                retention.action_post()
+#                move.islr_voucher_number = retention.number
+
+#            if move.retention_municipal_line_ids:
+#                move._validate_municipal_retention()
+#                retention = move._create_supplier_retention("municipal")
+#                retention.action_post()
+
+#            # The IVA retention will not be generated if the invoice already has a retention that
+#            # is not cancelled
+#            if (
+#                move.generate_iva_retention
+#                and not move.retention_iva_line_ids.filtered(lambda l: l.state != "cancel")
+#            ):
+#                move._validate_iva_retention()
+#                retention = move._create_supplier_retention("iva")
+#                retention.action_post()
+#                move.iva_voucher_number = retention.number
+#        return res
 
     def _validate_islr_retention(self):
         """
