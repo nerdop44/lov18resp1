@@ -647,6 +647,9 @@ class AccountRetention(models.Model):
                 payments = retention.create_payment_from_retention_form()
                 retention.payment_ids = payments.ids
 
+                # >>>>>>>>>>>> MOVER ESTA LÍNEA AQUÍ <<<<<<<<<<<<<<<<
+                self.payment_ids.action_post()
+
             if retention.type in ["in_invoice", "in_refund", "in_debit"]:
                 retention._set_sequence()
                 self.set_voucher_number_in_invoice(move_ids, retention)
@@ -751,6 +754,8 @@ class AccountRetention(models.Model):
         self.clear_islr_retention_number()
 
     def create_payment_from_retention_form(self):
+        _logger.info("Entrando en create_payment_from_retention_form (VERSION DE LOGGING)")
+        # ... (el resto del código de la función) ...
         """
         Create the corresponding payments for the retention based on the fields of the retention.
 
@@ -824,6 +829,13 @@ class AccountRetention(models.Model):
             payments += Payment.create(vals)
         payments.compute_retention_amount_from_retention_lines()
 
+        # >>>>>>>>>>>> AGREGAR ESTA LÍNEA <<<<<<<<<<<<<<<<
+        payments.action_post()
+
+        for payment in payments:
+            _logger.warning(f"Payment ID: {payment.id}, Move ID after action_post: {payment.move_id}")
+
+
         return payments
 
     def _validate_islr_retention_fields(self):
@@ -849,6 +861,8 @@ class AccountRetention(models.Model):
                 self._reconcile_customer_payment(payment)
 
     def _reconcile_supplier_payment(self, payment):
+        _logger.warning(f"_reconcile_supplier_payment: payment ID: {payment.id}, payment.move_id: {payment.move_id}")
+
         if payment.payment_type == "outbound":
             line_to_reconcile = payment.move_id.line_ids.filtered(
                 lambda l: l.account_id.account_type == "liability_payable"
