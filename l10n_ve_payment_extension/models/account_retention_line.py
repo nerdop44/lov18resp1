@@ -165,37 +165,50 @@ class AccountRetentionLine(models.Model):
     def _compute_related_fields(self):
         """
         This compute is used to get the related fields from the payment concept of the partner
-        to generate the ISLR retention line
+    to generate the ISLR retention line
         """
         lines_from_islr_retention = self.filtered(
             lambda l: l.payment_concept_id
             and (not l.retention_id or l.retention_id.type_retention == "islr")
         )
+    
         for record in lines_from_islr_retention:
-            # Payment concept of the line
+        # Validación básica de datos requeridos
+            if not record.move_id:
+                continue
+            
+        # Manejo seguro de tax_totals
+            tax_totals = record.move_id.tax_totals or {}
+        
+        # Obtener valores con defaults
+            amount_total = tax_totals.get('amount_total', 0.0)
+            foreign_amount_total = tax_totals.get('foreign_amount_total', amount_total)
+            amount_untaxed = tax_totals.get('amount_untaxed', 0.0)
+            foreign_amount_untaxed = tax_totals.get('foreign_amount_untaxed', amount_untaxed)
+        
+        # Validar partner y tipo de persona
+            if not record.move_id.partner_id.type_person_id:
+                raise UserError(_("The partner does not have a type of person"))
+
+        # Payment concept of the line
             payment_concept = record.payment_concept_id.line_payment_concept_ids
             for line in payment_concept:
-                # if not record.move_id.partner_id.type_person_id:
-                #     raise UserError(_("The partner does not have a type of person"))
-
                 if record.move_id.partner_id.type_person_id.id == line.type_person_id.id:
-                    # compare the type_person_id of the partner with the type_person_id of the
-                    # payment concept and set the related fields.
-                    record.invoice_total = record.move_id.tax_totals["amount_total"]
-                    record.foreign_invoice_total = record.move_id.tax_totals["foreign_amount_total"]
-                    record.related_pay_from = line.pay_from
-                    record.related_percentage_tax_base = line.percentage_tax_base
-                    record.related_percentage_fees = line.tariff_id.percentage
-                    record.related_amount_subtract_fees = line.tariff_id.amount_subtract
-                    record.foreign_currency_rate = record.move_id.foreign_rate
+                # Asignar valores con manejo seguro
+                    record.invoice_total = amount_total
+                    record.foreign_invoice_total = foreign_amount_total
+                    record.related_pay_from = line.pay_from or 0.0
+                    record.related_percentage_tax_base = line.percentage_tax_base or 0.0
+                    record.related_percentage_fees = line.tariff_id.percentage if line.tariff_id else 0.0
+                    record.related_amount_subtract_fees = line.tariff_id.amount_subtract if line.tariff_id else 0.0
+                    record.foreign_currency_rate = record.move_id.foreign_rate or 1.0
 
                     if not record.retention_id or record.retention_id.type == "in_invoice":
-                        # We don't want this fields to be computed when the retention is
-                        # created from a customer invoice since they are filled by the user.
-                        record.invoice_amount = record.move_id.tax_totals["amount_untaxed"]
-                        record.foreign_invoice_amount = record.move_id.tax_totals[
-                            "foreign_amount_untaxed"
-                        ]
+                    # Solo para retenciones de proveedor
+                        record.invoice_amount = amount_untaxed
+                        record.foreign_invoice_amount = foreign_amount_untaxed
+
+
 
     @api.depends("invoice_amount", "foreign_invoice_amount")
     def _compute_amounts(self):
