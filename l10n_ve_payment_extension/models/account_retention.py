@@ -630,33 +630,44 @@ class AccountRetention(models.Model):
     def action_post(self):
         today = datetime.now()
         for retention in self:
-            if (
-                retention.type in ["out_invoice", "out_refund", "out_debit"]
-                and not retention.number
-            ):
-                raise UserError(_("Insert a number for the retention"))
-            if not retention.date_accounting:
-                retention.date_accounting = today
-            if not retention.date:
-                retention.date = today
+            try:
+                # Validaciones iniciales
+                if retention.type in ["out_invoice", "out_refund", "out_debit"] and not retention.number:
+                    raise UserError(_("Debe ingresar un número para la retención"))
+            
+                if not retention.date_accounting:
+                    retention.date_accounting = today
+                if not retention.date:
+                    retention.date = today
 
-            move_ids = retention.mapped("retention_line_ids.move_id")
-            self.set_voucher_number_in_invoice(move_ids, retention)
-
-            if not retention.payment_ids:
-                payments = retention.create_payment_from_retention_form()
-                retention.payment_ids = payments.ids
-
-                # >>>>>>>>>>>> MOVER ESTA LÍNEA AQUÍ <<<<<<<<<<<<<<<<
-                self.payment_ids.action_post()
-
-            if retention.type in ["in_invoice", "in_refund", "in_debit"]:
-                retention._set_sequence()
+            # Procesar facturas
+                move_ids = retention.mapped("retention_line_ids.move_id")
                 self.set_voucher_number_in_invoice(move_ids, retention)
 
-        self.payment_ids.write({"date": self.date_accounting})
-        self._reconcile_all_payments()
-        self.write({"state": "emitted"})
+            # Manejo de pagos
+                if not retention.payment_ids:
+                    payments = retention.create_payment_from_retention_form()
+                    retention.payment_ids = payments.ids
+            
+            # Validar pagos antes de publicarlos
+                for payment in retention.payment_ids:
+                    if not payment.move_id:
+                        raise UserError(_("El pago %s no tiene asiento contable") % payment.name)
+            
+            # Publicar pagos
+                retention.payment_ids.action_post()
+            
+            # Reconciliación
+                retention.payment_ids.write({"date": retention.date_accounting})
+                self._reconcile_all_payments()
+            
+            # Actualizar estado
+                retention.write({"state": "emitted"})
+            
+            except Exception as e:
+                _logger.error(f"Error al publicar retención {retention.id}: {str(e)}")
+                raise UserError(_("Error al publicar la retención: %s") % str(e))
+    
 
     def set_voucher_number_in_invoice(self, move, retention):
         if retention.type_retention == "iva":
@@ -831,6 +842,7 @@ class AccountRetention(models.Model):
 
         # >>>>>>>>>>>> AGREGAR ESTA LÍNEA <<<<<<<<<<<<<<<<
         payments.action_post()
+        _logger.warning(f"Payments IDs after action_post: {payments.ids}, Move IDs after action_post: {[p.move_id for p in payments]}")  # <---- LÍNEA AGREGADA AQUÍ
 
         for payment in payments:
             _logger.warning(f"Payment ID: {payment.id}, Move ID after action_post: {payment.move_id}")
@@ -849,81 +861,84 @@ class AccountRetention(models.Model):
             raise UserError(_("Select a payment concept"))
 
     def _reconcile_all_payments(self):
-        """
-        Reconcile all payments of the retention with the invoice of the lines corresponding to the
-        payment.
-        """
         for payment in self.mapped("payment_ids"):
-            payment.action_post()
-            if payment.partner_type == "supplier":
-                self._reconcile_supplier_payment(payment)
-            if payment.partner_type == "customer":
-                self._reconcile_customer_payment(payment)
+            try:
+                if payment.partner_type == "supplier":
+                    self._reconcile_supplier_payment(payment)
+                elif payment.partner_type == "customer":
+                    self._reconcile_customer_payment(payment)
+            except UserError as e:
+                _logger.error(f"Error reconciliando pago {payment.id}: {str(e)}")
+                raise
+
+            except Exception as e:
+                _logger.error(f"Error inesperado reconciliando pago {payment.id}: {str(e)}")
+                raise UserError(_("Ocurrió un error inesperado al reconciliar los pagos."))
+
 
     def _reconcile_supplier_payment(self, payment):
-        _logger.warning(f"_reconcile_supplier_payment: payment ID: {payment.id}, payment.move_id: {payment.move_id}")
-
-        if payment.payment_type == "outbound":
-            line_to_reconcile = payment.move_id.line_ids.filtered(
-                lambda l: l.account_id.account_type == "liability_payable"
-                and l.debit > 0
-            )[0]
-            payment.retention_line_ids.move_id.js_assign_outstanding_line(
-                line_to_reconcile.id
-            )
-        elif payment.payment_type == "inbound":
-            line_to_reconcile = payment.move_id.line_ids.filtered(
-                lambda l: l.account_id.account_type == "liability_payable"
-                and l.credit > 0
-            )[0]
-            payment.retention_line_ids.move_id.js_assign_outstanding_line(
-                line_to_reconcile.id
-            )
-            
-    import logging
-    _logger = logging.getLogger(__name__)
-
-    def _reconcile_customer_payment(self, payment):
-        _logger.warning(f"Reconciliando pago ID: {payment.id}, Tipo: {payment.payment_type}")
-        if payment.move_id:
-            _logger.warning(f"Asiento contable del pago ID: {payment.move_id.id}")
-            for line in payment.move_id.line_ids:
-                _logger.warning(f"  Línea ID: {line.id}, Cuenta: {line.account_id.code} ({line.account_id.account_type}), Débito: {line.debit}, Crédito: {line.credit}")
-            filtered_lines = payment.move_id.line_ids.filtered(
-                lambda l: l.account_id.account_type == "asset_receivable"
-                and (l.debit > 0 if payment.payment_type == "outbound" else l.credit > 0)
-            )
-            _logger.warning(f"Líneas filtradas: {filtered_lines}")
-            if filtered_lines:
-                line_to_reconcile = filtered_lines[0]
-                payment.retention_line_ids.move_id.js_assign_outstanding_line(
-                    line_to_reconcile.id
-                )
-            else:
-                _logger.warning(f"No se encontraron líneas para reconciliar en el pago {payment.id}")
-        else:
-            _logger.warning(f"El pago {payment.id} no tiene asiento contable asociado.")
-#    import logging
-#    _logger = logging.getLogger(__name__)
-
+        """
+        Reconciliación de pagos a proveedores para retenciones
+        Args:
+            payment (account.payment): Pago a reconciliar
+        Raises:
+            UserError: Si hay problemas con la reconciliación
+        """
+        _logger.info(f"Reconciliando pago a proveedor ID: {payment.id}")
     
-#    def _reconcile_customer_payment(self, payment):
-#        if payment.payment_type == "outbound":
-#            line_to_reconcile = payment.move_id.line_ids.filtered(
-#                lambda l: l.account_id.account_type == "asset_receivable"
-#                and l.debit > 0
-#            )[0]
-#            payment.retention_line_ids.move_id.js_assign_outstanding_line(
-#                line_to_reconcile.id
-#            )
-#        elif payment.payment_type == "inbound":
-#            line_to_reconcile = payment.move_id.line_ids.filtered(
-#                lambda l: l.account_id.account_type == "asset_receivable"
-#                and l.credit > 0
-#            )[0]
-#            payment.retention_line_ids.move_id.js_assign_outstanding_line(
-#                line_to_reconcile.id
-#            )
+        # Validación básica del pago
+        if not payment.move_id:
+            error_msg = f"El pago {payment.id} no tiene asiento contable asociado"
+            _logger.error(error_msg)
+            raise UserError(_("El pago no tiene asiento contable. Por favor valide la configuración."))
+    
+        # Identificar líneas a reconciliar según tipo de pago
+        if payment.payment_type == "outbound":
+            line_filter = lambda l: (
+                l.account_id.account_type == "liability_payable" and 
+                l.debit > 0
+            )
+        else:  # inbound (reembolsos/notas de crédito)
+            line_filter = lambda l: (
+                l.account_id.account_type == "liability_payable" and 
+                l.credit > 0
+            )
+    
+        lineas_a_reconciliar = payment.move_id.line_ids.filtered(line_filter)
+    
+        if not lineas_a_reconciliar:
+            error_msg = f"No hay líneas a reconciliar en pago {payment.id}"
+            _logger.error(error_msg)
+            raise UserError(_("""
+                No se encontraron líneas contables para reconciliar. 
+                Verifique:
+                1. La configuración de cuentas por pagar
+                2. Que el pago esté correctamente contabilizado
+            """))
+    
+        # Proceso de reconciliación
+        try:
+            linea_reconciliar = lineas_a_reconciliar[0]
+            facturas = payment.retention_line_ids.mapped('move_id')
+        
+            if not facturas:
+                raise UserError(_("No hay facturas asociadas a este pago"))
+        
+            for factura in facturas:
+                if not factura.exists():
+                    _logger.warning(f"Factura {factura.id} no existe, omitiendo")
+                    continue
+                factura.js_assign_outstanding_line(linea_reconciliar.id)
+            
+            _logger.info(f"Pago {payment.id} reconciliado exitosamente con facturas {facturas.ids}")
+        
+        except Exception as e:
+            error_msg = f"Error reconciliando pago {payment.id}: {str(e)}"
+            _logger.error(error_msg)
+            raise UserError(_("""
+                Error al reconciliar el pago: %s
+                Detalles técnicos: %s
+            """) % (payment.name, str(e)))
 
     @api.model
     def compute_retention_lines_data(self, invoice_id, payment=None):
