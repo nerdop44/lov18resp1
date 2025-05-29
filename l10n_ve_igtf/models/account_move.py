@@ -120,16 +120,28 @@ class AccountMove(models.Model):
             payments = record.invoice_payments_widget.get("content", False)
             amount = 0
             if line_id:
-                line = self.env["account.move.line"].browse([line_id])
-                payment_id = line.move_id.payment_id
-                if payment_id and payment_id.is_igtf_on_foreign_exchange:
-                    payment_id = line.move_id.payment_id
-                    bi_igtf = payment_id.get_bi_igtf()
+                line = self.env["account.move.line"].browse(line_id)
+                # Solución robusta para encontrar el pago asociado
+                payment = self._get_payment_from_line(line)
+            
+                if payment and payment.is_igtf_on_foreign_exchange:
+                    bi_igtf = payment.get_bi_igtf()
                     if initial_residual < bi_igtf:
                         record.bi_igtf = initial_residual
                         continue
                     record.bi_igtf += bi_igtf
                     continue
+#            if line_id:
+#                line = self.env["account.move.line"].browse([line_id])
+#                payment_id = line.move_id.payment_id
+#                if payment_id and payment_id.is_igtf_on_foreign_exchange:
+#                    payment_id = line.move_id.payment_id
+#                    bi_igtf = payment_id.get_bi_igtf()
+#                    if initial_residual < bi_igtf:
+#                        record.bi_igtf = initial_residual
+#                        continue
+#                    record.bi_igtf += bi_igtf
+#                    continue
 
             for payment in payments:
                 payment_id = payment.get("account_payment_id", False)
@@ -146,6 +158,23 @@ class AccountMove(models.Model):
 
             record.bi_igtf = amount
 
+    def _get_payment_from_line(self, line):
+        """Método seguro para obtener el pago desde una línea"""
+        # Primero intenta con payment_id directo en la línea
+        if hasattr(line, 'payment_id') and line.payment_id:
+            return line.payment_id
+    
+        # Si no existe, busca pagos vinculados al asiento
+        payment = self.env['account.payment'].search([
+            ('move_id', '=', line.move_id.id)
+        ], limit=1)
+    
+        # Si aún no hay pago, busca a través de conciliaciones
+        if not payment:
+            payment = line.matched_debit_ids.payment_id or line.matched_credit_ids.payment_id
+    
+        return payment
+
     def remove_igtf_from_move(self, partial_id):
         """Remove IGTF from move
 
@@ -158,8 +187,11 @@ class AccountMove(models.Model):
 
         partial = self.env["account.partial.reconcile"].browse(partial_id)
 
-        payment_credit = partial.credit_move_id.payment_id
-        payment_debit = partial.debit_move_id.payment_id
+        payment_credit = self._get_payment_from_line(partial.credit_move_id)
+        payment_debit = self._get_payment_from_line(partial.debit_move_id)
+
+#        payment_credit = partial.credit_move_id.payment_id
+#        payment_debit = partial.debit_move_id.payment_id
 
         move_credit = partial.credit_move_id.payment_id.reconciled_invoice_ids
         move_debit = partial.debit_move_id.payment_id.reconciled_invoice_ids
@@ -241,12 +273,16 @@ class AccountMove(models.Model):
     def js_assign_outstanding_line(self, line_id):
         amount_residual = self.amount_residual
         res = super().js_assign_outstanding_line(line_id)
-        self.recalculate_bi_igtf(
-            line_id,
-            initial_residual=(
-                amount_residual
-                if not self.currency_id.is_zero(amount_residual)
-                else self.amount_residual
-            ),
-        )
+        line = self.env["account.move.line"].browse(line_id)
+        payment = self._get_payment_from_line(line)
+    
+        if payment:
+            self.recalculate_bi_igtf(
+                line_id,
+                initial_residual=(
+                    amount_residual
+                    if not self.currency_id.is_zero(amount_residual)
+                    else self.amount_residual
+                ),
+            )
         return res
