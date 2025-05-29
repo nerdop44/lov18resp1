@@ -461,13 +461,13 @@ class AccountRetention(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         res = super().create(vals_list)
-        res._create_payments_from_retention_lines()
+        res._safe_create_payments()
         return res
 
     def write(self, vals):
         res = super().write(vals)
         if vals.get("retention_line_ids", False):
-            self._create_payments_from_retention_lines()
+            self._safe_create_payments()
         return res
 
     def unlink(self):
@@ -480,23 +480,38 @@ class AccountRetention(models.Model):
                 )
         return super().unlink()
 
-    def _create_payments_from_retention_lines(self):
+    def _safe_create_payments(self):
         """
-        Create the payments from the retention lines for an IVA retention.
-
-        When there are retention lines without payments, this method will create a payment for each
-        set of retention lines that have the same invoice.
+        Versión segura para crear pagos que no modifica movimientos publicados
         """
         for retention in self:
             if any(retention.payment_ids) or retention.type_retention != "iva":
                 continue
+            
             payment_vals = {
                 "retention_id": retention.id,
                 "partner_id": retention.partner_id.id,
                 "payment_type_retention": "iva",
                 "is_retention": True,
                 "currency_id": self.env.user.company_id.currency_id.id,
-            }
+            }        
+#    def _create_payments_from_retention_lines(self):
+#        """
+#        Create the payments from the retention lines for an IVA retention.
+
+#        When there are retention lines without payments, this method will create a payment for each
+#        set of retention lines that have the same invoice.
+#        """
+#        for retention in self:
+#            if any(retention.payment_ids) or retention.type_retention != "iva":
+#                continue
+#            payment_vals = {
+#                "retention_id": retention.id,
+#                "partner_id": retention.partner_id.id,
+#                "payment_type_retention": "iva",
+#                "is_retention": True,
+#                "currency_id": self.env.user.company_id.currency_id.id,
+#            }
 
             def account_retention_line_empty_recordset():
                 return self.env["account.retention.line"]
@@ -628,55 +643,375 @@ class AccountRetention(models.Model):
         self.write({"state": "draft"})
 
     def action_post(self):
-        today = datetime.now()
         for retention in self:
             try:
-                # Validaciones iniciales
-                if retention.type in ["out_invoice", "out_refund", "out_debit"] and not retention.number:
-                    raise UserError(_("Debe ingresar un número para la retención"))
+                # Validaciones iniciales (se mantienen igual)
+                if retention.state == 'emitted':
+                    _logger.info(f"Retención {retention.id} ya está en estado 'emitted', omitiendo")
+                    continue
+
+                _logger.info(f"Iniciando publicación de retención {retention.id}")
+
+                # Asignar número de secuencia si no existe
+                if not retention.number:
+                    _logger.info(f"Asignando número de secuencia a retención {retention.id}")
+                    retention._set_sequence()
+                    _logger.info(f"Número asignado: {retention.number}")
             
+                if retention.type in ["out_invoice", "out_refund", "out_debit"] and not retention.number:
+                    error_msg = f"Retención {retention.id} no tiene número asignado"
+                    _logger.error(error_msg)
+                    raise UserError(_("Debe ingresar un número para la retención"))
+        
+                # Establecer fechas si no están definidas
+                today = fields.Date.context_today(self)
                 if not retention.date_accounting:
                     retention.date_accounting = today
+                    _logger.info(f"Fecha contable establecida: {retention.date_accounting}")
                 if not retention.date:
                     retention.date = today
+                    _logger.info(f"Fecha de retención establecida: {retention.date}")
 
-            # Procesar facturas
-                move_ids = retention.mapped("retention_line_ids.move_id")
-                self.set_voucher_number_in_invoice(move_ids, retention)
+                # VALIDACIONES ESPECÍFICAS PARA ISLR (NUEVO)
+                if retention.type_retention == 'islr':
+                    if not retention.partner_id.type_person_id:
+                        raise UserError(_("Para retenciones ISLR, el partner debe tener tipo de persona configurado"))
+                
+                    if not all(line.payment_concept_id for line in retention.retention_line_ids):
+                        raise UserError(_("Todas las líneas de retención ISLR deben tener un concepto de pago asignado"))
 
-            # Manejo de pagos
+                # Crear pagos si no existen (modificado para ISLR)
                 if not retention.payment_ids:
-                    payments = retention.create_payment_from_retention_form()
-                    retention.payment_ids = payments.ids
-            
-            # Validar pagos antes de publicarlos
-                for payment in retention.payment_ids:
+                    _logger.info("Creando pagos para la retención")
+                    if retention.type_retention == 'islr':
+                        retention._create_islr_payments()  # Nuevo método para ISLR
+                    else:
+                        retention._create_payments_from_retention_lines()  # Método existente para IVA/municipal
+
+                # Procesar cada pago con contexto seguro (se mantiene igual)
+                for payment in retention.payment_ids.with_context(skip_manually_modified_check=True):
+                    _logger.info(f"Procesando pago {payment.id}")
                     if not payment.move_id:
-                        raise UserError(_("El pago %s no tiene asiento contable") % payment.name)
-            
-            # Publicar pagos
-                retention.payment_ids.action_post()
-            
-            # Reconciliación
-                retention.payment_ids.write({"date": retention.date_accounting})
-                self._reconcile_all_payments()
-            
-            # Actualizar estado
-                retention.write({"state": "emitted"})
-            
+                        if hasattr(payment, 'action_create'):
+                            _logger.info("Creando asiento contable para el pago")
+                            payment.action_create()
+                        else:
+                            _logger.info("Publicando pago (versión moderna)")
+                        payment.with_context(skip_manually_modified_check=True).action_post()
+                    elif payment.state != 'posted':
+                        _logger.info("Publicando pago pendiente")
+                        payment.with_context(skip_manually_modified_check=True).action_post()
+
+                # Asignar número de comprobante a facturas (se mantiene igual)
+                move_ids = retention.mapped("retention_line_ids.move_id")
+                if move_ids:
+                    _logger.info(f"Asignando número de comprobante a {len(move_ids)} facturas")
+                    retention.set_voucher_number_in_invoice(move_ids, retention)
+
+                # Actualizar estado de la retención (se mantiene igual)
+                retention.write({'state': 'emitted'})
+                _logger.info(f"Retención {retention.id} marcada como emitida")
+        
             except Exception as e:
-                _logger.error(f"Error al publicar retención {retention.id}: {str(e)}")
+                _logger.error("Error al publicar retención %s: %s", retention.id, str(e), exc_info=True)
                 raise UserError(_("Error al publicar la retención: %s") % str(e))
+
+    def _create_islr_payments(self):
+        """
+        Nuevo método para crear pagos de ISLR agrupados por concepto
+        """
+        Payment = self.env['account.payment']
+        journal_id = (
+            self.env.company.islr_supplier_retention_journal_id.id 
+            if self.type == 'in_invoice' 
+            else self.env.company.islr_customer_retention_journal_id.id
+        )
+    
+        # Agrupar líneas por concepto de pago
+        lines_by_concept = defaultdict(lambda: self.env['account.retention.line'])
+        for line in self.retention_line_ids:
+            lines_by_concept[line.payment_concept_id] += line
+    
+        payments = self.env['account.payment']
+        for concept, lines in lines_by_concept.items():
+            payment_vals = {
+                'retention_id': self.id,
+                'partner_id': self.partner_id.id,
+                'payment_type_retention': 'islr',
+                'is_retention': True,
+                'journal_id': journal_id,
+                'partner_type': 'supplier' if self.type == 'in_invoice' else 'customer',
+                'payment_type': 'outbound' if self.type == 'in_invoice' else 'inbound',
+                'payment_concept_id': concept.id,
+                'foreign_rate': lines[0].foreign_currency_rate,
+                'retention_line_ids': [(6, 0, lines.ids)],
+                'amount': sum(lines.mapped('retention_amount')),
+                'currency_id': self.env.company.currency_id.id,
+                'date': self.date_accounting,
+             }
+        
+            payment = Payment.create(payment_vals)
+            payments += payment
+    
+        return payments   
+
+    # def action_post(self):
+    #     for retention in self:
+    #         try:
+    #             # Validaciones iniciales
+    #             if retention.state == 'emitted':
+    #                 _logger.info(f"Retención {retention.id} ya está en estado 'emitted', omitiendo")
+    #                 continue
+
+    #             _logger.info(f"Iniciando publicación de retención {retention.id}")
+
+    #             # Asignar número de secuencia si no existe
+    #             if not retention.number:
+    #                 _logger.info(f"Asignando número de secuencia a retención {retention.id}")
+    #                 retention._set_sequence()
+    #                 _logger.info(f"Número asignado: {retention.number}")
+            
+    #             if retention.type in ["out_invoice", "out_refund", "out_debit"] and not retention.number:
+    #                 error_msg = f"Retención {retention.id} no tiene número asignado"
+    #                 _logger.error(error_msg)
+    #                 raise UserError(_("Debe ingresar un número para la retención"))
+        
+    #             # Establecer fechas si no están definidas
+    #             today = fields.Date.context_today(self)
+    #             if not retention.date_accounting:
+    #                 retention.date_accounting = today
+    #                 _logger.info(f"Fecha contable establecida: {retention.date_accounting}")
+    #             if not retention.date:
+    #                 retention.date = today
+    #                 _logger.info(f"Fecha de retención establecida: {retention.date}")
+
+    #             # Crear pagos si no existen
+    #             if not retention.payment_ids:
+    #                 _logger.info("Creando pagos para la retención")
+    #                 retention._create_payments_from_retention_lines()
+
+    #             # Procesar cada pago con contexto seguro
+    #             for payment in retention.payment_ids.with_context(skip_manually_modified_check=True):
+    #                 _logger.info(f"Procesando pago {payment.id}")
+    #                 if not payment.move_id:
+    #                     if hasattr(payment, 'action_create'):
+    #                         _logger.info("Creando asiento contable para el pago")
+    #                         payment.action_create()
+    #                     else:
+    #                         _logger.info("Publicando pago (versión moderna)")
+    #                     payment.with_context(skip_manually_modified_check=True).action_post()
+    #                 elif payment.state != 'posted':
+    #                     _logger.info("Publicando pago pendiente")
+    #                     payment.with_context(skip_manually_modified_check=True).action_post()
+
+    #             # Asignar número de comprobante a facturas
+    #             move_ids = retention.mapped("retention_line_ids.move_id")
+    #             if move_ids:
+    #                 _logger.info(f"Asignando número de comprobante a {len(move_ids)} facturas")
+    #                 retention.set_voucher_number_in_invoice(move_ids, retention)
+
+    #             # Actualizar estado de la retención
+    #             retention.write({'state': 'emitted'})
+    #             _logger.info(f"Retención {retention.id} marcada como emitida")
+        
+    #         except Exception as e:
+    #             _logger.error("Error al publicar retención %s: %s", retention.id, str(e), exc_info=True)
+    #             raise UserError(_("Error al publicar la retención: %s") % str(e))
+
+    # def action_post(self):
+    #     for retention in self:
+    #         try:
+    #             # Validaciones iniciales
+    #             if retention.state == 'emitted':
+    #                 _logger.info(f"Retención {retention.id} ya está en estado 'emitted', omitiendo")
+    #                 continue
+
+    #             _logger.info(f"Iniciando publicación de retención {retention.id}")
+
+    #             # Asignar número de secuencia si no existe
+    #             if not retention.number:
+    #                 _logger.info(f"Asignando número de secuencia a retención {retention.id}")
+    #                 retention._set_sequence()  # <-- Añadir esta línea
+    #                 _logger.info(f"Número asignado: {retention.number}")
+                
+    #             if retention.type in ["out_invoice", "out_refund", "out_debit"] and not retention.number:
+    #                 error_msg = f"Retención {retention.id} no tiene número asignado"
+    #                 _logger.error(error_msg)
+    #                 raise UserError(_("Debe ingresar un número para la retención"))
+            
+    #             # Establecer fechas si no están definidas
+    #             today = fields.Date.context_today(self)
+    #             if not retention.date_accounting:
+    #                 retention.date_accounting = today
+    #                 _logger.info(f"Fecha contable establecida: {retention.date_accounting}")
+    #             if not retention.date:
+    #                 retention.date = today
+    #                 _logger.info(f"Fecha de retención establecida: {retention.date}")
+
+    #             # Crear pagos si no existen
+    #             if not retention.payment_ids:
+    #                 _logger.info("Creando pagos para la retención")
+    #                 retention._create_payments_from_retention_lines()
+
+    #             # Procesar cada pago
+    #             for payment in retention.payment_ids:
+    #                 # Versión compatible con todas las versiones de Odoo
+    #                 _logger.info(f"Procesando pago {payment.id}")
+    #                 if not payment.move_id:
+    #                     if hasattr(payment, 'action_create'):
+    #                         _logger.info("Creando asiento contable para el pago")
+    #                         payment.action_create()
+    #                     else:
+    #                         _logger.info("Publicando pago (versión moderna)")
+    #                         # Método alternativo para versiones más recientes
+    #                         payment.action_post()  # Esto crea y publica el movimiento
+    #                 elif payment.state != 'posted':
+    #                     _logger.info("Publicando pago pendiente")
+    #                     payment.action_post()
+
+    #             # Asignar número de comprobante a facturas
+    #             move_ids = retention.mapped("retention_line_ids.move_id")
+    #             if move_ids:
+    #                 _logger.info(f"Asignando número de comprobante a {len(move_ids)} facturas")
+    #                 retention.set_voucher_number_in_invoice(move_ids, retention)
+
+    #             # Actualizar estado de la retención
+    #             retention.write({'state': 'emitted'})
+    #             _logger.info(f"Retención {retention.id} marcada como emitida")
+            
+    #         except Exception as e:
+    #             _logger.error("Error al publicar retención %s: %s", retention.id, str(e), exc_info=True)
+    #             raise UserError(_("Error al publicar la retención: %s") % str(e))
+
+    # def _get_report_base_filename(self):
+    #     self.ensure_one()
+    #     if not self.number:
+    #         _logger.error(f"Intento de generar nombre de archivo para retención {self.id} sin número asignado")
+    #         raise UserError(_("La retención no tiene número asignado"))
+    
+    #     filename = f"Retencion_{self.type_retention.upper()}_{self.number}"
+    #     _logger.info(f"Generando nombre de archivo para retención {self.id}: {filename}")
+    #     return filename
+        
+    # def action_post(self):
+    #     for retention in self:
+    #         try:
+    #             # Validaciones iniciales (se mantienen las existentes)
+    #             if retention.type in ["out_invoice", "out_refund", "out_debit"] and not retention.number:
+    #                 raise UserError(_("Debe ingresar un número para la retención"))
+            
+    #             if not retention.date_accounting:
+    #                 retention.date_accounting = fields.Date.context_today(self)
+    #             if not retention.date:
+    #                 retention.date = fields.Date.context_today(self)
+
+    #             # Crear pagos (versión segura que evita modificar movimientos publicados)
+    #             if not retention.payment_ids:
+    #                 retention._safe_create_payments()  # <- Nuevo método (se explica abajo)
+
+    #             # Publicar pagos (con validación de estados)
+    #             for payment in retention.payment_ids.filtered(lambda p: p.state != 'posted'):
+    #                 if not payment.move_id:
+    #                     payment.action_create()
+    #                 payment.action_post()
+
+    #             # Asignar número de comprobante (versión segura)
+    #             move_ids = retention.mapped("retention_line_ids.move_id").filtered(lambda m: m.state == 'posted')
+    #             if move_ids:
+    #                 self._safe_set_voucher_number(move_ids, retention)  # <- Nuevo método
+
+    #             # Actualizar estado (sin cambios)
+    #             retention.write({'state': 'emitted'})
+            
+    #         except Exception as e:
+    #             _logger.error("Error al publicar retención %s: %s", retention.id, str(e), exc_info=True)
+    #             raise UserError(_("Error al publicar la retención: %s") % str(e))
+    
+#    def action_post(self):
+#        today = datetime.now()
+#        for retention in self:
+#            try:
+#                # Validaciones iniciales
+#                if retention.type in ["out_invoice", "out_refund", "out_debit"] and not retention.number:
+#                    raise UserError(_("Debe ingresar un número para la retención"))
+#            
+#                if not retention.date_accounting:
+#                    retention.date_accounting = today
+#                if not retention.date:
+#                    retention.date = today
+
+#            # Procesar facturas
+#                move_ids = retention.mapped("retention_line_ids.move_id")
+#                self.set_voucher_number_in_invoice(move_ids, retention)
+
+#            # Manejo de pagos
+#                if not retention.payment_ids:
+#                    payments = retention.create_payment_from_retention_form()
+#                    retention.payment_ids = payments.ids
+#            
+#            # Validar pagos antes de publicarlos
+#                for payment in retention.payment_ids:
+#                    if not payment.move_id:
+#                       raise UserError(_("El pago %s no tiene asiento contable") % payment.name)
+#            
+#            # Publicar pagos
+#                retention.payment_ids.action_post()
+#            
+#            # Reconciliación
+#                retention.payment_ids.write({"date": retention.date_accounting})
+#                self._reconcile_all_payments()
+#            
+#            # Actualizar estado
+#                retention.write({"state": "emitted"})
+#            
+#            except Exception as e:
+#                _logger.error(f"Error al publicar retención {retention.id}: {str(e)}")
+#                raise UserError(_("Error al publicar la retención: %s") % str(e))
     
 
-    def set_voucher_number_in_invoice(self, move, retention):
-        if retention.type_retention == "iva":
-            move.write({"iva_voucher_number": retention.number})
-        elif retention.type_retention == "islr":
-            move.write({"islr_voucher_number": retention.number})
-        elif retention.type_retention == "municipal":
-            move.write({"municipal_voucher_number": retention.number})
+    # def set_voucher_number_in_invoice(self, move, retention):
+    #     if retention.type_retention == "iva":
+    #         move.write({"iva_voucher_number": retention.number})
+    #     elif retention.type_retention == "islr":
+    #         move.write({"islr_voucher_number": retention.number})
+    #     elif retention.type_retention == "municipal":
+    #         move.write({"municipal_voucher_number": retention.number})
 
+    def set_voucher_number_in_invoice(self, move, retention):
+        try:
+            _logger.info(f"Asignando número de comprobante a facturas para retención {retention.id}")
+        
+            if retention.type_retention == "iva":
+                _logger.info(f"Asignando iva_voucher_number: {retention.number}")
+                move.write({"iva_voucher_number": retention.number})
+            elif retention.type_retention == "islr":
+                _logger.info(f"Asignando islr_voucher_number: {retention.number}")
+                move.write({"islr_voucher_number": retention.number})
+            elif retention.type_retention == "municipal":
+                _logger.info(f"Asignando municipal_voucher_number: {retention.number}")
+                move.write({"municipal_voucher_number": retention.number})
+            
+            _logger.info(f"Números de comprobante asignados correctamente a {len(move)} facturas")
+        
+        except Exception as e:
+            _logger.error(f"Error asignando número de comprobante: {str(e)}")
+            raise
+    
+    def _safe_set_voucher_number(self, moves, retention):
+        """Asigna número de comprobante sin modificar campos protegidos"""
+        for move in moves:
+            if move.state == 'posted':  # Solo para facturas publicadas
+                vals = {}
+                if retention.type_retention == "iva":
+                    vals['iva_voucher_number'] = retention.number
+                elif retention.type_retention == "islr":
+                    vals['islr_voucher_number'] = retention.number
+                elif retention.type_retention == "municipal":
+                    vals['municipal_voucher_number'] = retention.number
+            
+                if vals:
+                    move.write(vals)
+    
     def action_print_municipal_retention_xlsx(self):
         self.ensure_one()
         return {
@@ -687,70 +1022,117 @@ class AccountRetention(models.Model):
 
     def _set_sequence(self):
         for retention in self.filtered(lambda r: not r.number):
-            sequence_number = ""
-            if retention.type_retention == "iva":
-                sequence_number = retention.get_sequence_iva_retention().next_by_id()
-            elif retention.type_retention == "islr":
-                sequence_number = retention.get_sequence_islr_retention().next_by_id()
-            else:
-                sequence_number = (
-                    retention.get_sequence_municipal_retention().next_by_id()
-                )
-            correlative = f"{retention.date_accounting.year}{retention.date_accounting.month:02d}{sequence_number}"
-            retention.name = correlative
-            retention.number = correlative
+            try:
+                _logger.info(f"Asignando secuencia a retención {retention.id}")
+            
+                sequence_number = ""
+                if retention.type_retention == "iva":
+                    sequence = retention.get_sequence_iva_retention()
+                    _logger.info(f"Secuencia IVA encontrada: {sequence.id}")
+                    sequence_number = sequence.next_by_id()
+                elif retention.type_retention == "islr":
+                    sequence = retention.get_sequence_islr_retention()
+                    _logger.info(f"Secuencia ISLR encontrada: {sequence.id}")
+                    sequence_number = sequence.next_by_id()
+                else:
+                    sequence = retention.get_sequence_municipal_retention()
+                    _logger.info(f"Secuencia Municipal encontrada: {sequence.id}")
+                    sequence_number = sequence.next_by_id()
+            
+                correlative = f"{retention.date_accounting.year}{retention.date_accounting.month:02d}{sequence_number}"
+                retention.name = correlative
+                retention.number = correlative
+            
+                _logger.info(f"Retención {retention.id} - Número asignado: {retention.number}")
+            
+            except Exception as e:
+                _logger.error(f"Error asignando secuencia a retención {retention.id}: {str(e)}")
+                raise UserError(_("Error al asignar número de secuencia: %s") % str(e))
+
+    # def _set_sequence(self):
+    #     for retention in self.filtered(lambda r: not r.number):
+    #         sequence_number = ""
+    #         if retention.type_retention == "iva":
+    #             sequence_number = retention.get_sequence_iva_retention().next_by_id()
+    #         elif retention.type_retention == "islr":
+    #             sequence_number = retention.get_sequence_islr_retention().next_by_id()
+    #         else:
+    #             sequence_number = (
+    #                 retention.get_sequence_municipal_retention().next_by_id()
+    #             )
+    #         correlative = f"{retention.date_accounting.year}{retention.date_accounting.month:02d}{sequence_number}"
+    #         retention.name = correlative
+    #         retention.number = correlative
 
     @api.model
     def get_sequence_iva_retention(self):
+        _logger.info("Buscando secuencia para retenciones IVA")
         sequence = self.env["ir.sequence"].search(
             [
                 ("code", "=", "retention.iva.control.number"),
                 ("company_id", "=", self.env.company.id),
-            ]
+            ], limit=1
         )
         if not sequence:
+            _logger.info("Secuencia para retenciones IVA no encontrada, creando nueva")
             sequence = self.env["ir.sequence"].create(
                 {
                     "name": "Numero de control retenciones IVA",
                     "code": "retention.iva.control.number",
                     "padding": 5,
+                    "company_id": self.env.company.id,
                 }
             )
+            _logger.info(f"Nueva secuencia IVA creada con ID {sequence.id}")
+
+        _logger.info(f"Retornando secuencia IVA: {sequence.id}")
         return sequence
 
     @api.model
     def get_sequence_islr_retention(self):
+        _logger.info("Buscando secuencia para retenciones ISLR")
         sequence = self.env["ir.sequence"].search(
             [
                 ("code", "=", "retention.islr.control.number"),
                 ("company_id", "=", self.env.company.id),
-            ]
+            ], limit=1
         )
         if not sequence:
+            _logger.info("Secuencia para retenciones ISLR no encontrada, creando nueva")
             sequence = self.env["ir.sequence"].create(
                 {
                     "name": "Numero de control retenciones ISLR",
                     "code": "retention.islr.control.number",
                     "padding": 5,
+                    "company_id": self.env.company.id,
                 }
             )
+            _logger.info(f"Nueva secuencia ISLR creada con ID {sequence.id}")
+
+        _logger.info(f"Retornando secuencia ISLR: {sequence.id}")
         return sequence
 
     def get_sequence_municipal_retention(self):
+        _logger.info("Buscando secuencia para retenciones Municipales")
         sequence = self.env["ir.sequence"].search(
             [
                 ("code", "=", "retention.municipal.control.number"),
                 ("company_id", "=", self.env.company.id),
-            ]
+            ], limit=1
         )
         if not sequence:
+            _logger.info("Secuencia para retenciones Municipales no encontrada, creando nueva")
             sequence = self.env["ir.sequence"].create(
                 {
-                    "name": "Numero de control retenciones Municipal",
-                    "code": "retention.iva.control.number",
+                    "name": "Numero de control retenciones Municipales",
+                    "code": "retention.municipal.control.number",
                     "padding": 5,
+                    "company_id": self.env.company.id,
                 }
             )
+            _logger.info(f"Nueva secuencia Municipal creada con ID {sequence.id}")
+
+        _logger.info(f"Retornando secuencia Municipal: {sequence.id}")
         return sequence
 
     def clear_islr_retention_number(self):
