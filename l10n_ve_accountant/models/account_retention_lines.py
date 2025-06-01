@@ -6,6 +6,13 @@ class AccountRetentionIvaLine(models.Model):
     _name = "account.retention.iva.line"
     _description = "Account Retention IVA Line"
 
+    # Campo 'name' añadido
+    name = fields.Char(
+        string="Descripción de Retención IVA",
+        compute="_compute_name",
+        store=True, # Almacenar el campo para que sea consultable/filtrable
+    )
+
     move_id = fields.Many2one(
         "account.move",
         string="Factura",
@@ -98,6 +105,13 @@ class AccountRetentionIslrLine(models.Model):
     _name = "account.retention.islr.line"
     _description = "Account Retention ISLR Line"
 
+    # Campo 'name' añadido
+    name = fields.Char(
+        string="Descripción de Retención ISLR",
+        compute="_compute_name",
+        store=True,
+    )
+
     move_id = fields.Many2one(
         "account.move",
         string="Factura",
@@ -187,6 +201,13 @@ class AccountRetentionIslrLine(models.Model):
 class AccountRetentionMunicipalLine(models.Model):
     _name = "account.retention.municipal.line"
     _description = "Account Retention Municipal Line"
+
+    # Campo 'name' añadido
+    name = fields.Char(
+        string="Descripción de Retención Municipal",
+        compute="_compute_name",
+        store=True,
+    )
 
     move_id = fields.Many2one(
         "account.move",
