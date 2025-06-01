@@ -21,7 +21,7 @@
 						<field name="retention_iva_line_ids" nolabel="1" readonly="1" widget="one2many_list">
 							<list editable='bottom'>
 								<!-- Invisible Fields -->
-								<field name="invoice_type" column_invisible="True"/>
+								<!--<field name="invoice_type" column_invisible="True"/>-->
 								<field name="company_currency_id" column_invisible="True"/>
 								<field name="foreign_currency_id" column_invisible="True"/>
 								<field name="name"/>
@@ -47,7 +47,7 @@
 						<field name="retention_islr_line_ids" nolabel="1" readonly="move_type not in ('in_invoice', 'in_refund') or state != 'draft'">
 							<list editable='bottom'>
 								<!-- Invisible Fields -->
-								<field name="invoice_type" column_invisible="True"/>
+								<!--<field name="invoice_type" column_invisible="True"/>-->
 								<field name="company_currency_id" column_invisible="True"/>
 								<field name="foreign_currency_id" column_invisible="True"/>
 								<field name="name"/>
