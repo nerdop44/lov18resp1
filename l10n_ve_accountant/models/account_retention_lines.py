@@ -73,6 +73,15 @@ class AccountRetentionIvaLine(models.Model):
         readonly=True,
     )
     # ---------------------------------
+    # --- CAMBIO: AÑADIDO ESTE CAMPO ---
+    foreign_invoice_amount = fields.Monetary(
+        string="Monto de Factura (ME)",
+        related="move_id.amount_total_currency",  # ¡IMPORTANTE! Verifica que este sea el campo correcto en account.move
+        currency_field="foreign_currency_id",
+        store=True,
+        readonly=True,
+    )
+    # ---------------------------------
     aliquot = fields.Float(
         string="Alicuota (%)", digits="Account", default=0.0
     )
@@ -205,6 +214,15 @@ class AccountRetentionIslrLine(models.Model):
         readonly=True,
     )
     # ---------------------------------
+    # --- CAMBIO: AÑADIDO ESTE CAMPO ---
+    foreign_invoice_amount = fields.Monetary(
+        string="Monto de Factura (ME)",
+        related="move_id.amount_total_currency",  # ¡IMPORTANTE! Verifica que este sea el campo correcto en account.move
+        currency_field="foreign_currency_id",
+        store=True,
+        readonly=True,
+    )
+    # ---------------------------------
     aliquot = fields.Float(
         string="Alicuota (%)", digits="Account", default=0.0
     )
@@ -331,6 +349,15 @@ class AccountRetentionMunicipalLine(models.Model):
         string="Monto IVA",
         related="move_id.amount_tax", # O podrías ser 'move_id.amount_total' si el IVA es el total en algún contexto específico.
         currency_field="company_currency_id",
+        store=True,
+        readonly=True,
+    )
+    # ---------------------------------
+    # --- CAMBIO: AÑADIDO ESTE CAMPO ---
+    foreign_invoice_amount = fields.Monetary(
+        string="Monto de Factura (ME)",
+        related="move_id.amount_total_currency",  # ¡IMPORTANTE! Verifica que este sea el campo correcto en account.move
+        currency_field="foreign_currency_id",
         store=True,
         readonly=True,
     )
