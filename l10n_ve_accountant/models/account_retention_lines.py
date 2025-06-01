@@ -58,6 +58,15 @@ class AccountRetentionIvaLine(models.Model):
     aliquot = fields.Float(
         string="Alicuota (%)", digits="Account", default=0.0
     )
+    # --- CAMBIO: AÑADIDO ESTE CAMPO ---
+    invoice_total = fields.Monetary(
+        string="Total Factura",
+        related="move_id.amount_total", # Asumiendo que es el total de la factura relacionada
+        currency_field="company_currency_id",
+        store=True,
+        readonly=True,
+    )
+    # ---------------------------------
     tax_id = fields.Many2one(
         "account.tax",
         string="Impuesto",
@@ -163,6 +172,15 @@ class AccountRetentionIslrLine(models.Model):
     aliquot = fields.Float(
         string="Alicuota (%)", digits="Account", default=0.0
     )
+    # --- CAMBIO: AÑADIDO ESTE CAMPO ---
+    invoice_total = fields.Monetary(
+        string="Total Factura",
+        related="move_id.amount_total", # Asumiendo que es el total de la factura relacionada
+        currency_field="company_currency_id",
+        store=True,
+        readonly=True,
+    )
+    # ---------------------------------
     tax_id = fields.Many2one(
         "account.tax",
         string="Impuesto",
@@ -266,6 +284,15 @@ class AccountRetentionMunicipalLine(models.Model):
     aliquot = fields.Float(
         string="Alicuota (%)", digits="Account", default=0.0
     )
+    # --- CAMBIO: AÑADIDO ESTE CAMPO ---
+    invoice_total = fields.Monetary(
+        string="Total Factura",
+        related="move_id.amount_total", # Asumiendo que es el total de la factura relacionada
+        currency_field="company_currency_id",
+        store=True,
+        readonly=True,
+    )
+    # ---------------------------------
     tax_id = fields.Many2one(
         "account.tax",
         string="Impuesto",
