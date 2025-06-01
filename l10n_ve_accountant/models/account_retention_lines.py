@@ -76,6 +76,12 @@ class AccountRetentionIvaLine(models.Model):
         store=True,
         readonly=True,
     )
+    # --- CAMBIO: AÑADIDO ESTE CAMPO ---
+    related_percentage_tax_base = fields.Float(
+        string="Porcentaje de Base Imponible Relacionado",
+        digits="Account",
+        default=0.0,
+    )
     date = fields.Date(
         related="move_id.date", string="Fecha de Factura", store=True
     )
@@ -175,6 +181,12 @@ class AccountRetentionIslrLine(models.Model):
         store=True,
         readonly=True,
     )
+    # --- CAMBIO: AÑADIDO ESTE CAMPO ---
+    related_percentage_tax_base = fields.Float(
+        string="Porcentaje de Base Imponible Relacionado",
+        digits="Account",
+        default=0.0,
+    )
     date = fields.Date(
         related="move_id.date", string="Fecha de Factura", store=True
     )
@@ -271,6 +283,12 @@ class AccountRetentionMunicipalLine(models.Model):
         string="Tipo de Movimiento",
         store=True,
         readonly=True,
+    )
+    # --- CAMBIO: AÑADIDO ESTE CAMPO ---
+    related_percentage_tax_base = fields.Float(
+        string="Porcentaje de Base Imponible Relacionado",
+        digits="Account",
+        default=0.0,
     )
     date = fields.Date(
         related="move_id.date", string="Fecha de Factura", store=True
