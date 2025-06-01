@@ -55,7 +55,7 @@ class AccountRetentionIvaLine(models.Model):
         currency_field="foreign_currency_id",
         digits="Account",
     )
-    alicuot_percentage = fields.Float(
+    aliquot = fields.Float(
         string="Alicuota (%)", digits="Account", default=0.0
     )
     tax_id = fields.Many2one(
@@ -154,7 +154,7 @@ class AccountRetentionIslrLine(models.Model):
         currency_field="foreign_currency_id",
         digits="Account",
     )
-    alicuot_percentage = fields.Float(
+    aliquot = fields.Float(
         string="Alicuota (%)", digits="Account", default=0.0
     )
     tax_id = fields.Many2one(
@@ -251,7 +251,7 @@ class AccountRetentionMunicipalLine(models.Model):
         currency_field="foreign_currency_id",
         digits="Account",
     )
-    alicuot_percentage = fields.Float(
+    aliquot = fields.Float(
         string="Alicuota (%)", digits="Account", default=0.0
     )
     tax_id = fields.Many2one(
