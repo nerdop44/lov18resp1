@@ -201,6 +201,12 @@ class AccountRetentionIslrLine(models.Model):
         ondelete="cascade",
         index=True,
     )
+    # **Añade esta línea (o similar, según tu necesidad):**
+    payment_concept_id = fields.Many2one(
+        'tu.modelo.de.concepto.de.pago', # <--- ¡IMPORTANTE! Reemplaza esto con el nombre real de tu modelo de concepto de pago (ej. 'account.payment.concept' o similar)
+        string='Concepto de Pago',
+        required=True # O False, si es opcional
+    )
     foreign_currency_id = fields.Many2one(
         related="move_id.foreign_currency_id",
         string="Moneda Extranjera",
