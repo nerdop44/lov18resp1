@@ -36,7 +36,7 @@ class AccountRetentionIvaLine(models.Model):
     )
     foreign_currency_rate = fields.Float(
         string="Tasa de Cambio (ME)",
-        related="move_id.foreign_currency_rate", # ¡Ajusta este campo si tu move_id lo tiene con otro nombre o si no existe!
+        related="move_id.foreign_rate", # ¡Ajusta este campo si tu move_id lo tiene con otro nombre o si no existe!
         digits=(12, 6), # Formato común para tasas de cambio
         readonly=True,
         store=True,
@@ -201,7 +201,7 @@ class AccountRetentionIslrLine(models.Model):
     )
     foreign_currency_rate = fields.Float(
         string="Tasa de Cambio (ME)",
-        related="move_id.foreign_currency_rate", # ¡Ajusta este campo si tu move_id lo tiene con otro nombre o si no existe!
+        related="move_id.foreign_rate", # ¡Ajusta este campo si tu move_id lo tiene con otro nombre o si no existe!
         digits=(12, 6), # Formato común para tasas de cambio
         readonly=True,
         store=True,
@@ -364,7 +364,7 @@ class AccountRetentionMunicipalLine(models.Model):
     )
     foreign_currency_rate = fields.Float(
         string="Tasa de Cambio (ME)",
-        related="move_id.foreign_currency_rate", # ¡Ajusta este campo si tu move_id lo tiene con otro nombre o si no existe!
+        related="move_id.foreign_rate", # ¡Ajusta este campo si tu move_id lo tiene con otro nombre o si no existe!
         digits=(12, 6), # Formato común para tasas de cambio
         readonly=True,
         store=True,
