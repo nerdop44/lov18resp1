@@ -201,6 +201,13 @@ class AccountRetentionIslrLine(models.Model):
         ondelete="cascade",
         index=True,
     )
+    related_pay_from = fields.Many2one(
+        'res.partner', # O el tipo de modelo del campo relacionado
+        string='Pagado Desde',
+        related='move_id.partner_id', # <--- Reemplaza 'partner_id' con el campo real de account.move
+        readonly=True,
+        store=True # Opcional, para que se guarde en la DB
+    )
     # **Añade esta línea (o similar, según tu necesidad):**
     payment_concept_id = fields.Many2one(
         'tu.modelo.de.concepto.de.pago', # <--- ¡IMPORTANTE! Reemplaza esto con el nombre real de tu modelo de concepto de pago (ej. 'account.payment.concept' o similar)
