@@ -26,6 +26,14 @@ class AccountRetentionIvaLine(models.Model):
         store=True,
         readonly=True,
     )
+    # Este es el campo que la vista XML está buscando
+    foreign_iva_amount = fields.Monetary(
+        string="Monto IVA (ME)",
+        currency_field='foreign_currency_id', # Debe apuntar al campo de la moneda
+        compute='_compute_foreign_iva_amount',
+        store=True,
+        readonly=True,
+    )
     foreign_rate = fields.Float(
         related="move_id.foreign_rate", string="Tasa Extranjera", store=True, readonly=True
     )
@@ -167,6 +175,14 @@ class AccountRetentionIslrLine(models.Model):
         store=True,
         readonly=True,
     )
+    # Este es el campo que la vista XML está buscando
+    foreign_iva_amount = fields.Monetary(
+        string="Monto IVA (ME)",
+        currency_field='foreign_currency_id', # Debe apuntar al campo de la moneda
+        compute='_compute_foreign_iva_amount',
+        store=True,
+        readonly=True,
+    )
     foreign_rate = fields.Float(
         related="move_id.foreign_rate", string="Tasa Extranjera", store=True, readonly=True
     )
@@ -303,6 +319,14 @@ class AccountRetentionMunicipalLine(models.Model):
     foreign_currency_id = fields.Many2one(
         related="move_id.foreign_currency_id",
         string="Moneda Extranjera",
+        store=True,
+        readonly=True,
+    )
+    # Este es el campo que la vista XML está buscando
+    foreign_iva_amount = fields.Monetary(
+        string="Monto IVA (ME)",
+        currency_field='foreign_currency_id', # Debe apuntar al campo de la moneda
+        compute='_compute_foreign_iva_amount',
         store=True,
         readonly=True,
     )
