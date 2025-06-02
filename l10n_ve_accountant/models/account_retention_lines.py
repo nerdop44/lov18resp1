@@ -34,6 +34,13 @@ class AccountRetentionIvaLine(models.Model):
         store=True,
         readonly=True,
     )
+    foreign_currency_rate = fields.Float(
+        string="Tasa de Cambio (ME)",
+        related="move_id.foreign_currency_rate", # ¡Ajusta este campo si tu move_id lo tiene con otro nombre o si no existe!
+        digits=(12, 6), # Formato común para tasas de cambio
+        readonly=True,
+        store=True,
+    )
     # ---------------------------------------------------
     # Este es el campo que la vista XML está buscando
     foreign_iva_amount = fields.Monetary(
@@ -192,6 +199,13 @@ class AccountRetentionIslrLine(models.Model):
         store=True,
         readonly=True,
     )
+    foreign_currency_rate = fields.Float(
+        string="Tasa de Cambio (ME)",
+        related="move_id.foreign_currency_rate", # ¡Ajusta este campo si tu move_id lo tiene con otro nombre o si no existe!
+        digits=(12, 6), # Formato común para tasas de cambio
+        readonly=True,
+        store=True,
+    )
     # ---------------------------------------------------
     # Este es el campo que la vista XML está buscando
     foreign_iva_amount = fields.Monetary(
@@ -347,6 +361,13 @@ class AccountRetentionMunicipalLine(models.Model):
         currency_field="foreign_currency_id",
         store=True,
         readonly=True,
+    )
+    foreign_currency_rate = fields.Float(
+        string="Tasa de Cambio (ME)",
+        related="move_id.foreign_currency_rate", # ¡Ajusta este campo si tu move_id lo tiene con otro nombre o si no existe!
+        digits=(12, 6), # Formato común para tasas de cambio
+        readonly=True,
+        store=True,
     )
     # ---------------------------------------------------
     # Este es el campo que la vista XML está buscando
