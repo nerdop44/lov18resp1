@@ -26,6 +26,15 @@ class AccountRetentionIvaLine(models.Model):
         store=True,
         readonly=True,
     )
+    # --- CAMBIO: AHORA SE LLAMA foreign_invoice_total ---
+    foreign_invoice_total = fields.Monetary( # ¡RENOMBRADO AQUÍ!
+        string="Monto de Factura (ME)",
+        related="move_id.foreign_total_billed",
+        currency_field="foreign_currency_id",
+        store=True,
+        readonly=True,
+    )
+    # ---------------------------------------------------
     # Este es el campo que la vista XML está buscando
     foreign_iva_amount = fields.Monetary(
         string="Monto IVA (ME)",
@@ -175,6 +184,15 @@ class AccountRetentionIslrLine(models.Model):
         store=True,
         readonly=True,
     )
+    # --- CAMBIO: AHORA SE LLAMA foreign_invoice_total ---
+    foreign_invoice_total = fields.Monetary( # ¡RENOMBRADO AQUÍ!
+        string="Monto de Factura (ME)",
+        related="move_id.foreign_total_billed",
+        currency_field="foreign_currency_id",
+        store=True,
+        readonly=True,
+    )
+    # ---------------------------------------------------
     # Este es el campo que la vista XML está buscando
     foreign_iva_amount = fields.Monetary(
         string="Monto IVA (ME)",
@@ -322,6 +340,15 @@ class AccountRetentionMunicipalLine(models.Model):
         store=True,
         readonly=True,
     )
+    # --- CAMBIO: AHORA SE LLAMA foreign_invoice_total ---
+    foreign_invoice_total = fields.Monetary( # ¡RENOMBRADO AQUÍ!
+        string="Monto de Factura (ME)",
+        related="move_id.foreign_total_billed",
+        currency_field="foreign_currency_id",
+        store=True,
+        readonly=True,
+    )
+    # ---------------------------------------------------
     # Este es el campo que la vista XML está buscando
     foreign_iva_amount = fields.Monetary(
         string="Monto IVA (ME)",
