@@ -6,6 +6,14 @@ class AccountRetentionIvaLine(models.Model):
     _name = "account.retention.iva.line"
     _description = "Account Retention IVA Line"
 
+    # ...
+    state = fields.Selection([
+        ('draft', 'Draft'),
+        ('confirmed', 'Confirmed'),
+        # ... otros estados que necesites
+    ], string='Status', default='draft', readonly=True, copy=False)
+    # ...
+
     # Campo 'name' añadido
     name = fields.Char(
         string="Descripción de Retención IVA",
@@ -171,6 +179,14 @@ class AccountRetentionIslrLine(models.Model):
     _name = "account.retention.islr.line"
     _description = "Account Retention ISLR Line"
 
+    # ...
+    state = fields.Selection([
+        ('draft', 'Draft'),
+        ('confirmed', 'Confirmed'),
+        # ... otros estados que necesites
+    ], string='Status', default='draft', readonly=True, copy=False)
+    # ...
+
     # Campo 'name' añadido
     name = fields.Char(
         string="Descripción de Retención ISLR",
@@ -333,6 +349,14 @@ class AccountRetentionIslrLine(models.Model):
 class AccountRetentionMunicipalLine(models.Model):
     _name = "account.retention.municipal.line"
     _description = "Account Retention Municipal Line"
+
+    # ...
+    state = fields.Selection([
+        ('draft', 'Draft'),
+        ('confirmed', 'Confirmed'),
+        # ... otros estados que necesites
+    ], string='Status', default='draft', readonly=True, copy=False)
+    # ...
 
     # Campo 'name' añadido
     name = fields.Char(
