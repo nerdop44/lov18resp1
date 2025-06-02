@@ -6,7 +6,7 @@
 			<field name="inherit_id" ref="account.view_move_form"/>
 			<field name="arch" type="xml">
                 <xpath expr="//field[@name='invoice_date']" position="before" optional="add">
-					<field name="date" string="Fecha Contable" attrs="{'invisible': [('move_type', 'in', ['entry'])]}"/>
+					<field name="date" string="Fecha Contable" invisible="move_type in ['entry']"/>
 				</xpath>
 				<xpath expr="//notebook" position="inside">
 					<page name="iva_retention" string="IVA Retentions">
