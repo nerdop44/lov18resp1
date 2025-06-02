@@ -104,6 +104,26 @@ class AccountMove(models.Model):
         copy=True,
     )
     # FIN: De los campos a añadir
+    # === INICIO DE LA MODIFICACIÓN PARA base_currency_is_vef ===
+    base_currency_is_vef = fields.Boolean(
+        compute='_compute_base_currency_is_vef',
+        store=True, # Lo almacenamos para optimizar el rendimiento
+        help="Indica si la moneda base de la compañía es el Bolívar Venezolano (VEF/VES)."
+    )
+
+    @api.depends('company_id.currency_id')
+    def _compute_base_currency_is_vef(self):
+        # Primero, intentamos buscar la moneda VEF/VES por su ID externo.
+        # En Odoo 14+, lo más común es 'base.VES'. Si es una versión anterior, podría ser 'base.VEF'.
+        vef_currency = self.env.ref('base.VES', raise_if_not_found=False)
+        
+        # Si no la encontramos por ID externo, la buscamos por el código 'VEF' o 'VES'.
+        if not vef_currency:
+            vef_currency = self.env['res.currency'].search([('name', 'in', ['VEF', 'VES'])], limit=1)
+
+        for rec in self:
+            rec.base_currency_is_vef = (rec.company_id.currency_id == vef_currency)
+    # === FIN DE LA MODIFICACIÓN PARA base_currency_is_vef ===
 
     _sql_constraints = [
         (
