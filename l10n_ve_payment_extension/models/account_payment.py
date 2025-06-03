@@ -58,21 +58,30 @@ class AccountPayment(models.Model):
 
     def _synchronize_to_moves(self, changed_fields):
         """
-        Override the original method to change the name of the move based on the retention type
-        using the retention's number and the invoice's name of the retention.
+        Override the original method to:
+        1. Change the name of the move based on the retention type
+        2. Ensure proper accounting entries for ISLR retentions
         """
         res = super()._synchronize_to_moves(changed_fields)
+    
+        # Naming logic (existing functionality)
         account_move_name_by_retention_type = {
             "iva": "RIV",
             "islr": "RIS",
             "municipal": "RM",
         }
+    
         for payment in self.filtered("is_retention").with_context(
             skip_account_move_synchronization=True
         ):
             if not all((payment.retention_line_ids, payment.retention_id.number)):
                 continue
+            
             move = payment.move_id
+            if not move:
+                continue
+            
+            # 1. Maintain existing naming convention
             move_name = (
                 account_move_name_by_retention_type[payment.retention_id.type_retention]
                 + f"-{payment.retention_id.number}"
@@ -84,7 +93,64 @@ class AccountPayment(models.Model):
             vals_to_change = {"name": move_name}
             move.write(vals_to_change)
             move.line_ids.write(vals_to_change)
+        
+            # 2. Add specific accounting handling for ISLR
+            if payment.payment_type_retention == "islr" and move.state == "draft":
+                # Get accounts based on payment type and concept
+                if payment.partner_type == 'supplier':
+                    debit_account = payment.company_id.islr_supplier_retention_account_id
+                    credit_account = payment.payment_concept_id.supplier_account_id
+                else:
+                    debit_account = payment.payment_concept_id.customer_account_id
+                    credit_account = payment.company_id.islr_customer_retention_account_id
+
+                if not debit_account or not credit_account:
+                    raise UserError(_("Faltan cuentas contables configuradas para ISLR"))
+
+                # Update move lines
+                for line in move.line_ids:
+                    if line.account_id == debit_account:
+                        line.write({
+                            'debit': payment.amount if payment.payment_type == 'outbound' else 0,
+                            'credit': payment.amount if payment.payment_type == 'inbound' else 0,
+                        })
+                    elif line.account_id == credit_account:
+                        line.write({
+                            'debit': payment.amount if payment.payment_type == 'inbound' else 0,
+                            'credit': payment.amount if payment.payment_type == 'outbound' else 0,
+                        })
+    
         return res
+
+    # def _synchronize_to_moves(self, changed_fields):
+    #     """
+    #     Override the original method to change the name of the move based on the retention type
+    #     using the retention's number and the invoice's name of the retention.
+    #     """
+    #     res = super()._synchronize_to_moves(changed_fields)
+    #     account_move_name_by_retention_type = {
+    #         "iva": "RIV",
+    #         "islr": "RIS",
+    #         "municipal": "RM",
+    #     }
+    #     for payment in self.filtered("is_retention").with_context(
+    #         skip_account_move_synchronization=True
+    #     ):
+    #         if not all((payment.retention_line_ids, payment.retention_id.number)):
+    #             continue
+    #         move = payment.move_id
+    #         move_name = (
+    #             account_move_name_by_retention_type[payment.retention_id.type_retention]
+    #             + f"-{payment.retention_id.number}"
+    #             + f"-{payment.retention_line_ids[0].move_id.name}"
+    #         )
+    #         if payment.retention_id.type_retention == "islr":
+    #             move_name += f"-{payment.retention_line_ids[0].payment_concept_id.name[:5]}"
+
+    #         vals_to_change = {"name": move_name}
+    #         move.write(vals_to_change)
+    #         move.line_ids.write(vals_to_change)
+    #     return res
 
     def unlink(self):
         for payment in self:
