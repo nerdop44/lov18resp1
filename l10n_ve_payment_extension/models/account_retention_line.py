@@ -124,6 +124,58 @@ class AccountRetentionLine(models.Model):
     foreign_iva_amount = fields.Float(string="Foreign IVA")
     foreign_currency_rate = fields.Float(string="Rate")
 
+    # Después de la definición de tus fields (campos) y antes de tus @api.depends o @api.onchange existentes.
+# Por ejemplo, puedes ponerlo después de 'foreign_currency_rate = fields.Float(string="Rate")'
+
+    @api.onchange('move_id')
+    def _onchange_move_id_populate_fields(self):
+        """
+        Popula los campos de la línea de retención basados en la factura seleccionada (move_id).
+        Este método se ejecuta inmediatamente al seleccionar la factura.
+        """
+        if self.move_id:
+            invoice = self.move_id
+
+            # Asegurarse de que 'tax_totals' esté disponible y tenga los datos necesarios
+            # Odoo 16+ ya tiene 'tax_totals' como un diccionario bien estructurado.
+            tax_totals = invoice.tax_totals if hasattr(invoice, 'tax_totals') and invoice.tax_totals else {}
+
+            self.invoice_total = tax_totals.get('amount_total', 0.0)
+            self.foreign_invoice_total = tax_totals.get('foreign_amount_total', self.invoice_total) 
+
+            self.invoice_amount = tax_totals.get('amount_untaxed', 0.0)
+            self.foreign_invoice_amount = tax_totals.get('foreign_amount_untaxed', self.invoice_amount) 
+
+            # >>> ESTO ES CLAVE: Poblar los campos de IVA directamente desde tax_totals de la factura
+            self.iva_amount = tax_totals.get('amount_tax', 0.0) 
+            self.foreign_iva_amount = tax_totals.get('foreign_amount_tax', self.iva_amount) 
+
+            self.foreign_currency_rate = invoice.foreign_rate or 1.0
+
+            self.is_retention_client = invoice.move_type in ('out_invoice', 'out_refund', 'out_debit')
+            self.invoice_type = invoice.move_type
+
+        else:
+            # Limpiar los campos si no hay factura seleccionada
+            self.invoice_total = 0.0
+            self.foreign_invoice_total = 0.0
+            self.invoice_amount = 0.0
+            self.foreign_invoice_amount = 0.0
+            self.iva_amount = 0.0
+            self.foreign_iva_amount = 0.0
+            self.foreign_currency_rate = 0.0
+            self.is_retention_client = False
+            self.invoice_type = False
+            self.retention_amount = 0.0
+            self.foreign_retention_amount = 0.0
+            self.aliquot = 0.0
+            self.related_pay_from = 0.0
+            self.related_percentage_tax_base = 0.0
+            self.related_percentage_fees = 0.0
+            self.related_amount_subtract_fees = 0.0
+            self.payment_concept_id = False
+            self.economic_activity_id = False
+
     @api.depends("retention_id.type_retention", "move_id")
     def _compute_name(self):
         for record in self:
@@ -165,37 +217,50 @@ class AccountRetentionLine(models.Model):
     def _compute_related_fields(self):
         """
         This compute is used to get the related fields from the payment concept of the partner
-        to generate the ISLR retention line
+    to generate the ISLR retention line
         """
         lines_from_islr_retention = self.filtered(
             lambda l: l.payment_concept_id
             and (not l.retention_id or l.retention_id.type_retention == "islr")
         )
+    
         for record in lines_from_islr_retention:
-            # Payment concept of the line
+        # Validación básica de datos requeridos
+            if not record.move_id:
+                continue
+            
+        # Manejo seguro de tax_totals
+            tax_totals = record.move_id.tax_totals or {}
+        
+        # Obtener valores con defaults
+            amount_total = tax_totals.get('amount_total', 0.0)
+            foreign_amount_total = tax_totals.get('foreign_amount_total', amount_total)
+            amount_untaxed = tax_totals.get('amount_untaxed', 0.0)
+            foreign_amount_untaxed = tax_totals.get('foreign_amount_untaxed', amount_untaxed)
+        
+        # Validar partner y tipo de persona
+            if not record.move_id.partner_id.type_person_id:
+                raise UserError(_("The partner does not have a type of person"))
+
+        # Payment concept of the line
             payment_concept = record.payment_concept_id.line_payment_concept_ids
             for line in payment_concept:
-                # if not record.move_id.partner_id.type_person_id:
-                #     raise UserError(_("The partner does not have a type of person"))
-
                 if record.move_id.partner_id.type_person_id.id == line.type_person_id.id:
-                    # compare the type_person_id of the partner with the type_person_id of the
-                    # payment concept and set the related fields.
-                    record.invoice_total = record.move_id.tax_totals["amount_total"]
-                    record.foreign_invoice_total = record.move_id.tax_totals["foreign_amount_total"]
-                    record.related_pay_from = line.pay_from
-                    record.related_percentage_tax_base = line.percentage_tax_base
-                    record.related_percentage_fees = line.tariff_id.percentage
-                    record.related_amount_subtract_fees = line.tariff_id.amount_subtract
-                    record.foreign_currency_rate = record.move_id.foreign_rate
+                # Asignar valores con manejo seguro
+                    record.invoice_total = amount_total
+                    record.foreign_invoice_total = foreign_amount_total
+                    record.related_pay_from = line.pay_from or 0.0
+                    record.related_percentage_tax_base = line.percentage_tax_base or 0.0
+                    record.related_percentage_fees = line.tariff_id.percentage if line.tariff_id else 0.0
+                    record.related_amount_subtract_fees = line.tariff_id.amount_subtract if line.tariff_id else 0.0
+                    record.foreign_currency_rate = record.move_id.foreign_rate or 1.0
 
                     if not record.retention_id or record.retention_id.type == "in_invoice":
-                        # We don't want this fields to be computed when the retention is
-                        # created from a customer invoice since they are filled by the user.
-                        record.invoice_amount = record.move_id.tax_totals["amount_untaxed"]
-                        record.foreign_invoice_amount = record.move_id.tax_totals[
-                            "foreign_amount_untaxed"
-                        ]
+                    # Solo para retenciones de proveedor
+                        record.invoice_amount = amount_untaxed
+                        record.foreign_invoice_amount = foreign_amount_untaxed
+
+
 
     @api.depends("invoice_amount", "foreign_invoice_amount")
     def _compute_amounts(self):
@@ -236,10 +301,10 @@ class AccountRetentionLine(models.Model):
             or (l.retention_id.type_retention == "islr" and l.retention_id.type == "in_invoice")
         )
         for record in islr_supplier_retention_lines:
-            foreign_rate = record.move_id.foreign_rate
+            foreign_rate = record.move_id.foreign_rate or 1.0
             if not foreign_rate:
                 foreign_rate = 1
-            if not base_currency_is_vef:
+            if not base_currency_is_vef and foreign_rate != 0:
                 record.retention_amount = (
                     record.invoice_amount
                     * (record.related_percentage_tax_base / 100)
@@ -271,15 +336,24 @@ class AccountRetentionLine(models.Model):
         )
 
         for record in municipal_retention_lines_with_economic_activity_and_invoice:
+            # Asegurarse de que tax_totals exista antes de acceder a él
+            if not record.move_id or not hasattr(record.move_id, 'tax_totals') or not record.move_id.tax_totals:
+                continue
+                
             if not record.retention_id or record.retention_id.type == "in_invoice":
                 # We don't want this fields to be computed when the retention is
                 # created from a customer invoice since they are filled by the user.
                 record.invoice_amount = record.move_id.tax_totals["amount_untaxed"]
                 record.foreign_invoice_amount = record.move_id.tax_totals["foreign_amount_untaxed"]
 
+            # >>> AÑADE ESTAS DOS LÍNEAS AQUÍ para capturar el IVA en retenciones municipales
+            record.iva_amount = record.move_id.tax_totals.get("amount_tax", 0.0) 
+            record.foreign_iva_amount = record.move_id.tax_totals.get("foreign_amount_tax", 0.0) 
+
+
             record.invoice_total = record.move_id.tax_totals["amount_total"]
             record.foreign_invoice_total = record.move_id.tax_totals["foreign_amount_total"]
-            record.foreign_currency_rate = record.move_id.foreign_rate
+            record.foreign_currency_rate = record.move_id.foreign_rate or 1.0
 
             record.aliquot = record.economic_activity_id.aliquot
             record.retention_amount = record.invoice_amount * record.aliquot / 100
@@ -369,16 +443,42 @@ class AccountRetentionLine(models.Model):
     )
     def _constraint_amounts(self):
         for record in self:
-            if any(
-                (
-                    record.retention_amount == 0,
-                    record.invoice_total == 0,
-                    record.foreign_retention_amount == 0,
-                    record.invoice_amount == 0,
-                    record.foreign_invoice_amount == 0,
-                )
+            # Solo verificar si el monto de retención es cero
+            if record.retention_amount == 0 and record.foreign_retention_amount == 0:
+                raise ValidationError(_("You can not create a retention line with 0 retention amount."))
+
+            is_vef_the_base_currency = self.env.company.currency_id == self.env.ref("base.VEF")
+            is_client_retention = record.retention_id.type == "out_invoice"
+            if (
+                is_vef_the_base_currency
+                and is_client_retention
+                and record.retention_amount > record.move_id.amount_residual
             ):
-                raise ValidationError(_("You can not create a retention with 0 amount."))
+                raise ValidationError(
+                    _(
+                        "The total amount of the retention is greater than the residual amount of"
+                        " the invoice."
+                    )
+                )
+#            if (
+#                record.retention_amount == 0
+#                and record.invoice_total == 0
+#                and record.foreign_retention_amount == 0
+#                and record.invoice_amount == 0
+#                and record.foreign_invoice_amount == 0
+#            ):
+#                continue  # Permitir líneas con todos los montos en cero
+#
+#            if any(
+#                (
+#                    record.retention_amount == 0,
+#                    record.invoice_total == 0,
+#                    record.foreign_retention_amount == 0,
+#                    record.invoice_amount == 0,
+#                    record.foreign_invoice_amount == 0,
+#                )
+#            ):
+#                raise ValidationError(_("You can not create a retention with 0 amount."))
 
             is_vef_the_base_currency = self.env.company.currency_id == self.env.ref("base.VEF")
             is_client_retention = record.retention_id.type == "out_invoice"
