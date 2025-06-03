@@ -15,12 +15,6 @@ _logger = logging.getLogger(__name__)
 class AccountMove(models.Model):
     _inherit = "account.move"
 
-    def _valid_field_parameter(self, field_name, parameter):
-        if parameter == 'states':
-            return True  # Permite el uso del parámetro 'states'
-        return super()._valid_field_parameter(field_name, parameter)
-
-    
     def _get_fields_to_compute_lines(self):
         return ["invoice_line_ids", "line_ids", "foreign_inverse_rate", "foreign_rate"]
 
@@ -90,12 +84,46 @@ class AccountMove(models.Model):
         store=True,
     )
 
-    # Agregar el campo retention_iva_line_ids
+       # INICIO: Añadir los siguientes campos aquí
     retention_iva_line_ids = fields.One2many(
-        'retention.iva.line',  # Asegúrate de que este modelo exista
-        'move_id',  # Campo que relaciona con account.move
-        string='Retention IVA Lines'
+        "account.retention.iva.line",
+        "move_id",
+        string="Líneas de Retención de IVA",
+        copy=True,
     )
+    retention_islr_line_ids = fields.One2many(
+        "account.retention.islr.line",
+        "move_id",
+        string="Líneas de Retención de ISLR",
+        copy=True,
+    )
+    retention_municipal_line_ids = fields.One2many(
+        "account.retention.municipal.line",
+        "move_id",
+        string="Líneas de Retención Municipal",
+        copy=True,
+    )
+    # FIN: De los campos a añadir
+    # === INICIO DE LA MODIFICACIÓN PARA base_currency_is_vef ===
+    base_currency_is_vef = fields.Boolean(
+        compute='_compute_base_currency_is_vef',
+        store=True, # Lo almacenamos para optimizar el rendimiento
+        help="Indica si la moneda base de la compañía es el Bolívar Venezolano (VEF/VES)."
+    )
+
+    @api.depends('company_id.currency_id')
+    def _compute_base_currency_is_vef(self):
+        # Primero, intentamos buscar la moneda VEF/VES por su ID externo.
+        # En Odoo 14+, lo más común es 'base.VES'. Si es una versión anterior, podría ser 'base.VEF'.
+        vef_currency = self.env.ref('base.VES', raise_if_not_found=False)
+        
+        # Si no la encontramos por ID externo, la buscamos por el código 'VEF' o 'VES'.
+        if not vef_currency:
+            vef_currency = self.env['res.currency'].search([('name', 'in', ['VEF', 'VES'])], limit=1)
+
+        for rec in self:
+            rec.base_currency_is_vef = (rec.company_id.currency_id == vef_currency)
+    # === FIN DE LA MODIFICACIÓN PARA base_currency_is_vef ===
 
     _sql_constraints = [
         (
@@ -265,33 +293,51 @@ class AccountMove(models.Model):
                 [("id", "=", int(foreign_currency_id))]
             )
             foreign_currency_symbol = foreign_currency_record.symbol or ""
+            # ... (código anterior en el método get_view) ...
             if view_type == "form":
-                view_id = self.env.ref(
-                    "l10n_ve_accountant.view_account_move_form_binaural_invoice"
-                ).id
-                doc = etree.XML(res["arch"])
-                page = doc.xpath("//page[@name='foreign_currency']")
-                if page:
-                    page[0].set(
-                        "string", _("Foreign Currency ") + " " + foreign_currency_symbol
-                    )
-                    res["arch"] = etree.tostring(doc, encoding="unicode")
+                    # === MODIFICACIÓN CRÍTICA AQUÍ ===
+                    # ANTES (lo que probablemente tienes ahora y causa el error):
+                    # view_id_to_check = self.env.ref("l10n_ve_payment_extension.view_account_move_form_binaural_invoice", raise_if_not_found=False)
+
+                    # AHORA (la corrección):
+                view_id_to_check = self.env.ref("l10n_ve_payment_extension.account_move_form_binaural_payment_extension", raise_if_not_found=False)
+
+                if view_id_to_check and view_id == view_id_to_check.id:
+                    doc = etree.XML(res["arch"])
+                    page = doc.xpath("//page[@name='foreign_currency']")
+                    if page:
+                        page[0].set(
+                            "string", _("Foreign Currency ") + " " + foreign_currency_symbol
+                        )
+                        res["arch"] = etree.tostring(doc, encoding="unicode")
+# ... (resto del método get_view) ...
+            # if view_type == "form":
+            #     view_id = self.env.ref(
+            #         "l10n_ve_accountant.view_account_move_form_binaural_invoice"
+            #     ).id
+            #     doc = etree.XML(res["arch"])
+            #     page = doc.xpath("//page[@name='foreign_currency']")
+            #     if page:
+            #         page[0].set(
+            #             "string", _("Foreign Currency ") + " " + foreign_currency_symbol
+            #         )
+            #         res["arch"] = etree.tostring(doc, encoding="unicode")
         return res
 
     @api.model_create_multi
-    def create(self, vals_tree):
+    def create(self, vals_list):
         """
         Ensure that the foreign_rate and foreign_inverse_rate are computed and computes the foreign
         debit and foreign credit of the line_ids fields (journal entries) when the move is created.
         """
-        for vals in vals_tree:
+        for vals in vals_list:
 
             if 'name' in vals and vals['name'] != "/":
                 existing_record = self.search([('name', '=', vals['name'])], limit=1)
                 if existing_record:
                     raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
 
-        moves = super().create(vals_tree)
+        moves = super().create(vals_list)
         moves._compute_rate()
 
         for move in moves:
@@ -406,8 +452,7 @@ class AccountMove(models.Model):
         is_invoice = self.is_invoice(include_receipts=True)
         receivable_and_payable_account_types = {"asset_receivable", "liability_payable"}
         # self.line_ids.update({"foreign_debit": 0, "foreign_credit": 0})
-        #payment = self.payment_id
-        payment = self.origin_payment_id
+        payment = self.payment_id
 
         # If the move is a retention payment we need to use the retention_foreign_amount of the
         # payment to compute the foreign debit/credit.
@@ -594,11 +639,11 @@ class AccountMove(models.Model):
 
         Returns
         -------
-        type = defaultdict(tree(dict))
+        type = defaultdict(list(dict))
             The subtotal and foreign subtotal of the invoice lines grouped by the lines names.
         """
         self.ensure_one()
-        subtotals_by_name = defaultdict(tree)
+        subtotals_by_name = defaultdict(list)
         for line in self.invoice_line_ids:
             subtotals_by_name[line.name].append(
                 {
@@ -656,11 +701,19 @@ class AccountMove(models.Model):
         Compute the foreign taxable income of the invoice
         """
         for move in self:
-            move.foreign_taxable_income = False
-            if move.is_invoice() and move.invoice_line_ids:
-                 _logger.info("Tax totals: %s", move.tax_totals)  # Agregar registro para depuración
-               # move.foreign_taxable_income = move.tax_totals["foreign_amount_untaxed"]
-            move.foreign_taxable_income = move.tax_totals.get("foreign_amount_untaxed", 0)  # Usar get para evitar KeyError
+            move.foreign_taxable_income = 0.0  # Inicializar en 0.0 para facturas en moneda local
+            if move.is_invoice() and move.invoice_line_ids and move.foreign_currency_id and move.currency_id != move.foreign_currency_id:
+                if 'foreign_amount_untaxed' in move.tax_totals:
+                    move.foreign_taxable_income = move.tax_totals['foreign_amount_untaxed']
+                    
+#    def _compute_foreign_taxable_income(self):
+#        """
+#        Compute the foreign taxable income of the invoice
+#        """
+#        for move in self:
+#            move.foreign_taxable_income = False
+#            if move.is_invoice() and move.invoice_line_ids:
+#                move.foreign_taxable_income = move.tax_totals["foreign_amount_untaxed"]
 
     @api.depends("tax_totals")
     def _compute_foreign_total_billed(self):
@@ -696,12 +749,14 @@ class AccountMove(models.Model):
             if move.is_invoice(include_receipts=True):
                 base_lines, _tax_lines = move._get_rounded_base_and_tax_lines()
                 _logger.info(base_lines)
+                _logger.info("account.move (l10n_ve_accountant) antes de _get_tax_totals_summary: %s", self)
                 move.tax_totals = self.env['account.tax']._get_tax_totals_summary(
                     base_lines=base_lines,
                     currency=move.currency_id,
                     company=move.company_id,
                     cash_rounding=move.invoice_cash_rounding_id,
                 )
+                _logger.info("Resultado de _get_tax_totals_summary: %s", move.tax_totals)
                 _logger.info(move.tax_totals)
                 move.tax_totals['display_in_company_currency'] = (
                     move.company_id.display_invoice_tax_company_currency
