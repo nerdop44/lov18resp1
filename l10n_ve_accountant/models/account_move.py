@@ -84,25 +84,25 @@ class AccountMove(models.Model):
         store=True,
     )
 
-       # INICIO: Añadir los siguientes campos aquí
-    retention_iva_line_ids = fields.One2many(
-        "account.retention.iva.line",
-        "move_id",
-        string="Líneas de Retención de IVA",
-        copy=True,
-    )
-    retention_islr_line_ids = fields.One2many(
-        "account.retention.islr.line",
-        "move_id",
-        string="Líneas de Retención de ISLR",
-        copy=True,
-    )
-    retention_municipal_line_ids = fields.One2many(
-        "account.retention.municipal.line",
-        "move_id",
-        string="Líneas de Retención Municipal",
-        copy=True,
-    )
+    #    # INICIO: Añadir los siguientes campos aquí
+    # retention_iva_line_ids = fields.One2many(
+    #     "account.retention.iva.line",
+    #     "move_id",
+    #     string="Líneas de Retención de IVA",
+    #     copy=True,
+    # )
+    # retention_islr_line_ids = fields.One2many(
+    #     "account.retention.islr.line",
+    #     "move_id",
+    #     string="Líneas de Retención de ISLR",
+    #     copy=True,
+    # )
+    # retention_municipal_line_ids = fields.One2many(
+    #     "account.retention.municipal.line",
+    #     "move_id",
+    #     string="Líneas de Retención Municipal",
+    #     copy=True,
+    # )
     # FIN: De los campos a añadir
     # === INICIO DE LA MODIFICACIÓN PARA base_currency_is_vef ===
     base_currency_is_vef = fields.Boolean(
