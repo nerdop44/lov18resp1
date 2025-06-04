@@ -203,6 +203,7 @@ class AccountMoveLine(models.Model):
                 )
                 continue
 
+            
             if (
                 line.payment_id
                 and "retention_foreign_amount" in self.env["account.payment"]._fields
@@ -210,16 +211,18 @@ class AccountMoveLine(models.Model):
             ):
                 # 5 Case: Retention
                 # In this case, we need to set the foreign debit and credit of the retention
+#            if (line.move_id.payment_id and 
+#                line.payment_id and  # Verificar payment_id en la línea también
+#                line.payment_id.is_retention and 
+#                "retention_foreign_amount" in self.env["account.payment"]._fields):
+            
+                retention_amount = line.payment_id.retention_foreign_amount
                 if not line.currency_id.is_zero(line.debit):
-                    line.foreign_debit = (
-                        line.move_id.payment_id.retention_foreign_amount
-                    )
-                    continue
-                if not line.currency_id.is_zero(line.credit):
-                    line.foreign_credit = (
-                        line.move_id.payment_id.retention_foreign_amount
-                    )
-                    continue
+                    line.foreign_debit = retention_amount
+                elif not line.currency_id.is_zero(line.credit):
+                    line.foreign_credit = retention_amount
+                continue
+
 
             if not line.move_id.is_invoice(include_receipts=True):
                 # 6 Case: Not Invoice
@@ -494,5 +497,3 @@ class AccountMoveLine(models.Model):
     def _onchange_price_unit(self):
         if self.price_unit < 0:
             raise ValidationError(_("The price entered cannot be negative"))
-
-
