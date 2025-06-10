@@ -293,11 +293,27 @@ class AccountMove(models.Model):
                 [("id", "=", int(foreign_currency_id))]
             )
             foreign_currency_symbol = foreign_currency_record.symbol or ""
+            view = False  # Definición segura antes de cualquier condición
             if view_type == "form":
-                view_id = self.env.ref(
-                    "l10n_ve_accountant.view_account_move_form_binaural_invoice"
-                ).id
+                view = self.env.ref(
+                    'l10n_ve_binaural.view_account_move_form_binaural_invoice', 
+                    False
+            )
+            if view:
                 doc = etree.XML(res["arch"])
+                page = doc.xpath("//page[@name='foreign_currency']")
+                ...
+            else:
+                return super(AccountMove, self).get_view(view_id=view_id, view_type=view_type, **options)
+            # if view_type == "form":
+            #     view = self.env.ref('l10n_ve_binaural.view_account_move_form_binaural_invoice', False)
+            # if view:
+            #     view_id = view.idindicame puentialmente de donde a donde va el ca,m
+ 
+            #     # view_id = self.env.ref(
+            #     #     "l10n_ve_accountant.view_account_move_form_binaural_invoice"
+            #     # ).id
+            #     doc = etree.XML(res["arch"])
                 page = doc.xpath("//page[@name='foreign_currency']")
                 if page:
                     page[0].set(
