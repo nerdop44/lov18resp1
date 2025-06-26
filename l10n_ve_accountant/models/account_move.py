@@ -296,7 +296,7 @@ class AccountMove(models.Model):
             view = False  # Definición segura antes de cualquier condición
             if view_type == "form":
                 view = self.env.ref(
-                    'l10n_ve_binaural.account_move_form_binaural_payment_extension', 
+                    'l10n_ve_binaural.view_account_move_form_binaural_invoice', 
                     False
             )
             if view:
