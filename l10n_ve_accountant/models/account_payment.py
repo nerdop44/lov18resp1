@@ -177,6 +177,22 @@ class AccountPayment(models.Model):
     #     if 'is_manually_modified' not in self.env['account.move.line']._fields:
     #         self = self.with_context(skip_manually_modified_check=True)
     #     return super().action_post()
+    @api.depends("date")
+    def _compute_rate(self):
+        Rate = self.env["res.currency.rate"]
+        for payment in self:
+            if not payment.foreign_currency_id:
+                payment.foreign_rate = 0.0
+                payment.foreign_inverse_rate = 0.0
+                continue
+
+            rate_values = Rate.compute_rate(
+                payment.foreign_currency_id.id, payment.date or fields.Date.today()
+            )
+
+            # Validación adicional
+            payment.foreign_rate = rate_values.get("foreign_rate", 0.0)
+            payment.foreign_inverse_rate = rate_values.get("foreign_inverse_rate", 0.0)
 
     # @api.depends("date")
     # def _compute_rate(self):
