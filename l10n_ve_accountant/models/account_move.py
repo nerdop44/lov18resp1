@@ -38,6 +38,9 @@ class AccountMove(models.Model):
     @api.onchange("move_type")
     def _onchange_move_type(self):
         self.invoice_date = False if self.move_type == "entry" else fields.Date.today()
+        # --- MODIFICACIÓN AGREGADA AQUÍ ---
+        if not self.date:
+            self.date = fields.Date.context_today(self)
 
     foreign_rate = fields.Float(
         compute="_compute_rate",
@@ -324,6 +327,11 @@ class AccountMove(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        today = fields.Date.context_today(self)
+        for vals in vals_list:
+            # Aseguramos que siempre haya fecha contable
+            if not vals.get("date"):
+                vals["date"] = today
         """
         Ensure that the foreign_rate and foreign_inverse_rate are computed and computes the foreign
         debit and foreign credit of the line_ids fields (journal entries) when the move is created.
