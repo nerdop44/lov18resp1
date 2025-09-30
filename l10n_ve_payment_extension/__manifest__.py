@@ -49,11 +49,12 @@
         "views/type_withholding.xml",
         "views/account_retention_line.xml",
         "views/account_retention_iva.xml",
-        "views/account_retention_islr.xml",
+        
         "views/account_retention_municipal.xml",
         "views/account_payment.xml",
         "views/res_partner.xml",
         "views/account_move.xml",
+        "views/account_retention_islr.xml",
         "wizard/account_payment_register.xml",
         "wizard/arcv_report.xml",
         "wizard/municipal_retention_xlsx_report.xml",
