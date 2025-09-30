@@ -9,14 +9,14 @@ class AccountMoveRetention(models.Model):
     _inherit = "account.move"
 
     # Campo modificado para solucionar el error
-    date = fields.Date(
-        string="Fecha Contable",
-        compute='_compute_date_field',
-        inverse='_inverse_date_field',
-        store=True,
-        readonly=False,
-        help="Campo puente para compatibilidad con vistas heredadas"
-    )
+#    date = fields.Date(
+#        string="Fecha Contable",
+#        compute='_compute_date_field',
+#        inverse='_inverse_date_field',
+#        store=True,
+#        readonly=False,
+#        help="Campo puente para compatibilidad con vistas heredadas"
+#    )
 
     base_currency_is_vef = fields.Boolean(
         compute="_compute_currency_fields",
@@ -67,10 +67,16 @@ class AccountMoveRetention(models.Model):
         default=False,
     )
 
-    @api.depends('invoice_date')
-    def _compute_date_field(self):
+    @api.onchange('invoice_date')
+    def _onchange_invoice_date_suggest_accounting_date(self):
         for move in self:
-            move.date = move.invoice_date if move.is_invoice() else fields.Date.context_today(self)
+            if move.is_invoice() and move.invoice_date and not move.date:
+                move.date = move.invoice_date
+
+#    @api.depends('invoice_date')
+#    def _compute_date_field(self):
+#        for move in self:
+#            move.date = move.invoice_date if move.is_invoice() else fields.Date.context_today(self)
 
     def _inverse_date_field(self):
         for move in self:
