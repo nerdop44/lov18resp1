@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="hr_contract_type_TD" model="hr.contract.type">
+            <field name="name">Tiempo Completo</field>
+            <field name="code">TD</field>
+        </record>
+         <record id="hr_contract_type_TI" model="hr.contract.type">
+            <field name="name">Tiempo Indeterminado</field>
+            <field name="code">TI</field>
+        </record>
+        <record id="hr_contract_type_OD" model="hr.contract.type">
+            <field name="name">Obra Determinada</field>
+            <field name="code">OD</field>
+        </record>
+    </data>
+</odoo>

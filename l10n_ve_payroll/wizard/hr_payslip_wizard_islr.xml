@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<odoo>
+        <!-- vista formulario para el modelo hr.payslip.wizard.txt_islr -->
+        <record model="ir.ui.view" id="hr_payslip_wizard_islr_form_view">
+            <field name="name">hr.payslip.wizard.islr.form</field>
+            <field name="model">hr.payslip.wizard.islr</field>
+            <field name="arch" type="xml">
+                <form string="Comprobante de Retenciones Varias ARC-V">
+                    <group>
+                        <group>
+                            <field name="employee_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
+                            <field name="rule_employee_integral_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
+                            <field name="rule_employee_retenido_ids" widget="many2many_tags" domain="[('code', 'like', 'ISLR')]" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
+                        </group>
+                        <group>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="company_id" groups="base.group_multi_company" string="Compañia" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <div class="oe_left">
+                            <button string="Generar Reporte" name="generar_reporte" type="object"  class="oe_highlight" />
+                            <button string="Cancelar" special="cancel" type="object" class="oe_link" />
+                        </div>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="hr_payslip_wizard_islr_action" model="ir.actions.act_window">
+            <field name="name">Comprobante de Retenciones Varias ARC-V</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">hr.payslip.wizard.islr</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="hr_payslip_wizard_islr_form_view"/>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem
+            id="menu_hr_payslip_wizard_islr_payroll"
+            name="Comprobante de Retenciones Varias ARC-V"
+            parent="menu_venezuela_payrol_reporting"
+            action="hr_payslip_wizard_islr_action"
+            sequence="31"/>
+
+</odoo>

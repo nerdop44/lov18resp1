@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="structure_type_utilidades_anual" model="hr.payroll.structure.type">
+            <field name="name">Utilidades</field>
+            <field name="default_schedule_pay">annually</field>
+        </record>
+
+        <record id="structure_utilidades" model="hr.payroll.structure">
+            <field name="name">Utilidades</field>
+            <field name="type_id" ref="structure_type_utilidades_anual"/>
+            <field name="country_id" eval="False"/>
+        </record>
+
+        <!--    Asignaciones    -->
+
+        <record id="input_monto_de_MCBRUEMP" model="hr.payslip.input.type">
+            <field name="name">Monto Capital bruto acreditado por la empresa</field>
+            <field name="code">MCBRUEMP</field>
+            <field name="struct_ids" eval="[(6, 0, [ ref('l10n_ve_payroll.structure_utilidades')])]"/>
+        </record>
+
+        <record id="rule_UTILID_utilidades" model="hr.salary.rule">
+            <field name="name">Pago de Utilidades</field>
+            <field name="code">UTILID</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+campo_total = 'total' if not contract.basado_usd else 'total_usd'
+payslip_lines = payslip.env['hr.payslip.line'].search([('date_from', '>=', payslip.date_from), ('date_to', '&lt;=', payslip.date_to)])
+base = payslip_lines.filtered(lambda line: line.code == 'TOTAL_ASIG').mapped(campo_total)
+base = sum(base) if not contract.basado_usd else sum(base) * payslip.tasa_cambio
+result = ((base/360) * contract.dias_utilidades) + inputs.MCBRUEMP.amount
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.category_asignacion"/>
+            <field name="sequence" eval="10"/>
+            <field name="active">True</field>
+            <field name="struct_id" ref="structure_utilidades"/>
+        </record>
+
+
+        <!--    Deducciones   100 -->
+
+        <record id="rule_DANTIU_utilidades" model="hr.salary.rule">
+            <field name="name">Descuento de Anticipo de Utilidades</field>
+            <field name="code">DANTIU</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+fechaToStr = str(payslip.date_to)
+mesAnioTo = fechaToStr[:7]
+anioTo = mesAnioTo[:4]
+fechaIniStr = anioTo + '-01-01'
+fechaFinStr = anioTo + '-10-30'
+anti_utilidades = payslip.sum('ANTIU', fechaIniStr , fechaFinStr)
+if anti_utilidades >0:
+ result = True
+else:
+ result = False
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+fechaToStr = str(payslip.date_to)
+mesAnioTo = fechaToStr[:7]
+anioTo = mesAnioTo[:4]
+fechaIniStr = anioTo + '-01-01'
+fechaFinStr = anioTo + '-12-30'
+anti_utilidades = payslip.sum('ANTIU', fechaIniStr , fechaFinStr)
+result = anti_utilidades
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="100"/>
+            <field name="struct_id" ref="structure_utilidades"/>
+        </record>
+
+         <record id="rule_RINCES_utilidades" model="hr.salary.rule">
+            <field name="name">Retencion Inces</field>
+            <field name="code">RINCES</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = (categories.ASIGNA * 0.5)/100
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="101"/>
+            <field name="struct_id" ref="structure_utilidades"/>
+        </record>
+
+
+        <record id="rule_FAOV_utilidades" model="hr.salary.rule">
+            <field name="name">Retención FAOV</field>
+            <field name="code">FAOV</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_faov
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = ((categories.BASIC + categories.ASIGNA + categories.SUBS + categories.BONO)) * (employee.company_id.por_empleado_lph/100)
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="102"/>
+            <field name="struct_id" ref="structure_utilidades"/>
+        </record>
+
+
+        <!--    Totales   300 -->
+
+        <record id="rule_total_asignaciones_utilidades" model="hr.salary.rule">
+            <field name="name">Total Asignaciones</field>
+            <field name="code">TOTAL_ASIG</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = categories.BASIC + categories.ASIGNA + categories.SUBS + categories.BONO
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.categoria_total_asignaciones"/>
+            <field name="sequence" eval="300"/>
+            <field name="struct_id" ref="structure_utilidades"/>
+        </record>
+
+        <record id="rule_total_ded_utilidades" model="hr.salary.rule">
+            <field name="name">Total Deducciones</field>
+            <field name="code">TOTAL_DED</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = categories.DED
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.categoria_total_deducciones"/>
+            <field name="sequence" eval="301"/>
+            <field name="struct_id" ref="structure_utilidades"/>
+        </record>
+
+
+        <record id="rule_NET_utilidades" model="hr.salary.rule">
+            <field name="name">Total</field>
+            <field name="code">TOTAL</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = (categories.BASIC + categories.ASIGNA + categories.SUBS + categories.BONO) - categories.DED
+            </field>
+            <field name="category_id" ref="hr_payroll.NET"/>
+            <field name="sequence" eval="500"/>
+            <field name="struct_id" ref="structure_utilidades"/>
+        </record>
+
+    </data>
+</odoo>

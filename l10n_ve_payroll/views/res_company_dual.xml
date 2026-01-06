@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <record id="res_company_form_l10n_ve_pauyroll_dual" model="ir.ui.view">
+            <field name="name">Dual currency nómina</field>
+            <field name="model">res.company</field>
+            <field name="inherit_id" ref="base.view_company_form"/>
+            <field name="priority">31</field>
+            <field name="arch" type="xml">
+            <data>
+               <xpath expr="//field[@name='currency_id']" position="after">
+                    <field name="currency_id_dif" options="{'no_create': True, 'no_open': True}"/>
+               </xpath>
+            </data>
+            </field>
+        </record>
+</odoo>
+

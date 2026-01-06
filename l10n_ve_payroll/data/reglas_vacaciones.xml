@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="structure_type_vacaciones_anual" model="hr.payroll.structure.type">
+            <field name="name">Vacaciones</field>
+            <field name="default_schedule_pay">annually</field>
+        </record>
+
+        <record id="structure_vacaciones" model="hr.payroll.structure">
+            <field name="name">Vacaciones</field>
+            <field name="type_id" ref="structure_type_vacaciones_anual"/>
+            <field name="country_id" eval="False"/>
+        </record>
+
+        <record id="rule_dias_habiles_vacaciones" model="hr.salary.rule">
+            <field name="name">Días hábiles en vacaciones</field>
+            <field name="code">VACA</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = worked_days.VACA
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+VACA = worked_days.VACA.number_of_days if worked_days.VACA else 0
+result = (monto / 30) * VACA
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.category_asignacion"/>
+            <field name="sequence" eval="1"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+        <record id="rule_dias_desfer_vacaciones" model="hr.salary.rule">
+            <field name="name">Días de Des/Fer en vacaciones</field>
+            <field name="code">DDFVACA</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+DDFVACA = worked_days.DDFVACA.number_of_days if worked_days.DDFVACA else 0
+result = (monto / 30) * DDFVACA
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.category_asignacion_subsidio"/>
+            <field name="sequence" eval="2"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+        <record id="rule_bono_vacacional" model="hr.salary.rule">
+            <field name="name">Bono Vacacional</field>
+            <field name="code">BONOVACA</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+VACA = worked_days.VACA.number_of_days if worked_days.VACA else 0
+result = (monto / 30) * VACA
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.category_asignacion_bonos"/>
+            <field name="sequence" eval="2"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+        <!--    Deducciones   100 -->
+
+        <record id="rule_DESCSSO_vacaciones" model="hr.salary.rule">
+            <field name="name">Retención SSO</field>
+            <field name="code">DESCSSO</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_sso
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto_base = BONOVACA + DDFVACA + VACA
+#if monto_base > (employee.company_id.salario_minimo * 5):
+# monto_base = (employee.company_id.salario_minimo * 5)
+result = ((monto_base*12)/52) * (employee.company_id.por_aporte_sso/100) * payslip.lunes_periodo
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="100"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+        <record id="rule_FAOV_vacaciones" model="hr.salary.rule">
+            <field name="name">Retención FAOV</field>
+            <field name="code">FAOV</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_faov
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = ((categories.BASIC + categories.ASIGNA + categories.SUBS + categories.BONO)) * (employee.company_id.por_empleado_lph/100)
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="101"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+        <record id="rule_RPE_vacaciones" model="hr.salary.rule">
+            <field name="name">Retención RPE</field>
+            <field name="code">RPE</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_rpe
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto_base = BONOVACA + DDFVACA + VACA
+#if monto_base > (employee.company_id.salario_minimo * 10):
+# monto_base = (employee.company_id.salario_minimo * 10)
+result = ((monto_base*12)/52) * (employee.company_id.por_empleado_rpe/100) * payslip.lunes_periodo
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="102"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+        <!--    Aprtes de empresa   200 -->
+
+        <record id="rule_APORSSO_vacaciones" model="hr.salary.rule">
+            <field name="name">Aporte SSO</field>
+            <field name="code">APORSSO</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_sso
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto_base = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+#if monto_base > (employee.company_id.salario_minimo * 5):
+# monto_base = (employee.company_id.salario_minimo * 5)
+result = ((monto_base*12)/52) * (employee.company_id.por_riesgo/100) * payslip.lunes_periodo
+            </field>
+            <field name="appears_on_payslip">False</field>
+            <field name="category_id" ref="hr_payroll.COMP"/>
+            <field name="sequence" eval="200"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+        <record id="rule_aporte_FAOV_vacaciones" model="hr.salary.rule">
+            <field name="name">Aporte FAOV</field>
+            <field name="code">AFAOV</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_faov
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = ((categories.BASIC + categories.ASIGNA + categories.SUBS + categories.BONO)) * (employee.company_id.por_empresa_lph/100)
+            </field>
+             <field name="appears_on_payslip">False</field>
+            <field name="category_id" ref="hr_payroll.COMP"/>
+            <field name="sequence" eval="201"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+        <record id="rule_RPE_empresa_vacaciones" model="hr.salary.rule">
+            <field name="name">Aporte RPE</field>
+            <field name="code">ARPE</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_rpe
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto_base = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+#if monto_base > (employee.company_id.salario_minimo * 10):
+# monto_base = (employee.company_id.salario_minimo * 10)
+result = ((monto_base*12)/52) * (employee.company_id.por_empresa_rpe/100) * payslip.lunes_periodo
+            </field>
+            <field name="appears_on_payslip">False</field>
+            <field name="category_id" ref="hr_payroll.COMP"/>
+            <field name="sequence" eval="202"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+        <!--    Totales   300 -->
+
+        <record id="rule_total_ded_vacaciones" model="hr.salary.rule">
+            <field name="name">Total Deducciones</field>
+            <field name="code">TOTAL_DED</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = categories.DED
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.categoria_total_deducciones"/>
+            <field name="sequence" eval="300"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+        <record id="rule_total_asignaciones_vacaciones" model="hr.salary.rule">
+            <field name="name">Total Asignaciones</field>
+            <field name="code">TOTAL_ASIG</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = categories.BASIC + categories.ASIGNA + categories.SUBS + categories.BONO
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.categoria_total_asignaciones"/>
+            <field name="sequence" eval="301"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+
+        <record id="rule_NET_vacaciones" model="hr.salary.rule">
+            <field name="name">Total</field>
+            <field name="code">TOTAL</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = categories.BASIC + categories.ASIGNA + categories.ASIGNA + categories.BONO - categories.DED
+            </field>
+            <field name="category_id" ref="hr_payroll.NET"/>
+            <field name="sequence" eval="302"/>
+            <field name="struct_id" ref="structure_vacaciones"/>
+        </record>
+
+    </data>
+</odoo>

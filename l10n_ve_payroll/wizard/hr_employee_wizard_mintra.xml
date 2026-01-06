@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<odoo>
+        <!-- vista formulario para el modelo hr.employee.wizard.mintra -->
+        <record model="ir.ui.view" id="hr_employee_wizard_mintra_form_view">
+            <field name="name">hr.employee.wizard.mintra.form</field>
+            <field name="model">hr.employee.wizard.mintra</field>
+            <field name="arch" type="xml">
+                <form string="Generar TXT MINTRA">
+                    <group>
+                        <group>
+                            <field name="tipo_txt" widget="radio" string="Tipo de TXT"/>
+                            <field name="company_id" groups="base.group_multi_company" string="Compañia" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
+                        </group>
+                        <group>
+                            <field name="date_from" string="Fecha Desde"/>
+                            <field name="date_to" string="Fecha Hasta"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <div class="oe_left">
+                            <button string="Generar TXT" name="generar_txt" type="object"  class="oe_highlight"/>
+                            <button string="Cancelar" special="cancel" type="object" class="oe_link" />
+                        </div>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="hr_employee_wizard_mintra_action" model="ir.actions.act_window">
+	        <field name="name">TXT MINTRA</field>
+	        <field name="type">ir.actions.act_window</field>
+	        <field name="res_model">hr.employee.wizard.mintra</field>
+	        <field name="view_mode">form</field>
+	        <field name="view_id" ref="hr_employee_wizard_mintra_form_view"/>
+	        <field name="target">new</field>
+	    </record>
+
+        <menuitem
+            id="menu_hr_employee_wizard_mintra_employee"
+            name="TXT MINTRA"
+            parent="hr.hr_menu_hr_reports"
+            action="hr_employee_wizard_mintra_action"
+            sequence="30"/>
+
+        <menuitem
+            id="menu_hr_employee_wizard_mintra_payroll"
+            name="TXT MINTRA"
+            parent="menu_venezuela_payrol_reporting"
+            action="hr_employee_wizard_mintra_action"
+            sequence="32"/>
+
+</odoo>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- heredar la vista formulario product.product_pricelist_view del modelo product.pricelist-->
+        <record id="product_pricelist_view_form_dual_currency" model="ir.ui.view">
+            <field name="name">product.pricelist.view.form.dual_currency</field>
+            <field name="model">product.pricelist</field>
+            <field name="inherit_id" ref="product.product_pricelist_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='currency_id']" position="after">
+                    <field name="pricelist_bs_id"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

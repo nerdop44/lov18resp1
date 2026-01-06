@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="structure_type_alimentacion_mensual" model="hr.payroll.structure.type">
+            <field name="name">Alimentación</field>
+            <field name="default_schedule_pay">monthly</field>
+        </record>
+
+        <record id="structure_alimentacion" model="hr.payroll.structure">
+            <field name="name">Alimentación</field>
+            <field name="type_id" ref="structure_type_alimentacion_mensual"/>
+            <field name="country_id" eval="False"/>
+        </record>
+
+        <!--    Asignaciones    -->
+
+        <record id="rule_BALIM_alimentacion" model="hr.salary.rule">
+            <field name="name">Bono de alimentación</field>
+            <field name="code">BALIM</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = employee.company_id.cesta_ticket if contract.complemento == 0 else contract.complemento * payslip.tasa_cambio
+WORK100 = worked_days.WORK100.number_of_days if worked_days.WORK100 else 0
+DDESS = worked_days.DDESS.number_of_days if worked_days.DDESS else 0
+DDESD = worked_days.DDESD.number_of_days if worked_days.DDESD else 0
+AUSEP = worked_days.AUSEP.number_of_days if worked_days.AUSEP else 0
+dias = WORK100 + DDESS + DDESD + AUSEP
+result = (monto / 30) * dias
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.category_asignacion_bonos"/>
+            <field name="sequence" eval="1"/>
+            <field name="struct_id" ref="structure_alimentacion"/>
+        </record>
+
+
+        <record id="rule_BAHE_alimentacion" model="hr.salary.rule">
+            <field name="name">Bono de alimentación por HE</field>
+            <field name="code">BAHE</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+HED = worked_days.HED.number_of_hours if worked_days.HED else 0
+HEN = worked_days.HEN.number_of_hours if worked_days.HEN else 0
+horas = HED + HEN
+result = horas > 0
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = employee.company_id.cesta_ticket if contract.complemento == 0 else contract.complemento * payslip.tasa_cambio
+HED = worked_days.HED.number_of_hours if worked_days.HED else 0
+HEN = worked_days.HEN.number_of_hours if worked_days.HEN else 0
+horas = HED + HEN
+result = (monto/30)/8 * horas
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.category_asignacion_bonos"/>
+            <field name="sequence" eval="2"/>
+            <field name="struct_id" ref="structure_alimentacion"/>
+        </record>
+
+        <!--    Totales   300 -->
+
+        <record id="rule_total_asignaciones_alimentacion" model="hr.salary.rule">
+            <field name="name">Total Asignaciones</field>
+            <field name="code">TOTAL_ASIG</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip">False</field>
+            <field name="amount_python_compute">
+result = categories.BASIC + categories.ASIGNA + categories.ASIGNA_INCEN + categories.BONO
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.categoria_total_asignaciones"/>
+            <field name="sequence" eval="300"/>
+            <field name="struct_id" ref="structure_alimentacion"/>
+        </record>
+
+
+        <record id="rule_NET_alimentaciones" model="hr.salary.rule">
+            <field name="name">Total</field>
+            <field name="code">TOTAL</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+                        <field name="appears_on_payslip">False</field>
+            <field name="amount_python_compute">
+result = categories.BASIC + categories.ASIGNA + categories.BONO - categories.DED
+            </field>
+            <field name="category_id" ref="hr_payroll.NET"/>
+            <field name="sequence" eval="301"/>
+            <field name="struct_id" ref="structure_alimentacion"/>
+        </record>
+
+    </data>
+</odoo>

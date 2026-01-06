@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="MoneyDetailsPopupUSD" owl="1">
+        <div class="popup money-details">
+            <main class="body">
+                <div class="money-details-title">
+                    Coins/Bills
+                </div>
+                <div class="money-details-info">
+                    <div t-foreach="[firstHalfMoneyDetailsRef, lastHalfMoneyDetailsRef]" t-as="moneyDetailsListRef"
+                         t-key="moneyDetailsListRef_index">
+                        <t t-foreach="moneyDetailsListRef" t-as="moneyValueRef" t-key="moneyValueRef">
+                            <div class="money-details-value" t-on-input="updateMoneyDetailsAmountRef">
+                                <input class="pos-input" t-att-id="moneyValueRef" type="number"
+                                       t-model.number="state.moneyDetailsRef[moneyValueRef]"/>
+                                <CurrencyAmount forTarget="moneyValueRef" currency="currency_ref"
+                                                amount="moneyValueRef"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+                <div class="total-section">
+                    <span>Total</span>
+                    <CurrencyAmount currency="currency_ref"
+                                    amount="env.pos.format_currency_no_symbol(state.total_ref)"/>
+                </div>
+            </main>
+            <footer class="footer">
+                <div class="button" t-on-click="discard">Discard</div>
+                <div class="button" t-on-click="confirm">Confirm</div>
+            </footer>
+        </div>
+    </t>
+</templates>

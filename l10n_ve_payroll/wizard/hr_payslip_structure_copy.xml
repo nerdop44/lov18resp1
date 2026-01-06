@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<odoo>
+    <record id="view_wizard_hr_payslip_structure_copy" model="ir.ui.view">
+            <field name="name">view.hr_payslip_structure_copy</field>
+            <field name="model">hr.payslip.structure.copy</field>
+            <field name="arch" type="xml">
+                <form string="Copia las reglas desde otra estructura">
+                    <group>
+                        <field name="structure_id"/>
+                        <field name="rule_ids" domain="[('struct_id','=',structure_id)]" attrs="{'readonly':[('structure_id','=',False)]}"/>
+                    </group>
+                    <footer>
+                       <button name="copiar_reglas" string="Copiar Reglas" type="object" class="oe_highlight"/>
+                       <button string="Cancel" class="btn btn-default" special="cancel"/>
+                   </footer>
+                </form>
+            </field>
+    </record>
+</odoo>

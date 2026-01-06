@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="hr_salary_rule_view_form_terceros" model="ir.ui.view">
+            <field name="name">hr.salary.rule.form.terceros</field>
+            <field name="model">hr.salary.rule</field>
+            <field name="inherit_id" ref="hr_payroll_account.hr_salary_rule_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='partner_id']/.." position="replace">
+
+                </xpath>
+                <xpath expr="//field[@name='not_computed_in_net']" position="before">
+                    <field name="origin_partner"/>
+                    <field name="partner_id" attrs="{'invisible':[('origin_partner','!=','otro')]}"/>
+                </xpath>
+                <xpath expr="//group[@name='main_details']" position="inside">
+                    <field name="mostrar_cantidad"/>
+                </xpath>
+            </field>
+        </record>
+
+    <record id="hr_salary_rule_view_list_terceros" model="ir.ui.view">
+            <field name="name">hr.salary.rule.list.terceros</field>
+            <field name="model">hr.salary.rule</field>
+            <field name="inherit_id" ref="hr_payroll.hr_salary_rule_list"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='partner_id']" position="before">
+                    <field name="origin_partner"/>
+                </xpath>
+                <xpath expr="//field[@name='struct_id']" position="attributes">
+                    <attribute name="invisible">0</attribute>
+                </xpath>
+            </field>
+        </record>
+</odoo>

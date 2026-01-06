@@ -1,0 +1,507 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--    Tipos de estructura quincenal    -->
+        <record id="structure_type_quincenal" model="hr.payroll.structure.type">
+            <field name="name">Quincenal</field>
+            <field name="default_schedule_pay">bi-weekly</field>
+        </record>
+
+        <!--    Estructura Quincenal  -->
+        <record id="structure_quincenal" model="hr.payroll.structure">
+            <field name="name">Quincenal</field>
+            <field name="type_id" ref="structure_type_quincenal"/>
+            <field name="country_id" eval="False"/>
+            <field name="procesar_prestaciones" eval="True"/>
+        </record>
+
+        <!--    Reglas de nomina quincenal    -->
+        <!--    Asignaciones    -->
+
+        <record id="rule_SQUIN_quincenal" model="hr.salary.rule">
+            <field name="name">Salario básico quincenal</field>
+            <field name="code">SQUIN</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+WORK100 = worked_days.WORK100.number_of_days if worked_days.WORK100 else 0
+AUSEP = worked_days.AUSEP.number_of_days if worked_days.AUSEP else 0
+result = (monto / 30) * (WORK100 + AUSEP)
+            </field>
+            <field name="category_id" ref="hr_payroll.BASIC"/>
+            <field name="sequence" eval="1"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <!--Eleiminar regla, se ha separado en 2-->
+        <record id="rule_DDESCANSO_quincenal" model="hr.salary.rule">
+            <field name="name">Días descanso</field>
+            <field name="code">DDES</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = worked_days.DDES
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+DDESS = worked_days.DDESS.number_of_days if worked_days.DDESS else 0
+result = (monto / 30) * DDESS
+            </field>
+            <field name="category_id" ref="category_asignacion_subsidio"/>
+            <field name="sequence" eval="2"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_DDESCANSOS_quincenal" model="hr.salary.rule">
+            <field name="name">Días descanso sábado</field>
+            <field name="code">DDESS</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = worked_days.DDESS
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+DDESS = worked_days.DDESS.number_of_days if worked_days.DDESS else 0
+result = (monto / 30) * DDESS
+            </field>
+            <field name="category_id" ref="category_asignacion_subsidio"/>
+            <field name="sequence" eval="3"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_DDESCANSOD_quincenal" model="hr.salary.rule">
+            <field name="name">Días descanso domingo</field>
+            <field name="code">DDESD</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = worked_days.DDESD
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+DDESD = worked_days.DDESD.number_of_days if worked_days.DDESD else 0
+result = (monto / 30) * DDESD
+            </field>
+            <field name="category_id" ref="category_asignacion_subsidio"/>
+            <field name="sequence" eval="4"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_FERI_quincenal" model="hr.salary.rule">
+            <field name="name">Días feriado</field>
+            <field name="code">FERI</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = worked_days.FERI
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+FERI = worked_days.FERI.number_of_days if worked_days.FERI else 0
+result = (monto / 30) * FERI
+            </field>
+            <field name="category_id" ref="category_asignacion_subsidio"/>
+            <field name="sequence" eval="5"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_FERIT_quincenal" model="hr.salary.rule">
+            <field name="name">Días feriado trabajado</field>
+            <field name="code">FERIT</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = worked_days.FERIT
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+FERIT = worked_days.FERIT.number_of_days if worked_days.FERIT else 0
+result = ((monto / 30) * FERIT) * 2
+            </field>
+            <field name="category_id" ref="category_asignacion"/>
+            <field name="sequence" eval="6"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_DDESST_quincenal" model="hr.salary.rule">
+            <field name="name">Días sábado trabajado</field>
+            <field name="code">DDESST</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = worked_days.DDESST
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+DDESST = worked_days.DDESST.number_of_days if worked_days.DDESST else 0
+result = ((monto / 30) * DDESST) * 2
+            </field>
+            <field name="category_id" ref="category_asignacion"/>
+            <field name="sequence" eval="7"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_DDESDT_quincenal" model="hr.salary.rule">
+            <field name="name">Días domingo trabajado</field>
+            <field name="code">DDESDT</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = worked_days.DDESDT
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+DDESDT = worked_days.DDESDT.number_of_days if worked_days.DDESDT else 0
+result = ((monto / 30) * DDESDT) * 2
+            </field>
+            <field name="category_id" ref="category_asignacion"/>
+            <field name="sequence" eval="8"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_HED_quincenal" model="hr.salary.rule">
+            <field name="name">Horas extras diurnas</field>
+            <field name="code">HED</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = worked_days.HED
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.HED if not contract.basado_usd else contract.HED_usd * payslip.tasa_cambio
+HED = worked_days.HED.number_of_hours if worked_days.HED else 0
+result = monto * HED
+            </field>
+            <field name="category_id" ref="category_asignacion"/>
+            <field name="sequence" eval="9"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_HEN_quincenal" model="hr.salary.rule">
+            <field name="name">Horas extras nocturnas</field>
+            <field name="code">HEN</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = worked_days.HEN
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.HEN if not contract.basado_usd else contract.HEN_usd * payslip.tasa_cambio
+HEN = worked_days.HEN.number_of_hours if worked_days.HEN else 0
+result = monto * HEN
+            </field>
+            <field name="category_id" ref="category_asignacion"/>
+            <field name="sequence" eval="10"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_ANTIU_utilidades_quincenal" model="hr.salary.rule">
+            <field name="name">Anticipo de Utilidades</field>
+            <field name="code">ANTIU</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+if inputs.MANTIU:
+ result = inputs.MANTIU.amount > 0
+else:
+ result = False
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = inputs.MANTIU.amount if not contract.basado_usd else inputs.MANTIU.amount * payslip.tasa_cambio
+result = inputs.MANTIU.amount
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.category_asignacion"/>
+            <field name="sequence" eval="7"/>
+            <field name="struct_id" ref="l10n_ve_payroll.structure_quincenal"/>
+        </record>
+
+        <record id="rule_ADEP_utilidades_quincenal" model="hr.salary.rule">
+            <field name="name">Adelanto de Prestaciones</field>
+            <field name="code">ADEP</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+if inputs.ADEP:
+ result = inputs.ADEP.amount > 0
+else:
+ result = False
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = inputs.ADEP.amount
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.category_asignacion"/>
+            <field name="sequence" eval="8"/>
+            <field name="struct_id" ref="l10n_ve_payroll.structure_quincenal"/>
+        </record>
+
+        <!--    Deducciones   100 -->
+
+        <record id="rule_DESCSSO_quincenal" model="hr.salary.rule">
+            <field name="name">Retención SSO</field>
+            <field name="code">DESCSSO</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_sso
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto_base = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+#if monto_base > (employee.company_id.salario_minimo * 5):
+# monto_base = (employee.company_id.salario_minimo * 5)
+result = ((monto_base*12)/52) * (employee.company_id.por_aporte_sso/100) * payslip.lunes_periodo
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="100"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_FAOV_quincenal" model="hr.salary.rule">
+            <field name="name">Retención FAOV</field>
+            <field name="code">FAOV</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_faov
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = ((categories.BASIC + categories.ASIGNA + categories.SUBS + categories.BONO)) * (employee.company_id.por_empleado_lph/100)
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="101"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_RPE_quincenal" model="hr.salary.rule">
+            <field name="name">Retención RPE</field>
+            <field name="code">RPE</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_rpe
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto_base = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+#if monto_base > (employee.company_id.salario_minimo * 10):
+# monto_base = (employee.company_id.salario_minimo * 10)
+result = ((monto_base*12)/52) * (employee.company_id.por_empleado_rpe/100) * payslip.lunes_periodo
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="102"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_AUSE_quincenal" model="hr.salary.rule">
+            <field name="name">Días ausencia</field>
+            <field name="code">AUSE</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = worked_days.AUSE
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+AUSE = worked_days.AUSE.number_of_days if worked_days.AUSE else 0
+result = (monto / 30) * AUSE
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="103"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_ISRL_quincenal" model="hr.salary.rule">
+            <field name="name">Impuesto Sobre la Renta</field>
+            <field name="code">ISLR</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = employee.islr > 0
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = ((categories.BASIC + categories.ASIGNA + categories.SUBS + categories.BONO)) * (employee.islr/100)
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="104"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_CRED_quincenal" model="hr.salary.rule">
+            <field name="name">Cuota de Crédito</field>
+            <field name="code">CRED</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = payslip.installment_amount > 0
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = payslip.installment_amount * payslip.tasa_cambio
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="105"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_INTCRED_quincenal" model="hr.salary.rule">
+            <field name="name">Intereses Cuota de Crédito</field>
+            <field name="code">INTCRED</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = payslip.installment_int > 0
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = payslip.installment_int * payslip.tasa_cambio
+            </field>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="sequence" eval="106"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+
+
+        <!--    Aprtes de empresa   200 -->
+
+        <record id="rule_APORSSO_quincenal" model="hr.salary.rule">
+            <field name="name">Aporte SSO</field>
+            <field name="code">APORSSO</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_sso
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto_base = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+#if monto_base > (employee.company_id.salario_minimo * 5):
+# monto_base = (employee.company_id.salario_minimo * 5)
+result = ((monto_base*12)/52) * (employee.company_id.por_riesgo/100) * payslip.lunes_periodo
+            </field>
+            <field name="appears_on_payslip">False</field>
+            <field name="category_id" ref="hr_payroll.COMP"/>
+            <field name="sequence" eval="200"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_aporte_FAOV_quincenal" model="hr.salary.rule">
+            <field name="name">Aporte FAOV</field>
+            <field name="code">AFAOV</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_faov
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = ((categories.BASIC + categories.ASIGNA + categories.SUBS + categories.BONO)) * (employee.company_id.por_empresa_lph/100)
+            </field>
+             <field name="appears_on_payslip">False</field>
+            <field name="category_id" ref="hr_payroll.COMP"/>
+            <field name="sequence" eval="201"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_RPE_empresa_quincenal" model="hr.salary.rule">
+            <field name="name">Aporte RPE</field>
+            <field name="code">ARPE</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract.retencion_rpe
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+monto_base = contract.wage if not contract.basado_usd else contract.wage_usd * payslip.tasa_cambio
+#if monto_base > (employee.company_id.salario_minimo * 10):
+# monto_base = (employee.company_id.salario_minimo * 10)
+result = ((monto_base*12)/52) * (employee.company_id.por_empresa_rpe/100) * payslip.lunes_periodo
+            </field>
+            <field name="appears_on_payslip">False</field>
+            <field name="category_id" ref="hr_payroll.COMP"/>
+            <field name="sequence" eval="202"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+
+        <record id="rule_AINCE_empresa_quincenal" model="hr.salary.rule">
+            <field name="name">Aporte INCES</field>
+            <field name="code">APORINCES</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+fechaToStr = str(payslip.date_to)
+mesAnioTo = fechaToStr[:7]
+diaTo = fechaToStr[-2:]
+mesTo = mesAnioTo[-2:]
+anioTo = mesAnioTo[:4]
+if mesTo in ['03','06','09','12'] and int(diaTo) >= 28:
+ result = True
+else:
+ result = False
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+fechaToStr = str(payslip.date_to)
+mesAnioTo = fechaToStr[:7]
+diaTo = fechaToStr[-2:]
+mesTo = mesAnioTo[-2:]
+anioTo = mesAnioTo[:4]
+mesFrom = str('0' + str(int(mesTo) - 2)) if int(mesTo) &lt; 10 else str(int(mesTo) - 2)
+#if mesTo == '03':
+# mesFrom = '01'
+fechaIniStr = anioTo + '-' + mesFrom + '-' + '01'
+SQUIN_sum = payslip.sum('SQUIN', fechaIniStr, to_date=payslip.date_to)
+DDESS_sum = payslip.sum('DDESS', fechaIniStr, to_date=payslip.date_to)
+DDESD_sum = payslip.sum('DDESD', fechaIniStr, to_date=payslip.date_to)
+FERI_sum = payslip.sum('FERI', fechaIniStr, to_date=payslip.date_to)
+base = categories.BASIC + categories.SUBS + SQUIN_sum + DDESS_sum + DDESD_sum + FERI_sum
+result = base * (employee.company_id.por_empresa_inces/100)
+            </field>
+            <field name="appears_on_payslip">False</field>
+            <field name="category_id" ref="hr_payroll.COMP"/>
+            <field name="sequence" eval="203"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+
+        <!--    Totales   300 -->
+
+        <record id="rule_total_asignaciones_quincenal" model="hr.salary.rule">
+            <field name="name">Total Asignaciones</field>
+            <field name="code">TOTAL_ASIG</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = categories.BASIC + categories.ASIGNA + categories.SUBS + categories.BONO
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.categoria_total_asignaciones"/>
+            <field name="sequence" eval="300"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+        <record id="rule_total_ded_quincenal" model="hr.salary.rule">
+            <field name="name">Total Deducciones</field>
+            <field name="code">TOTAL_DED</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = categories.DED
+            </field>
+            <field name="category_id" ref="l10n_ve_payroll.categoria_total_deducciones"/>
+            <field name="sequence" eval="301"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+
+
+        <record id="rule_NET_quincenal" model="hr.salary.rule">
+            <field name="name">Total</field>
+            <field name="code">TOTAL</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = (categories.BASIC + categories.ASIGNA + categories.SUBS + categories.BONO) - categories.DED
+            </field>
+            <field name="category_id" ref="hr_payroll.NET"/>
+            <field name="sequence" eval="500"/>
+            <field name="struct_id" ref="structure_quincenal"/>
+        </record>
+
+    </data>
+</odoo>

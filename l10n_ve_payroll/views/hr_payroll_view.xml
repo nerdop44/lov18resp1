@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!--<record id="hr_payslip_form_inherit_views_lunes" model="ir.ui.view">
+            <field name="name">hr_payslip_form_inherit_views_lunes</field>
+            <field name="model">hr.payslip</field>
+            <field name="inherit_id" ref="hr_payroll.view_hr_payslip_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='name']" position="after">
+                    <field name="lunes_mes" string="Cantidad de lunes"  attrs="{'invisible':[('moneda_structura','=','usd')]}"></field>
+                    <field name="moneda_structura" invisible="1"></field>
+                    <field name="sal_mensual" attrs="{'invisible':[('moneda_structura','=','usd')]}"></field>
+                    <field name="sal_mensual_usd" attrs="{'invisible':[('moneda_structura','=','usd')]}"></field>
+                    <field name="sal_diario" attrs="{'invisible':[('moneda_structura','=','usd')]}"></field>
+                    <field name="sal_diario_usd" attrs="{'invisible':[('moneda_structura','=','usd')]}"></field>
+                    <field name="complemento_mensual" attrs="{'invisible':[('moneda_structura','=','bs')]}"></field>
+                    <field name="complemento_mensual_bs" attrs="{'invisible':[('moneda_structura','=','bs')]}"></field>
+                    <field name="complemento_diario" attrs="{'invisible':[('moneda_structura','=','bs')]}"></field>
+                    <field name="complemento_diario_bs" attrs="{'invisible':[('moneda_structura','=','bs')]}"></field>
+                    <field name="tasa_cambio"></field>
+                </xpath>
+                &lt;!&ndash;<xpath expr="//form[1]/sheet[1]/notebook[1]/page[1]/field[@name='worked_days_line_ids']/list[1]/field[@name='work_entry_type_id']" position="attributes">
+                    <attribute name="attrs">{}</attribute>
+                    <attribute name="invisible">1</attribute>
+                </xpath>&ndash;&gt;
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[1]/field[@name='worked_days_line_ids']/list[1]/field[@name='number_of_hours']" position="attributes">
+                    <attribute name="attrs">{}</attribute>
+                    <attribute name="invisible">1</attribute>
+                </xpath>
+
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[1]/field[@name='worked_days_line_ids']/list[1]/field[@name='number_of_hours']" position="after">
+                    <field name="amount_usd"/>
+                </xpath>
+
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[2]/field[@name='line_ids']/list[1]/field[@name='amount']" position="after">
+                    <field name="amount_usd"/>
+                </xpath>
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[2]/field[@name='line_ids']/list[1]/field[@name='total']" position="after">
+                    <field name="total_usd"/>
+                </xpath>
+
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='account_info']/group[1]" position="after">
+                    <group name="apuntes" string="Apuntes Contables">
+                      <field name="apuntes_contables" nolabel="1">
+                            <list>
+                                <field name="date"/>
+                                <field name="account_id"/>
+                                <field name="partner_id"/>
+                                <field name="name"/>
+                                <field name="debit"/>
+                                <field name="credit"/>
+                            </list>
+                      </field>
+                    </group>
+                </xpath>
+
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[1]/field[@name='input_line_ids']/list[1]/field[@name='input_type_id']" position="after">
+                    <field name="code" string="Código"/>
+                </xpath>
+
+            </field>
+        </record>-->
+
+         <!--<record id="hr_payslip_structure_inherit_views" model="ir.ui.view">
+            <field name="name">hr_payslip_structure_inherit_views</field>
+            <field name="model">hr.payroll.structure</field>
+            <field name="inherit_id" ref="hr_payroll_account.hr_payroll_structure_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='journal_id']" position="after">
+                    <field name="moneda"></field>
+                </xpath>
+            </field>
+         </record>-->
+
+        <record id="hr_payslip_run_inherit_views" model="ir.ui.view">
+            <field name="name">hr_payslip_run_inherit_views</field>
+            <field name="model">hr.payslip.run</field>
+            <field name="inherit_id" ref="hr_payroll.hr_payslip_run_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form[1]/sheet[1]/group[1]" position="after">
+                    <group>
+                         <group>
+                            <field name="tasa_cambio" widget='monetary'></field>
+                         </group>
+                    </group>
+                </xpath>
+            </field>
+         </record>
+
+        <record id="hr_salary_rule_view_form_terceros" model="ir.ui.view">
+            <field name="name">hr.salary.rule.form.terceros</field>
+            <field name="model">hr.salary.rule</field>
+            <field name="inherit_id" ref="hr_payroll_account.hr_salary_rule_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='not_computed_in_net']" position="before">
+                    <field name="origin_partner"/>
+                    <field name="partner_id" attrs="{'invisible':[('origin_partner','!=','otro')]}"/>
+                </xpath>
+            </field>
+        </record>
+        
+    </data>
+</odoo>

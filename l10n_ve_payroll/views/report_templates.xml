@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="main_template_nomina" inherit_id="account_reports.main_template" >
+        <xpath expr="//t[@t-if='env.company.vat']" position="replace">
+            <t t-if="env.company.vat">
+                RIF: <t t-out="env.company.vat"/>
+            </t>
+        </xpath>
+    </template>
+</odoo>

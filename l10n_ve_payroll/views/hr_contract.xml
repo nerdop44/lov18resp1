@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <record id="hr_contract_form_inherit_views_ve" model="ir.ui.view">
+            <field name="name">hr_contract_form_inherit_views_ve</field>
+            <field name="model">hr.contract</field>
+            <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//label[@for='wage']" position="before">
+                    <field name="basado_usd"/>
+                    <label for="wage_usd"/>
+                    <div class="o_row mw-50" name="wage_usd">
+                        <field name="wage_usd"  class="oe_inline o_hr_narrow_field"  nolabel="1" />
+                        <div class="mb-3">/ mes</div>
+                    </div>
+                </xpath>
+                <xpath expr="//label[@for='wage']" position="replace">
+                    <label for="wage" string="Salario Mensual (Bs)" />
+                </xpath>
+
+                <xpath expr="//group[@name='yearly_advantages']" position="inside">
+                    <field name="currency_id_dif" invisible="1"/>
+                    <field name="dias_utilidades"/>
+                    <field name="complemento" />
+                    <field name="HED"  />
+                    <field name="HED_usd"  />
+                    <field name="HEN"  />
+                    <field name="HEN_usd"  />
+                </xpath>
+                <xpath expr="//notebook" position="inside">
+                    <page string="Vacaciones" name="vacaciones">
+                        <group>
+                            <group>
+                                <field name="dias_bono_vacacional"/>
+                                <field name="anios_antiguedad"/>
+                                <field name="meses_antiguedad"/>
+                                <field name="dias_antiguedad"/>
+                                <field name="dias_provision_vaca" string="Dias de Vacaciones anual"/>
+                                <field name="vaca_disponible"/>
+                            </group>
+                            <group string="Historico">
+                                <field name="vacaciones_ids" nolabel="1" colspan="2" domain="[('employee_id','=',active_id)]">
+                                    <list  create="0" delete="0">
+                                        <field name="anio"/>
+                                        <field name="dias_vaca"/>
+                                        <field name="employee_id" invisible="1"/>
+                                    </list>
+                                </field>
+                            </group>
+                        </group>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- heredar la vista kanban de contratos hr_contract_view_kanban -->
+        <record id="hr_contract_kanban_inherit_views_ve" model="ir.ui.view">
+            <field name="name">hr_contract_kanban_inherit_views_ve</field>
+            <field name="model">hr.contract</field>
+            <field name="inherit_id" ref="hr_contract.hr_contract_view_kanban"/>
+            <field name="arch" type="xml">
+                <div name="div_job_id" position="after">
+                    <div class="o_kanban_record_subtitle o_hr_contract_job_id" name="div_job_id" style="color: red">
+                        <t t-if="record.wage_type.raw_value == 'monthly'">
+                            $ <field name="wage_usd"/> / Mes
+                        </t>
+                    </div>
+                </div>
+            </field>
+        </record>
+
+        <!-- heredar la vista hr_contract.hr_contract_history_view_form -->
+        <record id="hr_contract_history_form_inherit_views_ve" model="ir.ui.view">
+            <field name="name">hr_contract_history_form_inherit_views_ve</field>
+            <field name="model">hr.contract.history</field>
+            <field name="inherit_id" ref="hr_contract.hr_contract_history_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='contract_ids']/list/field[@name='wage']" position="after">
+                    <field name="currency_id_dif" invisible="1"/>
+                    <field name="wage_usd" />
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

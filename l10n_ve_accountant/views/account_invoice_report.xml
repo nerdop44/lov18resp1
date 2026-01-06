@@ -1,0 +1,35 @@
+
+<odoo>
+
+    <data>
+
+        <record id="view_account_invoice_report_pivot_binaural_invoice" model="ir.ui.view">
+            <field name="name">view.account.invoice.report.pivot.binaural.invoice</field>
+            <field name="model">account.invoice.report</field>
+            <field name="inherit_id" ref="account.view_account_invoice_report_pivot"/>
+            <field name="arch" type="xml">
+		        <pivot position="inside">
+                    <field name="foreign_subtotal" />
+                    <field name="foreign_rate" />
+                    <field name="foreign_price_total" />
+                </pivot>
+            </field>
+        </record>
+
+        <record id="view_account_invoice_report_graph_binaural_invoice" model="ir.ui.view">
+            <field name="name">view.account.invoice.report.pivot.binaural.invoice</field>
+            <field name="model">account.invoice.report</field>
+            <field name="inherit_id" ref="account.view_account_invoice_report_graph"/>
+            <field name="arch" type="xml">
+                <graph position="inside">
+                    <field name="foreign_subtotal" />
+                    <field name="foreign_rate" />
+                    <field name="foreign_price_total" />
+                </graph>
+            </field>
+        </record>
+
+    </data>
+    
+
+</odoo>

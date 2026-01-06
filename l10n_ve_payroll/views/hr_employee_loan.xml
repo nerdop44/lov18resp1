@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+	<record id="view_hr_employee_loan_form" model="ir.ui.view">
+		<field name="name">view.hr.employee.loan.form</field>
+		<field name="model">hr.employee.loan</field>
+		<field name="arch" type="xml">
+			<form string="Prestamos de Empleados">
+				<header>
+                    <button name="compute_installment" states="draft" string="Calcular Cuotas" class="btn-primary" type="object" groups="base.group_user"/>
+                    <button name="action_send_request" states="draft" string="Enviar Solicitud" class="btn-primary" type="object" groups="base.group_user"/>
+
+                    <button name="dep_manager_approval_loan" states="request" string="Aprobar Solicitud" class="btn-primary"
+                            type="object" groups="l10n_ve_payroll.group_department_manager"/>
+                    <button name="dep_manager_reject_loan" states="request" string="Rechazar Solicitud" class="btn-primary"
+                            type="object" groups="l10n_ve_payroll.group_department_manager"/>
+
+                    <button name="cancel_loan" states="request" string="Cancelar" type="object"
+                            groups="base.group_user"/>
+
+                    <button name="hr_manager_approval_loan" states="dep_approval" string="Confirmar" class="btn-primary"
+                            type="object" groups="hr.group_hr_manager"/>
+                    <button name="hr_manager_reject_loan" states="dep_approval" string="Rechazar" class="btn-primary"
+                            type="object" groups="hr.group_hr_manager"/>
+
+                    <button name="paid_loan" states="hr_approval" string="Desembolsar préstamo" class="btn-primary" type="object"
+                            groups="hr.group_hr_manager"/>
+
+                    <button name="set_to_draft" states="cancel" string="Pasar a Borrador" class="btn-primary" type="object"
+                            groups="base.group_user"/>
+
+                    <button name="action_close_loan" string="Cerrar" class="btn-primary" type="object"
+                            groups="hr.group_hr_manager" attrs="{'invisible':[('is_close','!=',True)]}"/>
+
+                    <button name="action_done_loan" states="paid" string="Finalizar" class="btn-primary" type="object"
+                            groups="hr.group_hr_manager" />
+
+                    <button name='send_loan_detail' states="done" string='Enviar Email' class="btn-primary" type="object" groups="hr.group_hr_user"/>
+
+
+
+					<field name="state" widget="statusbar" statusbar_visible="draft,request,dep_approval,hr_approval,done"/>
+				</header>
+				<sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <b><button name="view_journal_entry" type="object"  class="oe_stat_button" icon="fa-external-link" string="Asiento Contable" groups="hr.group_hr_manager" attrs="{'invisible':[('state','not in',['done','paid'])]}"/></b>
+                         <button type="object"
+                                        name="action_view_loan_installment"
+                                        class="oe_stat_button"
+                                        icon="fa-list"
+                                        attrs="{'invisible': [('installment_count', '=', 0)]}"
+                                         >
+                                          <field name="installment_count" string="Cuotas" widget="statinfo" />
+                         </button>
+                        
+                    </div>
+                	<label for="name" class="oe_edit_only"/>
+                	<h1><field name="name" readonly="1"/></h1>
+                    
+                    <group>
+                        <group>
+                            <field name="employee_id" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="department_id" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="manager_id" attrs="{'readonly':[('state','!=','draft')]}"/>
+                        </group>
+                        <group>
+                            <field name="date" readonly="1"/>
+                            <field name="job_id" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="loan_url" invisible="1"/>
+                            <field name="user_id" readonly="1"/>
+                            <field name="hr_manager_id" invisible="1"/>
+                            <field name="is_close" invisible="1"/>
+                            <field name="move_id" invisible="1" />
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="is_apply_interest" invisible="1"/>
+                            <field name="payment_method" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="currency_id_dif" readonly="1"/>
+                            <field name="loan_amount" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="interest_amount" attrs="{'invisible':[('is_apply_interest','!=',True)]}"/>
+                            <field name="paid_amount"/>
+                            <field name="remaing_amount"/>
+                        </group>
+                        <group>
+                            <field name="loan_type_id" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="start_date" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="term" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="period" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="end_date"/>
+                            <field name="interest_rate" attrs="{'invisible':[('is_apply_interest','!=',True)],'readonly':[('state','!=','draft')]}"/>
+                            <field name="interest_type" attrs="{'invisible':[('is_apply_interest','!=',True)],'readonly':[('state','!=','draft')]}"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="installment_amount"/>
+                        </group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Razón">
+                        	<br/>
+                            <field name="notes" attrs="{'readonly':[('state','!=','draft')]}"/>
+                        </page>
+                        <page string="Cuotas">
+                            <br/>
+                            <field name="installment_lines" readonly="1" >
+                                <list decoration-success="is_paid == True"  decoration-muted="is_skip == True">
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="amount" />
+                                    <field name="interest" />
+                                    <field name="installment_amt" sum="installment_amt"/>
+                                    <field name="ins_interest" sum="ins_interest"/>
+                                    <field name="total_installment" sum="total_installment"/>
+                                    <field name="currency_id_dif" readonly="1"/>
+                                    <field name="is_paid" invisible="1"/>
+                                    <field name="is_skip" invisible="1"/>
+                                    <button type="object" name="action_view_payslip" string="Payslip" class="btn-primary"
+                                    	attrs="{'invisible':[('is_paid','=',False)]}" groups="hr.group_hr_manager"/>
+                                </list>
+                            </field>
+                        </page>
+                         <page string="Documentos">
+                            <field name="loan_document_line_ids" mode="kanban" context="{'default_loan_id': active_id,'default_employee_id':employee_id }">
+<!--                               -->
+                                <kanban>
+                                    <field name="name"/>
+			                        <field name="document"/>
+			                        <field name="employee_id"/>
+			                        <field name="date"/>
+			                        
+                                    
+                                <templates>
+                                
+                                    <t t-name="card">
+                                                <div t-attf-class="oe_kanban_card oe_kanban_global_click">
+                                                    <div class="oe_kanban_details">
+                                                        
+									                    <strong><h3><field name="sequ_name"/></h3></strong>
+									                    <ul>
+										                    <li><span style="color: #800000">Name : </span><field name="name"/></li>
+										                    <li><span style="color: #800000">Date: </span><field name="date"/></li>
+									                    </ul>
+                                                    </div>
+                                                </div>
+                                    </t>
+                            </templates>
+                        </kanban>
+                            </field>
+                            
+                        </page>
+                    </notebook>
+				</sheet>
+                <chatter/>
+			</form>
+		</field>
+	</record>
+    <record id="view_hr_employee_loan_tree" model="ir.ui.view">
+        <field name="name">view.hr.employee.loan.list</field>
+        <field name="model">hr.employee.loan</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+    
+    <record id="view_hr_employee_loan_filter" model="ir.ui.view">
+        <field name="name">hr.employee.loan.select</field>
+        <field name="model">hr.employee.loan</field>
+        <field name="arch" type="xml">
+            <search string="Search Prestamos de Empleados">
+            	<field name="employee_id" operator="child_of"/>
+                <field name="user_id"/>
+                <field name="name" string="Loan" filter_domain="[('name','ilike',self)]"/>
+                <filter name='draft' string="Borrador" domain="[('state','=','draft')]" help="Draft Loan"/>
+                <filter name='done' string="Hecho" domain="[('state','=','done')]" help="Done Loan"/>
+                <filter name='paid' string="Pagado" domain="[('state','=','paid')]" help="Paid Loan"/>
+                <filter name='hr_approval' string="Aprobado HR" domain="[('state','=','hr_approval')]"/>
+                <field name="loan_type_id"/>
+
+                <group expand="0" string="Group By">
+                    <filter string="Empleados" name="employee_id" context="{'group_by':'employee_id'}"/>
+                    <filter string="Manager" name="manager_id" context="{'group_by':'manager_id'}"/>
+                    <filter string="Tipo" name="type" context="{'group_by':'loan_type_id'}"/>
+                    <filter string="Estatus" name="state" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <record id="action_view_all_loan" model="ir.actions.act_window">
+            <field name="name">View Loan</field>
+            <field name="res_model">hr.employee.loan</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain"></field>
+            <field name="context">{  }
+            </field>
+            <field name="search_view_id" ref="view_hr_employee_loan_filter"/>
+            <field name="help" type="html">
+              <p class="oe_view_nocontent_create">
+                Click here to create a new Loan.
+              </p>
+            </field>
+        </record>
+
+    <record id="action_loan_create" model="ir.actions.act_window">
+            <field name="name">Loan Create</field>
+            <field name="res_model">hr.employee.loan</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_mode">form</field>
+            <field name="domain"></field>
+            <field name="context">{
+                    'search_default_loan_type_id': [active_id],
+                    'default_loan_type_id': active_id,
+                    'contact_display': 'partner_address',
+            }
+            </field>
+            <field name="search_view_id" ref="view_hr_employee_loan_form"/>
+            <field name="help" type="html">
+              <p class="oe_view_nocontent_create">
+                Click here to create a new Loan.
+              </p>
+            </field>
+        </record>
+    <record id="action_hr_approval" model="ir.actions.act_window">
+            <field name="name">Done Loan</field>
+            <field name="res_model">hr.employee.loan</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain"></field>
+            <field name="context">{
+                    'search_default_loan_type_id': [active_id],
+                    'default_loan_type_id': active_id,
+                    'contact_display': 'partner_address',
+                    'search_default_hr_approval': 1,
+            }
+            </field>
+            <field name="search_view_id" ref="view_hr_employee_loan_filter"/>
+            <field name="help" type="html">
+              <p class="oe_view_nocontent_create">
+                Click here to create a new Loan.
+              </p>
+            </field>
+        </record>
+
+    <record id="action_loan_paid" model="ir.actions.act_window">
+            <field name="name">Done Loan</field>
+            <field name="res_model">hr.employee.loan</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain"></field>
+            <field name="context">{
+                    'search_default_loan_type_id': [active_id],
+                    'default_loan_type_id': active_id,
+                    'contact_display': 'partner_address',
+                    'search_default_paid': 1,
+            }
+            </field>
+            <field name="search_view_id" ref="view_hr_employee_loan_filter"/>
+            <field name="help" type="html">
+              <p class="oe_view_nocontent_create">
+                Click here to create a new Loan.
+              </p>
+            </field>
+        </record>
+    
+    <record id="action_loan_tree_done" model="ir.actions.act_window">
+            <field name="name">Done Loan</field>
+            <field name="res_model">hr.employee.loan</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain"></field>
+            <field name="context">{
+                    'search_default_loan_type_id': [active_id],
+                    'default_loan_type_id': active_id,
+                    'contact_display': 'partner_address',
+                    'search_default_done': 1,
+            }
+            </field>
+            <field name="search_view_id" ref="view_hr_employee_loan_filter"/>
+            <field name="help" type="html">
+              <p class="oe_view_nocontent_create">
+                Click here to create a new Loan.
+              </p>
+            </field>
+        </record>
+
+    <record id="action_loan_tree_draft" model="ir.actions.act_window">
+            <field name="name">Draft Loan</field>
+            <field name="res_model">hr.employee.loan</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain"></field>
+            <field name="context">{
+                    'search_default_loan_type_id': [active_id],
+                    'default_loan_type_id': active_id,
+                    'contact_display': 'partner_address',
+                    'search_default_draft': 1,
+            }
+            </field>
+            <field name="search_view_id" ref="view_hr_employee_loan_filter"/>
+            <field name="help" type="html">
+              <p class="oe_view_nocontent_create">
+                Click here to create a new Loan.
+              </p>
+            </field>
+        </record>
+        
+    <record id="get_hr_loan_type" model="ir.actions.act_window">
+            <field name="name">Prestamos de Empleados</field>
+            <field name="res_model">hr.employee.loan</field>
+            <field name="type">ir.actions.act_window</field>
+            <!--<field name="view_type">form</field>-->
+            <field name="view_mode">list,form</field>
+            <field name="domain"></field>
+            <field name="context">{
+                    'search_default_loan_type_id': [active_id],
+                    'default_loan_type_id': active_id,
+                    'contact_display': 'partner_address',
+            }
+            </field>
+            <field name="search_view_id" ref="view_hr_employee_loan_filter"/>
+            <field name="help" type="html">
+              <p class="oe_view_nocontent_create">
+                Click here to create a new Loan.
+              </p>
+            </field>
+        </record>
+    
+    
+    
+    <record model="ir.actions.act_window" id="action_hr_employee_loan">
+        <field name="name">Prestamos de Empleados</field>
+        <field name="res_model">hr.employee.loan</field>
+        <!--<field name="view_type">form</field>-->
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_my_loans':1}</field>
+        <field name="help" type="html">
+          <p class="oe_view_nocontent_create">
+            	Click to define a new loan.
+          </p>
+        </field>
+    </record>
+    
+    <menuitem id="menu_main_hr_employee_loan" parent="hr.menu_hr_root" name="Prestamos" sequence="15"  />
+    <menuitem name="Prestamos de Empleados" id="menu_hr_employee_loan" parent="menu_main_hr_employee_loan" action="action_hr_employee_loan"/>
+
+</odoo>

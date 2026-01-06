@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!--  vista list para el modelo hr.employee.prestaciones      -->
+        <record id="hr_employee_prestaciones_list" model="ir.ui.view">
+            <field name="name">hr.employee.prestaciones.list</field>
+            <field name="model">hr.employee.prestaciones</field>
+            <field name="arch" type="xml">
+                <list editable="bottom">
+                    <field name="employee_id"/>
+                    <field name="anio"/>
+                    <field name="mes_cump"/>
+                    <field name="mes_opera"/>
+                    <field name="salario_base" optional="hide"/>
+                    <field name="salario_base_diario"/>
+                    <field name="salario_integral"/>
+                    <field name="dias_abonados"/>
+                    <field name="dias_acumulados"/>
+                    <field name="dias_adici" optional="hide"/>
+                    <field name="dias_adici_acumulado" optional="hide"/>
+                    <field name="monto_presta"/>
+                    <field name="monto_presta_acumulado"/>
+                    <field name="monto_adici" optional="hide"/>
+                    <field name="monto_adici_acumulado" optional="hide"/>
+                    <field name="monto_retiro" optional="hide"/>
+                    <field name="monto_acumulado"/>
+                    <field name="tasa_interes" optional="hide"/>
+                    <field name="monto_interes"/>
+                    <field name="monto_interes_acumulado"/>
+                    <field name="monto_total"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="company_id" optional="hide"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Accion para modelo hr.employee.prestaciones -->
+        <record id="hr_employee_prestaciones_action" model="ir.actions.act_window">
+            <field name="name">Prestaciones Acumuladas</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">hr.employee.prestaciones</field>
+            <field name="view_mode">list</field>
+            <field name="view_id" ref="hr_employee_prestaciones_list"/>
+        </record>
+
+        <!-- Menu para modelo hr.employee.prestaciones -->
+        <menuitem id="hr_employee_prestaciones_menu"
+                  name="Prestaciones Acumuladas"
+                  parent="menu_venezuela_payrol_reporting"
+                  action="hr_employee_prestaciones_action"
+                  sequence="41"/>
+
+    </data>
+</odoo>

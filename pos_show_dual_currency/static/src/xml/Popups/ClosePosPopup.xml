@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="ClosePosPopup" t-inherit="point_of_sale.ClosePosPopup" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('total-orders')]//span[hasclass('amount')]" position="after">
+            <t t-if="env.pos.config.show_currency_rate!=0">
+                <t t-set="trm" t-value="1/env.pos.config.show_currency_rate"/>
+            </t>
+            <t t-else="">
+                <t t-set="trm" t-value="1"/>
+            </t>
+            <t t-if="trm!=0">
+            <span style="color: red;">/</span>
+                <span style="color: red;" t-esc="env.pos.format_currency_ref(ordersDetails.amount / trm)"/>
+            </t>
+        </xpath>
+        <xpath expr="//td[@t-esc='env.pos.format_currency(defaultCashDetails.opening)']" position="after">
+            <t t-if="trm!=0">
+                <td>
+                    <span style="color: red;">/</span>
+                    <span style="color: red;"
+                          t-esc="env.pos.format_currency_ref(Math.abs(defaultCashDetails.opening) / trm)"/>
+                            </td>
+            </t>
+        </xpath>
+        <xpath expr="//tr[@t-foreach='defaultCashDetails.moves']" position="inside">
+            <t t-if="trm!=0">
+                <td>
+                    <span style="color: red;">/</span>
+                    <span style="color: red;"
+                          t-esc="env.pos.format_currency_ref(Math.abs(move.amount) / trm)"/>
+                            </td>
+            </t>
+        </xpath>
+        <xpath expr="//tbody[hasclass('cash-overview')]" position="before">
+            <tbody>
+                    <tr>
+                        <td t-esc="defaultCashDetails.default_cash_details_ref.name"/>
+                        <td>
+                              <span style="color: red;"
+                                    t-esc="env.pos.format_currency_ref(defaultCashDetails.default_cash_details_ref.amount)"/>
+                            <t t-if="trm!=0">
+                                    <span>/</span>
+                                <t t-esc="env.pos.format_currency(Math.abs(defaultCashDetails.default_cash_details_ref.amount)*trm)"/>
+                                </t>
+                        </td>
+                        <td class="flex"
+                            t-on-input="() => this.handleInputChangeUSD(defaultCashDetails.default_cash_details_ref.id)">
+                            <input class="pos-input" type="number"
+                                   t-model.number="state.payments_usd[defaultCashDetails.default_cash_details_ref.id].counted"/>
+                            <div class="button icon" t-on-click="openDetailsPopupUSD">
+                                <i class="fa fa-calculator" role="img"
+                                   title="Open the money details popup"/>
+                            </div>
+                        </td>
+                        <td t-att-class="{'warning': state.payments_usd[defaultCashDetails.default_cash_details_ref.id].difference}">
+                            <t t-esc="env.pos.format_currency_ref(state.payments_usd[defaultCashDetails.default_cash_details_ref.id].difference)"/>
+                            <t t-if="trm!=0">
+                                    <span>/</span>
+                                <t t-esc="env.pos.format_currency(Math.abs(state.payments_usd[defaultCashDetails.default_cash_details_ref.id].difference)*trm)"/>
+                                </t>
+                        </td>
+                    </tr>
+            </tbody>
+        </xpath>
+        <xpath expr="//tbody[hasclass('cash-overview')]" position="after">
+            <tbody class="cash-overview">
+                    <tr style="color: red;">
+                        <td>Currency Ref Opening</td>
+                        <td t-esc="env.pos.format_currency_ref(defaultCashDetails.default_cash_details_ref.opening)"/>
+                        <t t-if="trm!=0">
+                            <td>
+                                <span style="color: #4A4F59;">/</span>
+
+                                <span style="color: #4A4F59;"
+                                      t-esc="env.pos.format_currency(Math.abs(defaultCashDetails.default_cash_details_ref.opening) * trm)"/>
+                            </td>
+                        </t>
+
+                    </tr>
+                <tr style="color: red;" t-foreach="defaultCashDetails.default_cash_details_ref.moves" t-as="move"
+                    t-key="move_index">
+                        <td>
+                            <div class="flex">
+                                <div class="cash-sign" t-esc="move.amount &lt; 0 ? '-' : '+'"/>
+                                <t t-esc="move.name"/>
+                            </div>
+                        </td>
+                    <td style="color: red;" t-esc="env.pos.format_currency_ref(Math.abs(move.amount))"/>
+                    <t t-if="trm!=0">
+                            <td>
+                                <span style="color: #4A4F59;">/</span>
+
+                                <span style="color: #4A4F59;"
+                                      t-esc="env.pos.format_currency(Math.abs(move.amount) * trm)"/>
+                            </td>
+                        </t>
+                </tr>
+                <tr t-if="defaultCashDetails.default_cash_details_ref.payment_amount">
+                        <td>
+                            <div class="flex">
+                                <div class="cash-sign"
+                                     t-esc="defaultCashDetails.default_cash_details_ref.payment_amount &lt; 0 ? '-' : '+'"/>
+                                Payments in
+                                <t t-esc="defaultCashDetails.default_cash_details_ref.name"/>
+                            </div>
+                        </td>
+                    <td style="color: red;"
+                        t-esc="env.pos.format_currency_ref(Math.abs(defaultCashDetails.default_cash_details_ref.payment_amount))"/>
+                    <t t-if="trm!=0">
+                            <td>
+                                <span style="color: #4A4F59;">/</span>
+
+                                <span style="color: #4A4F59;"
+                                      t-esc="env.pos.format_currency(Math.abs(defaultCashDetails.default_cash_details_ref.payment_amount) * trm)"/>
+                            </td>
+                        </t>
+                </tr>
+                </tbody>
+        </xpath>
+        <xpath expr="//div[@class='popup close-pos-popup']" position="after">
+            <MoneyDetailsPopupUSD
+                    t-if="state.displayMoneyDetailsPopupUSD"
+                    manualInputCashCountUSD="manualInputCashCountUSD"
+                    onConfirm.bind="updateCountedCashUSD"
+                    onDiscard.bind="closeDetailsPopupUSD"
+            />
+        </xpath>
+        <xpath expr="//td[@t-esc='env.pos.format_currency(Math.abs(defaultCashDetails.payment_amount))']"
+               position="after">
+            <t t-if="trm!=0">
+                <td style="color: red;"
+                    t-esc="env.pos.format_currency_ref(Math.abs(defaultCashDetails.payment_amount)/trm)"/>
+            </t>
+        </xpath>
+        <xpath expr="//div[@class='payment-methods-overview']//table//t[@t-if='cashControl']//tbody//tr//td[@t-esc='env.pos.format_currency(defaultCashDetails.amount)']"
+               position="replace">
+                <td>
+                    <span t-esc="env.pos.format_currency(defaultCashDetails.amount)"/>
+                    <t t-if="trm!=0">
+                        <span style="color: red;">/</span>
+                        <span style="color: red;"
+                              t-esc="env.pos.format_currency_ref(defaultCashDetails.amount / trm)"/>
+                    </t>
+                </td>
+        </xpath>
+        <xpath expr="//div[@class='payment-methods-overview']//table//t[@t-if='cashControl']//tbody//tr//td[@t-esc='env.pos.format_currency(state.payments[defaultCashDetails.id].difference)']"
+               position="replace">
+                <td>
+                    <span t-esc="env.pos.format_currency(state.payments[defaultCashDetails.id].difference)"
+                          t-att-class="{'warning': state.payments[defaultCashDetails.id].difference}"/>
+                    <t t-if="trm!=0">
+                        <span style="color: red;">/</span>
+                        <span style="color: red;"
+                              t-esc="env.pos.format_currency_ref(state.payments[defaultCashDetails.id].difference / trm)"/>
+                    </t>
+                </td>
+        </xpath>
+
+
+        <xpath expr="//tr[@t-foreach='otherPaymentMethods']//td[@t-esc='env.pos.format_currency(pm.amount)']"
+               position="replace">
+            <td>
+                <span t-esc="env.pos.format_currency(pm.amount)"/>
+                <t t-if="trm!=0">
+                    <span style="color: red;">/</span>
+                    <span style="color: red;" t-esc="env.pos.format_currency_ref(pm.amount/trm)"/>
+                </t>
+            </td>
+        </xpath>
+        <xpath expr="//tr[@t-foreach='otherPaymentMethods']//td[@t-esc='env.pos.format_currency(state.payments[pm.id].difference)']"
+               position="replace">
+                <td t-if="_showDiff">
+                   <t t-esc="env.pos.format_currency(state.payments[pm.id].difference)"
+                      t-att-class="{'warning': state.payments[pm.id].difference}"/>
+                    <t t-if="trm!=0">
+                    <span>/</span>
+                        <span t-esc="env.pos.format_currency_ref(state.payments[pm.id].difference/trm)"/>
+                    </t>
+                </td>
+        </xpath>
+
+
+    </t>
+</templates>

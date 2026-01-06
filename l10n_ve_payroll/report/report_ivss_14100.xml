@@ -1,0 +1,522 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="paperformat_formato_ivss" model="report.paperformat">
+            <field name="default" eval="True"/>
+            <field name="name">Carta Constancia IVSS</field>
+            <field name="default" eval="True"/>
+            <field name="format">Letter</field>
+            <field name="orientation">Portrait</field>
+            <field name="margin_top">5</field>
+            <field name="margin_bottom">25</field>
+            <field name="margin_left">5</field>
+            <field name="margin_right">5</field>
+            <field name="header_line" eval="False"/>
+            <field name="header_spacing">0</field>
+            <field name="dpi">110</field>
+        </record>
+
+         <template id="template_ivss_14100">
+           <t t-call="web.basic_layout">
+                   <div class="header">
+                           <div class="row">
+                                <div class="col-1">
+                                    <img src="/l10n_ve_payroll/static/img/IVSS.svg" width="70px" height="70px"/>
+                                </div>
+                                <div class="col-9">
+                                    REPÚBLICA BOLIVARIANA DE VENEZUELA<br/>
+                                    MINISTERIO DEL PODER POPULAR PARA EL PROCESO SOCIAL DE TRABAJO<br/>
+                                    INSTITUTO VENEZOLANO DE LOS SEGUROS SOCIALES<br/>
+                                    DIRECCIÓN GENERAL DE AFILIACIÓN Y PRESTACIONES EN DINERO<br/>
+                                </div>
+                                <div class="col-2">
+                                    FORMA: 14-100
+                                </div>
+                            </div>
+                   </div>
+                    <br/><br/>
+                    <div style="margin-top: 40px;padding-top: 40px;">
+                        <div class="row text-center">
+                            <div class="col-12" style="font-size: 20px; margin-bottom: 20px;">
+                                <strong>CONSTANCIA DE TRABAJO PARA EL IVSS</strong>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <table>
+                                <tr>
+                                    <td colspan="5" class="text-center" style="font-weight: bold;padding: 5px;">
+                                        DATOS DEL EMPLEADOR O LA EMPLEADORA
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" width="78%" class="text-center" style="font-weight: bold;padding: 5px;">
+                                        RAZÓN SOCIAL O NOMBRE DEL EMPLEADOR O EMPLEADORA
+                                    </td>
+                                    <td colspan="2" class="text-center" style="font-weight: bold;padding: 5px;">
+                                        NÚMERO PATRONAL
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td  colspan="3" style="padding: 5px;">
+                                        <t t-esc="company_id.name"/>
+                                    </td>
+                                    <td colspan="2" style="padding: 5px;" class="text-center">
+                                        <t t-esc="company_id.numero_patronal"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="5" class="text-center" style="font-weight: bold;padding: 5px;">
+                                        DIRECCÍON DEL EMPLEADOR O EMPLEADORA
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="5" class="text-center" style="padding: 5px;">
+                                        <t t-esc="company_id.street"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-center" style="font-weight: bold;padding: 5px;">
+                                        APELLIDOS Y NOMBRES DEL REPRESENTANTE LEGAL
+                                    </td>
+                                    <td colspan="2" class="text-center" style="font-weight: bold;padding: 5px;">
+                                        CÉDULA DE IDENTIDAD
+                                    </td>
+                                    <td colspan="2" class="text-center" style="font-weight: bold;padding: 5px;">
+                                        TELÉFONO
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 5px;">
+                                        <t t-esc="company_id.representante_legal_ivss.name"/>
+                                    </td>
+                                    <td colspan="2" class="text-center" style="padding: 5px;">
+                                        <t t-esc="company_id.representante_legal_ivss.identification_id"/>
+                                    </td>
+                                    <td colspan="2" class="text-center" style="padding: 5px;">
+                                        <t t-esc="company_id.representante_legal_ivss.phone"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="text-center" style="font-weight: bold;padding: 5px;">
+                                        DIRECCIÓN DE CORREO ELECTRÓNICO DEL EMPLEADOR O EMPLEADORA
+                                    </td>
+                                    <td colspan="3" class="text-center" style="font-weight: bold;padding: 5px;">
+                                        REGISTRO DE INFORMACIÓN FISCAL (RIF)
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="text-center" style="padding: 5px;">
+                                        <t t-esc="company_id.email"/>
+                                    </td>
+                                    <td colspan="3" class="text-center" style="padding: 5px;">
+                                        <t t-esc="vat"/>
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </div>
+                        <br/>
+                        <div class="row">
+                            <table style="margin-top: 10px;">
+                                <tr>
+                                    <td colspan="6" class="text-center" style="font-weight: bold;padding: 5px;">
+                                        DATOS DEL TRABAJADOR O TRABAJADORA
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-center" style="font-weight: bold;padding: 5px;">
+                                       APELLIDOS Y NOMBRES
+                                    </td>
+                                    <td class="text-center" style="font-weight: bold;padding: 5px;">
+                                        V
+                                    </td>
+                                    <td class="text-center" style="font-weight: bold;padding: 5px;">
+                                        E
+                                    </td>
+                                    <td class="text-center" style="font-weight: bold;padding: 5px;">
+                                        A
+                                    </td>
+                                    <td class="text-center" style="font-weight: bold;padding: 5px;">
+                                        R
+                                    </td>
+                                    <td class="text-center" style="font-weight: bold;padding: 5px;">
+                                        CEDULA DE IDENTIDAD N°
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-center" style="padding: 5px;">
+                                        <t t-esc="employee_id.name"/>
+                                    </td>
+                                    <td class="text-center" style="padding: 5px;">
+                                        X
+                                    </td>
+                                    <td class="text-center" style="padding: 5px;">
+
+                                    </td>
+                                    <td class="text-center" style="padding: 5px;">
+
+                                    </td>
+                                    <td class="text-center" style="padding: 5px;">
+
+                                    </td>
+                                    <td class="text-center" style="padding: 5px;">
+                                        <t t-esc="employee_id.identification_id"/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <br/>
+                        <div class="row">
+                            <div class="col-2">
+
+                            </div>
+                            <div class="col-3 text-center" style="margin-top: 10px;" width="50%">
+                                <table width="100%">
+                                    <tr>
+                                        <td colspan="3" style="font-weight: bold;padding: 5px;">
+                                            FECHA DE INGRESO
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px;">
+                                            DÍA<br/>
+                                            <t t-esc="employee_id.contract_id.date_start.day"/>
+                                        </td>
+                                        <td style="padding: 5px;">
+                                            MES<br/>
+                                            <t t-esc="employee_id.contract_id.date_start.month"/>
+                                        </td>
+                                        <td style="padding: 5px;">
+                                            AÑO<br/>
+                                            <t t-esc="employee_id.contract_id.date_start.year"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-2">
+
+                            </div>
+                            <div class="col-3 text-center" style="margin-top: 10px;" width="50%">
+                                <table width="100%">
+                                    <tr>
+                                        <td colspan="3" style="font-weight: bold;padding: 5px;">
+                                            FECHA DE RETIRO
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px;">
+                                            DÍA<br/>
+                                            <t t-if="employee_id.contract_id.date_end" t-esc="employee_id.contract_id.date_end.day"/>
+                                            <t t-else="">
+                                                <br/>
+                                            </t>
+                                        </td>
+                                        <td style="padding: 5px;">
+                                            MES<br/>
+                                            <t t-if="employee_id.contract_id.date_end" t-esc="employee_id.contract_id.date_end.month"/>
+                                            <t t-else="">
+                                                <br/>
+                                            </t>
+                                        </td>
+                                        <td style="padding: 5px;">
+                                            AÑO<br/>
+                                            <t t-if="employee_id.contract_id.date_end" t-esc="employee_id.contract_id.date_end.year"/>
+                                            <t t-else="">
+                                                <br/>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-2">
+
+                            </div>
+                        </div>
+                        <br/>
+                        <div class="row">
+                            <table width="100%">
+                                <tr>
+                                    <td colspan="7" style="font-weight: bold;padding: 5px;" class="text-center">
+                                        SALARIOS DEVENGADOS
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;" width="20%">
+                                        <style>
+                                            .shape {
+                                                height: 1px;
+                                                width: 105%;
+                                                border-bottom: 1px solid black;
+                                                border-right: 1px solid black;
+                                                -moz-transform: rotate(15deg);
+                                                -webkit-transform: rotate(15deg);
+                                                transform: rotate(15deg);
+                                                position: relative;
+                                                top: 25px;
+                                                left: -8px;
+                                            }
+                                        </style>
+                                        <div class="shape"></div>
+                                        <!-- alinear a la derecha -->
+                                        <span style="padding: 5px; width: 100px; float: right;">
+                                            AÑO
+                                        </span>
+                                        <br/>
+                                        <!-- alinear a la izquierda -->
+                                        <span style="padding: 5px;width: 100px; float: left;">
+                                            MES
+                                        </span>
+                                    </td>
+                                    <t t-foreach="anios" t-as="a">
+                                        <td class="text-center" valign="middle" width="12%">
+                                            <t t-esc="a"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Enero
+                                    </td>
+                                    <t t-foreach="enero" t-as="ene">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="ene"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Febrero
+                                    </td>
+                                    <t t-foreach="febrero" t-as="feb">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="feb"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Marzo
+                                    </td>
+                                    <t t-foreach="marzo" t-as="mar">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="mar"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Abril
+                                    </td>
+                                    <t t-foreach="abril" t-as="abr">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="abr"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Mayo
+                                    </td>
+                                    <t t-foreach="mayo" t-as="may">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="may"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Junio
+                                    </td>
+                                    <t t-foreach="junio" t-as="jun">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="jun"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Julio
+                                    </td>
+                                    <t t-foreach="julio" t-as="jul">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="jul"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Agosto
+                                    </td>
+                                    <t t-foreach="agosto" t-as="ago">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="ago"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Septiembre
+                                    </td>
+                                    <t t-foreach="septiembre" t-as="sep">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="sep"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Octubre
+                                    </td>
+                                    <t t-foreach="octubre" t-as="oct">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="oct"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Noviembre
+                                    </td>
+                                    <t t-foreach="noviembre" t-as="nov">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="nov"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;padding: 5px;">
+                                        Diciembre
+                                    </td>
+                                    <t t-foreach="diciembre" t-as="dic">
+                                        <td class="text-right" style="padding: 5px;" align="right">
+                                            <t t-esc="dic"/>
+                                        </td>
+                                    </t>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <br/>
+                        <div class="row">
+                            <div class="col-12">
+                                <table width="100%" height="50px">
+                                    <tr>
+                                        <td style="padding: 10px;">
+                                            OBSERVACIONES:<br/>
+                                            <t t-esc="observaciones" t-if="observaciones"/>
+                                            <br/><br/><br/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <br/>
+                        <div class="row">
+                            <div class="col-12 text-center">
+                                <strong>DECLARACIÓN JURADA</strong>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12 text-center">
+                                CERTIFICO BAJO FE DE JURAMENTO QUE LA INFORMACIÓN QUE ANTECEDE ES CIERTA EN TODAS SUS PARTES
+                            </div>
+                        </div>
+                        <br/>
+                        <div class="row">
+                            <div class="col-9">
+                                <div class="row">
+                                    <table width="100%">
+                                        <tr>
+                                            <td style="font-weight: bold;padding: 5px;" class="text-center">
+                                               APELLIDOS Y NOMBRES DEL FIRMANTE
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 5px;">
+                                               <t t-esc="employee_id.name"/>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <br/>
+                                <div class="12">
+                                    <table width="100%">
+                                        <tr>
+                                            <td style="font-weight: bold;padding: 5px;" class="text-center">
+                                               CARGO QUE OCUPA
+                                            </td>
+                                            <td style="font-weight: bold;padding: 5px;" class="text-center">
+                                               LUGAR
+                                            </td>
+                                            <td colspan="3" style="font-weight: bold;padding: 5px;" class="text-center">
+                                               FECHA
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 5px;" class="text-center">
+                                               <t t-esc="employee_id.job_id.name"/>
+                                            </td>
+                                            <td style="padding: 5px;" class="text-center">
+                                               <t t-esc="company_id.partner_id.city"/>
+                                            </td>
+                                            <td style="padding: 5px;" class="text-center">
+                                                DÍA<br/>
+                                               <t t-esc="time.strftime('%d')"/>
+                                            </td>
+                                            <td style="padding: 5px;" class="text-center">
+                                                  MES<br/>
+                                               <t t-esc="time.strftime('%m')"/>
+                                            </td>
+                                            <td style="padding: 5px;" class="text-center">
+                                                    AÑO<br/>
+                                               <t t-esc="time.strftime('%Y')"/>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-3 text-center">
+                                <table style="margin-top: 10px;margin-left: 10px;" width="100%">
+                                    <tr>
+                                        <td>
+                                            FIRMA Y SELLO<br/><br/><br/><br/><br/><br/><br/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center" style="padding: 5px;">
+                                            C.I. N°: <t t-esc="employee_id.identification_id"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- estilo a final de pagina footer-->
+                    <div class="footer">
+                       <div class="row">
+                            <div class="col-12 text-center">
+                                Este formulario está autorizado por el IVSS y válido únicamente para ser consignado en las Oficinas Administrativas
+                            </div>
+                        </div>
+                        <div class="row">
+                           <div class="col-12 text-center">
+                               ESTE FORMULARIO Y SU TRAMITACIÓN SON COMPLETAMENTE GRATUITOS<br/>
+                               www.ivss.gob.ve
+                           </div>
+                        </div>
+                    </div>
+                </t>
+         </template>
+
+        <record id="action_constancia_ivss_report" model="ir.actions.report">
+            <field name="name">Constancia IVSS FORMA: 14-100</field>
+            <field name="model">hr.employee</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">l10n_ve_payroll.template_ivss_14100</field>
+            <field name="report_file">l10n_ve_payroll.template_ivss_14100</field>
+            <field name="paperformat_id" ref="paperformat_formato_ivss"/>
+            <field name="binding_model_id" ref="model_hr_employee"/>
+            <field name="binding_type">report</field>
+        </record>
+    </data>
+</odoo>

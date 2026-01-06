@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_payslip_venezuela" inherit_id="hr_payroll.report_payslip">
+        <xpath expr="//p[@t-if='o.net_wage &gt;= 0']" position="replace">
+
+        </xpath>
+        <xpath expr="//p[@t-if='o.net_wage &lt; 0']" position="replace">
+
+        </xpath>
+        <xpath expr="//h2[@t-field='o.name']" position="replace">
+            <div style="font-size: 20px; font-weight: bold;;">
+                <strong>Nómina: </strong>
+                <span t-field="o.struct_id.name"/>
+                - <span t-field="o.number"/>
+            </div>
+            <div>
+               Periodo:
+                 <span t-field="o.date_from"/>
+                - <span t-field="o.date_to"/>
+            </div>
+        </xpath>
+        <xpath expr="//strong[@id='invalid_warning']" position="attributes">
+            <attribute name="style">color: red; font-size: 12px; font-weight: bold;</attribute>
+        </xpath>
+        <xpath expr="//table[@name='employee-infos']" position="replace">
+            <table name="employee-infos" id="employee_info_table_1" class="table-bordered" style="width: 100%; padding: 10px;margin-top: 10px;">
+                <thead>
+                    <tr id="employee_info_line_1" style="background-color: #e9e9e9;">
+                        <th colspan="4" ><strong>Datos del Empleado</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr  style="background-color: #ffffff;">
+                        <td style="width: 20%;padding: 5px;"><strong>Nombres y Apellidos:</strong></td>
+                        <td colspan="3" style="padding: 5px;">
+                            <span t-field="o.employee_id.name"/>
+                        </td>
+                    </tr>
+                    <tr  style="background-color: #ffffff;">
+                        <td><strong>Dirección:</strong></td>
+                        <td style="padding: 5px;" colspan="3">
+                            <span t-field="o.employee_id.address_home_id.street"/>, <span t-field="o.employee_id.address_home_id.city"/>, <span t-if="o.employee_id.address_home_id.state_id" t-field="o.employee_id.address_home_id.state_id.name"/>
+                        </td>
+                    </tr>
+                    <tr  style="background-color: #ffffff;">
+                        <td style="padding: 5px;"><strong>CI/RIF:</strong></td>
+                        <td style="padding: 5px;">
+                            <span t-field="o.employee_id.rif" t-if="o.employee_id.rif"/>
+                            <span t-field="o.employee_id.nationality" t-if="not o.employee_id.rif"/>
+                            <span t-field="o.employee_id.identification_id" t-if="not o.employee_id.rif"/>
+                        </td>
+                        <td style="width: 10%;padding: 5px;"><strong>Cargo:</strong></td>
+                        <td style="padding: 5px;">
+                            <span t-if="o.employee_id.job_id" t-field="o.employee_id.job_id.name"/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </xpath>
+        <xpath expr="//table[@t-if='o.struct_id not in [holiday_attest_n, holiday_attest_n1]']" position="replace">
+
+        </xpath>
+        <xpath expr="//div[@id='total']" position="replace">
+                <table style="width: 100%; padding: 10px; margin-top: 20px;" class="table-bordered">
+                    <thead>
+                        <tr style="background-color: #e9e9e9;">
+                            <th style="padding: 5px;">Código</th>
+                            <th style="padding: 5px;">Concepto</th>
+                            <th style="padding: 5px;">Días</th>
+                            <th style="padding: 5px;">Horas</th>
+                            <th style="padding: 5px;">Asignaciones</th>
+                            <th style="padding: 5px;">Deducciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-set="total_asignaciones" t-value="0"/>
+                        <t t-set="total_deducciones" t-value="0"/>
+                        <tr t-foreach="o.line_ids.filtered(lambda line: line.appears_on_payslip)" t-as="line" style="background-color: #ffffff;">
+                            <t t-set="asignaciones" t-value="0"/>
+                            <t t-set="deducciones" t-value="0"/>
+                            <t t-if="line.category_id.code in ['ASIGNA','SUBS','BASIC','BONO'] or line.code in ['GPSAB','GPSC']">
+                                <t t-set="total_asignaciones" t-value="total_asignaciones + line.total"/>
+                                <t t-set="asignaciones" t-value="line.total"/>
+
+                            </t>
+                            <t t-elif="line.category_id.code in ['DED','DESC']">
+                                <t t-set="total_deducciones" t-value="total_deducciones + line.total"/>
+                                <t t-set="deducciones" t-value="line.total"/>
+                            </t>
+                            <td>
+                                <span t-field="line.code" style="padding: 5px;"/>
+                            </td>
+                            <td>
+                                <span t-field="line.name" style="padding: 5px;"/>
+                            </td>
+                            <td class="text-center">
+                                <span t-esc="line.dias" style="padding: 5px;"/>
+                            </td>
+                            <td class="text-center">
+                                <span t-esc="line.horas" style="padding: 5px;"/>
+                            </td>
+                            <td class="text-end">
+                                <span t-if="asignaciones > 0" t-esc="asignaciones" style="padding: 5px;" t-options='{"widget": "monetary", "display_currency": line.currency_id}' />
+                            </td>
+                            <td class="text-end">
+                                <span t-if="deducciones > 0" t-esc="deducciones" style="padding: 5px;" t-options='{"widget": "monetary", "display_currency": line.currency_id}' />
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr style="background-color: #e9e9e9;">
+                            <th colspan="4" style="padding: 5px;" class="text-end">Total:</th>
+                            <th class="text-end" style="padding: 5px;">
+                                <span t-esc="total_asignaciones" style="padding: 5px;" t-options="{'widget': 'monetary', 'display_currency': o.company_id.currency_id}"/>
+                            </th>
+                            <th class="text-end" style="padding: 5px;">
+                                <span t-esc="total_deducciones" style="padding: 5px;" t-options="{'widget': 'monetary', 'display_currency': o.company_id.currency_id}"/>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th colspan="5" style="padding: 5px;" class="text-end">Neto a Pagar:</th>
+                            <th class="text-end" style="padding: 5px;">
+                                <span t-esc="total_asignaciones - total_deducciones" style="padding: 5px;" t-options="{'widget': 'monetary', 'display_currency': o.company_id.currency_id}"/>
+                            </th>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div style="width: 100%; padding: 10px; margin-top: 20px;" align="center">
+                    Recibí Conforme
+                </div>
+                <div style="width: 100%;margin-top: 60px;" align="center">
+                    <span t-field="o.employee_id.name" style="padding: 5px;border-top: 1px solid #000000;"/>
+                </div>
+                <div style="width: 100%; padding: 5px;" align="center">
+                    <span t-field="o.employee_id.rif" t-if="o.employee_id.rif"/>
+                    <span t-field="o.employee_id.nationality" t-if="not o.employee_id.rif"/>
+                    <span t-field="o.employee_id.identification_id" t-if="not o.employee_id.rif"/>
+                </div>
+
+
+        </xpath>
+
+    </template>
+</odoo>

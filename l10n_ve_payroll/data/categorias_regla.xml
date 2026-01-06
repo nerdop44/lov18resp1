@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="category_asignacion" model="hr.salary.rule.category">
+            <field name="name">Asignación</field>
+            <field name="code">ASIGNA</field>
+        </record>
+
+        <record id="category_asignacion_subsidio" model="hr.salary.rule.category">
+            <field name="name">Subsidio</field>
+            <field name="code">SUBS</field>
+        </record>
+
+        <record id="category_asignacion_bonos" model="hr.salary.rule.category">
+            <field name="name">Bonos</field>
+            <field name="code">BONO</field>
+        </record>
+
+        <record id="category_otros" model="hr.salary.rule.category">
+            <field name="name">Otros</field>
+            <field name="code">OTROS</field>
+        </record>
+
+        <record id="category_acumulador" model="hr.salary.rule.category">
+            <field name="name">Acumulador</field>
+            <field name="code">ACUMULADOR</field>
+        </record>
+
+        <record id="categoria_total_deducciones" model="hr.salary.rule.category">
+            <field name="name">Total Deducciones</field>
+            <field name="code">NET_DED</field>
+        </record>
+        <record id="categoria_total_asignaciones" model="hr.salary.rule.category">
+            <field name="name">Total Asignaciones</field>
+            <field name="code">NET_ASIG</field>
+        </record>
+
+    </data>
+</odoo>

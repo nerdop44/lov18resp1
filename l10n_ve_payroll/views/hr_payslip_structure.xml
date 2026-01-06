@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="hr_salary_strycture_button" model="ir.ui.view">
+            <field name="name">hr_salary_strycture_button_ve</field>
+            <field name="model">hr.payroll.structure</field>
+            <field name="inherit_id" ref="hr_payroll.view_hr_employee_grade_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='schedule_pay']" position="after">
+                    <field name="procesar_prestaciones"/>
+                </xpath>
+                <xpath expr="//field[@name='rule_ids']" position="before">
+                    <group>
+                        <group>
+                            <button name="wizard_copy" string="Copiar Reglas" class="oe_highlight" type="object"/>
+                        </group>
+                        <group>
+
+                        </group>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+</odoo>

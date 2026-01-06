@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="hr_employee_vacaciones_tree" model="ir.ui.view">
+        <field name="name">hr.employee.vacaciones.list</field>
+        <field name="model">hr.employee.vacaciones</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="employee_id"/>
+                <field name="anio"/>
+                <field name="dias_vaca"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- action para modelo hr.employee.vacaciones -->
+    <record id="hr_employee_vacaciones_action" model="ir.actions.act_window">
+        <field name="name">Historico de Vacaciones</field>
+        <field name="res_model">hr.employee.vacaciones</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <!-- menu para modelo hr.employee.vacaciones -->
+
+    <menuitem id="hr_employee_vacaciones_menu" name="Historico de Vacaciones" parent="menu_venezuela_payrol_reporting" sequence="42" action="hr_employee_vacaciones_action"/>
+
+</odoo>

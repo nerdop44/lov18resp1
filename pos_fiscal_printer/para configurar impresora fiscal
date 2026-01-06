@@ -1,0 +1,21 @@
+Para configurar la impresora fiscal con tu nueva localización, debes seguir estos pasos en Odoo:
+
+Ir al menú de Configuración de Punto de Venta:
+Busca la opción Impresoras Fiscales (debería estar bajo el menú de configuración o productos del POS).
+Crear una nueva impresora fiscal:
+Nombre: Asigna un nombre descriptivo (ej. "Impresora Caja 1").
+Serial: El número de serie físico de la impresora.
+Puerto Serial: El puerto donde está conectada (ej. /dev/ttyUSB0 en Linux o COM3 en Windows).
+Tipo de Conexión: Selecciona USB Serial (es lo más común para Bixolon/HKA) o API si usas un intermediario.
+Flag 21: Generalmente déjalo en 00.
+Configurar el Diario de Pago:
+Ve a Punto de Venta > Configuración > Métodos de Pago.
+Selecciona o crea el método de pago (ej. "Efectivo", "Tarjeta").
+En la configuración de este diario, busca la opción que vincula con la impresora fiscal (si el módulo lo requiere explícitamente, aunque en esta localización, la impresora suele asignarse a la Caja (Configuración del Punto de Venta) y no directamente al diario, pero es bueno verificar si algún diario "transitorio" se usa).
+Nota: En la mayoría de las integraciones venezolanas, la impresora se asigna en la configuración de la Sesión del POS (Punto de Venta > Configuración > Puntos de Venta > [Tu Caja] > Hardware/Impresora Fiscal).
+En la Caja (POS Config):
+Asegúrate de marcar el check de Usar Impresora Fiscal.
+Selecciona la impresora que creaste en el paso 2.
+Una vez hecho esto, al validar una venta en el POS, el sistema enviará los comandos a la impresora configurada y, al cerrar el turno (Z), guardará ese reporte para que el Libro de Ventas lo lea automáticamente.
+
+

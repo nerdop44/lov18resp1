@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+	<record id="view_hr_employee_loan_type_form" model="ir.ui.view">
+		<field name="name">hr.employee.loan.type.form</field>
+		<field name="model">hr.employee.loan.type</field>
+		<field name="arch" type="xml">
+			<form string="Employee Loan Type">
+				<sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="loan_limit"/>
+                            <field name="currency_id_dif" invisible="1"/>
+                            <field name="loan_term"/>
+                        </group>
+                        <group>
+                            <field name="is_apply_interest"/>
+                            <field name="interest_rate" attrs="{'invisible':[('is_apply_interest','!=',True)]}"/>
+                            <field name="interest_type" attrs="{'invisible':[('is_apply_interest','!=',True)]}"/>
+                        </group>
+                    </group>
+                    <group>
+                    	<group>
+                    		<field name="loan_account"/>
+                    		<field name="interest_account"/>
+                    	</group>
+                    	<group>
+                    		<field name="journal_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                    	</group>
+                    </group>
+				</sheet>
+			</form>
+		</field>
+	</record>
+    <record id="view_hr_employee_loan_type_tree" model="ir.ui.view">
+        <field name="name">view.employee.loan.type.list</field>
+        <field name="model">hr.employee.loan.type</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="loan_limit"/>
+                <field name="currency_id_dif" invisible="1"/>
+                <field name="loan_term"/>
+                <field name="interest_rate"/>
+                <field name="interest_type"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    
+    
+    <record model="ir.actions.act_window" id="action_hr_employee_loan_type">
+        <field name="name">Tipos de Prestamos</field>
+        <field name="res_model">hr.employee.loan.type</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    
+    <menuitem name="Tipos de Prestamos" id="menu_hr_employee_loan_type" parent="hr_work_entry_contract_enterprise.menu_hr_payroll_configuration"
+              action="action_hr_employee_loan_type"
+              groups="hr.group_hr_user"/>
+
+</odoo>

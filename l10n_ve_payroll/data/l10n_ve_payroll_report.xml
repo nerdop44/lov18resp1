@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="l10n_ve_payroll_report_inces" model="account.report">
+        <field name="name">Aportes y Retenciones Inces</field>
+        <field name="filter_unfold_all" eval="True"/>
+        <field name="filter_partner" eval="False"/>
+        <field name="filter_show_draft" eval="False"/>
+        <field name="filter_unreconciled" eval="False"/>
+        <field name="filter_period_comparison" eval="False"/>
+        <field name="filter_date_range" eval="True"/>
+        <field name="filter_multi_company">selector</field>
+        <field name="default_opening_date_filter">this_quarter</field>
+        <field name="search_bar" eval="True"/>
+        <field name="custom_handler_model_id" ref="model_l10n_ve_payroll_report_handler_inces"/>
+    </record>
+
+    <record id="action_l10n_ve_payroll_report_inces" model="ir.actions.client">
+        <field name="name">Aportes y Retenciones Inces</field>
+        <field name="tag">account_report</field>
+        <field name="context" eval="{'report_id': ref('l10n_ve_payroll.l10n_ve_payroll_report_inces')}" />
+    </record>
+
+    <record id="l10n_ve_payroll_report_faov" model="account.report">
+        <field name="name">Aportes y Retenciones FAOV</field>
+        <field name="filter_unfold_all" eval="True"/>
+        <field name="filter_partner" eval="False"/>
+        <field name="filter_show_draft" eval="False"/>
+        <field name="filter_unreconciled" eval="False"/>
+        <field name="filter_period_comparison" eval="False"/>
+        <field name="filter_date_range" eval="True"/>
+        <field name="filter_multi_company">selector</field>
+        <field name="default_opening_date_filter">this_month</field>
+        <field name="search_bar" eval="True"/>
+        <field name="custom_handler_model_id" ref="model_l10n_ve_payroll_report_handler_faov"/>
+        <field name="column_ids">
+            <record id="payroll_report_faov_sal_integral" model="account.report.column">
+                <field name="name">Salario Integral</field>
+                <field name="expression_label">sal_integral</field>
+                <field name="figure_type">monetary</field>
+            </record>
+            <record id="payroll_report_faov_ret_faov" model="account.report.column">
+                <field name="name">Retenido</field>
+                <field name="expression_label">ret_faov</field>
+                <field name="figure_type">monetary</field>
+            </record>
+            <record id="payroll_report_faov_aporte_faov" model="account.report.column">
+                <field name="name">Aporte</field>
+                <field name="expression_label">aporte_faov</field>
+                <field name="figure_type">monetary</field>
+            </record>
+            <record id="payroll_report_faov_total" model="account.report.column">
+                <field name="name">Total</field>
+                <field name="expression_label">total</field>
+                <field name="figure_type">monetary</field>
+            </record>
+        </field>
+    </record>
+
+    <record id="l10n_ve_payroll_report_islr" model="account.report">
+        <field name="name">Listado de Retenciones Varias ACR-V</field>
+        <field name="filter_unfold_all" eval="True"/>
+        <field name="filter_partner" eval="False"/>
+        <field name="filter_show_draft" eval="False"/>
+        <field name="filter_unreconciled" eval="False"/>
+        <field name="filter_period_comparison" eval="False"/>
+        <field name="filter_date_range" eval="True"/>
+        <field name="filter_multi_company">selector</field>
+        <field name="default_opening_date_filter">this_year</field>
+        <field name="search_bar" eval="True"/>
+        <field name="custom_handler_model_id" ref="model_l10n_ve_payroll_report_handler_islr"/>
+        <field name="column_ids">
+            <record id="payroll_report_islr_periodo" model="account.report.column">
+                <field name="name">Período</field>
+                <field name="expression_label">periodo</field>
+                <field name="figure_type">date</field>
+            </record>
+            <record id="payroll_report_islr_monto_obj_retencion" model="account.report.column">
+                <field name="name">Monto Objeto de Retención</field>
+                <field name="expression_label">monto_obj_retencion</field>
+                <field name="figure_type">monetary</field>
+            </record>
+            <record id="payroll_report_islr_porcentaje" model="account.report.column">
+                <field name="name">Porcentaje</field>
+                <field name="expression_label">porcentaje</field>
+                <field name="figure_type">percentage</field>
+            </record>
+            <record id="payroll_report_islr_impuesto_retenido" model="account.report.column">
+                <field name="name">Impuesto Retenido</field>
+                <field name="expression_label">impuesto_retenido</field>
+                <field name="figure_type">monetary</field>
+            </record>
+            <record id="payroll_report_islr_monto_obj_retencion_acumulado" model="account.report.column">
+                <field name="name">Monto Objeto de Retención Acumulado</field>
+                <field name="expression_label">monto_obj_retencion_acumulado</field>
+                <field name="figure_type">monetary</field>
+            </record>
+            <record id="payroll_report_islr_impuesto_retenido_acumulado" model="account.report.column">
+                <field name="name">Impuesto Retenido Acumulado</field>
+                <field name="expression_label">impuesto_retenido_acumulado</field>
+                <field name="figure_type">monetary</field>
+            </record>
+        </field>
+    </record>
+
+    <record id="l10n_ve_payroll_report_nomina_empleados" model="account.report">
+        <field name="name">Listado Nóminas por Empleados</field>
+        <field name="filter_unfold_all" eval="True"/>
+        <field name="filter_partner" eval="False"/>
+        <field name="filter_show_draft" eval="False"/>
+        <field name="filter_unreconciled" eval="False"/>
+        <field name="filter_period_comparison" eval="False"/>
+        <field name="filter_date_range" eval="True"/>
+        <field name="filter_multi_company">selector</field>
+        <field name="default_opening_date_filter">this_month</field>
+        <field name="search_bar" eval="True"/>
+        <field name="custom_handler_model_id" ref="model_l10n_ve_payroll_report_handler_nomina_empleados"/>
+        <field name="column_ids">
+            <record id="payroll_report_nomina_empleados_codigo_concepto" model="account.report.column">
+                <field name="name">Código</field>
+                <field name="expression_label">codigo_concepto</field>
+                <field name="figure_type">none</field>
+            </record>
+            <record id="payroll_report_nomina_empleados_descripcion" model="account.report.column">
+                <field name="name">Descripción</field>
+                <field name="expression_label">descripcion</field>
+                <field name="figure_type">none</field>
+            </record>
+            <record id="payroll_report_nomina_empleados_dias" model="account.report.column">
+                <field name="name">Días</field>
+                <field name="expression_label">dias</field>
+                <field name="figure_type">none</field>
+            </record>
+            <record id="payroll_report_nomina_empleados_horas" model="account.report.column">
+                <field name="name">Horas</field>
+                <field name="expression_label">dias</field>
+                <field name="figure_type">none</field>
+            </record>
+
+            <record id="payroll_report_nomina_empleados_asigna" model="account.report.column">
+                <field name="name">Asignación</field>
+                <field name="expression_label">asignacion</field>
+                <field name="figure_type">monetary</field>
+            </record>
+            <record id="payroll_report_nomina_empleados_deduccion" model="account.report.column">
+                <field name="name">Deducción</field>
+                <field name="expression_label">deduccion</field>
+                <field name="figure_type">monetary</field>
+            </record>
+            <record id="payroll_report_nomina_empleados_otros" model="account.report.column">
+                <field name="name">Otros</field>
+                <field name="expression_label">otros</field>
+                <field name="figure_type">monetary</field>
+            </record>
+            <record id="payroll_report_nomina_empleados_total" model="account.report.column">
+                <field name="name">Total (A-D)</field>
+                <field name="expression_label">total</field>
+                <field name="figure_type">monetary</field>
+            </record>
+        </field>
+    </record>
+
+    <record id="action_l10n_ve_payroll_report_nomina_empleados" model="ir.actions.client">
+        <field name="name">Listado Nóminas por Empleados</field>
+        <field name="tag">account_report</field>
+        <field name="context" eval="{'report_id': ref('l10n_ve_payroll.l10n_ve_payroll_report_nomina_empleados')}" />
+    </record>
+
+    <record id="l10n_ve_payroll_report_conceptos" model="account.report">
+        <field name="name">Listado Conceptos Procesados</field>
+        <field name="filter_unfold_all" eval="True"/>
+        <field name="filter_partner" eval="False"/>
+        <field name="filter_show_draft" eval="False"/>
+        <field name="filter_unreconciled" eval="False"/>
+        <field name="filter_period_comparison" eval="False"/>
+        <field name="filter_date_range" eval="True"/>
+        <field name="filter_multi_company">selector</field>
+        <field name="default_opening_date_filter">this_month</field>
+        <field name="search_bar" eval="True"/>
+        <field name="custom_handler_model_id" ref="model_l10n_ve_payroll_report_handler_conceptos"/>
+        <field name="column_ids">
+            <!--<record id="payroll_report_conceptos_codigo_concepto" model="account.report.column">
+                <field name="name">Código</field>
+                <field name="expression_label">codigo_concepto</field>
+                <field name="figure_type">none</field>
+            </record>-->
+            <!--<record id="payroll_report_conceptos_descripcion" model="account.report.column">
+                <field name="name">Descripción</field>
+                <field name="expression_label">descripcion</field>
+                <field name="figure_type">none</field>
+            </record>-->
+            <record id="payroll_report_conceptos_total" model="account.report.column">
+                <field name="name">Total</field>
+                <field name="expression_label">total</field>
+                <field name="figure_type">monetary</field>
+            </record>
+        </field>
+    </record>
+
+     <record id="action_l10n_ve_payroll_report_conceptos" model="ir.actions.client">
+        <field name="name">Reporte Conceptos Procesados</field>
+        <field name="tag">account_report</field>
+        <field name="context" eval="{'report_id': ref('l10n_ve_payroll.l10n_ve_payroll_report_conceptos')}" />
+    </record>
+
+
+    <menuitem id="menu_venezuela_payrol_reporting" name="Informes de Venezuela" parent="hr_payroll.menu_hr_payroll_report" sequence="100"/>
+    <menuitem id="menu_action_l10n_ve_payroll_report_nomina_empleados" name="Listado Nóminas por Empleados" action="action_l10n_ve_payroll_report_nomina_empleados" parent="menu_venezuela_payrol_reporting" sequence="1"/>
+    <menuitem id="menu_action_l10n_ve_payroll_report_conceptos" name="Reporte Conceptos Procesados" action="action_l10n_ve_payroll_report_conceptos" parent="menu_venezuela_payrol_reporting" sequence="2"/>
+    <menuitem id="menu_action_l10n_ve_payroll_report_inces" name="Aportes y Retenciones Inces" action="action_l10n_ve_payroll_report_inces" parent="menu_venezuela_payrol_reporting" sequence="3"/>
+
+
+</odoo>

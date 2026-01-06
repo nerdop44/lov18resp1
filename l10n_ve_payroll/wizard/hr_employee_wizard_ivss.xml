@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<odoo>
+        <!-- vista formulario para el modelo hr.employee.wizard.ivss -->
+        <record model="ir.ui.view" id="hr_employee_wizard_ivss_form_view">
+            <field name="name">hr.employee.wizard.ivss.form</field>
+            <field name="model">hr.employee.wizard.ivss</field>
+            <field name="arch" type="xml">
+                <form string="Generar Constancia IVSS FORMA: 14-100">
+                    <group>
+                        <group>
+                            <field name="employee_id" string="Empleados" domain="[('company_id','=',company_id)]" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
+                            <field name="observaciones"/>
+                        </group>
+                        <group>
+                            <field name="company_id" string="Compañia" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
+                            <field name="representante_legal_ivss" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
+                            <field name="numero_patronal"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <div class="oe_left">
+                            <button string="Generar Forma 14-100" name="generar_forma" type="object"  class="oe_highlight"/>
+                            <button string="Cancelar" special="cancel" type="object" class="oe_link" />
+                        </div>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <!-- ir.actions.act_window -->
+        <record id="hr_employee_wizard_ivss_action" model="ir.actions.act_window">
+            <field name="name">Constancia IVSS FORMA: 14-100</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">hr.employee.wizard.ivss</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="hr_employee_wizard_ivss_form_view"/>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem
+            id="menu_hr_employee_wizard_ivss_employee"
+            name="Constancia IVSS FORMA: 14-100"
+            parent="hr.hr_menu_hr_reports"
+            action="hr_employee_wizard_ivss_action"
+            sequence="31"/>
+
+        <menuitem
+            id="menu_hr_employee_wizard_ivss_payroll"
+            name="Constancia IVSS FORMA: 14-100"
+            parent="menu_venezuela_payrol_reporting"
+            action="hr_employee_wizard_ivss_action"
+            sequence="33"/>
+
+</odoo>

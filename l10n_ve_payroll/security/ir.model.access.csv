@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hr_payslip_structure_copy,hr.payslip.structure.copy,model_hr_payslip_structure_copy,base.group_user,1,1,1,1
+access_hr_employee_wizard_mintra,hr.employee.wizard.mintra,model_hr_employee_wizard_mintra,base.group_user,1,1,1,1
+access_hr_payslip_wizard_faov,hr.payslip.wizard.faov,model_hr_payslip_wizard_faov,base.group_user,1,1,1,1
+access_hr_payslip_wizard_islr,hr.payslip.wizard.islr,model_hr_payslip_wizard_islr,base.group_user,1,1,1,1
+access_hr_employee_prestaciones,hr.employee.prestaciones,model_hr_employee_prestaciones,base.group_user,1,1,1,1
+access_hr_employee_vacaciones,hr.employee.vacaciones,model_hr_employee_vacaciones,base.group_user,1,1,1,1
+access_hr_employee_loan,hr.employee.loan,model_hr_employee_loan,base.group_user,1,1,1,1
+access_hr_employee_loan_type,hr.employee.loan.type,model_hr_employee_loan_type,base.group_user,1,1,1,1
+access_hr_employee_loan_document,hr.employee.loan.document,model_hr_employee_loan_document,base.group_user,1,1,1,1
+access_hr_employee_loan_installment_line,hr.employee.loan.installment.line,model_hr_employee_loan_installment_line,base.group_user,1,1,1,1
+access_hr_employee_wizard_ivss,hr.employee.wizard.ivss,model_hr_employee_wizard_ivss,base.group_user,1,1,1,1
+access_hr_employee_family,hr.employee.family,model_hr_employee_family,base.group_user,1,1,1,1

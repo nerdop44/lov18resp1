@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="work_entry_type_AUSE" model="hr.work.entry.type">
+            <field name="name">Ausencia</field>
+            <field name="color">5</field>
+            <field name="code">AUSE</field>
+            <field name="is_leave">True</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">26</field>
+        </record>
+
+        <record id="hr_work_entry_contract.work_entry_type_legal_leave" model="hr.work.entry.type">
+            <field name="name">Ausencia pagada</field>
+            <field name="color">6</field>
+            <field name="code">AUSEP</field>
+            <field name="is_leave">False</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">26</field>
+        </record>
+
+        <record id="work_entry_type_VACA" model="hr.work.entry.type">
+            <field name="name">Días hábiles en vacaciones</field>
+            <field name="color">7</field>
+            <field name="code">VACA</field>
+            <field name="is_leave">True</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">26</field>
+        </record>
+
+        <record id="work_entry_type_VACA_des_fer" model="hr.work.entry.type">
+            <field name="name">Días de Des/Fer en Vacaciones</field>
+            <field name="color">7</field>
+            <field name="code">DDFVACA</field>
+            <field name="is_leave">True</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">26</field>
+        </record>
+
+        <record id="work_entry_type_DDESS" model="hr.work.entry.type">
+            <field name="name">Días descanso sábado</field>
+            <field name="code">DDESS</field>
+            <field name="is_leave">False</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">27</field>
+        </record>
+
+        <record id="work_entry_type_DDESST" model="hr.work.entry.type">
+            <field name="name">Días sábado trabajado</field>
+            <field name="code">DDESST</field>
+            <field name="is_leave">False</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">28</field>
+        </record>
+
+        <record id="work_entry_type_DDESD" model="hr.work.entry.type">
+            <field name="name">Días descanso domingo</field>
+            <field name="code">DDESD</field>
+            <field name="is_leave">False</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">28</field>
+        </record>
+
+        <record id="work_entry_type_DDESDT" model="hr.work.entry.type">
+            <field name="name">Días domingo trabajado</field>
+            <field name="code">DDESDT</field>
+            <field name="is_leave">False</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">29</field>
+        </record>
+
+        <record id="work_entry_type_FERI" model="hr.work.entry.type">
+            <field name="name">Feriado</field>
+            <field name="code">FERI</field>
+            <field name="is_leave">True</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <record id="work_entry_type_FERIT" model="hr.work.entry.type">
+            <field name="name">Feriado Trabajado</field>
+            <field name="code">FERIT</field>
+            <field name="is_leave">False</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <!-- Horas extras diurnas -->
+        <record id="work_entry_type_HED" model="hr.work.entry.type">
+            <field name="name">Horas extras diurnas</field>
+            <field name="code">HED</field>
+            <field name="is_leave">False</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">31</field>
+        </record>
+
+        <!-- Horas extras nocturnas -->
+        <record id="work_entry_type_HEN" model="hr.work.entry.type">
+            <field name="name">Horas extras nocturnas</field>
+            <field name="code">HEN</field>
+            <field name="is_leave">False</field>
+            <field name="round_days">NO</field>
+            <field name="sequence">32</field>
+        </record>
+
+    </data>
+</odoo>
