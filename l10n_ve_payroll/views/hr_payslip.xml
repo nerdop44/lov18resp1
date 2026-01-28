@@ -84,9 +84,9 @@
                         </group>
                         <group>
                             <group string="Prestamos">
-                                <field name="installment_ids" widget="many2many_tags" attrs="{'readonly':[('state','!=','draft')]}"/>
-                                <field name="installment_amount" attrs="{'invisible':[('installment_ids','=',False)]}"/>
-                                <field name="installment_int" attrs="{'invisible':[('installment_ids','=',False)]}"/>
+                                <field name="installment_ids" widget="many2many_tags" readonly="[('state','!=','draft')]"/>
+                                <field name="installment_amount" invisible="[('installment_ids','=',False)]"/>
+                                <field name="installment_int" invisible="[('installment_ids','=',False)]"/>
                             </group>
                             <group>
                             </group>

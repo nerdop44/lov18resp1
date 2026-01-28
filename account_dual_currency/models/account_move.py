@@ -2,7 +2,6 @@ from odoo import api, fields, models, _, Command
 from odoo.exceptions import UserError, ValidationError, AccessError, RedirectWarning
 from odoo.tools import (
     date_utils,
-    email_re,
     email_split,
     float_compare,
     float_is_zero,

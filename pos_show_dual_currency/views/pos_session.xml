@@ -14,7 +14,7 @@
             <xpath expr="//field[@name='cash_register_balance_end_real']" position="after">
                 <field name="tax_today" readonly="1"/>
                 <field name="cash_register_balance_end_real_mn_ref"
-                           attrs="{'invisible': [('state', '!=', 'closed')]}"/>
+                           invisible="[('state', '!=', 'closed')]"/>
             </xpath>
         </field>
     </record>

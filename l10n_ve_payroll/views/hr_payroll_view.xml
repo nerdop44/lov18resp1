@@ -7,16 +7,16 @@
             <field name="inherit_id" ref="hr_payroll.view_hr_payslip_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='name']" position="after">
-                    <field name="lunes_mes" string="Cantidad de lunes"  attrs="{'invisible':[('moneda_structura','=','usd')]}"></field>
+                    <field name="lunes_mes" string="Cantidad de lunes"  invisible="[('moneda_structura','=','usd')]"></field>
                     <field name="moneda_structura" invisible="1"></field>
-                    <field name="sal_mensual" attrs="{'invisible':[('moneda_structura','=','usd')]}"></field>
-                    <field name="sal_mensual_usd" attrs="{'invisible':[('moneda_structura','=','usd')]}"></field>
-                    <field name="sal_diario" attrs="{'invisible':[('moneda_structura','=','usd')]}"></field>
-                    <field name="sal_diario_usd" attrs="{'invisible':[('moneda_structura','=','usd')]}"></field>
-                    <field name="complemento_mensual" attrs="{'invisible':[('moneda_structura','=','bs')]}"></field>
-                    <field name="complemento_mensual_bs" attrs="{'invisible':[('moneda_structura','=','bs')]}"></field>
-                    <field name="complemento_diario" attrs="{'invisible':[('moneda_structura','=','bs')]}"></field>
-                    <field name="complemento_diario_bs" attrs="{'invisible':[('moneda_structura','=','bs')]}"></field>
+                    <field name="sal_mensual" invisible="[('moneda_structura','=','usd')]"></field>
+                    <field name="sal_mensual_usd" invisible="[('moneda_structura','=','usd')]"></field>
+                    <field name="sal_diario" invisible="[('moneda_structura','=','usd')]"></field>
+                    <field name="sal_diario_usd" invisible="[('moneda_structura','=','usd')]"></field>
+                    <field name="complemento_mensual" invisible="[('moneda_structura','=','bs')]"></field>
+                    <field name="complemento_mensual_bs" invisible="[('moneda_structura','=','bs')]"></field>
+                    <field name="complemento_diario" invisible="[('moneda_structura','=','bs')]"></field>
+                    <field name="complemento_diario_bs" invisible="[('moneda_structura','=','bs')]"></field>
                     <field name="tasa_cambio"></field>
                 </xpath>
                 &lt;!&ndash;<xpath expr="//form[1]/sheet[1]/notebook[1]/page[1]/field[@name='worked_days_line_ids']/list[1]/field[@name='work_entry_type_id']" position="attributes">
@@ -94,7 +94,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='not_computed_in_net']" position="before">
                     <field name="origin_partner"/>
-                    <field name="partner_id" attrs="{'invisible':[('origin_partner','!=','otro')]}"/>
+                    <field name="partner_id" invisible="[('origin_partner','!=','otro')]"/>
                 </xpath>
             </field>
         </record>

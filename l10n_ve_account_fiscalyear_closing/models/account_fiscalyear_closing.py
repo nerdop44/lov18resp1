@@ -13,7 +13,6 @@ class AccountFiscalyearClosingConfig(models.Model):
     _inherit = "account.fiscalyear.closing.config"
 
      # Modificación: Agregar método para permitir el uso de 'states'
-    def _valid_field_parameter(self, field_name, parameter):
         if parameter == 'states':
             return True  # Permite el uso del parámetro 'states'
         return super(AccountFiscalyearClosingConfig, self)._valid_field_parameter(field_name, parameter)
@@ -151,7 +150,6 @@ class AccountFiscalyearClosing(models.Model):
     _inherit = "account.fiscalyear.closing"
 
     # Método para permitir el uso del parámetro 'states'
-    def _valid_field_parameter(self, field_name, parameter):
         if parameter == 'states':
             return True  # Permite el uso del parámetro 'states'
         return super(AccountFiscalyearClosing, self)._valid_field_parameter(field_name, parameter)
@@ -296,7 +294,6 @@ class AccountFiscalyearClosingMapping(models.Model):
     _inherit = "account.fiscalyear.closing.mapping"
 
     # Método para permitir el uso del parámetro 'states'
-    def _valid_field_parameter(self, field_name, parameter):
         if parameter == 'states':
             return True  # Permite el uso del parámetro 'states'
         return super(AccountFiscalyearClosingMapping, self)._valid_field_parameter(field_name, parameter)

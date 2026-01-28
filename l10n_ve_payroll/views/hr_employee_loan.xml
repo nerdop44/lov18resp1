@@ -7,35 +7,35 @@
 		<field name="arch" type="xml">
 			<form string="Prestamos de Empleados">
 				<header>
-                    <button name="compute_installment" states="draft" string="Calcular Cuotas" class="btn-primary" type="object" groups="base.group_user"/>
-                    <button name="action_send_request" states="draft" string="Enviar Solicitud" class="btn-primary" type="object" groups="base.group_user"/>
+                    <button name="compute_installment" invisible="state != 'draft'" string="Calcular Cuotas" class="btn-primary" type="object" groups="base.group_user"/>
+                    <button name="action_send_request" invisible="state != 'draft'" string="Enviar Solicitud" class="btn-primary" type="object" groups="base.group_user"/>
 
-                    <button name="dep_manager_approval_loan" states="request" string="Aprobar Solicitud" class="btn-primary"
+                    <button name="dep_manager_approval_loan" invisible="state != 'request'" string="Aprobar Solicitud" class="btn-primary"
                             type="object" groups="l10n_ve_payroll.group_department_manager"/>
-                    <button name="dep_manager_reject_loan" states="request" string="Rechazar Solicitud" class="btn-primary"
+                    <button name="dep_manager_reject_loan" invisible="state != 'request'" string="Rechazar Solicitud" class="btn-primary"
                             type="object" groups="l10n_ve_payroll.group_department_manager"/>
 
-                    <button name="cancel_loan" states="request" string="Cancelar" type="object"
+                    <button name="cancel_loan" invisible="state != 'request'" string="Cancelar" type="object"
                             groups="base.group_user"/>
 
-                    <button name="hr_manager_approval_loan" states="dep_approval" string="Confirmar" class="btn-primary"
+                    <button name="hr_manager_approval_loan" invisible="state != 'dep_approval'" string="Confirmar" class="btn-primary"
                             type="object" groups="hr.group_hr_manager"/>
-                    <button name="hr_manager_reject_loan" states="dep_approval" string="Rechazar" class="btn-primary"
+                    <button name="hr_manager_reject_loan" invisible="state != 'dep_approval'" string="Rechazar" class="btn-primary"
                             type="object" groups="hr.group_hr_manager"/>
 
-                    <button name="paid_loan" states="hr_approval" string="Desembolsar préstamo" class="btn-primary" type="object"
+                    <button name="paid_loan" invisible="state != 'hr_approval'" string="Desembolsar préstamo" class="btn-primary" type="object"
                             groups="hr.group_hr_manager"/>
 
-                    <button name="set_to_draft" states="cancel" string="Pasar a Borrador" class="btn-primary" type="object"
+                    <button name="set_to_draft" invisible="state != 'cancel'" string="Pasar a Borrador" class="btn-primary" type="object"
                             groups="base.group_user"/>
 
                     <button name="action_close_loan" string="Cerrar" class="btn-primary" type="object"
-                            groups="hr.group_hr_manager" attrs="{'invisible':[('is_close','!=',True)]}"/>
+                            groups="hr.group_hr_manager" invisible="[('is_close','!=',True)]"/>
 
-                    <button name="action_done_loan" states="paid" string="Finalizar" class="btn-primary" type="object"
+                    <button name="action_done_loan" invisible="state != 'paid'" string="Finalizar" class="btn-primary" type="object"
                             groups="hr.group_hr_manager" />
 
-                    <button name='send_loan_detail' states="done" string='Enviar Email' class="btn-primary" type="object" groups="hr.group_hr_user"/>
+                    <button name='send_loan_detail' invisible="state != 'done'" string='Enviar Email' class="btn-primary" type="object" groups="hr.group_hr_user"/>
 
 
 
@@ -43,12 +43,12 @@
 				</header>
 				<sheet>
                     <div class="oe_button_box" name="button_box">
-                        <b><button name="view_journal_entry" type="object"  class="oe_stat_button" icon="fa-external-link" string="Asiento Contable" groups="hr.group_hr_manager" attrs="{'invisible':[('state','not in',['done','paid'])]}"/></b>
+                        <b><button name="view_journal_entry" type="object"  class="oe_stat_button" icon="fa-external-link" string="Asiento Contable" groups="hr.group_hr_manager" invisible="[('state','not in',['done','paid']])"/></b>
                          <button type="object"
                                         name="action_view_loan_installment"
                                         class="oe_stat_button"
                                         icon="fa-list"
-                                        attrs="{'invisible': [('installment_count', '=', 0)]}"
+                                        invisible="[('installment_count', '=', 0)]"
                                          >
                                           <field name="installment_count" string="Cuotas" widget="statinfo" />
                          </button>
@@ -59,13 +59,13 @@
                     
                     <group>
                         <group>
-                            <field name="employee_id" attrs="{'readonly':[('state','!=','draft')]}"/>
-                            <field name="department_id" attrs="{'readonly':[('state','!=','draft')]}"/>
-                            <field name="manager_id" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="employee_id" readonly="[('state','!=','draft')]"/>
+                            <field name="department_id" readonly="[('state','!=','draft')]"/>
+                            <field name="manager_id" readonly="[('state','!=','draft')]"/>
                         </group>
                         <group>
                             <field name="date" readonly="1"/>
-                            <field name="job_id" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="job_id" readonly="[('state','!=','draft')]"/>
                             <field name="loan_url" invisible="1"/>
                             <field name="user_id" readonly="1"/>
                             <field name="hr_manager_id" invisible="1"/>
@@ -76,21 +76,21 @@
                     <group>
                         <group>
                             <field name="is_apply_interest" invisible="1"/>
-                            <field name="payment_method" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="payment_method" readonly="[('state','!=','draft')]"/>
                             <field name="currency_id_dif" readonly="1"/>
-                            <field name="loan_amount" attrs="{'readonly':[('state','!=','draft')]}"/>
-                            <field name="interest_amount" attrs="{'invisible':[('is_apply_interest','!=',True)]}"/>
+                            <field name="loan_amount" readonly="[('state','!=','draft')]"/>
+                            <field name="interest_amount" invisible="[('is_apply_interest','!=',True)]"/>
                             <field name="paid_amount"/>
                             <field name="remaing_amount"/>
                         </group>
                         <group>
-                            <field name="loan_type_id" attrs="{'readonly':[('state','!=','draft')]}"/>
-                            <field name="start_date" attrs="{'readonly':[('state','!=','draft')]}"/>
-                            <field name="term" attrs="{'readonly':[('state','!=','draft')]}"/>
-                            <field name="period" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="loan_type_id" readonly="[('state','!=','draft')]"/>
+                            <field name="start_date" readonly="[('state','!=','draft')]"/>
+                            <field name="term" readonly="[('state','!=','draft')]"/>
+                            <field name="period" readonly="[('state','!=','draft')]"/>
                             <field name="end_date"/>
-                            <field name="interest_rate" attrs="{'invisible':[('is_apply_interest','!=',True)],'readonly':[('state','!=','draft')]}"/>
-                            <field name="interest_type" attrs="{'invisible':[('is_apply_interest','!=',True)],'readonly':[('state','!=','draft')]}"/>
+                            <field name="interest_rate" invisible="[('is_apply_interest','!=',True)]" readonly="[('state','!=','draft')]"/>
+                            <field name="interest_type" invisible="[('is_apply_interest','!=',True)]" readonly="[('state','!=','draft')]"/>
                         </group>
                     </group>
                     <group>
@@ -105,7 +105,7 @@
                     <notebook>
                         <page string="Razón">
                         	<br/>
-                            <field name="notes" attrs="{'readonly':[('state','!=','draft')]}"/>
+                            <field name="notes" readonly="[('state','!=','draft')]"/>
                         </page>
                         <page string="Cuotas">
                             <br/>
@@ -122,7 +122,7 @@
                                     <field name="is_paid" invisible="1"/>
                                     <field name="is_skip" invisible="1"/>
                                     <button type="object" name="action_view_payslip" string="Payslip" class="btn-primary"
-                                    	attrs="{'invisible':[('is_paid','=',False)]}" groups="hr.group_hr_manager"/>
+                                    	invisible="[('is_paid','=',False)]" groups="hr.group_hr_manager"/>
                                 </list>
                             </field>
                         </page>

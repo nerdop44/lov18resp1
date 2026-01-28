@@ -7,7 +7,7 @@
                 <form string="Copia las reglas desde otra estructura">
                     <group>
                         <field name="structure_id"/>
-                        <field name="rule_ids" domain="[('struct_id','=',structure_id)]" attrs="{'readonly':[('structure_id','=',False)]}"/>
+                        <field name="rule_ids" domain="[('struct_id','=',structure_id)]" readonly="[('structure_id','=',False)]"/>
                     </group>
                     <footer>
                        <button name="copiar_reglas" string="Copiar Reglas" type="object" class="oe_highlight"/>

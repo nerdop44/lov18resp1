@@ -7,8 +7,8 @@
         <field name="arch" type="xml">
             <form string="Reporte Z">
                 <header>
-                    <button name="action_done" string="Validar" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
-                    <button name="action_draft" string="Pasar a Borrador" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'done')]}"/>
+                    <button name="action_done" string="Validar" type="object" class="oe_highlight" invisible="[('state', '!=', 'draft')]"/>
+                    <button name="action_draft" string="Pasar a Borrador" type="object" class="oe_highlight" invisible="[('state', '!=', 'done')]"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,done"/>
                 </header>
                 <sheet>

@@ -9,13 +9,13 @@
                 <group class="oe_subtotal_footer oe_right">
                     <field name="company_currency_id" invisible="1"/>
                     <field name="amount_total"/>
-                    <button colspan="2" name="compute_landed_cost" string="Compute" type="object" class="oe_right btn-secondary" states="draft"/>
+                    <button colspan="2" name="compute_landed_cost" string="Compute" type="object" class="oe_right btn-secondary" invisible="state != 'draft'"/>
                 </group>
             </xpath>
             <xpath expr="//field[@name='account_journal_id']" position="after">
                 <field
                     name="currency_id"
-                    attrs="{'readonly': [('state', '=', 'done')]}"
+                    readonly="[('state', '=', 'done')]"
                     groups="base.group_multi_currency"
                 />
             </xpath>

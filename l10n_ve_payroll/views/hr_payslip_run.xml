@@ -6,7 +6,7 @@
             <field name="inherit_id" ref="hr_payroll.hr_payslip_run_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//div[@name='button_box']" position="inside">
-                    <button name="action_open_report" class="oe_stat_button" icon="fa-book" type="object" help="Reporte" attrs="{'invisible': [('payslip_count', '=', 0)]}">
+                    <button name="action_open_report" class="oe_stat_button" icon="fa-book" type="object" help="Reporte" invisible="[('payslip_count', '=', 0)]">
                         <div class="o_field_widget o_stat_info">
                             <span class="o_stat_text">Reporte</span>
                         </div>

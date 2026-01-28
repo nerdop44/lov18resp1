@@ -8,7 +8,6 @@ from odoo import _, fields, models
 class AccountMove(models.Model):
     _inherit = "account.move"
 
-    def _valid_field_parameter(self, field_name, parameter):
         if parameter == 'states':
             return True  # Permite el uso del parámetro 'states'
         return super()._valid_field_parameter(field_name, parameter)
@@ -23,7 +22,7 @@ class AccountMove(models.Model):
         ],
         readonly=True,
         default="draft",
-        states={"draft": [("readonly", False)]},  # Asegúrate de que states esté definido aquí
+          # Asegúrate de que states esté definido aquí
     )
 
     def _selection_closing_type(self):
@@ -47,5 +46,5 @@ class AccountMove(models.Model):
     closing_type = fields.Selection(
         selection=_selection_closing_type,
         default="none",
-        states={"posted": [("readonly", True)]},
+        
     )

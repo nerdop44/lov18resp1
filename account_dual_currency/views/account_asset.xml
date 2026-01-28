@@ -13,7 +13,7 @@
                         <group>
                             <field name="currency_id" readonly="1" force_save="1" string="Moneda Compañía"/>
                             <field name="currency_id_dif" options="{'no_create': True, 'no_open': True}"/>
-                            <field name="tax_today" attrs="{'readonly': [('state', 'not in', ('draft', 'model'))]}"/>
+                            <field name="tax_today" readonly="[('state', 'not in', ('draft', 'model'))]"/>
                         </group>
                         <group>
 
@@ -26,10 +26,10 @@
                 <xpath expr="//field[@name='book_value']/.." position="after">
                     <label for="book_value_ref" string="Valor contable Ref."/>
                     <span>
-                        <field name="book_value_ref" class="oe_inline" widget="monetary" required="1" attrs="{'invisible': [('state', '=', 'model')]}" options="{'currency_field': 'currency_id_dif'}"/>
-                        <span attrs="{'invisible': [('salvage_value', '=', 0)]}">
+                        <field name="book_value_ref" class="oe_inline" widget="monetary" required="1" invisible="[('state', '=', 'model')]" options="{'currency_field': 'currency_id_dif'}"/>
+                        <span invisible="[('salvage_value', '=', 0)]">
                             (incl.
-                            <field name="value_residual_ref" nolabel="1" force_save="1" widget="monetary" attrs="{'invisible': [('state', '=', 'model')]}" options="{'currency_field': 'currency_id_dif'}"/>
+                            <field name="value_residual_ref" nolabel="1" force_save="1" widget="monetary" invisible="[('state', '=', 'model')]" options="{'currency_field': 'currency_id_dif'}"/>
                             depreciable)
                         </span>
                     </span>

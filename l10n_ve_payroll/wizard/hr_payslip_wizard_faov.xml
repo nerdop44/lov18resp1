@@ -11,9 +11,9 @@
                             <field name="type" widget="radio" options="{'horizontal': True}"/>
                             <field name="structure_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
                             <field name="rule_employee_integral_ids" widget="many2many_tags" domain="[('struct_id', 'in', structure_ids)]" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
-                            <field name="rule_employee_retenido_ids" attrs="{'invisible': [('type', '!=', 'report')]}" widget="many2many_tags" domain="[('struct_id', 'in', structure_ids)]" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
-                            <field name="rule_company_aporte_ids" attrs="{'invisible': [('type', '!=', 'report')]}" widget="many2many_tags" domain="[('struct_id', 'in', structure_ids)]" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
-                            <field name="nro_cuenta_faov" attrs="{'invisible': [('type', '!=', 'txt')]}"/>
+                            <field name="rule_employee_retenido_ids" invisible="[('type', '!=', 'report')]" widget="many2many_tags" domain="[('struct_id', 'in', structure_ids)]" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
+                            <field name="rule_company_aporte_ids" invisible="[('type', '!=', 'report')]" widget="many2many_tags" domain="[('struct_id', 'in', structure_ids)]" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
+                            <field name="nro_cuenta_faov" invisible="[('type', '!=', 'txt')]"/>
                             <field name="company_id" groups="base.group_multi_company" string="Compañia" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True, 'no_open': True}"/>
                         </group>
                         <group>
@@ -23,8 +23,8 @@
                     </group>
                     <footer>
                         <div class="oe_left">
-                            <button string="Generar Reporte" name="generar_reporte" type="object"  class="oe_highlight" attrs="{'invisible': [('type', '!=', 'report')]}" />
-                            <button string="Generar TXT" name="generar_txt" type="object"  class="oe_highlight" attrs="{'invisible': [('type', '!=', 'txt')]}" />
+                            <button string="Generar Reporte" name="generar_reporte" type="object"  class="oe_highlight" invisible="[('type', '!=', 'report')]" />
+                            <button string="Generar TXT" name="generar_txt" type="object"  class="oe_highlight" invisible="[('type', '!=', 'txt')]" />
                             <button string="Cancelar" special="cancel" type="object" class="oe_link" />
                         </div>
                     </footer>

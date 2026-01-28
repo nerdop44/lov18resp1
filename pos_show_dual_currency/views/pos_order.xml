@@ -42,7 +42,7 @@
                         <div class="oe_subtotal_footer_separator oe_inline o_td_label">
                             <label for="amount_total_ref"/>
                             <button name="button_dummy"
-                                    states="draft" string="(update)" class="oe_edit_only oe_link"/>
+                                    invisible="state != 'draft'" string="(update)" class="oe_edit_only oe_link"/>
                         </div>
                         <field name="amount_total_ref"
                                force_save="1"
@@ -54,16 +54,16 @@
                                class="oe_subtotal_footer_separator"
                                widget="monetary"
                                options="{'currency_field': 'ref_me_currency_id'}"
-                               attrs="{'invisible': [('amount_paid_ref','=', 'amount_total_ref')]}"/>
+                               invisible="[('amount_paid_ref','=', 'amount_total_ref')]"/>
                         <label for="margin_ref"/>
                         <div class="text-nowrap">
                             <field name="margin_ref" class="oe_inline" widget="monetary"
                                    options="{'currency_field': 'ref_me_currency_id'}"
-                                   attrs="{'invisible': [('is_total_cost_computed','=', False)]}"/>
-                            <span class="oe_inline" attrs="{'invisible': [('is_total_cost_computed','=', False)]}">
+                                   invisible="[('is_total_cost_computed','=', False)]"/>
+                            <span class="oe_inline" invisible="[('is_total_cost_computed','=', False)]">
                                 (<field name="margin_percent" nolabel="1" class="oe_inline" widget="percentage"/>)
                             </span>
-                            <span attrs="{'invisible': [('is_total_cost_computed','=', True)]}">TBD</span>
+                            <span invisible="[('is_total_cost_computed','=', True)]">TBD</span>
                         </div>
                     </group>
                 </xpath>

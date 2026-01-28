@@ -15,11 +15,11 @@
                         <div class="text-muted">
                             Adds price of other currency at products
                         </div>
-                        <div class="content-group mt16 row"  attrs="{'invisible':[('show_dual_currency','=',False)]}">
+                        <div class="content-group mt16 row"  invisible="[('show_dual_currency','=',False)]">
                             <label for="show_currency" string="Currency"  class="col-lg-3 o_light_label"/>
                             <field name="show_currency"   />
                         </div>
-                        <div class="content-group mt16 row"  attrs="{'invisible':[('show_dual_currency','=',False)]}">
+                        <div class="content-group mt16 row"  invisible="[('show_dual_currency','=',False)]">
                              <label for="show_currency_rate" string="Rate"  class="col-lg-3 o_light_label"/>
                              <field name="show_currency_rate" digits="[12,21]"/>
                          </div>
