@@ -17,7 +17,7 @@
         "views/pos_config.xml",
         "views/res_config_settings.xml",
         'views/pos_order.xml',
-        'views/report_saledetails.xml',
+        # 'views/report_saledetails.xml',
     ],
 
     'assets': {
