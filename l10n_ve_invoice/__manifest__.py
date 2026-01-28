@@ -1,12 +1,12 @@
 {
-    "name": "Binaural Facturación",
+    "name": "[LocVe] Binaural Facturación",
     "summary": """
        Modulo para contabilidad Venezolana """,
     "version": "18.0.1.0.3",
     "license": "LGPL-3",
     "author": "Remake Ing Nerdo Pulido",
     "website": "https://l10n_vedev.com/",
-    "category": "Accounting/Localizations/Account Chart",
+    "category": "LocVe [Localization]",
     # any module necessary for this one to work correctly
     "depends": [
         "l10n_ve_base",

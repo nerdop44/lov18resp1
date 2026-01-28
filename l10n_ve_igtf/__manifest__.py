@@ -1,11 +1,11 @@
 {
-    "name": "Binaural IGTF",
+    "name": "[LocVe] Binaural IGTF",
     "summary": "Modulo para campos del impuesto IGTF (Impuesto a las grandes transacciones financieras)",
     "license": "AGPL-3",
     "description": "Modulo para campos del impuesto IGTF (Impuesto a las grandes transacciones financieras)",
     "author": "Remake Ing Nerdo Pulido",
     "website": "https://binauraldev.com/",
-    "category": "Accounting/Accounting",
+    "category": "LocVe [Localization]",
     "version": "18.0.1.0.3",
     "depends": [
         "base",

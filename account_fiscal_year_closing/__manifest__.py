@@ -4,10 +4,10 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 {
-    "name": "Fiscal year closing",
+    "name": "[LocVe] Fiscal year closing",
     "summary": "Generic fiscal year closing wizard",
     "version": "18.0.1.0.1",
-    "category": "Accounting & Finance",
+    "category": "LocVe [Localization]",
     "website": "https://github.com/OCA/account-closing",
     "author": "Remake Ing Nerdo Pulido",
     "license": "AGPL-3",

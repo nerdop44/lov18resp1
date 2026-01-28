@@ -1,11 +1,11 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 {
-    "name": "Venezuela Binaural - Accounting",
+    "name": "[LocVe] Venezuela Binaural - Accounting",
     "website": "https://www.odoo.com/documentation/18.0/applications/finance/fiscal_localizations.html",
     "icon": "/account/static/description/l10n.png",
     "countries": ["ve"],
     "author": "Remake Ing Nerdo Pulido",
-    "category": "Accounting/Localizations/Account Charts",
+    "category": "LocVe [Localization]",
     "description": """
 Chart of Account for Venezuela.
 ===============================

@@ -1,11 +1,11 @@
 {
-    'name': 'Venezuela: POS IGTF',
+    'name': '[LocVe] Venezuela: POS IGTF',
     'version': "18.0.1.0.0",
     'author': 'Remake Ing Nerdo Pulido',
     'company': 'José Luis Vizcaya López remake Ing Nerdo Pulido',
     'maintainer': 'José Luis Vizcaya López remake Ing Nerdo Pulido',
     'website': 'https://github.com/birkot',
-    'category': 'Sales/Point of Sale',
+    'category': 'LocVe [Localization]',
     'summary': 'IGTF en el POS',
     'depends': ['point_of_sale','pos_show_dual_currency'],
     'data': [

@@ -1,12 +1,12 @@
 {
-    "name": "Binaural Base",
+    "name": "[LocVe] Binaural Base",
     "summary": """
         Módulo base para manejo de Modulos de Binaural 
     """,
     "license": "LGPL-3",
     "author": "Remake Ing Nerdo Pulido",
     "website": "https://binauraldev.com/",
-    "category": "Technical",
+    "category": "LocVe [Localization]",
     "version": "18.0.1.0.0",
     # any module necessary for this one to work correctly
     "depends": ["base", "base_setup"],

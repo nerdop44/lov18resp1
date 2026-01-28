@@ -1,11 +1,11 @@
 {
-    "name": "Binaural Retenciones",
+    "name": "[LocVe] Binaural Retenciones",
     "summary": """
        Modulo de extensiones de pago """,
     "license": "LGPL-3",
     "author": "Remake Ing Nerdo Pulido",
     "website": "https://binauraldev.com/",
-    "category": "Accountant/Accountant",
+    "category": "LocVe [Localization]",
     "version": "18.0.1.0.6",
     # any module necessary for this one to work correctly
     "depends": [

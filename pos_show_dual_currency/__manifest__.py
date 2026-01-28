@@ -1,8 +1,8 @@
 
 {
-    "name": """Venezuela: POS show dual currency""",
+    "name": """[LocVe] Venezuela: POS show dual currency""",
     "summary": """Adds price  of other currency at products in POS""",
-    "category": "Point Of Sale",
+    "category": "LocVe [Localization]",
     "version": "18.0.1.0.0",
     "application": False,
     'author': 'Remake Ing Nerdo Pulido',

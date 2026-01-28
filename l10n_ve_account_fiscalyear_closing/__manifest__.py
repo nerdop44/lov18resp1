@@ -1,11 +1,11 @@
 {
-    "name": "Binaural Cierre Fiscal",
+    "name": "[LocVe] Binaural Cierre Fiscal",
     "summary": """
        Modulo para Cierre Fiscal """,
     "license": "LGPL-3",
     "author": "Remake Ing Nerdo Pulido",
     "website": "https://binauraldev.com/",
-    "category": "Accounting/Localizations/Account Chart",
+    "category": "LocVe [Localization]",
     "version": "18.0.1.0.0",
     # any module necessary for this one to work correctly
     "depends": [

@@ -1,5 +1,5 @@
 {
-    'name': "Venezuela: Nómina",
+    'name': "[LocVe] Venezuela: Nómina",
 
     'summary': """
         Localización Venezolana: Nómina""",
@@ -11,7 +11,7 @@
     'company': 'José Luis Vizcaya López remake Ing Nerdo Pulido',
     'maintainer': 'José Luis Vizcaya López remake Ing Nerdo Pulido',
     'website': 'https://mi-erp.app',
-    'category': 'Payroll',
+    'category': 'LocVe [Localization]',
     'version': "18.0.1.0.0",
     'depends': ['base', 'contacts', 'account_reports', 'hr','hr_payroll','hr_contract','hr_payroll_account',
                 'hr_holidays','hr_attendance','hr_work_entry_contract','hr_holidays','hr_payroll_holidays','account_dual_currency','sign'],

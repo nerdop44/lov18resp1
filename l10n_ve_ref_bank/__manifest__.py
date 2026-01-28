@@ -1,11 +1,11 @@
 {
-    "name": "Binaural Referencias Bancarias",
+    "name": "[LocVe] Binaural Referencias Bancarias",
     "summary": """
        Modulo para validar referencias Bancarias """,
     "license": "LGPL-3",
     "author": "Remake Ing Nerdo Pulido",
     "website": "https://binauraldev.com/",
-    "category": "Accounting/Localizations/Account Chart",
+    "category": "LocVe [Localization]",
     "version": "18.0.1.0.1",
     # any module necessary for this one to work correctly
     "depends": ["l10n_ve_invoice"],
