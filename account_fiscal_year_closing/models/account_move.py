@@ -8,9 +8,6 @@ from odoo import _, fields, models
 class AccountMove(models.Model):
     _inherit = "account.move"
 
-        if parameter == 'states':
-            return True  # Permite el uso del parámetro 'states'
-        return super()._valid_field_parameter(field_name, parameter)
 
     # Asegúrate de que el campo closing_type esté definido correctamente
     closing_type = fields.Selection(

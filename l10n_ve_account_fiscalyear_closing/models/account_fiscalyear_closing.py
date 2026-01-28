@@ -12,10 +12,6 @@ _logger = logging.getLogger(__name__)
 class AccountFiscalyearClosingConfig(models.Model):
     _inherit = "account.fiscalyear.closing.config"
 
-     # Modificación: Agregar método para permitir el uso de 'states'
-        if parameter == 'states':
-            return True  # Permite el uso del parámetro 'states'
-        return super(AccountFiscalyearClosingConfig, self)._valid_field_parameter(field_name, parameter)
 
     @api.onchange("l_map")
     def onchange_l_map(self):
@@ -149,10 +145,6 @@ class AccountFiscalyearClosingConfig(models.Model):
 class AccountFiscalyearClosing(models.Model):
     _inherit = "account.fiscalyear.closing"
 
-    # Método para permitir el uso del parámetro 'states'
-        if parameter == 'states':
-            return True  # Permite el uso del parámetro 'states'
-        return super(AccountFiscalyearClosing, self)._valid_field_parameter(field_name, parameter)
 
     def draft_moves_check(self):
         for closing in self:
@@ -293,10 +285,6 @@ class AccountFiscalyearClosing(models.Model):
 class AccountFiscalyearClosingMapping(models.Model):
     _inherit = "account.fiscalyear.closing.mapping"
 
-    # Método para permitir el uso del parámetro 'states'
-        if parameter == 'states':
-            return True  # Permite el uso del parámetro 'states'
-        return super(AccountFiscalyearClosingMapping, self)._valid_field_parameter(field_name, parameter)
 
     def move_line_prepare(self, account, account_lines, partner_id=False):
         self.ensure_one()

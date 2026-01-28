@@ -18,10 +18,6 @@ class AccountFiscalyearClosing(models.Model):
     _name = "account.fiscalyear.closing"
     _description = "Fiscal year closing"
 
-    # Método para permitir el uso del parámetro 'states'
-        if parameter == 'states':
-            return True  # Permite el uso del parámetro 'states'
-        return super(AccountFiscalyearClosing, self)._valid_field_parameter(field_name, parameter)
 
     def _default_year(self):
         company = self._default_company_id()
@@ -372,10 +368,6 @@ class AccountFiscalyearClosingConfig(models.Model):
     _order = "sequence asc, id asc"
     _description = "Fiscal year closing configuration"
 
-    # Método para permitir el uso del parámetro 'states'
-        if parameter == 'states':
-            return True  # Permite el uso del parámetro 'states'
-        return super(AccountFiscalyearClosingConfig, self)._valid_field_parameter(field_name, parameter)
 
     fyc_id = fields.Many2one(
         comodel_name="account.fiscalyear.closing",
@@ -543,10 +535,6 @@ class AccountFiscalyearClosingMapping(models.Model):
     _name = "account.fiscalyear.closing.mapping"
     _description = "Fiscal year closing mapping"
 
-    # Método para permitir el uso del parámetro 'states'
-        if parameter == 'states':
-            return True  # Permite el uso del parámetro 'states'
-        return super(AccountFiscalyearClosingMapping, self)._valid_field_parameter(field_name, parameter)
 
     fyc_config_id = fields.Many2one(
         comodel_name="account.fiscalyear.closing.config",
