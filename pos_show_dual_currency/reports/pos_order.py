@@ -24,28 +24,29 @@ class ReportSaleDetails(models.AbstractModel):
     @api.model
     def get_sale_details(self, date_start=False, date_stop=False, config_ids=False, session_ids=False):
         data = super(ReportSaleDetails, self).get_sale_details(date_start, date_stop, config_ids, session_ids)
-        products = data['products']
         pos_session = self.env['pos.session'].search([('id', 'in', session_ids)])
         rate_today = 1
+        if pos_session and pos_session[0].tax_today != 0:
+            rate_today = pos_session[0].tax_today
+            
         values_data = self.update_key_values_data(date_start, date_stop, config_ids, session_ids)
-        if pos_session:
-            if pos_session[0].tax_today != 0:
-                rate_today = pos_session[0].tax_today
-        else:
-            products = values_data['products']
+        
         currency_id_dif = self.env.company.currency_id_dif
         data['currency_precision_ref'] = currency_id_dif.decimal_places
-        data['total_paid_ref'] = currency_id_dif.round(data['total_paid'] / rate_today) if pos_session else values_data[
-            'total_paid_ref']
+        data['total_paid_ref'] = currency_id_dif.round(data['total_paid'] / rate_today) if pos_session else values_data.get('total_paid_ref', 0.0)
         data['symbol_ref'] = currency_id_dif.symbol
         data['symbol'] = self.env.company.currency_id.symbol
         data['rate_today'] = rate_today
-        for prod in products:
-            if pos_session:
+        
+        # Odoo 18 products is a list of categories: [{'name': 'Cat', 'products': [...]}, ...]
+        products_categories = values_data.get('products', [])
+        for category in products_categories:
+            for prod in category.get('products', []):
                 prod['price_unit_ref'] = prod['price_unit'] / rate_today
-        data['products'] = products
-        data['payments'] = values_data['payments']
-        data['taxes'] = values_data['taxes']
+                
+        data['products'] = products_categories
+        data['payments'] = values_data.get('payments', [])
+        data['taxes'] = values_data.get('taxes', [])
         return data
 
     def update_key_values_data(self, date_start=False, date_stop=False, config_ids=False, session_ids=False):
@@ -56,18 +57,15 @@ class ReportSaleDetails(models.AbstractModel):
             if date_start:
                 date_start = fields.Datetime.from_string(date_start)
             else:
-                # start by default today 00:00:00
                 user_tz = pytz.timezone(self.env.context.get('tz') or self.env.user.tz or 'UTC')
                 today = user_tz.localize(fields.Datetime.from_string(fields.Date.context_today(self)))
                 date_start = today.astimezone(pytz.timezone('UTC'))
 
             if date_stop:
                 date_stop = fields.Datetime.from_string(date_stop)
-                # avoid a date_stop smaller than date_start
                 if (date_stop < date_start):
                     date_stop = date_start + timedelta(days=1, seconds=-1)
             else:
-                # stop by default today 23:59:59
                 date_stop = date_start + timedelta(days=1, seconds=-1)
 
             domain = AND([domain,
@@ -94,9 +92,14 @@ class ReportSaleDetails(models.AbstractModel):
             currency = order.session_id.currency_id
 
             for line in order.lines:
+                # Group by Category as in Odoo 18
+                category_name = line.product_id.product_tmpl_id.pos_categ_ids[0].name if line.product_id.product_tmpl_id.pos_categ_ids else _('Not Categorized')
+                products_sold.setdefault(category_name, {})
+                
                 key = (line.product_id, line.price_unit, line.price_unit_ref, line.discount)
-                products_sold.setdefault(key, 0.0)
-                products_sold[key] += line.qty
+                if key not in products_sold[category_name]:
+                    products_sold[category_name][key] = 0.0
+                products_sold[category_name][key] += line.qty
 
                 if line.tax_ids_after_fiscal_position:
                     line_taxes = line.tax_ids_after_fiscal_position.sudo().compute_all(
@@ -118,7 +121,7 @@ class ReportSaleDetails(models.AbstractModel):
                     taxes[0]['base_amount'] += line.price_subtotal_incl
                     taxes[0]['base_amount_ref'] += line.price_subtotal_incl_ref
 
-        payment_ids = self.env["pos.payment"].search([('pos_order_id', 'in', orders.ids)]).ids
+        payment_ids = orders.mapped('payment_ids').ids
         if payment_ids:
             self.env.cr.execute("""
                         SELECT COALESCE(method.name->>%s, method.name->>'en_US') as name, sum(amount) total, sum(amount_ref) total_ref
@@ -132,20 +135,33 @@ class ReportSaleDetails(models.AbstractModel):
         else:
             payments = []
 
+        # Build nested structure
+        products_res = []
+        for cat_name, product_list in products_sold.items():
+            category_products = sorted([{
+                    'product_id': product.id,
+                    'product_name': product.name,
+                    'code': product.default_code,
+                    'quantity': qty,
+                    'price_unit': price_unit,
+                    'price_unit_ref': price_unit_ref,
+                    'discount': discount,
+                    'uom': product.uom_id.name,
+                    'base_amount': price_unit * qty * (1 - discount/100.0),
+                } for (product, price_unit, price_unit_ref, discount), qty in product_list.items()],
+                    key=lambda l: l['product_name'])
+            
+            cat_dict = {
+                'name': cat_name,
+                'qty': sum(p['quantity'] for p in category_products),
+                'total': sum(p['base_amount'] for p in category_products),
+                'products': category_products,
+            }
+            products_res.append(cat_dict)
+
         return {
             'total_paid_ref': self.env.company.currency_id_dif.round(total_ref),
             'taxes': list(taxes.values()),
             'payments': payments,
-            'products': sorted([{
-                'product_id': product.id,
-                'product_name': product.name,
-                'code': product.default_code,
-                'quantity': qty,
-                'price_unit': price_unit,
-                'price_unit_ref': price_unit_ref,
-                'discount': discount,
-                'uom': product.uom_id.name,
-            } for (product, price_unit, price_unit_ref, discount), qty in products_sold.items()],
-                key=lambda l: l['product_name'])
-
+            'products': sorted(products_res, key=lambda l: l['name'])
         }
