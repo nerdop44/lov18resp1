@@ -1,4 +1,7 @@
 # Localización Venezolana para Odoo
+> [!IMPORTANT]
+> **EDICIÓN: ENTERPRISE (EE)** | **VERSIÓN: ODOO 18.0**
+> Este repositorio es EXCLUSIVO para la versión Enterprise. No mezclar con desarrollos para Community (CC).
 
 ## Propósito de esta Localización
 En Binaural C.A., estamos comprometidos con el desarrollo de herramientas que impulsen la mejora continua de nuestro país. Por eso, hemos decidido liberar esta localización venezolana para Odoo con el objetivo de:
