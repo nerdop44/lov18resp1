@@ -53,7 +53,7 @@
         'views/account_analytic_account.xml',
         'views/account_analytic_line.xml',
         'views/product_pricelist.xml',
-        # 'views/crossovered_budget_lines.xml',
+        'views/crossovered_budget_lines.xml',
     ],
     'assets': {
         'web.assets_backend': [
