@@ -12,7 +12,7 @@ class StockValuationLayer(models.Model):
 
     remaining_value_usd = fields.Monetary('Valor Restante $', readonly=True, default=0,currency_field='currency_id_dif')
 
-    tasa = fields.Float('Tasa de Referencia', readonly=True, force_save=True, digits='Dual_Currency_rate')
+    tasa = fields.Float('Tasa de Referencia', readonly=True, force_save=True, digits=(16, 4))
 
 
     def write(self, vals):

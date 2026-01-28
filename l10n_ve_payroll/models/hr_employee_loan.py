@@ -56,7 +56,7 @@ class HREmployeeLoan(models.Model):
             loan.extra_in_amount = amount
 
     name = fields.Char('Nombre',default='/',copy=False)
-    state = fields.Selection(loan_state,string='Estatus',default='draft', track_visibility='onchange')
+    state = fields.Selection(loan_state,string='Estatus',default='draft', tracking=True)
     employee_id = fields.Many2one('hr.employee',default=_get_employee, required="1", string='Empleado')
     department_id = fields.Many2one('hr.department',string='Departamento')
     hr_manager_id = fields.Many2one('hr.employee',string='Jefe de Recursos Humanos')

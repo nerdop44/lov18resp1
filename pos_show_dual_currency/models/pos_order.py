@@ -10,7 +10,7 @@ class PosOrder(models.Model):
                                          store=False)
     session_rate = fields.Float(string="Session Rate", store=True,
                                 related='session_id.tax_today',
-                                track_visibility='onchange', digits='Dual_Currency_rate')
+                                tracking=True, digits=(16, 4))
 
     amount_tax_ref = fields.Float(string='Ref Taxes', compute='_compute_amount_all_ref', store=True)
     amount_total_ref = fields.Float(string='Ref Total', compute='_compute_amount_all_ref', store=True)

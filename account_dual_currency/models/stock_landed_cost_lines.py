@@ -14,7 +14,7 @@ class LandedCostLine(models.Model):
 
     tax_today = fields.Float(string="Tasa", store=True,
                              default=lambda self: self.env.company.currency_id_dif.inverse_rate,
-                             tracking=True, digits='Dual_Currency_rate')
+                             tracking=True, digits=(16, 4))
 
     @api.onchange("currency_price_unit")
     def _onchange_currency_price_unit(self):

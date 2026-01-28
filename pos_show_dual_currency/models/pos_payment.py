@@ -11,9 +11,9 @@ class PosPayment(models.Model):
                                                                                            limit=1), )
 
     tax_today = fields.Float(string="Tasa Sesión", store=True, related='session_id.tax_today',
-                             tracking=True, digits='Dual_Currency_rate')
+                             tracking=True, digits=(16, 4))
 
-    amount_ref = fields.Monetary(currency_field='currency_id_dif', string='Monto Ref', store=True, readonly=True, compute='_compute_amount_ref', digits='Dual_Currency')
+    amount_ref = fields.Monetary(currency_field='currency_id_dif', string='Monto Ref', store=True, readonly=True, compute='_compute_amount_ref', digits=(16, 2))
 
     @api.depends('amount', 'tax_today')
     def _compute_amount_ref(self):

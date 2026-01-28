@@ -9,7 +9,7 @@ class ProductTemplateAttributeValue(models.Model):
 
     currency_id_dif = fields.Many2one('res.currency', string='Currency USD', default=lambda self: self.env.user.company_id.currency_id_dif.id)
 
-    price_extra_usd = fields.Monetary(string='Precio Extra $', currency_field='currency_id_dif', digits='Dual_Currency')
+    price_extra_usd = fields.Monetary(string='Precio Extra $', currency_field='currency_id_dif', digits=(16, 2))
 
     @api.onchange('price_extra_usd')
     def _onchange_price_extra_usd(self):

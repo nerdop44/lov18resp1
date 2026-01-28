@@ -13,7 +13,7 @@ class PosSession(models.Model):
 
     tax_today = fields.Float(string="Tasa Sesión", store=True,
                              compute="_tax_today",
-                             tracking=True, digits='Dual_Currency_rate')
+                             tracking=True, digits=(16, 4))
 
     ref_me_currency_id = fields.Many2one('res.currency', related='config_id.show_currency', string="Reference Currency",
                                          store=False)

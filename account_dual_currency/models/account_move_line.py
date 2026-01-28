@@ -15,12 +15,12 @@ class AccountMoveLine(models.Model):
                                  readonly=False, )
     credit_usd = fields.Monetary(currency_field='currency_id_dif', string='Crédito $', store=True,
                                  compute="_credit_usd", readonly=False)
-    tax_today = fields.Float(related="move_id.tax_today", store=True, digits='Dual_Currency_rate')
+    tax_today = fields.Float(related="move_id.tax_today", store=True, digits=(16, 4))
     currency_id_dif = fields.Many2one("res.currency", related="move_id.currency_id_dif", store=True)
     price_unit_usd = fields.Monetary(currency_field='currency_id_dif', string='Precio $', store=True,
                                      compute='_price_unit_usd', readonly=False)
     price_subtotal_usd = fields.Monetary(currency_field='currency_id_dif', string='SubTotal $', store=True,
-                                         compute="_price_subtotal_usd", digits='Dual_Currency')
+                                         compute="_price_subtotal_usd", digits=(16, 2))
     amount_residual_usd = fields.Monetary(string='Residual Amount USD', computed='_compute_amount_residual_usd', store=True,
                                        help="The residual amount on a journal item expressed in the company currency.")
     balance_usd = fields.Monetary(string='Balance Ref.',

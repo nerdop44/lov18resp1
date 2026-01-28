@@ -6,7 +6,7 @@ from odoo.exceptions import UserError
 class AccountMove(models.Model):
     _inherit = 'account.payment'
 
-    tax_today = fields.Float(string="Tasa", default=lambda self: self._get_default_tasa(), digits='Dual_Currency_rate')
+    tax_today = fields.Float(string="Tasa", default=lambda self: self._get_default_tasa(), digits=(16, 4))
     currency_id_dif = fields.Many2one("res.currency",
                                       string="Divisa de Referencia",
                                       default=lambda self: self.env.company.currency_id_dif )
@@ -27,7 +27,7 @@ class AccountMove(models.Model):
     igtf_divisa_porcentage = fields.Float('% IGTF', related='company_id.igtf_divisa_porcentage')
 
     mount_igtf = fields.Monetary(currency_field='currency_id', string='Importe IGTF', readonly=True,
-                                 digits='Dual_Currency')
+                                 digits=(16, 2))
 
     amount_total_pagar = fields.Monetary(currency_field='currency_id', string="Total Pagar(Importe + IGTF):",
                                          readonly=True)

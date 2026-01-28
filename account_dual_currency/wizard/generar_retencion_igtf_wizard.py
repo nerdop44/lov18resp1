@@ -6,7 +6,7 @@ class GenerarIgftWizard(models.TransientModel):
     _description = "Generar Retención IGTF"
 
     invoice_id = fields.Many2one('account.move', string='Factura', required=True)
-    tax_today = fields.Float(string="Tasa Actual", digits='Dual_Currency_rate')
+    tax_today = fields.Float(string="Tasa Actual", digits=(16, 4))
     amount = fields.Monetary(currency_field='currency_id_dif', string='Monto $', required=True)
     igtf_porcentage = fields.Float('Porcentaje', required=True, readonly=True)
     igtf_amount = fields.Monetary(currency_field='currency_id_dif', string='Monto IGTF $', required=True, default=0.0,

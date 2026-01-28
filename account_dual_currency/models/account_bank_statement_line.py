@@ -8,11 +8,11 @@ class AccountBankStatementLine(models.Model):
                                                 string="Divisa de Referencia",
                                                 default=lambda self: self.env.company.currency_id_dif)
 
-    tasa_referencia_statement = fields.Float(string="Tasa", store=True, default=lambda self: self._get_default_tasa(), digits='Dual_Currency_rate')
+    tasa_referencia_statement = fields.Float(string="Tasa", store=True, default=lambda self: self._get_default_tasa(), digits=(16, 4))
 
     amount_usd_statement = fields.Monetary(currency_field='currency_id_dif_statement', string='Total Ref.', store=True,
                                            readonly=True, compute='_amount_usd',
-                                           digits='Dual_Currency')
+                                           digits=(16, 2))
 
     @api.onchange('date')
     def _onchange_date(self):

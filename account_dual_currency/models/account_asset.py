@@ -7,7 +7,7 @@ class AccountAsset(models.Model):
                                       string="Moneda Ref.",
                                       related="company_id.currency_id_dif", store=True)
 
-    tax_today = fields.Float(string='Tasa de Cambio', required=True, default=lambda self: self.env.company.currency_id_dif.inverse_rate, digits='Dual_Currency_rate')
+    tax_today = fields.Float(string='Tasa de Cambio', required=True, default=lambda self: self.env.company.currency_id_dif.inverse_rate, digits=(16, 4))
 
     original_value_ref = fields.Monetary(currency_field='currency_id_dif', string='Valor original Ref.', required=True, default=0.0, compute='_compute_values_ref', store=True)
 

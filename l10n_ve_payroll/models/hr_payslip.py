@@ -41,7 +41,7 @@ class HRPayslip(models.Model):
     complemento = fields.Monetary(store=True, readonly=True, related='contract_id.complemento')
 
     tasa_cambio = fields.Float(store=True, string="Tasa de Cambio",
-                               default=lambda self: self._get_default_tasa_cambio(), tracking=True, digits='Dual_Currency_rate')
+                               default=lambda self: self._get_default_tasa_cambio(), tracking=True, digits=(16, 4))
 
 
     resultado_incentivo_manual = fields.Boolean(default=True)
