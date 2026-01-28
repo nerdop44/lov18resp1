@@ -22,7 +22,7 @@ from . import stock_valuation_layer
 from . import account_journal_dashboard
 from . import stock_picking
 from . import product_template_attribute_value
-from . import reconciliation_widget
+# from . import reconciliation_widget
 from . import account_asset
 from . import account_assets_report
 from . import account_bank_statement
