@@ -9,7 +9,7 @@
             <field name="allocation_validation_type">officer</field>
             <field name="leave_notif_subtype_id" ref="hr_holidays.mt_leave"/>
             <field name="allocation_notif_subtype_id" ref="hr_holidays.mt_leave_allocation"/>
-            <field name="responsible_id" ref="base.user_admin"/>
+            <field name="responsible_ids" eval="[(4, ref('base.user_admin'))]"/>
             <field name="icon_id" ref="hr_holidays.icon_14"/>
             <field name="color">2</field>
             <field name="company_id" eval="False"/>
@@ -25,7 +25,7 @@
             <field name="allocation_validation_type">officer</field>
             <field name="leave_notif_subtype_id" ref="hr_holidays.mt_leave"/>
             <field name="allocation_notif_subtype_id" ref="hr_holidays.mt_leave_allocation"/>
-            <field name="responsible_id" ref="base.user_admin"/>
+            <field name="responsible_ids" eval="[(4, ref('base.user_admin'))]"/>
             <field name="icon_id" ref="hr_holidays.icon_14"/>
             <field name="color">2</field>
             <field name="company_id" eval="False"/>
