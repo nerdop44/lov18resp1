@@ -115,7 +115,7 @@
                                         <field name="documento"/>
                                         <field name="birthdate"/>
                                         <field name="edad"/>
-                                        <field name="employee_id" invisible="1" context="{'default_employee_id': active_id}"/>
+                                        <field name="employee_id" invisible="1"/>
                                     </list>
                                 </field>
                         </group>
