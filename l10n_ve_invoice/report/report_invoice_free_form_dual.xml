@@ -27,6 +27,7 @@
             <field name="binding_type">report</field>
         </record>
 
+
         <!-- Main Template -->
         <template id="report_freeform_document_dual">
             <div class="mt-5">
@@ -162,36 +163,35 @@
                                         <span t-field="line.product_uom_id" groups="uom.group_uom"/>
                                     </td>
 
-                                    <!-- Price Calculation (Unified Logic) -->
-                                    <t t-set="price_unit" t-value="line.price_unit"/> 
-                                    <t t-set="price_subtotal" t-value="line.price_subtotal"/>
-                                    <t t-set="price_total" t-value="line.price_total"/>
+                                    <!-- Price Calculation (Fixed Logic: Source is always price_unit) -->
+                                    <t t-set="source_price_unit" t-value="line.price_unit"/> 
+                                    <t t-set="source_price_subtotal" t-value="line.price_subtotal"/>
+                                    <t t-set="source_price_total" t-value="line.price_total"/>
 
                                     <!-- If Report is VEF and Invoice is USD -> Convert to VEF -->
                                     <t t-if="is_vef_report and o.currency_id == usd_currency">
-                                        <t t-set="price_unit" t-value="line.foreign_price * rate"/>
-                                        <t t-set="price_subtotal" t-value="line.foreign_subtotal * rate"/>
-                                        <t t-set="price_total" t-value="line.foreign_price_total * rate"/>
+                                        <t t-set="price_unit" t-value="source_price_unit * rate"/>
+                                        <t t-set="price_subtotal" t-value="source_price_subtotal * rate"/>
+                                        <t t-set="price_total" t-value="source_price_total * rate"/>
                                     </t>
                                     <!-- If Report is VEF and Invoice is VEF -> Use Native VEF -->
                                     <t t-if="is_vef_report and o.currency_id != usd_currency">
-                                         <!-- Native fields are already VEF -->
-                                         <!-- Warning: ensure we use the right field name if 'foreign' logic is inverted in model, but typically price_unit is company/invoice currency -->
+                                        <t t-set="price_unit" t-value="source_price_unit"/>
+                                        <t t-set="price_subtotal" t-value="source_price_subtotal"/>
+                                        <t t-set="price_total" t-value="source_price_total"/>
                                     </t>
                                     
                                     <!-- If Report is USD and Invoice is VEF -> Convert to USD -->
                                     <t t-if="not is_vef_report and o.currency_id != usd_currency">
-                                         <t t-set="price_unit" t-value="line.price_unit / rate if rate else 0"/>
-                                         <t t-set="price_subtotal" t-value="line.price_subtotal / rate if rate else 0"/>
-                                         <t t-set="price_total" t-value="line.price_total / rate if rate else 0"/>
+                                         <t t-set="price_unit" t-value="source_price_unit / rate if rate else 0"/>
+                                         <t t-set="price_subtotal" t-value="source_price_subtotal / rate if rate else 0"/>
+                                         <t t-set="price_total" t-value="source_price_total / rate if rate else 0"/>
                                     </t>
                                      <!-- If Report is USD and Invoice is USD -> Use Native USD -->
                                      <t t-if="not is_vef_report and o.currency_id == usd_currency">
-                                         <!-- Native fields are USD (foreign_price usually holds alternative, verify model) -->
-                                         <!-- If the invoice is in USD, price_unit IS USD. -->
-                                         <t t-set="price_unit" t-value="line.price_unit"/>
-                                         <t t-set="price_subtotal" t-value="line.price_subtotal"/>
-                                         <t t-set="price_total" t-value="line.price_total"/>
+                                         <t t-set="price_unit" t-value="source_price_unit"/>
+                                         <t t-set="price_subtotal" t-value="source_price_subtotal"/>
+                                         <t t-set="price_total" t-value="source_price_total"/>
                                      </t>
 
 
@@ -254,71 +254,83 @@
                                   <t t-set="vef_tax" t-value="amount_tax * rate"/>
                                   <t t-set="vef_total" t-value="amount_total * rate"/>
                              </t>
+                             
+                             <!-- Calculate Exento -->
+                             <t t-set="exento_orig" t-value="sum(l.price_subtotal for l in o.invoice_line_ids if not l.tax_ids)"/>
+                             <t t-set="exento_vef" t-value="exento_orig"/>
+                             <t t-set="exento_usd" t-value="exento_orig"/>
+                             
+                             <t t-if="o.currency_id != usd_currency">
+                                  <t t-set="exento_usd" t-value="exento_orig / rate if rate else 0"/>
+                             </t>
+                             <t t-if="o.currency_id == usd_currency">
+                                  <t t-set="exento_vef" t-value="exento_orig * rate"/>
+                             </t>
 
-                            <!-- Left Column: USD -->
-                            <div class="col-6">
+                            <!-- DEFINITION OF TABLES -->
+                            <!-- USD Table Block -->
+                            <t t-set="usd_table_content">
                                 <table class="table table-borderless table-sm">
-                                    <thead><tr class="border-black"><th colspan="2" class="text-center">USD</th></tr></thead>
-                                    
-                                     <!-- Exento (Approximation: Subtotal - Taxable?? No, we need real Exento) -->
-                                     <!-- Using simple logic: Untaxed IS Subtotal + Exento. User asked for "Exento, Subtotal, IVA, Total" -->
-                                     <!-- Standard Odoo tax_totals is hard to parse in template logic purely. -->
-                                     <!-- Simplified Approach: Muestra Base Imponible (Subtotal) + IVA + Total -->
-                                     <!-- If User specifically asks for "Exento", we might need to sum lines without tax. -->
-                                     <t t-set="exento_vef" t-value="sum(l.price_subtotal for l in o.invoice_line_ids if not l.tax_ids)"/>
-                                     <t t-set="exento_usd" t-value="exento_vef"/>
-                                     <t t-if="o.currency_id != usd_currency">
-                                          <t t-set="exento_usd" t-value="exento_vef / rate if rate else 0"/>
-                                     </t>
-                                      <t t-if="o.currency_id == usd_currency">
-                                          <t t-set="exento_vef" t-value="exento_usd * rate"/>
-                                     </t>
-                                     <!-- Recalculate Subtotal as Untaxed - Exento? Or Show Untaxed AS Subtotal? -->
-                                     <!-- Standard: Subtotal = Untaxed Amount (Base Imponible + Exento).  -->
-                                     <!-- User asked "Exento, Subtotal, IVA, Total" -->
-                                     
                                     <tr t-if="exento_usd > 0">
-                                        <td><strong>Exento</strong></td>
+                                        <td class="text-end"><strong>Exento</strong></td>
                                         <td class="text-end"><span t-esc="exento_usd" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Subtotal</strong></td>
+                                        <td class="text-end"><strong>Subtotal</strong></td>
                                         <td class="text-end"><span t-esc="usd_untaxed" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
                                     </tr>
                                     <tr>
-                                        <td><strong>IVA</strong></td>
+                                        <td class="text-end"><strong>IVA</strong></td>
                                         <td class="text-end"><span t-esc="usd_tax" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
                                     </tr>
                                     <tr class="border-black border-top">
-                                        <td><strong>Total</strong></td>
+                                        <td class="text-end"><strong>Total</strong></td>
                                         <td class="text-end"><span t-esc="usd_total" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
                                     </tr>
                                 </table>
-                            </div>
+                            </t>
 
-                            <!-- Right Column: VEF -->
-                            <div class="col-6">
+                            <!-- VEF Table Block -->
+                            <t t-set="vef_table_content">
                                 <table class="table table-borderless table-sm">
-                                    <thead><tr class="border-black"><th colspan="2" class="text-center">VEF</th></tr></thead>
-                                    <tr t-if="exento_vef > 0">
-                                        <td><strong>Exento</strong></td>
+                                     <tr t-if="exento_vef > 0">
+                                        <td class="text-end"><strong>Exento</strong></td>
                                         <td class="text-end"><span t-esc="exento_vef" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Subtotal</strong></td>
+                                        <td class="text-end"><strong>Subtotal</strong></td>
                                         <td class="text-end"><span t-esc="vef_untaxed" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
                                     </tr>
                                     <tr>
-                                        <td><strong>IVA</strong></td>
+                                        <td class="text-end"><strong>IVA</strong></td>
                                         <td class="text-end"><span t-esc="vef_tax" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
                                     </tr>
                                     <tr class="border-black border-top">
-                                        <td><strong>Total</strong></td>
+                                        <td class="text-end"><strong>Total</strong></td>
                                         <td class="text-end"><span t-esc="vef_total" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
                                     </tr>
                                 </table>
+                            </t>
+
+                            <!-- Left Column: Primary Currency -->
+                            <div class="col-6">
+                                <t t-if="is_vef_report" t-out="vef_table_content"/>
+                                <t t-else="" t-out="usd_table_content"/>
+                            </div>
+
+                            <!-- Right Column: Secondary Currency -->
+                            <div class="col-6">
+                                 <t t-if="is_vef_report" t-out="usd_table_content"/>
+                                <t t-else="" t-out="vef_table_content"/>
                             </div>
                         </div>
+                    </div>
+                    
+                     <!-- IGTF Info (Manually Added) -->
+                    <div name="igtf_info">
+                        <span>Todo pago està sujeto a la aplicaciòn de la &#160;<strong>LIGTF GO 6687 y la PA SNAT/2022/000013</strong></span>
+                        <br/>
+                        <span>Se designa a sujetos pasivos especiales como Agente de Percepciòn del <strong>IGTF 3%</strong></span>
                     </div>
 
                     <!-- Coletilla (RESTORED EXACTLY) -->
