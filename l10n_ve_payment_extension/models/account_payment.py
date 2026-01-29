@@ -20,7 +20,17 @@ class AccountPayment(models.Model):
         ],
         copy=False,
     )
-    retention_id = fields.Many2one("account.retention", ondelete="cascade")
+
+#    # === AÑADIR ESTE BLOQUE / CAMPO FALTANTE ===
+#    payment_concept_id = fields.Many2one(
+#        'payment.concept',
+#        string='Concepto de Pago (ISLR)',
+#        help="Concepto de pago de ISLR asociado a este pago de retención.",
+#        copy=False,
+#    )
+    # === FIN DEL BLOQUE A AÑADIR ===
+    
+#    retention_id = fields.Many2one("account.retention", ondelete="cascade")
 
     retention_line_ids = fields.One2many(
         "account.retention.line",
@@ -48,6 +58,18 @@ class AccountPayment(models.Model):
     retention_foreign_amount = fields.Float(
         compute="_compute_retention_foreign_amount", store=True, copy=False
     )
+
+       # === AÑADIR ESTE CAMPO ===
+    payment_concept_id = fields.Many2one(
+        'payment.concept',
+        string='Concepto de Pago (ISLR)',
+        help="Concepto de pago de ISLR asociado a este pago de retención.",
+        copy=False,
+    )
+    # ==========================
+
+    retention_id = fields.Many2one("account.retention", ondelete="cascade")
+
 
     @api.depends("date")
     def _compute_rate(self):

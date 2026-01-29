@@ -20,6 +20,21 @@ class ResConfigSettings(models.TransientModel):
     show_tag_on_usd_invoice = fields.Boolean(
         related="company_id.show_tag_on_usd_invoice", readonly=False
     )
+    forma_libre_top_margin = fields.Float(
+        related="company_id.forma_libre_top_margin", 
+        readonly=False,
+        string="Margen Superior Forma Libre (cm)"
+    )
+    activate_custom_margin = fields.Boolean(
+        related="company_id.activate_custom_margin", 
+        readonly=False,
+        string="Margen Superior Personalizado Forma Libre"
+    )
+
+    @api.onchange("activate_custom_margin")
+    def _onchange_activate_custom_margin(self):
+        if not self.activate_custom_margin:
+            self.forma_libre_top_margin = 0.0
 
     @api.onchange("group_sales_invoicing_series")
     def onchange_group_sales_invoicing_series(self):

@@ -10,7 +10,7 @@
     # any module necessary for this one to work correctly
     "depends": [
         "l10n_ve_base",
-        "l10n_ve_accountant",
+        #"l10n_ve_accountant",
         "l10n_ve_contact",
         "l10n_ve_tax",
     ],
@@ -23,9 +23,10 @@
         "data/invoice_free_form_paperformat.xml",
         "data/invoice_sale_note_paperformat.xml",
         "report/report_invoice_free_form.xml",
+        "report/report_invoice_free_form_dual.xml",
         "report/report_invoice_sale_note.xml",
         "report/report_invoice.xml",
-        "views/account_move.xml",
+        #"views/account_move.xml",
         "views/account_journal_views.xml",
         "views/res_config_settings.xml",
         "views/menu.xml",
