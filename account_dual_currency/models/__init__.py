@@ -23,7 +23,7 @@ from . import account_journal_dashboard
 from . import stock_picking
 from . import product_template_attribute_value
 # from . import reconciliation_widget
-# from . import crossovered_budget_lines  # Disabled: requires account_budget to be installed first
+# from . import crossovered_budget_lines  # Disabled for Odoo 18 initial install
 from . import account_asset
 from . import account_assets_report
 from . import account_bank_statement
@@ -31,5 +31,4 @@ from . import account_bank_statement_line
 from . import account_analytic_account
 from . import account_analytic_line
 from . import product_pricelist
-# from . import crossovered_budget_lines  # Disabled: requires account_budget to be installed first
 from . import bank_rec_widget

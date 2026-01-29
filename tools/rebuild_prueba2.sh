@@ -59,6 +59,7 @@ git commit -m "🔧 Build: Update localization submodule ($(date +%Y-%m-%d\ %H:%
     exit 0
 }
 echo "Commit created successfully!"
+GIT_SSH_COMMAND="ssh -i ~/.ssh/id_pajarolandia -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git push origin Prueba2
 git log --oneline -2
 ENDSSH
 

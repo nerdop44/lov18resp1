@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="group_department_manager" model="res.groups">
-        <field name="name">HR Department Manager</field>
+        <field name="name">[LocVe] HR Department Manager</field>
         <field name="comment">Department Manager</field>
         <field name="category_id" ref="base.module_category_hidden"/>
     </record>
