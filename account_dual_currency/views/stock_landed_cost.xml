@@ -5,7 +5,7 @@
         <field name="model">stock.landed.cost</field>
         <field name="inherit_id" ref="stock_landed_costs.view_stock_landed_cost_form" />
         <field name="arch" type="xml">
-            <xpath expr="//group[@class='oe_subtotal_footer oe_right']" position="replace">
+            <xpath expr="//field[@name='amount_total']/.." position="replace">
                 <group class="oe_subtotal_footer oe_right">
                     <field name="company_currency_id" invisible="1"/>
                     <field name="amount_total"/>
