@@ -222,7 +222,8 @@ class AccountMove(models.Model):
             return correlative.next_by_id(correlative.id)
 
         correlative = sequence.search(
-            [("code", "=", "invoice.correlative"), ("company_id", "=", self.env.company.id)]
+            [("code", "=", "invoice.correlative"), ("company_id", "=", self.env.company.id)],
+            limit=1
         )
         if not correlative:
             correlative = sequence.create(
