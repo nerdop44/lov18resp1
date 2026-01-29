@@ -67,13 +67,6 @@
                     <!-- Report Currency -->
                     <t t-set="current_currency" t-value="vef_currency if is_vef_report else usd_currency"/>
                     
-                    <!-- Rate Logic for Conversions -->
-                    <!-- We use o.foreign_rate. If Invoice is USD, VEF = USD * Rate. If Invoice is VEF, USD = VEF / Rate. -->
-                    <t t-set="rate" t-value="o.foreign_rate if o.foreign_rate else 1.0"/>
-                    
-                    <!-- Header (Copied from Original) -->
-                    <div id="informations" class="row mt-4 mb-4">
-                        <div class="col-auto col-6 mw-100 mb-2">
                             <span><strong>Razón Social:</strong> <t t-out="o.partner_id.name"/></span>
                             <br/>
                             <span>
