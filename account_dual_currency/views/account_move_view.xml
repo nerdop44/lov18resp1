@@ -73,13 +73,13 @@
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_invoice_tree"/>
             <field name="arch" type="xml">
-                <xpath expr="//field[@name='amount_total_signed']" position="after">
+                <xpath expr="//field[@name='amount_total_in_currency_signed']" position="after">
                     <field name="currency_id_dif" readonly="1" invisible="1"/>
-                    <field name="amount_total_usd" sum="Total Ref."/>
-                    <field name="amount_residual_usd" sum="Saldo Ref."/>
+                    <field name="amount_total_usd" sum="Total Ref." optional="show"/>
+                    <field name="amount_residual_usd" sum="Saldo Ref." optional="show"/>
                 </xpath>
                 <xpath expr="//field[@name='amount_total_in_currency_signed']" position="attributes">
-                    <attribute name="invisible">1</attribute>
+                    <attribute name="column_invisible">1</attribute>
                 </xpath>
             </field>
         </record>
