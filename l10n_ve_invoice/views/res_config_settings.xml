@@ -54,11 +54,13 @@
                             <div class="o_setting_right_pane">
                                 <label for="forma_libre_top_margin"/>
                                 <div class="text-muted">
-                                    Ajuste del margen superior (px) para facturas forma libre.
+                                    Desplazamiento vertical adicional para facturas forma libre.
+                                    <br/>
+                                    <strong>Nota:</strong> El incremento en cm es para bajar el contenido; los cm agregados son adicionales a la altura actual, no desde el borde superior de la hoja.
                                 </div>
                                 <div class="content-group">
                                     <div class="mt16">
-                                        <field name="forma_libre_top_margin" class="o_light_label"/> px
+                                        <field name="forma_libre_top_margin" class="o_light_label"/> cm
                                     </div>
                                 </div>
                             </div>
