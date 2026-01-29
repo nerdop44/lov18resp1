@@ -69,7 +69,7 @@
                     <t t-set="current_currency" t-value="vef_currency if is_vef_report else usd_currency"/>
 
                         <!-- Main Container (Header) -->
-                        <div class="container">
+
                         
                             <!-- HEADER (Logo & Company Info) -->
                             <div class="row mt-4 mb-2">
@@ -144,7 +144,7 @@
                                     </p>
                                 </div>
                             </div>
-                        </div>
+
 
                         <t t-set="display_discount" t-value="any(l.discount for l in o.invoice_line_ids)"/>
 
