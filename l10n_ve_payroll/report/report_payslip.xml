@@ -7,7 +7,7 @@
         <xpath expr="//p[@t-if='o.net_wage &lt; 0']" position="replace">
 
         </xpath>
-        <xpath expr="//h2[@t-field='o.name']" position="replace">
+        <xpath expr="//h2[@id='payslip_name']" position="replace">
             <div style="font-size: 20px; font-weight: bold;;">
                 <strong>Nómina: </strong>
                 <span t-field="o.struct_id.name"/>
@@ -22,7 +22,7 @@
         <xpath expr="//strong[@id='invalid_warning']" position="attributes">
             <attribute name="style">color: red; font-size: 12px; font-weight: bold;</attribute>
         </xpath>
-        <xpath expr="//table[@name='employee-infos']" position="replace">
+        <xpath expr="//table[@id='employee_info_table_1']" position="replace">
             <table name="employee-infos" id="employee_info_table_1" class="table-bordered" style="width: 100%; padding: 10px;margin-top: 10px;">
                 <thead>
                     <tr id="employee_info_line_1" style="background-color: #e9e9e9;">
@@ -57,10 +57,10 @@
                 </tbody>
             </table>
         </xpath>
-        <xpath expr="//table[@t-if='o.struct_id not in [holiday_attest_n, holiday_attest_n1]']" position="replace">
+        <xpath expr="//div[@id='worked_days_table']" position="replace">
 
         </xpath>
-        <xpath expr="//div[@id='total']" position="replace">
+        <xpath expr="//div[@id='payslip_lines_table']" position="replace">
                 <table style="width: 100%; padding: 10px; margin-top: 20px;" class="table-bordered">
                     <thead>
                         <tr style="background-color: #e9e9e9;">
