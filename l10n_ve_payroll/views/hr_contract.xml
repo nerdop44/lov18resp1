@@ -19,7 +19,7 @@
                     <label for="wage" string="Salario Mensual (Bs)" />
                 </xpath>
 
-                <xpath expr="//group[@name='yearly_advantages']" position="inside">
+                <xpath expr="//group[@name='yearly_benefits']" position="inside">
                     <field name="currency_id_dif" invisible="1"/>
                     <field name="dias_utilidades"/>
                     <field name="complemento" />
