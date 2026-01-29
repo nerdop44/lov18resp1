@@ -344,14 +344,14 @@ class AccountMove(models.Model):
     def _amount_all_usd(self):
         for rec in self:
             if rec.is_invoice(include_receipts=True) and rec.tax_totals:
-                amount_untaxed = rec.tax_totals['amount_untaxed'] if rec.tax_totals['amount_untaxed'] else 0
+                amount_untaxed = rec.tax_totals.get('amount_untaxed', 0)
                 amount_tax = 0
-                for product, income in rec.tax_totals['groups_by_subtotal'].items():
+                for product, income in rec.tax_totals.get('groups_by_subtotal', {}).items():
                     ###print(product, income)
                     for l in income:
-                        amount_tax += l['tax_group_amount']
+                        amount_tax += l.get('tax_group_amount', 0)
 
-                amount_total = rec.tax_totals['amount_total']
+                amount_total = rec.tax_totals.get('amount_total', 0)
                 if rec.currency_id != self.env.company.currency_id:
                     rec.amount_untaxed_usd = rec.amount_untaxed
                     rec.amount_tax_usd = rec.amount_tax
