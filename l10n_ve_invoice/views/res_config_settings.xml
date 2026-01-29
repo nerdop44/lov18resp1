@@ -49,6 +49,21 @@
                             </div>
                         </div>
 
+                        <!-- Forma Libre Top Margin Setting -->
+                        <div class="col-12 col-lg-6 o_setting_box" id="forma_libre_margin_setting">
+                            <div class="o_setting_right_pane">
+                                <label for="forma_libre_top_margin"/>
+                                <div class="text-muted">
+                                    Ajuste del margen superior (px) para facturas forma libre.
+                                </div>
+                                <div class="content-group">
+                                    <div class="mt16">
+                                        <field name="forma_libre_top_margin" class="o_light_label"/> px
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
 
 
                         <div class="col-12 col-lg-4 o_setting_box">

@@ -67,7 +67,8 @@
                     <!-- Report Currency -->
                     <t t-set="current_currency" t-value="vef_currency if is_vef_report else usd_currency"/>
                     
-                    <div class="container">
+                    <!-- Main Container with Dynamic Margin -->
+                    <div class="container" t-attf-style="margin-top: {{ o.company_id.forma_libre_top_margin }}px;">
                     
                         <!-- HEADER (Logo & Company Info) -->
                         <div class="row mt-4 mb-2">
