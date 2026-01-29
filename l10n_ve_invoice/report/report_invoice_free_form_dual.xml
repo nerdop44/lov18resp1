@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
         <!-- Action for Forma Libre (VEF) -->
@@ -26,80 +27,128 @@
             <field name="binding_type">report</field>
         </record>
 
-        <!-- Main Dual Currency Template -->
+        <!-- Main Template -->
         <template id="report_freeform_document_dual">
             <div class="mt-5">
                 <style>
-                    .invoice-number-date { display: flex; justify-content: space-between; width: 50%; }
-                    .invoice-date { text-align: right; }
+                    .invoice-number-date {
+                        display: flex;
+                        justify-content: space-between;
+                        width: 50%;
+                    }
+                    .invoice-number {
+                    }
+                    .invoice-date {
+                        text-align: right;
+                    }
+                    .o_subtotal td, .o_total td {
+                        padding-top: 1px;
+                        padding-bottom: 1px;
+                    }
                 </style>
                 <div class="page">
-                    <!-- Conversion Logic -->
+                    <!-- Context Setup -->
                     <t t-set="is_vef_report" t-value="print_currency == 'VEF'"/>
-                    <t t-set="system_is_vef" t-value="o.company_id.currency_id.name == 'VEF' or o.company_id.currency_id.name == 'VES' or o.company_id.currency_id.symbol == 'Bs.'"/>
-                    <!-- Determine Main and Secondary Currencies for Display -->
-                    <t t-if="is_vef_report">
-                         <t t-set="main_currency" t-value="o.env['res.currency'].search([('name', 'in', ['VEF', 'VES'])], limit=1)"/>
-                         <t t-set="sec_currency" t-value="o.env['res.currency'].search([('name', '=', 'USD')], limit=1)"/>
-                    </t>
-                    <t t-else="">
-                         <t t-set="main_currency" t-value="o.env['res.currency'].search([('name', '=', 'USD')], limit=1)"/>
-                         <t t-set="sec_currency" t-value="o.env['res.currency'].search([('name', 'in', ['VEF', 'VES'])], limit=1)"/>
-                    </t>
-
-                    <!-- HEADER (Same as Original) -->
+                    <t t-set="vef_currency" t-value="o.env['res.currency'].search([('name', 'in', ['VEF', 'VES'])], limit=1)"/>
+                    <t t-set="usd_currency" t-value="o.env['res.currency'].search([('name', '=', 'USD')], limit=1)"/>
+                    
+                    <!-- Report Currency -->
+                    <t t-set="current_currency" t-value="vef_currency if is_vef_report else usd_currency"/>
+                    
+                    <!-- Rate Logic for Conversions -->
+                    <!-- We use o.foreign_rate. If Invoice is USD, VEF = USD * Rate. If Invoice is VEF, USD = VEF / Rate. -->
+                    <t t-set="rate" t-value="o.foreign_rate if o.foreign_rate else 1.0"/>
+                    
+                    <!-- Header (Copied from Original) -->
                     <div id="informations" class="row mt-4 mb-4">
                         <div class="col-auto col-6 mw-100 mb-2">
-                             <span><strong>Razón Social:</strong> <t t-out="o.partner_id.name"/></span><br/>
-                             <span><strong>Dirección:</strong> 
+                            <span><strong>Razón Social:</strong> <t t-out="o.partner_id.name"/></span>
+                            <br/>
+                            <span>
+                                <strong>Dirección:</strong>
                                 <t t-if="o.partner_id.street" t-out="o.partner_id.street"/>
                                 <t t-if="o.partner_id.street2" t-out="' - ' + o.partner_id.street2"/>
                                 <t t-if="o.partner_id.state_id" t-out="' - ' + o.partner_id.state_id.name"/>
-                                <t t-if="o.partner_id.country_id" t-out="' - ' + o.partner_id.country_id.name"/>
+                                <t t-if="o.partner_id.country_id" t-out="' - ' + o.partner_id.country_id.name"/> 
                                 <t t-if="o.partner_id.city" t-out="' - ' + o.partner_id.city"/>
-                             </span><br/>
-                             <span t-if="o.partner_id.vat"><strong>RIF/CI:</strong> <t t-out="o.partner_id.prefix_vat + o.partner_id.vat"/></span><br/>
-                             <span t-if="o.partner_id.phone"><strong>Teléfono:</strong> <t t-out="o.partner_id.phone"/></span>
+                            </span>
+                            <br/>
+                            <span t-if="o.partner_id.vat"><strong>RIF/CI:</strong> <t t-out="o.partner_id.prefix_vat + o.partner_id.vat"/></span>
+                            <br/>
+                            <span t-if="o.partner_id.phone"><strong>Teléfono:</strong> <t t-out="o.partner_id.phone"/></span>
                         </div>
-                        <div class="invoice-number-date">
-                             <div class="invoice-number">
-                                 <t t-if="o.move_type in ['out_refund', 'in_refund']">
-                                     <span><strong>Nro de Nota de Crédito:</strong><t t-if="o.name != '/'" t-out="o.name"/></span><br/>
-                                     <span><strong>Factura afectada:</strong><t t-out="o.reversed_entry_id.name"/></span><br/>
-                                     <span><strong>Numero de Control:</strong><t t-out="o.reversed_entry_id.correlative"/></span><br/>
-                                     <span><strong>Fecha de la Factura:</strong><t t-if="o.reversed_entry_id.invoice_date" t-out="o.reversed_entry_id.invoice_date.strftime('%d/%m/%Y')"/></span>
-                                 </t>
-                                 <t t-elif="o.journal_id.is_debit">
-                                     <span><strong>Nota de Débito:</strong><t t-if="o.name != '/'" t-out="o.name"/></span><br/>
-                                     <span><strong>Factura afectada:</strong><t t-out="o.debit_origin_id.name"/></span>
-                                 </t>
-                                 <t t-else="">
-                                     <span><strong>Nro de Factura:</strong><t t-if="o.name != '/'" t-out="o.name"/></span>
-                                 </t>
-                                 <p t-if="o.invoice_origin"><strong>Nro de Pedido:</strong><t t-out="o.invoice_origin"/></p>
-                             </div>
-                             <div class="invoice-date">
-                                 <p><strong>Fecha de emisión:</strong> <t t-if="o.invoice_date" t-out="o.invoice_date.strftime('%d/%m/%Y')"/></p>
-                             </div>
+                         <div class="invoice-number-date">
+                            <div class="invoice-number">
+                                <t t-if="o.move_type in ['out_refund', 'in_refund']">
+                                    <span><strong>Nro de Nota de Crédito:</strong><t t-if="o.name != '/'" t-out="o.name"/></span>
+                                    <br/>
+                                    <span><strong>Factura afectada:</strong><t t-out="o.reversed_entry_id.name"/></span>
+                                    <br/>
+                                    <span><strong>Numero de Control:</strong><t t-out="o.reversed_entry_id.correlative"/></span>
+                                    <br/>
+                                    <span><strong>Fecha de la Factura:</strong><t t-if="o.reversed_entry_id.invoice_date" t-out="o.reversed_entry_id.invoice_date.strftime('%d/%m/%Y')"/></span>
+                                    <br/>
+                                    <!-- Only show total billed if available -->
+                                    <t t-if="o.reversed_entry_id.tax_totals.get('foreign_amount_total')">
+                                        <span><strong>Total Facturado:</strong><t t-out="o.reversed_entry_id.tax_totals.get('foreign_amount_total')" t-options='{"widget": "monetary", "display_currency": o.foreign_currency_id}'/></span>
+                                        <br/>
+                                    </t>
+                                </t>
+                                <t t-elif="o.journal_id.is_debit">
+                                    <span><strong>Nota de Débito:</strong><t t-if="o.name != '/'" t-out="o.name"/></span>
+                                    <br/>
+                                    <span>
+                                        <strong>Factura afectada:</strong>
+                                        <t t-out="o.debit_origin_id.name"/>
+                                    </span>
+                                    <span t-if="o.debit_origin_id.correlative">
+                                        <br/>
+                                        <strong>Número de Control:</strong>
+                                        <t t-out="o.debit_origin_id.correlative"/>
+                                    </span>
+                                    <br/>
+                                    <span>
+                                        <strong>Fecha de la Factura:</strong>
+                                        <t t-out="o.debit_origin_id.invoice_date"/>
+                                    </span>
+                                    <br/>
+                                     <!-- Only show total billed if available -->
+                                    <t t-if="o.debit_origin_id.tax_totals.get('foreign_amount_total')">
+                                        <span>
+                                            <strong>Total Facturado:</strong>
+                                            <t t-out="o.debit_origin_id.tax_totals.get('foreign_amount_total')" t-options='{"widget": "monetary", "display_currency": o.foreign_currency_id}'/>
+                                        </span>
+                                        <br/>
+                                    </t>
+                                </t>
+                                <t t-else="">
+                                    <span><strong>Nro de Factura:</strong><t t-if="o.name != '/'" t-out="o.name"/></span>
+                                </t>
+                                <p t-if="o.invoice_origin"><strong>Nro de Pedido:</strong><t t-out="o.invoice_origin"/></p>
+                            </div>
+                            <div class="invoice-date">
+                                <p><strong>Fecha de emisión:</strong> <t t-if="o.invoice_date" t-out="o.invoice_date.strftime('%d/%m/%Y')"/></p>
+                            </div>
                         </div>
                     </div>
 
                     <t t-set="display_discount" t-value="any(l.discount for l in o.invoice_line_ids)"/>
 
-                    <!-- TABLE -->
+                    <!-- TABLE (With Subtotal Restored) -->
                     <table class="table table-sm o_main_table table-borderless" name="invoice_line_table">
                         <thead>
                             <tr class="border-bottom border-dark">
-                                <th class="text-start"><span>Código</span></th>
-                                <th class="text-start"><span>Descripción</span></th>
-                                <th class="text-end"><span>Cantidad</span></th>
-                                <th class="text-end"><span>Precio Unit</span></th>
-                                <th t-if="display_discount" class="text-end"><span>Disc.%</span></th>
-                                <th class="text-start"><span>IVA</span></th>
-                                <th class="text-end"><span>Total</span></th>
+                                <th name="th_code" class="text-start"><span>Código</span></th>
+                                <th name="th_description" class="text-start"><span>Descripción</span></th>
+                                <th name="th_quantity" class="text-end"><span>Cantidad</span></th>
+                                <th name="th_priceunit" class="text-end"><span>Precio Unit</span></th>
+                                <th name="th_discount" t-if="display_discount" class="text-end"><span>Disc.%</span></th>
+                                <th name="th_taxes" class="text-start"><span>IVA</span></th>
+                                <th name="th_subtotal" class="text-end"><span>Subtotal</span></th> <!-- Restored -->
+                                <th name="th_total" class="text-end"><span>Total</span></th> <!-- Kept -->
                             </tr>
                         </thead>
-                        <tbody class="invoice_tbody">
+                       <tbody class="invoice_tbody">
                             <t t-set="lines" t-value="o.invoice_line_ids.sorted(key=lambda l: (-l.sequence, l.date, l.move_name, -l.id), reverse=True)"/>
                             <t t-foreach="lines" t-as="line">
                                 <tr t-if="line.display_type == 'product'">
@@ -112,24 +161,42 @@
                                         <span t-field="line.quantity"/>
                                         <span t-field="line.product_uom_id" groups="uom.group_uom"/>
                                     </td>
-                                    
-                                    <!-- Price / Total Logic -->
-                                    <t t-set="price_unit_val" t-value="line.price_unit if is_vef_report else line.foreign_price"/>
-                                    <t t-set="price_total_val" t-value="line.price_total if is_vef_report else line.foreign_price_total"/>
-                                    
-                                    <!-- If VEF report but Invoice in USD -> Convert -->
-                                    <t t-if="is_vef_report and o.currency_id.name == 'USD'">
-                                        <t t-set="price_unit_val" t-value="line.foreign_price * o.foreign_rate"/>
-                                        <t t-set="price_total_val" t-value="line.foreign_price_total * o.foreign_rate"/>
+
+                                    <!-- Price Calculation (Unified Logic) -->
+                                    <t t-set="price_unit" t-value="line.price_unit"/> 
+                                    <t t-set="price_subtotal" t-value="line.price_subtotal"/>
+                                    <t t-set="price_total" t-value="line.price_total"/>
+
+                                    <!-- If Report is VEF and Invoice is USD -> Convert to VEF -->
+                                    <t t-if="is_vef_report and o.currency_id == usd_currency">
+                                        <t t-set="price_unit" t-value="line.foreign_price * rate"/>
+                                        <t t-set="price_subtotal" t-value="line.foreign_subtotal * rate"/>
+                                        <t t-set="price_total" t-value="line.foreign_price_total * rate"/>
                                     </t>
-                                     <!-- If USD report but Invoice in VEF -> Convert (Assumption: Inverse Rate or Direct Division) -->
-                                     <t t-if="not is_vef_report and (o.currency_id.name == 'VEF' or o.currency_id.name == 'VES')">
-                                        <t t-set="price_unit_val" t-value="line.price_unit / o.foreign_rate if o.foreign_rate else 0"/>
-                                        <t t-set="price_total_val" t-value="line.price_total / o.foreign_rate if o.foreign_rate else 0"/>
+                                    <!-- If Report is VEF and Invoice is VEF -> Use Native VEF -->
+                                    <t t-if="is_vef_report and o.currency_id != usd_currency">
+                                         <!-- Native fields are already VEF -->
+                                         <!-- Warning: ensure we use the right field name if 'foreign' logic is inverted in model, but typically price_unit is company/invoice currency -->
+                                    </t>
+                                    
+                                    <!-- If Report is USD and Invoice is VEF -> Convert to USD -->
+                                    <t t-if="not is_vef_report and o.currency_id != usd_currency">
+                                         <t t-set="price_unit" t-value="line.price_unit / rate if rate else 0"/>
+                                         <t t-set="price_subtotal" t-value="line.price_subtotal / rate if rate else 0"/>
+                                         <t t-set="price_total" t-value="line.price_total / rate if rate else 0"/>
+                                    </t>
+                                     <!-- If Report is USD and Invoice is USD -> Use Native USD -->
+                                     <t t-if="not is_vef_report and o.currency_id == usd_currency">
+                                         <!-- Native fields are USD (foreign_price usually holds alternative, verify model) -->
+                                         <!-- If the invoice is in USD, price_unit IS USD. -->
+                                         <t t-set="price_unit" t-value="line.price_unit"/>
+                                         <t t-set="price_subtotal" t-value="line.price_subtotal"/>
+                                         <t t-set="price_total" t-value="line.price_total"/>
                                      </t>
 
+
                                     <td class="text-end">
-                                        <span t-esc="price_unit_val" t-options='{"widget": "monetary", "display_currency": main_currency}'/>
+                                        <span t-esc="price_unit" t-options='{"widget": "monetary", "display_currency": current_currency}'/>
                                     </td>
                                     <td t-if="display_discount" class="text-end">
                                         <span t-field="line.discount"/>
@@ -137,8 +204,11 @@
                                     <td class="text-start">
                                         <span t-esc="', '.join(map(lambda x: ( str(x.amount) + '%' if x.amount > 0 else ''), line.tax_ids))"/>
                                     </td>
+                                    <td class="text-end">
+                                         <span t-esc="price_subtotal" t-options='{"widget": "monetary", "display_currency": current_currency}'/>
+                                    </td>
                                     <td class="text-end o_price_total">
-                                         <span t-esc="price_total_val" t-options='{"widget": "monetary", "display_currency": main_currency}'/>
+                                         <span t-esc="price_total" t-options='{"widget": "monetary", "display_currency": current_currency}'/>
                                     </td>
                                 </tr>
                                 <t t-if="line.display_type == 'line_section'">
@@ -151,98 +221,113 @@
                         </tbody>
                     </table>
 
-                    <!-- DUAL TOTALS FOOTER -->
+                     <!-- DUAL TOTALS FOOTER -->
                     <div class="clearfix mb-4">
                         <div class="row">
-                            <!-- Left Column: Secondary Currency -->
+                             <!-- Calculation of Totals for BOTH currencies using tax_totals or Tax Groups -->
+                             <!-- We'll replicate logic manually to assume control over "Exento", "Subtotal", "IVA", "Total" -->
+                             
+                             <t t-set="amount_untaxed" t-value="o.amount_untaxed"/>
+                             <t t-set="amount_tax" t-value="o.amount_tax"/>
+                             <t t-set="amount_total" t-value="o.amount_total"/>
+                             
+                             <!-- Calculate USD Values -->
+                             <t t-set="usd_untaxed" t-value="amount_untaxed"/>
+                             <t t-set="usd_tax" t-value="amount_tax"/>
+                             <t t-set="usd_total" t-value="amount_total"/>
+                             
+                             <t t-if="o.currency_id != usd_currency"> 
+                                  <!-- Invoice in VEF, Convert to USD -->
+                                  <t t-set="usd_untaxed" t-value="amount_untaxed / rate if rate else 0"/>
+                                  <t t-set="usd_tax" t-value="amount_tax / rate if rate else 0"/>
+                                  <t t-set="usd_total" t-value="amount_total / rate if rate else 0"/>
+                             </t>
+                             
+                             <!-- Calculate VEF Values -->
+                             <t t-set="vef_untaxed" t-value="amount_untaxed"/>
+                             <t t-set="vef_tax" t-value="amount_tax"/>
+                             <t t-set="vef_total" t-value="amount_total"/>
+                             
+                             <t t-if="o.currency_id == usd_currency">
+                                  <!-- Invoice in USD, Convert to VEF -->
+                                  <t t-set="vef_untaxed" t-value="amount_untaxed * rate"/>
+                                  <t t-set="vef_tax" t-value="amount_tax * rate"/>
+                                  <t t-set="vef_total" t-value="amount_total * rate"/>
+                             </t>
+
+                            <!-- Left Column: USD -->
                             <div class="col-6">
                                 <table class="table table-borderless table-sm">
-                                    <thead><tr class="border-black"><th colspan="2" class="text-center"><t t-out="sec_currency.name"/></th></tr></thead>
-                                    <!-- Logic to calculate Secondary Totals -->
-                                    <t t-set="sec_tax_totals" t-value="o.tax_totals.get('foreign_subtotals' if is_vef_report else 'subtotals', [])"/>
-                                    <t t-if="not sec_tax_totals">
-                                         <!-- Fallback or Manual Calculation if necessary -->
-                                    </t>
+                                    <thead><tr class="border-black"><th colspan="2" class="text-center">USD</th></tr></thead>
                                     
-                                    <t t-foreach="sec_tax_totals" t-as="subtotal">
-                                        <tr>
-                                            <td><strong t-esc="subtotal.get('name', 'Subtotal')"/></td>
-                                            <td class="text-end">
-                                                <span t-esc="subtotal.get('base_amount_currency', 0.0)" t-options='{"widget": "monetary", "display_currency": sec_currency}'/>
-                                            </td>
-                                        </tr>
-                                        <t t-foreach="subtotal.get('tax_groups', [])" t-as="group">
-                                            <tr>
-                                                <td><span t-esc="group.get('group_name', 'IVA')"/></td>
-                                                <td class="text-end">
-                                                    <span t-esc="group.get('tax_amount_currency', 0.0)" t-options='{"widget": "monetary", "display_currency": sec_currency}'/>
-                                                </td>
-                                            </tr>
-                                        </t>
-                                    </t>
+                                     <!-- Exento (Approximation: Subtotal - Taxable?? No, we need real Exento) -->
+                                     <!-- Using simple logic: Untaxed IS Subtotal + Exento. User asked for "Exento, Subtotal, IVA, Total" -->
+                                     <!-- Standard Odoo tax_totals is hard to parse in template logic purely. -->
+                                     <!-- Simplified Approach: Muestra Base Imponible (Subtotal) + IVA + Total -->
+                                     <!-- If User specifically asks for "Exento", we might need to sum lines without tax. -->
+                                     <t t-set="exento_vef" t-value="sum(l.price_subtotal for l in o.invoice_line_ids if not l.tax_ids)"/>
+                                     <t t-set="exento_usd" t-value="exento_vef"/>
+                                     <t t-if="o.currency_id != usd_currency">
+                                          <t t-set="exento_usd" t-value="exento_vef / rate if rate else 0"/>
+                                     </t>
+                                      <t t-if="o.currency_id == usd_currency">
+                                          <t t-set="exento_vef" t-value="exento_usd * rate"/>
+                                     </t>
+                                     <!-- Recalculate Subtotal as Untaxed - Exento? Or Show Untaxed AS Subtotal? -->
+                                     <!-- Standard: Subtotal = Untaxed Amount (Base Imponible + Exento).  -->
+                                     <!-- User asked "Exento, Subtotal, IVA, Total" -->
+                                     
+                                    <tr t-if="exento_usd > 0">
+                                        <td><strong>Exento</strong></td>
+                                        <td class="text-end"><span t-esc="exento_usd" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Subtotal</strong></td>
+                                        <td class="text-end"><span t-esc="usd_untaxed" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>IVA</strong></td>
+                                        <td class="text-end"><span t-esc="usd_tax" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
+                                    </tr>
                                     <tr class="border-black border-top">
                                         <td><strong>Total</strong></td>
-                                        <td class="text-end">
-                                            <!-- Total Extraction Logic -->
-                                            <t t-set="sec_total_val" t-value="o.tax_totals.get('foreign_formatted_amount_total') if is_vef_report else o.tax_totals.get('formatted_amount_total')"/>
-                                            <!-- If plain string "100.00", might rely on widget to format number if available, else exact string -->
-                                            <!-- Using numeric value matching logic safer -->
-                                            <t t-if="is_vef_report">
-                                                 <span t-esc="o.tax_totals.get('foreign_amount_total', 0)" t-options='{"widget": "monetary", "display_currency": sec_currency}'/>
-                                            </t>
-                                            <t t-else="">
-                                                 <span t-esc="o.amount_total" t-options='{"widget": "monetary", "display_currency": sec_currency}'/>
-                                            </t>
-                                        </td>
+                                        <td class="text-end"><span t-esc="usd_total" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
                                     </tr>
                                 </table>
                             </div>
 
-                            <!-- Right Column: Main Currency -->
+                            <!-- Right Column: VEF -->
                             <div class="col-6">
                                 <table class="table table-borderless table-sm">
-                                    <thead><tr class="border-black"><th colspan="2" class="text-center"><t t-out="main_currency.name"/></th></tr></thead>
-                                    <t t-set="main_tax_totals" t-value="o.tax_totals.get('subtotals' if is_vef_report else 'foreign_subtotals', [])"/>
-                                    
-                                     <t t-foreach="main_tax_totals" t-as="subtotal">
-                                        <tr>
-                                            <td><strong t-esc="subtotal.get('name', 'Subtotal')"/></td>
-                                            <td class="text-end">
-                                                <span t-esc="subtotal.get('base_amount_currency', 0.0)" t-options='{"widget": "monetary", "display_currency": main_currency}'/>
-                                            </td>
-                                        </tr>
-                                         <t t-foreach="subtotal.get('tax_groups', [])" t-as="group">
-                                            <tr>
-                                                <td><span t-esc="group.get('group_name', 'IVA')"/></td>
-                                                <td class="text-end">
-                                                    <span t-esc="group.get('tax_amount_currency', 0.0)" t-options='{"widget": "monetary", "display_currency": main_currency}'/>
-                                                </td>
-                                            </tr>
-                                        </t>
-                                    </t>
+                                    <thead><tr class="border-black"><th colspan="2" class="text-center">VEF</th></tr></thead>
+                                    <tr t-if="exento_vef > 0">
+                                        <td><strong>Exento</strong></td>
+                                        <td class="text-end"><span t-esc="exento_vef" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Subtotal</strong></td>
+                                        <td class="text-end"><span t-esc="vef_untaxed" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>IVA</strong></td>
+                                        <td class="text-end"><span t-esc="vef_tax" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
+                                    </tr>
                                     <tr class="border-black border-top">
                                         <td><strong>Total</strong></td>
-                                        <td class="text-end">
-                                             <t t-if="is_vef_report">
-                                                 <span t-esc="o.amount_total" t-options='{"widget": "monetary", "display_currency": main_currency}'/>
-                                            </t>
-                                            <t t-else="">
-                                                 <span t-esc="o.tax_totals.get('foreign_amount_total', 0)" t-options='{"widget": "monetary", "display_currency": main_currency}'/>
-                                            </t>
-                                        </td>
+                                        <td class="text-end"><span t-esc="vef_total" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
                                     </tr>
                                 </table>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Coletilla (Always Tasa BCV) -->
+                    <!-- Coletilla (RESTORED EXACTLY) -->
                     <div name="coletilla"> 
                         <span t-if="o.company_id.show_tag_on_usd_invoice">
                             A los efectos de lo previsto en el <strong>Art. 25</strong> de la Ley de
                             Impuesto al Valor Agregado se expresa el monto total
                             de la factura en <strong>USD</strong> calculado a la tasa de cambio
-                            establecida por BCV de 1US$ por <strong><t t-out="o.foreign_rate" t-options='{"widget": "monetary", "display_currency": o.env["res.currency"].search([("name", "in", ["VEF", "VES"])], limit=1)}'/></strong>
+                            establecida por BCV de 1US$ por <strong><t t-out="o.foreign_rate" t-options='{"widget": "monetary", "display_currency": o.env["res.currency"].browse(int(%(base.VEF)s))}'/></strong>
                         </span>
                     </div>
 
@@ -253,21 +338,24 @@
             </div>
         </template>
 
-        <!-- Wrapper Templates to Pass Context -->
+        <!-- Wrapper Templates -->
         <template id="report_freeform_vef">
             <t t-call="web.html_container">
+                 <!-- Add logic to pass % (base.VEF)s to context if needed, but QWeb handles this via python side. 
+                      However, direct usage in template might need the param passed or available. 
+                      In Odoo 16/17 QWeb reports often have these available if called via render. -->
                 <t t-call="web.basic_layout">
                     <t t-foreach="docs" t-as="o">
                         <t t-set="print_currency" t-value="'VEF'"/>
+                         <!-- We must pass lang and context -->
                         <t t-set="lang" t-value="o.partner_id.lang"/>
                         <t t-call="l10n_ve_invoice.report_freeform_document_dual" t-lang="lang"/>
                     </t>
                 </t>
-            </t>
-        </template>
+            </template>
 
-        <template id="report_freeform_usd">
-             <t t-call="web.html_container">
+            <template id="report_freeform_usd">
+            <t t-call="web.html_container">
                 <t t-call="web.basic_layout">
                     <t t-foreach="docs" t-as="o">
                         <t t-set="print_currency" t-value="'USD'"/>
@@ -275,7 +363,6 @@
                         <t t-call="l10n_ve_invoice.report_freeform_document_dual" t-lang="lang"/>
                     </t>
                 </t>
-            </t>
-        </template>
+            </template>
     </data>
 </odoo>
