@@ -6,14 +6,14 @@
             <field name="model">account.journal</field>
             <field name="inherit_id" ref="account.account_journal_dashboard_kanban_view"/>
             <field name="arch" type="xml">
-                <xpath expr="//t[@t-esc='dashboard.sum_draft']" position="before">
-                   <t t-esc="dashboard.sum_draft_usd"/> /
+                <xpath expr="//t[@t-out='dashboard.sum_draft']" position="before">
+                   <t t-out="dashboard.sum_draft_usd"/> /
                 </xpath>
-                <xpath expr="//t[@t-esc='dashboard.sum_waiting']" position="before">
-                   <t t-esc="dashboard.sum_waiting_usd"/> /
+                <xpath expr="//t[@t-out='dashboard.sum_waiting']" position="before">
+                   <t t-out="dashboard.sum_waiting_usd"/> /
                 </xpath>
-                <xpath expr="//t[@t-esc='dashboard.sum_late']" position="before">
-                   <t t-esc="dashboard.sum_late_usd"/> /
+                <xpath expr="//t[@t-out='dashboard.sum_late']" position="before">
+                   <t t-out="dashboard.sum_late_usd"/> /
                 </xpath>
             </field>
         </record>
