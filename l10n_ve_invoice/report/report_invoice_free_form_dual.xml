@@ -129,6 +129,9 @@
                             </div>
                             <div class="invoice-date">
                                 <p><strong>Fecha de emisión:</strong> <t t-if="o.invoice_date" t-out="o.invoice_date.strftime('%d/%m/%Y')"/></p>
+                                <p t-if="o.invoice_payment_term_id">
+                                    <strong>Condición de Pago:</strong> <span t-field="o.invoice_payment_term_id.name"/>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -373,6 +376,7 @@
                         </span>
                     </div>
 
+
                     <!-- IGTF Info (Moved After Coletilla) -->
                     <div name="igtf_info" class="mt-1">
                         <span>Todo pago està sujeto a la aplicaciòn de la &#160;<strong>LIGTF GO 6687 y la PA SNAT/2022/000013</strong></span>
@@ -380,8 +384,12 @@
                         <span>Se designa a sujetos pasivos especiales como Agente de Percepciòn del <strong>IGTF 3%</strong></span>
                     </div>
 
-                    <div t-if="not is_html_empty(o.narration)" name="comment">
-                        <span t-field="o.narration"/>
+                    <!-- Observations (Terms & Conditions) - Max 3 lines -->
+                    <div t-if="not is_html_empty(o.narration)" name="comment" class="mt-2">
+                        <strong>Observaciones:</strong>
+                        <div style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-align: justify;">
+                            <span t-field="o.narration" t-options="{'widget': 'text'}"/>
+                        </div>
                     </div>
                 </div>
             </div>
