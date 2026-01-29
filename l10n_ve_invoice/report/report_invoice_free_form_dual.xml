@@ -188,7 +188,7 @@
                                             <!-- If plain string "100.00", might rely on widget to format number if available, else exact string -->
                                             <!-- Using numeric value matching logic safer -->
                                             <t t-if="is_vef_report">
-                                                 <span t-esc="o.foreign_amount_total" t-options='{"widget": "monetary", "display_currency": sec_currency}'/>
+                                                 <span t-esc="o.tax_totals.get('foreign_amount_total', 0)" t-options='{"widget": "monetary", "display_currency": sec_currency}'/>
                                             </t>
                                             <t t-else="">
                                                  <span t-esc="o.amount_total" t-options='{"widget": "monetary", "display_currency": sec_currency}'/>
@@ -227,7 +227,7 @@
                                                  <span t-esc="o.amount_total" t-options='{"widget": "monetary", "display_currency": main_currency}'/>
                                             </t>
                                             <t t-else="">
-                                                 <span t-esc="o.foreign_amount_total" t-options='{"widget": "monetary", "display_currency": main_currency}'/>
+                                                 <span t-esc="o.tax_totals.get('foreign_amount_total', 0)" t-options='{"widget": "monetary", "display_currency": main_currency}'/>
                                             </t>
                                         </td>
                                     </tr>
