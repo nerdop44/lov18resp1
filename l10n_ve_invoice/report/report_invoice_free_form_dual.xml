@@ -58,7 +58,7 @@
                         margin-bottom: 1px !important;
                     }
                 </style>
-                <div class="page" t-att-style="'padding-top: ' + str(o.company_id.forma_libre_top_margin) + 'cm;' if o.company_id.activate_custom_margin else ''">
+                <div class="page">
                     <!-- Context Setup -->
                     <t t-set="is_vef_report" t-value="print_currency == 'VEF'"/>
                     <t t-set="vef_currency" t-value="o.env['res.currency'].search([('name', 'in', ['VEF', 'VES'])], limit=1)"/>
@@ -67,6 +67,9 @@
                     
                     <!-- Report Currency -->
                     <t t-set="current_currency" t-value="vef_currency if is_vef_report else usd_currency"/>
+
+                     <!-- DYNAMIC MARGIN SPACER -->
+                    <div t-if="o.company_id.activate_custom_margin" t-att-style="'height: ' + str(o.company_id.forma_libre_top_margin) + 'cm; width: 100%;'"/>
 
                         <!-- Main Container (Header) -->
                         <div class="container">
