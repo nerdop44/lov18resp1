@@ -227,34 +227,7 @@ class AccountRetentionLine(models.Model):
         lines_from_islr_retention = self.filtered(
             lambda l: (not l.retention_id or l.retention_id.type_retention == "islr")
         )
-<<<<<<< HEAD
-    
-        for record in lines_from_islr_retention:
-        # Validación básica de datos requeridos
-            if not record.move_id:
-                continue
-            
-        # Manejo seguro de tax_totals
-            tax_totals = record.move_id.tax_totals or {}
-        
-        # Obtener valores con defaults
-            amount_total = tax_totals.get('amount_total', 0.0)
-            foreign_amount_total = tax_totals.get('foreign_amount_total', amount_total)
-            amount_untaxed = tax_totals.get('amount_untaxed', 0.0)
-            foreign_amount_untaxed = tax_totals.get('foreign_amount_untaxed', amount_untaxed)
-        
-        # Validar partner y tipo de persona
-            if not record.move_id.partner_id.type_person_id:
-                raise UserError(_("The partner does not have a type of person"))
 
-        # Payment concept of the line
-            payment_concept = record.payment_concept_id.line_payment_concept_ids
-            for line in payment_concept:
-                if record.move_id.partner_id.type_person_id.id == line.type_person_id.id:
-                # Asignar valores con manejo seguro
-                    record.invoice_total = amount_total
-                    record.foreign_invoice_total = foreign_amount_total
-=======
 
         for record in lines_from_islr_retention:
             if not record.move_id:
@@ -441,50 +414,11 @@ class AccountRetentionLine(models.Model):
     )
     def _constraint_amounts(self):
         for record in self:
-<<<<<<< HEAD
-            # Solo verificar si el monto de retención es cero
-            if record.retention_amount == 0 and record.foreign_retention_amount == 0:
-                raise ValidationError(_("You can not create a retention line with 0 retention amount."))
-
-            is_vef_the_base_currency = self.env.company.currency_id == self.env.ref("base.VEF")
-            is_client_retention = record.retention_id.type == "out_invoice"
-            if (
-                is_vef_the_base_currency
-                and is_client_retention
-                and record.retention_amount > record.move_id.amount_residual
-            ):
-                raise ValidationError(
-                    _(
-                        "The total amount of the retention is greater than the residual amount of"
-                        " the invoice."
-                    )
-                )
-#            if (
-#                record.retention_amount == 0
-#                and record.invoice_total == 0
-#                and record.foreign_retention_amount == 0
-#                and record.invoice_amount == 0
-#                and record.foreign_invoice_amount == 0
-#            ):
-#                continue  # Permitir líneas con todos los montos en cero
-#
-#            if any(
-#                (
-#                    record.retention_amount == 0,
-#                    record.invoice_total == 0,
-#                    record.foreign_retention_amount == 0,
-#                    record.invoice_amount == 0,
-#                    record.foreign_invoice_amount == 0,
-#                )
-#            ):
-#                raise ValidationError(_("You can not create a retention with 0 amount."))
-=======
             if record.retention_id and record.retention_id.state == 'draft':
                 continue
                 
             if record.retention_amount == 0 and record.foreign_retention_amount == 0:
                 raise ValidationError(_("You cannot create a retention line with a zero retention amount."))
->>>>>>> Dep4
 
             is_vef_the_base_currency = self.env.company.currency_id == self.env.ref("base.VEF")
             is_client_retention = record.retention_id and record.retention_id.type == "out_invoice"
@@ -533,5 +467,5 @@ class AccountRetentionLine(models.Model):
                 # Fallback to company currency amount on the partial
                 invoice_paid_amount += partial.amount
 
-#<<<<<<< HEAD
+
         return invoice_paid_amount

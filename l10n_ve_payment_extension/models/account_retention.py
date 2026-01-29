@@ -1403,7 +1403,6 @@ class AccountRetention(models.Model):
                         retention_amount,
                         precision_digits=invoice_id.company_currency_id.decimal_places,
                     )
-<<<<<<< HEAD
                     # --- INICIO DE CAMBIOS ---
                     # Ensure foreign_rate is not zero to prevent division by zero errors
                     foreign_rate = invoice_id.foreign_rate
@@ -1422,8 +1421,6 @@ class AccountRetention(models.Model):
                     # Calculate foreign_inverse_rate
                     foreign_inverse_rate = 1 / foreign_rate if foreign_rate else 0.0
                     # --- FIN DE CAMBIOS ---
-=======
->>>>>>> Dep4
                     foreign_retention_amount = float_round(
                         (tax_group_data.get("tax_amount_currency", 0.0) * (withholding_amount / 100)),
                         precision_digits=invoice_id.foreign_currency_id.decimal_places,
@@ -1438,12 +1435,8 @@ class AccountRetention(models.Model):
                         "invoice_total": invoice_id.tax_totals["total_amount"],
                         "related_percentage_tax_base": withholding_amount,
                         "invoice_amount": tax_group_data["base_amount"],
-<<<<<<< HEAD
                         "foreign_currency_rate": foreign_rate, ###invoice_id.foreign_rate,
                         "foreign_currency_inverse_rate": foreign_inverse_rate, # <--- AÑADE ESTA LÍNEA
-=======
-                        "foreign_currency_rate": invoice_id.foreign_rate,
->>>>>>> Dep4
                         "foreign_iva_amount": tax_group_data.get("tax_amount_currency", 0.0),
                         "foreign_invoice_total": invoice_id.tax_totals.get("total_amount_currency", 0.0),
                         "retention_amount": retention_amount,  # ¡Añade esta línea!
@@ -1457,8 +1450,7 @@ class AccountRetention(models.Model):
 
         return lines_data
         
-<<<<<<< HEAD
-=======
+
 #        lines_data = []
 #        subtotals_name = invoice_id.tax_totals["subtotals"][0]["name"]
 #        tax_groups = zip(
@@ -1495,27 +1487,7 @@ class AccountRetention(models.Model):
 #                "move_id": invoice_id.id,
 #                "payment_id": payment.id if payment else None,
 #                "aliquot": tax.amount,
-#                "iva_amount": tax_group["tax_group_amount"],
-#                "invoice_total": invoice_id.tax_totals["amount_total"],
-#                "related_percentage_tax_base": withholding_amount,
-#                "invoice_amount": tax_group["tax_group_base_amount"],
-#                "foreign_currency_rate": invoice_id.foreign_rate,
-#                "foreign_invoice_amount": foreign_tax_group["tax_group_base_amount"],
-#                "foreign_iva_amount": foreign_tax_group["tax_group_amount"],
-#                "foreign_invoice_total": invoice_id.tax_totals["foreign_amount_total"],
-#            }
-#            if invoice_id.move_type == "out_invoice":
-#                line_data["retention_amount"] = 0.0
-#                line_data["foreign_retention_amount"] = 0.0
-#            else:
-#                line_data["retention_amount"] = retention_amount
-#                line_data["foreign_retention_amount"] = float_round(
-#                    (line_data["foreign_iva_amount"] * (withholding_amount / 100)),
-#                    precision_digits=invoice_id.foreign_currency_id.decimal_places,
-#                )
-#            lines_data.append(line_data)
-#        return lines_data
->>>>>>> Dep4
+
 
     def get_signature(self):
         config = self.env["signature.config"].search(
