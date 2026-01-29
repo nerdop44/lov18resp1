@@ -48,11 +48,6 @@
                         padding-top: 1px;
                         padding-bottom: 1px;
                     }
-                    .totals-table-compact td {
-                        padding-top: 0px !important;
-                        padding-bottom: 0px !important;
-                        line-height: 1.0 !important;
-                    }
                     .footer-text-compact {
                         line-height: 1.0 !important;
                         margin-bottom: 1px !important;
@@ -68,87 +63,83 @@
                     <!-- Report Currency -->
                     <t t-set="current_currency" t-value="vef_currency if is_vef_report else usd_currency"/>
                     
-                    <!-- Main Container (Header) -->
-                    <div class="container">
-                    
-                        <!-- HEADER (Logo & Company Info) -->
-                        <div class="row mt-4 mb-2">
-                            <span><strong>Razón Social:</strong> <t t-out="o.partner_id.name"/></span>
-                            <br/>
-                            <span>
-                                <strong>Dirección:</strong>
-                                <t t-if="o.partner_id.street" t-out="o.partner_id.street"/>
-                                <t t-if="o.partner_id.street2" t-out="' - ' + o.partner_id.street2"/>
-                                <t t-if="o.partner_id.state_id" t-out="' - ' + o.partner_id.state_id.name"/>
-                                <t t-if="o.partner_id.country_id" t-out="' - ' + o.partner_id.country_id.name"/> 
-                                <t t-if="o.partner_id.city" t-out="' - ' + o.partner_id.city"/>
-                            </span>
-                            <br/>
-                            <span t-if="o.partner_id.vat"><strong>RIF/CI:</strong> <t t-out="o.partner_id.prefix_vat + o.partner_id.vat"/></span>
-                            <br/>
-                            <span t-if="o.partner_id.phone"><strong>Teléfono:</strong> <t t-out="o.partner_id.phone"/></span>
+                    <!-- HEADER -->
+                    <div class="row mt-4 mb-2">
+                        <span><strong>Razón Social:</strong> <t t-out="o.partner_id.name"/></span>
+                        <br/>
+                        <span>
+                            <strong>Dirección:</strong>
+                            <t t-if="o.partner_id.street" t-out="o.partner_id.street"/>
+                            <t t-if="o.partner_id.street2" t-out="' - ' + o.partner_id.street2"/>
+                            <t t-if="o.partner_id.state_id" t-out="' - ' + o.partner_id.state_id.name"/>
+                            <t t-if="o.partner_id.country_id" t-out="' - ' + o.partner_id.country_id.name"/> 
+                            <t t-if="o.partner_id.city" t-out="' - ' + o.partner_id.city"/>
+                        </span>
+                        <br/>
+                        <span t-if="o.partner_id.vat"><strong>RIF/CI:</strong> <t t-out="o.partner_id.prefix_vat + o.partner_id.vat"/></span>
+                        <br/>
+                        <span t-if="o.partner_id.phone"><strong>Teléfono:</strong> <t t-out="o.partner_id.phone"/></span>
+                    </div>
+                     <div class="invoice-number-date">
+                        <div class="invoice-number">
+                            <t t-if="o.move_type in ['out_refund', 'in_refund']">
+                                <span><strong>Nro de Nota de Crédito:</strong><t t-if="o.name != '/'" t-out="o.name"/></span>
+                                <br/>
+                                <span><strong>Factura afectada:</strong><t t-out="o.reversed_entry_id.name"/></span>
+                                <br/>
+                                <span><strong>Numero de Control:</strong><t t-out="o.reversed_entry_id.correlative"/></span>
+                                <br/>
+                                <span><strong>Fecha de la Factura:</strong><t t-if="o.reversed_entry_id.invoice_date" t-out="o.reversed_entry_id.invoice_date.strftime('%d/%m/%Y')"/></span>
+                                <br/>
+                                <!-- Only show total billed if available -->
+                                <t t-if="o.reversed_entry_id.tax_totals.get('foreign_amount_total')">
+                                    <span><strong>Total Facturado:</strong><t t-out="o.reversed_entry_id.tax_totals.get('foreign_amount_total')" t-options='{"widget": "monetary", "display_currency": o.foreign_currency_id}'/></span>
+                                    <br/>
+                                </t>
+                            </t>
+                            <t t-elif="o.journal_id.is_debit">
+                                <span><strong>Nota de Débito:</strong><t t-if="o.name != '/'" t-out="o.name"/></span>
+                                <br/>
+                                <span>
+                                    <strong>Factura afectada:</strong>
+                                    <t t-out="o.debit_origin_id.name"/>
+                                </span>
+                                <span t-if="o.debit_origin_id.correlative">
+                                    <br/>
+                                    <strong>Número de Control:</strong>
+                                    <t t-out="o.debit_origin_id.correlative"/>
+                                </span>
+                                <br/>
+                                <span>
+                                    <strong>Fecha de la Factura:</strong>
+                                    <t t-out="o.debit_origin_id.invoice_date"/>
+                                </span>
+                                <br/>
+                                 <!-- Only show total billed if available -->
+                                <t t-if="o.debit_origin_id.tax_totals.get('foreign_amount_total')">
+                                    <span>
+                                        <strong>Total Facturado:</strong>
+                                        <t t-out="o.debit_origin_id.tax_totals.get('foreign_amount_total')" t-options='{"widget": "monetary", "display_currency": o.foreign_currency_id}'/>
+                                    </span>
+                                    <br/>
+                                </t>
+                            </t>
+                            <t t-else="">
+                                <span><strong>Nro de Factura:</strong><t t-if="o.name != '/'" t-out="o.name"/></span>
+                            </t>
+                            <p t-if="o.invoice_origin"><strong>Nro de Pedido:</strong><t t-out="o.invoice_origin"/></p>
                         </div>
-                         <div class="invoice-number-date">
-                            <div class="invoice-number">
-                                <t t-if="o.move_type in ['out_refund', 'in_refund']">
-                                    <span><strong>Nro de Nota de Crédito:</strong><t t-if="o.name != '/'" t-out="o.name"/></span>
-                                    <br/>
-                                    <span><strong>Factura afectada:</strong><t t-out="o.reversed_entry_id.name"/></span>
-                                    <br/>
-                                    <span><strong>Numero de Control:</strong><t t-out="o.reversed_entry_id.correlative"/></span>
-                                    <br/>
-                                    <span><strong>Fecha de la Factura:</strong><t t-if="o.reversed_entry_id.invoice_date" t-out="o.reversed_entry_id.invoice_date.strftime('%d/%m/%Y')"/></span>
-                                    <br/>
-                                    <!-- Only show total billed if available -->
-                                    <t t-if="o.reversed_entry_id.tax_totals.get('foreign_amount_total')">
-                                        <span><strong>Total Facturado:</strong><t t-out="o.reversed_entry_id.tax_totals.get('foreign_amount_total')" t-options='{"widget": "monetary", "display_currency": o.foreign_currency_id}'/></span>
-                                        <br/>
-                                    </t>
-                                </t>
-                                <t t-elif="o.journal_id.is_debit">
-                                    <span><strong>Nota de Débito:</strong><t t-if="o.name != '/'" t-out="o.name"/></span>
-                                    <br/>
-                                    <span>
-                                        <strong>Factura afectada:</strong>
-                                        <t t-out="o.debit_origin_id.name"/>
-                                    </span>
-                                    <span t-if="o.debit_origin_id.correlative">
-                                        <br/>
-                                        <strong>Número de Control:</strong>
-                                        <t t-out="o.debit_origin_id.correlative"/>
-                                    </span>
-                                    <br/>
-                                    <span>
-                                        <strong>Fecha de la Factura:</strong>
-                                        <t t-out="o.debit_origin_id.invoice_date"/>
-                                    </span>
-                                    <br/>
-                                     <!-- Only show total billed if available -->
-                                    <t t-if="o.debit_origin_id.tax_totals.get('foreign_amount_total')">
-                                        <span>
-                                            <strong>Total Facturado:</strong>
-                                            <t t-out="o.debit_origin_id.tax_totals.get('foreign_amount_total')" t-options='{"widget": "monetary", "display_currency": o.foreign_currency_id}'/>
-                                        </span>
-                                        <br/>
-                                    </t>
-                                </t>
-                                <t t-else="">
-                                    <span><strong>Nro de Factura:</strong><t t-if="o.name != '/'" t-out="o.name"/></span>
-                                </t>
-                                <p t-if="o.invoice_origin"><strong>Nro de Pedido:</strong><t t-out="o.invoice_origin"/></p>
-                            </div>
-                            <div class="invoice-date">
-                                <p><strong>Fecha de emisión:</strong> <t t-if="o.invoice_date" t-out="o.invoice_date.strftime('%d/%m/%Y')"/></p>
-                                <p t-if="o.invoice_payment_term_id">
-                                    <strong>Condición de Pago:</strong> <span t-field="o.invoice_payment_term_id.name"/>
-                                </p>
-                            </div>
+                        <div class="invoice-date">
+                            <p><strong>Fecha de emisión:</strong> <t t-if="o.invoice_date" t-out="o.invoice_date.strftime('%d/%m/%Y')"/></p>
+                            <p t-if="o.invoice_payment_term_id">
+                                <strong>Condición de Pago:</strong> <span t-field="o.invoice_payment_term_id.name"/>
+                            </p>
                         </div>
                     </div>
 
                     <t t-set="display_discount" t-value="any(l.discount for l in o.invoice_line_ids)"/>
 
-                    <!-- TABLE (With Subtotal Restored) -->
+                    <!-- TABLE -->
                     <table class="table table-sm o_main_table table-borderless" name="invoice_line_table">
                         <thead>
                             <tr class="border-bottom border-dark">
@@ -158,8 +149,8 @@
                                 <th name="th_priceunit" class="text-end"><span>Precio Unit</span></th>
                                 <th name="th_discount" t-if="display_discount" class="text-end"><span>Disc.%</span></th>
                                 <th name="th_taxes" class="text-start"><span>IVA</span></th>
-                                <th name="th_subtotal" class="text-end"><span>Subtotal</span></th> <!-- Restored -->
-                                <th name="th_total" class="text-end"><span>Total</span></th> <!-- Kept -->
+                                <th name="th_subtotal" class="text-end"><span>Subtotal</span></th>
+                                <th name="th_total" class="text-end"><span>Total</span></th>
                             </tr>
                         </thead>
                        <tbody class="invoice_tbody">
@@ -178,7 +169,7 @@
                                         <span t-field="line.product_uom_id" groups="uom.group_uom"/>
                                     </td>
 
-                                    <!-- Price Calculation (Fixed Logic: Source is always price_unit) -->
+                                    <!-- Price Calculation -->
                                     <t t-set="source_price_unit" t-value="line.price_unit"/> 
                                     <t t-set="source_price_subtotal" t-value="line.price_subtotal"/>
                                     <t t-set="source_price_total" t-value="line.price_total"/>
