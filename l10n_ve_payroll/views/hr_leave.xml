@@ -9,20 +9,20 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='holiday_status_id']" position="after">
                         <field name="is_vaca" invisible="1"/>
-                        <field name="vaca_disponible" invisible="['|',('employee_id', '=', False),('is_vaca','=', False)]"/>
-                        <field name="dias_a_disfrutar" invisible="['|',('employee_id', '=', False),('is_vaca','=', False)]"/>
+                        <field name="vaca_disponible" invisible="not employee_id or not is_vaca"/>
+                        <field name="dias_a_disfrutar" invisible="not employee_id or not is_vaca"/>
                 </xpath>
-                <xpath expr="//div[@name='duration_display']" position="after">
-                    <label for="dias_habiles" string="Días Hábiles" invisible="[('is_vaca','=', False),'|',('request_unit_half', '=', True),('leave_type_request_unit', '!=', 'hour')]"/>
-                    <div name="dias_habiles" invisible="[('is_vaca','=', False),'|',('request_unit_half', '=', True), ('leave_type_request_unit', '!=', 'hour')]">
-                        <div invisible="[('is_vaca','=', False),'|', ('request_unit_half', '=', True), ('request_unit_hours', '=', True)]" class="o_row">
+                <xpath expr="//field[@name='duration_display']" position="after">
+                    <label for="dias_habiles" string="Días Hábiles" invisible="not is_vaca or request_unit_half or leave_type_request_unit != 'hour'"/>
+                    <div name="dias_habiles" invisible="not is_vaca or request_unit_half or leave_type_request_unit != 'hour'">
+                        <div invisible="not is_vaca or request_unit_half or request_unit_hours" class="o_row">
                             <field name="dias_habiles" class="oe_inline"/>
                             <span>Días</span>
                         </div>
                     </div>
-                    <label for="dias_fer_desc" string="Días Feriados y Descanso" invisible="[('is_vaca','=', False),'|',('request_unit_half', '=', True), ('leave_type_request_unit', '!=', 'hour')]"/>
-                    <div name="dias_fer_desc" invisible="[('is_vaca','=', False),'|',('request_unit_half', '=', True), ('leave_type_request_unit', '!=', 'hour')]">
-                        <div invisible="[('is_vaca','=', False),'|', ('request_unit_half', '=', True),('request_unit_hours', '=', True)]" class="o_row">
+                    <label for="dias_fer_desc" string="Días Feriados y Descanso" invisible="not is_vaca or request_unit_half or leave_type_request_unit != 'hour'"/>
+                    <div name="dias_fer_desc" invisible="not is_vaca or request_unit_half or leave_type_request_unit != 'hour'">
+                        <div invisible="not is_vaca or request_unit_half or request_unit_hours" class="o_row">
                             <field name="dias_fer_desc" class="oe_inline"/>
                             <span>Días</span>
                         </div>
