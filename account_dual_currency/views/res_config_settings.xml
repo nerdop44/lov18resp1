@@ -6,7 +6,9 @@
             <field name="model">res.config.settings</field>
             <field name="inherit_id" ref="account.res_config_settings_view_form"/>
             <field name="arch" type="xml">
-                <xpath expr="//div[@name='main_currency_setting_container']" position="inside">
+                <xpath expr="//app[@name='account']" position="inside">
+                    <block title="Dualidad de Moneda" id="dual_currency_section">
+                        <div class="row mt16 o_settings_container">
                             <div class="col-12 col-lg-6 o_setting_box" id="dual_currency">
                                 <div class="o_setting_left_pane"/>
                                 <div class="o_setting_right_pane">
@@ -27,6 +29,8 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </block>
                 </xpath>
             </field>
         </record>

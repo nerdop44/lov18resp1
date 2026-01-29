@@ -7,3 +7,4 @@ class ResCompany(models.Model):
                                       string="Moneda Dual Ref.",
                                       default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')],
                                                                                            limit=1), )
+    igtf_divisa_porcentage = fields.Float(string='Porcentaje IGTF', default=3.0)
