@@ -341,17 +341,18 @@
                                 </table>
                             </t>
 
-                            <!-- FIXED COLUMN ORDER: VEF (Left) | USD (Right) -->
-                            <!-- Requested: "format vef: usd right, vef left", "format usd: vef left, usd right" -->
-                            <!-- So VEF is ALWAYS Left, USD is ALWAYS Right. -->
-                            <!-- Left Column: VEF -->
-                            <div class="col-6">
-                                <t t-out="vef_table_content"/>
-                            </div>
-
-                            <!-- Right Column: USD -->
+                            <!-- FIXED COLUMN ORDER: USD (Left) | VEF (Right) -->
+                            <!-- Requested Correction: "forma vef: montos vef a la derecha, usd izquierda" -->
+                            <!-- Applying globally for consistency -->
+                            
+                            <!-- Left Column: USD -->
                             <div class="col-6">
                                  <t t-out="usd_table_content"/>
+                            </div>
+
+                            <!-- Right Column: VEF -->
+                            <div class="col-6">
+                                <t t-out="vef_table_content"/>
                             </div>
                         </div>
                     </div>
