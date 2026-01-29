@@ -63,6 +63,7 @@
                     <t t-set="is_vef_report" t-value="print_currency == 'VEF'"/>
                     <t t-set="vef_currency" t-value="o.env['res.currency'].search([('name', 'in', ['VEF', 'VES'])], limit=1)"/>
                     <t t-set="usd_currency" t-value="o.env['res.currency'].search([('name', '=', 'USD')], limit=1)"/>
+                    <t t-set="rate" t-value="o.foreign_rate or 1.0"/>
                     
                     <!-- Report Currency -->
                     <t t-set="current_currency" t-value="vef_currency if is_vef_report else usd_currency"/>
