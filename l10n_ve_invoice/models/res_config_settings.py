@@ -28,7 +28,7 @@ class ResConfigSettings(models.TransientModel):
     activate_custom_margin = fields.Boolean(
         related="company_id.activate_custom_margin", 
         readonly=False,
-        string="Activar Margen Personalizado"
+        string="Margen Superior Personalizado Forma Libre"
     )
 
     @api.onchange("activate_custom_margin")

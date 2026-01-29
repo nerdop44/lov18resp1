@@ -57,14 +57,14 @@
                             <div class="o_setting_right_pane">
                                 <label for="activate_custom_margin"/>
                                 <div class="text-muted">
-                                    Habilitar ajuste vertical manual para facturas forma libre.
+                                    Habilitar opción para desplazar el contenido de la factura.
                                 </div>
                                 <div class="content-group" invisible="not activate_custom_margin">
                                     <div class="mt16">
                                         <label for="forma_libre_top_margin" string="Desplazamiento (cm)"/>
                                         <field name="forma_libre_top_margin" class="o_light_label"/>
                                         <div class="text-muted">
-                                            <strong>Nota:</strong> Valor adicional al margen predeterminado.
+                                            <strong>Ayuda:</strong> El incremento en cm es para bajar el contenido y los cm que agregren es adicionales a la altura actual del contenido no del borde superior de la hoja.
                                         </div>
                                     </div>
                                 </div>
