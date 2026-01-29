@@ -1,13 +1,13 @@
 {
-    "name": "[LocVe] Binaural Localización",
+    "name": "Binaural Localización",
     "summary": """
         Maestros de ciudades, municipios
 parroquias. 
     """,
     "license": "LGPL-3",
-    "author": "Remake Ing Nerdo Pulido",
+    "author": "Binauraldev",
     "website": "https://binauraldev.com/",
-    "category": "LocVe [Localization]",
+    "category": "Accounting/Accounting",
     "version": "18.0.1.0.1",
     "depends": ["base", "contacts"],
     "data": [

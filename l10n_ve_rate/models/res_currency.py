@@ -71,7 +71,7 @@ class ResCurrency(models.Model):
 
         # Si 'date' no se proporciona, usa la fecha actual.
         if not date:
-            date = fields.Date.today()
+            date = fields.Date.context_today(self)
         assert date, "convert amount from unknown date (could not infer)" # Mantenemos el assert por si falla la inferencia
         # --- FIN DE LA LÓGICA DE INFERENCIA ---
 

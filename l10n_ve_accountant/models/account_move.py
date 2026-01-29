@@ -37,7 +37,7 @@ class AccountMove(models.Model):
 
     @api.onchange("move_type")
     def _onchange_move_type(self):
-        self.invoice_date = False if self.move_type == "entry" else fields.Date.today()
+        self.invoice_date = False if self.move_type == "entry" else fields.Date.context_today(self)
         # --- MODIFICACIÓN AGREGADA AQUÍ ---
         if not self.date:
             self.date = fields.Date.context_today(self)
@@ -352,7 +352,7 @@ class AccountMove(models.Model):
                 move.foreign_inverse_rate = move.reversed_entry_id.foreign_inverse_rate
             Rate = self.env["res.currency.rate"]
             rate_values = Rate.compute_rate(
-                move.foreign_currency_id.id, move.invoice_date or fields.Date.today()
+                move.foreign_currency_id.id, move.invoice_date or fields.Date.context_today(self)
             )
             last_foreign_rate = rate_values.get("foreign_rate", 0)
             if move.manually_set_rate and move.foreign_rate != last_foreign_rate:
@@ -696,7 +696,7 @@ class AccountMove(models.Model):
             if move.manually_set_rate:
                 continue
             date_field = "invoice_date" if is_sale else "date"
-            rate_date = getattr(move, date_field) or fields.Date.today()
+            rate_date = getattr(move, date_field) or fields.Date.context_today(self)
             rate_values = Rate.compute_rate(move.foreign_currency_id.id, rate_date)
             move.foreign_rate = rate_values.get("foreign_rate", 0)
             move.foreign_inverse_rate = rate_values.get("foreign_inverse_rate", 0)

@@ -1,12 +1,12 @@
 {
-    "name": "[LocVe] Binaural Tasa de Cambio",
+    "name": "Binaural Tasa de Cambio",
     "summary": """
         Módulo para obtener la tasa de cambio de la moneda base a la moneda extranjera
     """,
     "license": "LGPL-3",
-    "author": "Remake Ing Nerdo Pulido",
+    "author": "Binauraldev",
     "website": "https://binauraldev.com/",
-    "category": "LocVe [Localization]",
+    "category": "Technical",
     "version": "18.0.1.0.1",
     # any module necessary for this one to work correctly
     "depends": ["base", "base_setup", "l10n_ve_base"],
