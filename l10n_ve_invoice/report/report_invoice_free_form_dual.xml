@@ -72,7 +72,7 @@
 
                         
                             <!-- HEADER (Logo & Company Info) -->
-                            <div class="row mt-4 mb-2">
+                            <div class="mt-4 mb-2">
                                 <span><strong>Razón Social:</strong> <t t-out="o.partner_id.name"/></span>
                                 <br/>
                                 <span>
