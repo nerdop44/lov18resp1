@@ -352,7 +352,6 @@
                         <t t-call="l10n_ve_invoice.report_freeform_document_dual" t-lang="lang"/>
                     </t>
                 </t>
-                </t>
             </t>
         </template>
 
@@ -364,7 +363,6 @@
                         <t t-set="lang" t-value="o.partner_id.lang"/>
                         <t t-call="l10n_ve_invoice.report_freeform_document_dual" t-lang="lang"/>
                     </t>
-                </t>
                 </t>
             </t>
         </template>
