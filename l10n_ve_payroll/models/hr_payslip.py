@@ -8,7 +8,6 @@ from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
 from odoo import api, Command, fields, models, _
-from odoo.addons.hr_payroll.models.browsable_object import BrowsableObject, InputLine, WorkedDays, Payslips, ResultRules
 from odoo.exceptions import UserError, ValidationError
 from odoo.osv.expression import AND
 from odoo.tools import float_round, date_utils, convert_file, html2plaintext, is_html_empty, format_amount
@@ -481,8 +480,8 @@ class HRPayslip(models.Model):
             if localdict is None:
                 localdict = payslip._get_localdict()
 
-            rules_dict = localdict['rules'].dict
-            result_rules_dict = localdict['result_rules'].dict
+            rules_dict = localdict['rules']
+            result_rules_dict = localdict['result_rules']
 
             blacklisted_rule_ids = self.env.context.get('prevent_payslip_computation_line_ids', [])
 
