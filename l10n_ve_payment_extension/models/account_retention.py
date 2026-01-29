@@ -269,7 +269,7 @@ class AccountRetention(models.Model):
 
     def _load_retention_lines_for_iva_supplier_retention(self):
         self.ensure_one()
-        self.date_accounting = fields.Date.today()
+        self.date_accounting = fields.Date.context_today(self)
         search_domain = [
             ("company_id", "=", self.company_id.id),
             ("partner_id", "=", self.partner_id.id),
@@ -750,7 +750,7 @@ class AccountRetention(models.Model):
 #                'payment_method_id': self.env.ref(payment_method_ref).id,
 #                'amount': sum(lines.mapped('retention_amount')),
 #                'currency_id': self.env.company.currency_id.id,
-#                'date': self.date_accounting or fields.Date.today(),
+#                'date': self.date_accounting or fields.Date.context_today(self),
 #             }
         
 #            payment = Payment.create(payment_vals)
@@ -826,7 +826,7 @@ class AccountRetention(models.Model):
                 'payment_method_id': self.env.ref(payment_method_ref).id,
                 'amount': total_retention,
                 'currency_id': self.env.company.currency_id.id,
-                'date': self.date_accounting or fields.Date.today(),
+                'date': self.date_accounting or fields.Date.context_today(self),
                 "retention_line_ids": [Command.set(lines.ids)],
             }
 

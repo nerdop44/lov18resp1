@@ -187,7 +187,7 @@ class AccountPayment(models.Model):
                 continue
 
             rate_values = Rate.compute_rate(
-                payment.foreign_currency_id.id, payment.date or fields.Date.today()
+                payment.foreign_currency_id.id, payment.date or fields.Date.context_today(self)
             )
 
             # Validación adicional

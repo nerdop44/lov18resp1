@@ -167,7 +167,7 @@ class AccountMove(models.Model):
                 continue
             for term in invoice.payment_term_details:
                 term_date = datetime.strptime(term.get("date", ""), date_format).date()
-                if term_date and term_date >= fields.Date.today():
+                if term_date and term_date >= fields.Date.context_today(self):
                     invoice.next_installment_date = term_date
                     break
 
