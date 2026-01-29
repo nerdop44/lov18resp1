@@ -10,12 +10,12 @@ class HREmpleyee(models.Model):
         store=True,
         readonly=False, related="")
 
-    identification_id = fields.Char(string="Cédula de Identidad", related='work_contact_id.identification_id')
+    identification_id = fields.Char(string="Cédula de Identidad")
     nationality = fields.Selection([
         ('V', 'Venezolano'),
         ('E', 'Extranjero'),
-        ('P', 'Pasaporte')], string="Tipo Documento", related="work_contact_id.nationality")
-    rif = fields.Char(string="RIF", related='work_contact_id.rif')
+        ('P', 'Pasaporte')], string="Tipo Documento")
+    rif = fields.Char(string="RIF")
     islr = fields.Float(string="% ISLR", default=0)
 
     primer_nombre = fields.Char(string="Primer Nombre", required=True)
