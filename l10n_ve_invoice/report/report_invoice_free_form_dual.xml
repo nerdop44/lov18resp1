@@ -48,6 +48,11 @@
                         padding-top: 1px;
                         padding-bottom: 1px;
                     }
+                    .totals-table-compact td {
+                        padding-top: 0px !important;
+                        padding-bottom: 0px !important;
+                        line-height: 1.0 !important;
+                    }
                 </style>
                 <div class="page">
                     <!-- Context Setup -->
@@ -288,7 +293,7 @@
                             <!-- DEFINITION OF TABLES -->
                             <!-- USD Table Block -->
                             <t t-set="usd_table_content">
-                                <table class="table table-borderless table-sm">
+                                <table class="table table-borderless table-sm totals-table-compact">
                                     <tr t-if="exento_usd > 0">
                                         <td class="text-end"><strong>Exento</strong></td>
                                         <td class="text-end"><span t-esc="exento_usd" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
@@ -318,7 +323,7 @@
 
                             <!-- VEF Table Block -->
                             <t t-set="vef_table_content">
-                                <table class="table table-borderless table-sm">
+                                <table class="table table-borderless table-sm totals-table-compact">
                                      <tr t-if="exento_vef > 0">
                                         <td class="text-end"><strong>Exento</strong></td>
                                         <td class="text-end"><span t-esc="exento_vef" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
