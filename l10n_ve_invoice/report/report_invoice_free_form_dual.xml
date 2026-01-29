@@ -51,6 +51,7 @@
                     .footer-text-compact {
                         line-height: 1.0 !important;
                         margin-bottom: 1px !important;
+                        font-size: 0.85rem !important;
                     }
                     .header-address {
                         font-size: 0.95rem;
@@ -371,7 +372,7 @@
 
                     <!-- IGTF Info (Moved After Coletilla) -->
                     <!-- IGTF Info (Optimized single line) -->
-                    <div name="igtf_info" class="mt-1 footer-text-compact" style="font-size: 0.70rem;">
+                    <div name="igtf_info" class="mt-1 footer-text-compact">
                          <span>Todo pago està sujeto a la aplicaciòn de la LIGTF GO 6687 y la PA SNAT/2022/000013 Se designa a sujetos pasivos especiales como Agente de Percepciòn del IGTF 3%</span>
                     </div>
 
