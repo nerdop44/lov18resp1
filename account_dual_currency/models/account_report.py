@@ -28,8 +28,8 @@ class AccountReport(models.AbstractModel):
 
     CURRENCY_DIF = None
 
-    search_template = fields.Char(string="Search Template", required=True, compute='_compute_search_template',
-                                  default='account_dual_currency.search_template_generic_currency_dif')
+    # search_template = fields.Char(string="Search Template", required=True, compute='_compute_search_template',
+    #                               default='account_dual_currency.search_template_generic_currency_dif')
 
     def export_to_pdf(self, options):
         self.ensure_one()
@@ -86,8 +86,8 @@ class AccountReport(models.AbstractModel):
             'file_type': 'pdf',
         }
 
-    def _compute_search_template(self):
-        self.search_template = 'account_dual_currency.search_template_generic_currency_dif'
+    # def _compute_search_template(self):
+    #     self.search_template = 'account_dual_currency.search_template_generic_currency_dif'
 
 
     def _get_options(self, previous_options=None):
