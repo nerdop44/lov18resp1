@@ -53,6 +53,10 @@
                         padding-bottom: 0px !important;
                         line-height: 1.0 !important;
                     }
+                    .footer-text-compact {
+                        line-height: 1.0 !important;
+                        margin-bottom: 1px !important;
+                    }
                 </style>
                 <div class="page">
                     <!-- Context Setup -->
@@ -374,7 +378,7 @@
                     
 
                     <!-- Coletilla (RESTORED EXACTLY) -->
-                    <div name="coletilla"> 
+                    <div name="coletilla" class="footer-text-compact"> 
                         <span t-if="o.company_id.show_tag_on_usd_invoice">
                             A los efectos de lo previsto en el <strong>Art. 25</strong> de la Ley de
                             Impuesto al Valor Agregado se expresa el monto total
@@ -385,14 +389,14 @@
 
 
                     <!-- IGTF Info (Moved After Coletilla) -->
-                    <div name="igtf_info" class="mt-1">
+                    <div name="igtf_info" class="mt-1 footer-text-compact">
                         <span>Todo pago està sujeto a la aplicaciòn de la &#160;<strong>LIGTF GO 6687 y la PA SNAT/2022/000013</strong></span>
                         <br/>
                         <span>Se designa a sujetos pasivos especiales como Agente de Percepciòn del <strong>IGTF 3%</strong></span>
                     </div>
 
                     <!-- Observations (Terms & Conditions) - Max 3 lines -->
-                    <div t-if="not is_html_empty(o.narration)" name="comment" class="mt-2">
+                    <div t-if="not is_html_empty(o.narration)" name="comment" class="mt-2 footer-text-compact">
                         <strong>Observaciones:</strong>
                         <div style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-align: justify;">
                             <span t-field="o.narration" t-options="{'widget': 'text'}"/>
