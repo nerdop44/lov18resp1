@@ -40,7 +40,7 @@
                                 <field name="vaca_disponible"/>
                             </group>
                             <group string="Historico">
-                                <field name="vacaciones_ids" nolabel="1" colspan="2" domain="[('employee_id','=',active_id)]">
+                                <field name="vacaciones_ids" nolabel="1" colspan="2" domain="[('employee_id','=',employee_id)]">
                                     <list  create="0" delete="0">
                                         <field name="anio"/>
                                         <field name="dias_vaca"/>
