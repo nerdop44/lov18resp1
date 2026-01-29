@@ -55,6 +55,12 @@
                     .header-address {
                         font-size: 0.95rem;
                     }
+                    .totals-table-compact td {
+                        padding-top: 0px !important;
+                        padding-bottom: 0px !important;
+                        line-height: 1.0 !important;
+                        border: none !important;
+                    }
                 </style>
                 <div class="page">
                     <!-- Context Setup -->
@@ -364,10 +370,9 @@
 
 
                     <!-- IGTF Info (Moved After Coletilla) -->
-                    <div name="igtf_info" class="mt-1 footer-text-compact">
-                        <span>Todo pago està sujeto a la aplicaciòn de la &#160;<strong>LIGTF GO 6687 y la PA SNAT/2022/000013</strong></span>
-                        <br/>
-                        <span>Se designa a sujetos pasivos especiales como Agente de Percepciòn del <strong>IGTF 3%</strong></span>
+                    <!-- IGTF Info (Optimized single line) -->
+                    <div name="igtf_info" class="mt-1 footer-text-compact" style="font-size: 0.70rem;">
+                         <span>Todo pago està sujeto a la aplicaciòn de la LIGTF GO 6687 y la PA SNAT/2022/000013 Se designa a sujetos pasivos especiales como Agente de Percepciòn del IGTF 3%</span>
                     </div>
 
                     <!-- Observations (Terms & Conditions) - Max 3 lines -->
