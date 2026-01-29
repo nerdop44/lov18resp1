@@ -51,16 +51,21 @@
 
                         <!-- Forma Libre Top Margin Setting -->
                         <div class="col-12 col-lg-6 o_setting_box" id="forma_libre_margin_setting">
+                            <div class="o_setting_left_pane">
+                                <field name="activate_custom_margin"/>
+                            </div>
                             <div class="o_setting_right_pane">
-                                <label for="forma_libre_top_margin"/>
+                                <label for="activate_custom_margin"/>
                                 <div class="text-muted">
-                                    Desplazamiento vertical adicional para facturas forma libre.
-                                    <br/>
-                                    <strong>Nota:</strong> El incremento en cm es para bajar el contenido; los cm agregados son adicionales a la altura actual, no desde el borde superior de la hoja.
+                                    Habilitar ajuste vertical manual para facturas forma libre.
                                 </div>
-                                <div class="content-group">
+                                <div class="content-group" invisible="not activate_custom_margin">
                                     <div class="mt16">
-                                        <field name="forma_libre_top_margin" class="o_light_label"/> cm
+                                        <label for="forma_libre_top_margin" string="Desplazamiento (cm)"/>
+                                        <field name="forma_libre_top_margin" class="o_light_label"/>
+                                        <div class="text-muted">
+                                            <strong>Nota:</strong> Valor adicional al margen predeterminado.
+                                        </div>
                                     </div>
                                 </div>
                             </div>

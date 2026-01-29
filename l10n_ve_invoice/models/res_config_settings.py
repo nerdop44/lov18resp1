@@ -25,6 +25,16 @@ class ResConfigSettings(models.TransientModel):
         readonly=False,
         string="Margen Superior Forma Libre (cm)"
     )
+    activate_custom_margin = fields.Boolean(
+        related="company_id.activate_custom_margin", 
+        readonly=False,
+        string="Activar Margen Personalizado"
+    )
+
+    @api.onchange("activate_custom_margin")
+    def _onchange_activate_custom_margin(self):
+        if not self.activate_custom_margin:
+            self.forma_libre_top_margin = 0.0
 
     @api.onchange("group_sales_invoicing_series")
     def onchange_group_sales_invoicing_series(self):
