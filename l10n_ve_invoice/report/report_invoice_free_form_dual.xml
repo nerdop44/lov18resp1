@@ -341,18 +341,22 @@
                                 </table>
                             </t>
 
-                            <!-- FIXED COLUMN ORDER: USD (Left) | VEF (Right) -->
-                            <!-- Requested Correction: "forma vef: montos vef a la derecha, usd izquierda" -->
-                            <!-- Applying globally for consistency -->
+                            <!-- FIXED COLUMN ORDER: Secondary (Left) | Primary (Right) -->
+                            <!-- Requested: 
+                                 VEF Report -> VEF Right, USD Left
+                                 USD Report -> USD Right, VEF Left
+                            -->
                             
-                            <!-- Left Column: USD -->
+                            <!-- Left Column: Secondary Currency -->
                             <div class="col-6">
-                                 <t t-out="usd_table_content"/>
+                                <t t-if="is_vef_report" t-out="usd_table_content"/>
+                                <t t-else="" t-out="vef_table_content"/>
                             </div>
 
-                            <!-- Right Column: VEF -->
+                            <!-- Right Column: Primary Currency -->
                             <div class="col-6">
-                                <t t-out="vef_table_content"/>
+                                <t t-if="is_vef_report" t-out="vef_table_content"/>
+                                <t t-else="" t-out="usd_table_content"/>
                             </div>
                         </div>
                     </div>
