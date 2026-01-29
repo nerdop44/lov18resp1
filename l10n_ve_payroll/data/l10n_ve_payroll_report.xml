@@ -118,22 +118,22 @@
             <record id="payroll_report_nomina_empleados_codigo_concepto" model="account.report.column">
                 <field name="name">Código</field>
                 <field name="expression_label">codigo_concepto</field>
-                <field name="figure_type">none</field>
+                <field name="figure_type">string</field>
             </record>
             <record id="payroll_report_nomina_empleados_descripcion" model="account.report.column">
                 <field name="name">Descripción</field>
                 <field name="expression_label">descripcion</field>
-                <field name="figure_type">none</field>
+                <field name="figure_type">string</field>
             </record>
             <record id="payroll_report_nomina_empleados_dias" model="account.report.column">
                 <field name="name">Días</field>
                 <field name="expression_label">dias</field>
-                <field name="figure_type">none</field>
+                <field name="figure_type">string</field>
             </record>
             <record id="payroll_report_nomina_empleados_horas" model="account.report.column">
                 <field name="name">Horas</field>
                 <field name="expression_label">dias</field>
-                <field name="figure_type">none</field>
+                <field name="figure_type">string</field>
             </record>
 
             <record id="payroll_report_nomina_empleados_asigna" model="account.report.column">
