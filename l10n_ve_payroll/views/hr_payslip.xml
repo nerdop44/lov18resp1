@@ -6,10 +6,10 @@
             <field name="inherit_id" ref="hr_payroll.view_hr_payslip_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='date_from']" position="attributes">
-                    <attribute name="attrs">{'readonly': [('payslip_run_id','!=', False)]}</attribute>
+                    <attribute name="readonly">payslip_run_id</attribute>
                 </xpath>
                 <xpath expr="//field[@name='date_to']" position="attributes">
-                    <attribute name="attrs">{'readonly': [('payslip_run_id','!=', False)]}</attribute>
+                    <attribute name="readonly">payslip_run_id</attribute>
                 </xpath>
                 <xpath expr="//field[@name='move_id']" position="after">
                     <field name="pestaciones_id" force_save="1" readonly="1" />
@@ -26,11 +26,9 @@
                     </group>
                 </xpath>
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[1]/field[@name='worked_days_line_ids']/list[1]/field[@name='work_entry_type_id']" position="attributes">
-                    <attribute name="attrs">{}</attribute>
                     <attribute name="invisible">1</attribute>
                 </xpath>
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[1]/field[@name='worked_days_line_ids']/list[1]/field[@name='amount']" position="attributes">
-                    <attribute name="attrs">{}</attribute>
                     <attribute name="invisible">1</attribute>
                 </xpath>
 
@@ -84,9 +82,9 @@
                         </group>
                         <group>
                             <group string="Prestamos">
-                                <field name="installment_ids" widget="many2many_tags" readonly="[('state','!=','draft')]"/>
-                                <field name="installment_amount" invisible="[('installment_ids','=',False)]"/>
-                                <field name="installment_int" invisible="[('installment_ids','=',False)]"/>
+                                <field name="installment_ids" widget="many2many_tags" readonly="state != 'draft'"/>
+                                <field name="installment_amount" invisible="not installment_ids"/>
+                                <field name="installment_int" invisible="not installment_ids"/>
                             </group>
                             <group>
                             </group>
