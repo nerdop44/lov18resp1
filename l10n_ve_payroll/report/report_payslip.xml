@@ -22,7 +22,7 @@
         <xpath expr="//strong[@id='invalid_warning']" position="attributes">
             <attribute name="style">color: red; font-size: 12px; font-weight: bold;</attribute>
         </xpath>
-        <xpath expr="//table[@id='employee_info_table_1']" position="replace">
+        <xpath expr="//div[@id='infos_table']" position="replace">
             <table name="employee-infos" id="employee_info_table_1" class="table-bordered" style="width: 100%; padding: 10px;margin-top: 10px;">
                 <thead>
                     <tr id="employee_info_line_1" style="background-color: #e9e9e9;">
