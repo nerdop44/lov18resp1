@@ -255,6 +255,7 @@
                                   <t t-set="vef_total" t-value="amount_total * rate"/>
                              </t>
                              
+
                              <!-- Calculate Exento -->
                              <t t-set="exento_orig" t-value="sum(l.price_subtotal for l in o.invoice_line_ids if not l.tax_ids)"/>
                              <t t-set="exento_vef" t-value="exento_orig"/>
@@ -265,6 +266,15 @@
                              </t>
                              <t t-if="o.currency_id == usd_currency">
                                   <t t-set="exento_vef" t-value="exento_orig * rate"/>
+                             </t>
+
+                             <!-- IGTF Calculation (Only if Invoice is USD) -->
+                             <t t-set="igtf_vef" t-value="0"/>
+                             <t t-set="igtf_usd" t-value="0"/>
+                             <t t-set="has_igtf" t-value="o.currency_id == usd_currency"/>
+                             <t t-if="has_igtf">
+                                 <t t-set="igtf_usd" t-value="usd_total * 0.03"/>
+                                 <t t-set="igtf_vef" t-value="vef_total * 0.03"/>
                              </t>
 
                             <!-- DEFINITION OF TABLES -->
@@ -283,9 +293,17 @@
                                         <td class="text-end"><strong>IVA</strong></td>
                                         <td class="text-end"><span t-esc="usd_tax" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
                                     </tr>
-                                    <tr class="border-black border-top">
+                                    <tr> <!-- Border removed -->
                                         <td class="text-end"><strong>Total</strong></td>
                                         <td class="text-end"><span t-esc="usd_total" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
+                                    </tr>
+                                    <tr t-if="has_igtf">
+                                        <td class="text-end"><strong>IGTF (3%)</strong></td>
+                                        <td class="text-end"><span t-esc="igtf_usd" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
+                                    </tr>
+                                    <tr t-if="has_igtf">
+                                        <td class="text-end"><strong>Total a Pagar</strong></td>
+                                        <td class="text-end"><span t-esc="usd_total + igtf_usd" t-options='{"widget": "monetary", "display_currency": usd_currency}'/></td>
                                     </tr>
                                 </table>
                             </t>
@@ -305,33 +323,37 @@
                                         <td class="text-end"><strong>IVA</strong></td>
                                         <td class="text-end"><span t-esc="vef_tax" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
                                     </tr>
-                                    <tr class="border-black border-top">
+                                    <tr> <!-- Border removed -->
                                         <td class="text-end"><strong>Total</strong></td>
                                         <td class="text-end"><span t-esc="vef_total" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
+                                    </tr>
+                                    <tr t-if="has_igtf">
+                                        <td class="text-end"><strong>IGTF (3%)</strong></td>
+                                        <td class="text-end"><span t-esc="igtf_vef" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
+                                    </tr>
+                                    <tr t-if="has_igtf">
+                                        <td class="text-end"><strong>Total a Pagar</strong></td>
+                                        <td class="text-end"><span t-esc="vef_total + igtf_vef" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></td>
                                     </tr>
                                 </table>
                             </t>
 
-                            <!-- Left Column: Primary Currency -->
+                            <!-- FIXED COLUMN ORDER: VEF (Left) | USD (Right) -->
+                            <!-- Requested: "format vef: usd right, vef left", "format usd: vef left, usd right" -->
+                            <!-- So VEF is ALWAYS Left, USD is ALWAYS Right. -->
+                            <!-- Left Column: VEF -->
                             <div class="col-6">
-                                <t t-if="is_vef_report" t-out="vef_table_content"/>
-                                <t t-else="" t-out="usd_table_content"/>
+                                <t t-out="vef_table_content"/>
                             </div>
 
-                            <!-- Right Column: Secondary Currency -->
+                            <!-- Right Column: USD -->
                             <div class="col-6">
-                                 <t t-if="is_vef_report" t-out="usd_table_content"/>
-                                <t t-else="" t-out="vef_table_content"/>
+                                 <t t-out="usd_table_content"/>
                             </div>
                         </div>
                     </div>
                     
-                     <!-- IGTF Info (Manually Added) -->
-                    <div name="igtf_info">
-                        <span>Todo pago està sujeto a la aplicaciòn de la &#160;<strong>LIGTF GO 6687 y la PA SNAT/2022/000013</strong></span>
-                        <br/>
-                        <span>Se designa a sujetos pasivos especiales como Agente de Percepciòn del <strong>IGTF 3%</strong></span>
-                    </div>
+                    
 
                     <!-- Coletilla (RESTORED EXACTLY) -->
                     <div name="coletilla"> 
@@ -341,6 +363,13 @@
                             de la factura en <strong>USD</strong> calculado a la tasa de cambio
                             establecida por BCV de 1US$ por <strong><t t-out="o.foreign_rate" t-options='{"widget": "monetary", "display_currency": o.env["res.currency"].browse(int(%(base.VEF)s))}'/></strong>
                         </span>
+                    </div>
+
+                    <!-- IGTF Info (Moved After Coletilla) -->
+                    <div name="igtf_info" class="mt-1">
+                        <span>Todo pago està sujeto a la aplicaciòn de la &#160;<strong>LIGTF GO 6687 y la PA SNAT/2022/000013</strong></span>
+                        <br/>
+                        <span>Se designa a sujetos pasivos especiales como Agente de Percepciòn del <strong>IGTF 3%</strong></span>
                     </div>
 
                     <div t-if="not is_html_empty(o.narration)" name="comment">
