@@ -270,6 +270,7 @@
                              <!-- User request: "el igtf no aplica en forma libre vef" -->
                              <t t-set="igtf_vef" t-value="0"/>
                              <t t-set="igtf_usd" t-value="0"/>
+                             <t t-set="base_vef" t-value="o.currency_id.name in ['VES', 'VEF']"/>
                              <t t-set="has_igtf" t-value="(o.currency_id == usd_currency) and (not is_vef_report)"/>
                              <t t-if="has_igtf">
                                  <t t-set="igtf_usd" t-value="usd_total * 0.03"/>

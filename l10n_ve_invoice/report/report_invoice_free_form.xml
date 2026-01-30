@@ -218,7 +218,7 @@
                         A los efectos de lo previsto en el <strong>Art. 25</strong> de la Ley de
                         Impuesto al Valor Agregado se expresa el monto total
                         de la factura en <strong>USD</strong> calculado a la tasa de cambio
-                        establecida por BCV de 1US$ por <strong><t t-out="o.foreign_rate" t-options='{"widget": "monetary", "display_currency": o.env["res.currency"].browse(int(%(base.VEF)s))}'/></strong>
+                        establecida por BCV de 1US$ por <strong><t t-out="o.foreign_rate" t-options='{"widget": "monetary", "display_currency": o.env["res.currency"].search([("name", "in", ["VES", "VEF"])], limit=1)}'/></strong>
                     </span>
                 </div>
                 
@@ -235,7 +235,7 @@
         </template>
 
         <template id="tax_groups_totals">
-            <t t-set="base_vef" t-value="o.currency_id.id == %(base.VEF)s"/>
+            <t t-set="base_vef" t-value="o.currency_id.name in ['VES', 'VEF']"/>
             <t t-set="str_tax" t-value="'subtotals' if base_vef else 'foreign_subtotals'"/>
 
             <t t-if="tax_totals.get(str_tax)">
@@ -291,7 +291,7 @@
                     </td>
                 </tr>
             </t>
-            <t t-set="base_vef" t-value="o.currency_id.id == %(base.VEF)s"/>
+            <t t-set="base_vef" t-value="o.currency_id.name in ['VES', 'VEF']"/>
             <t t-set="str_tax" t-value="'subtotals' if base_vef else 'foreign_subtotals'"/>
             <t t-foreach="tax_totals.get(str_tax, [])" t-as="subtotal">
                 <tr class="border-black o_subtotal">
@@ -343,7 +343,7 @@
                     <t t-foreach="docs" t-as="o">
                         <t t-set="lang" t-value="o.partner_id.lang"/>
                         <t t-set="o" t-value="o.with_context(lang=lang)" />
-                        <t t-set="base_vef" t-value="o.currency_id.id == %(base.VEF)s"/>
+                        <t t-set="base_vef" t-value="o.currency_id.name in ['VES', 'VEF']"/>
                         <t t-set="forced_vat" t-value="o.fiscal_position_id.foreign_vat"/> <!-- So that it appears in the footer of the report instead of the company VAT if it's set -->
                         <t t-call="l10n_ve_invoice.report_freeform_document" t-lang="lang"/>
                     </t>
