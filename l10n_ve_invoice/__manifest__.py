@@ -1,7 +1,7 @@
 {
     "name": "Binaural Facturación",
     "summary": """
-       Modulo para contabilidad Venezolana """,
+       Modulo para contabilidad Venezolana (Green Build) """,
     "version": "18.0.1.0.4",
     "license": "LGPL-3",
     "author": "Binauraldev",
