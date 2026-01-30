@@ -1,18 +1,17 @@
 /** @odoo-module **/
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-const { Component, onWillStart, useState } = owl;
-import session from "web.session";
+import { Component, onWillStart, useState } from "@odoo/owl";
 
 class TRM extends Component {
     setup() {
-        super.setup(...arguments);
         this.state = useState({ trm: 0 });
-        var company_id = session.company_id;
         this.orm = useService('orm');
+
         onWillStart(async () => {
             console.log('TRM: Fetching rate...');
             try {
+                // Call the model method without arguments
                 var trm = await this.orm.call('res.currency', 'get_trm_systray', []);
                 console.log('TRM: Rate received', trm);
                 this.state.trm = trm;
@@ -24,8 +23,6 @@ class TRM extends Component {
 
     get trm() {
         return this.state.trm;
-    }
-    _onClick() {
     }
 }
 
