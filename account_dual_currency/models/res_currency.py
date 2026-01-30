@@ -228,6 +228,7 @@ class ResCurrency(models.Model):
         for m in monedas:
             m.actualizar_tasa()
 
+    @api.model
     def get_trm_systray(self):
         company_id = self.env.company
         rates = company_id.currency_id_dif.inverse_rate

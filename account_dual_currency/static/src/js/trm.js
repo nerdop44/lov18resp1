@@ -11,8 +11,14 @@ class TRM extends Component {
         var company_id = session.company_id;
         this.orm = useService('orm');
         onWillStart(async () => {
-            var trm = await this.orm.call('res.currency', 'get_trm_systray', [company_id]);
-            this.state.trm = trm;
+            console.log('TRM: Fetching rate...');
+            try {
+                var trm = await this.orm.call('res.currency', 'get_trm_systray', []);
+                console.log('TRM: Rate received', trm);
+                this.state.trm = trm;
+            } catch (e) {
+                console.error('TRM: Error fetching rate', e);
+            }
         });
     }
 
@@ -24,6 +30,6 @@ class TRM extends Component {
 }
 
 TRM.template = "trm_menu";
-export const trmItem = { Component: TRM};
+export const trmItem = { Component: TRM };
 
-registry.category("systray").add("TRM", trmItem, {sequence: 1});
+registry.category("systray").add("TRM", trmItem, { sequence: 1 });
