@@ -231,10 +231,20 @@ class ResCurrency(models.Model):
     @api.model
     def get_trm_systray(self):
         company_id = self.env.company
-        rates = company_id.currency_id_dif.inverse_rate
-        decimal_dual_currency_rate = self.env['decimal.precision'].precision_get('Dual_Currency_rate')
-        if rates:
-            rates = round(rates, decimal_dual_currency_rate if decimal_dual_currency_rate else 2)
+        currency_dif = company_id.currency_id_dif
+        if not currency_dif:
+            return 0.0
+
+        # Busqueda directa de la ultima tasa registrada
+        last_rate = self.env['res.currency.rate'].search([
+            ('currency_id', '=', currency_dif.id),
+            ('company_id', '=', company_id.id),
+        ], order='name desc', limit=1)
+
+        if last_rate and last_rate.rate > 0:
+            tasa = 1 / last_rate.rate
         else:
-            rates = 0
-        return rates
+            tasa = 1.0
+
+        decimal_dual_currency_rate = self.env['decimal.precision'].precision_get('Dual_Currency_rate')
+        return round(tasa, decimal_dual_currency_rate if decimal_dual_currency_rate else 2)
