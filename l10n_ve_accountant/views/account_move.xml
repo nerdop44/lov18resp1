@@ -1,7 +1,6 @@
-
 <odoo>
-	<data>
-
-	
+    <data>
+        <!-- Explicitly delete the duplicate invalid view that might exist in the database -->
+        <delete model="ir.ui.view" id="account_move_form_binaural_payment_extension"/>
     </data>
 </odoo>
