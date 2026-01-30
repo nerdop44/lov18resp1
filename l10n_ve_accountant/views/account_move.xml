@@ -1,6 +1,7 @@
 <odoo>
     <data>
-        <!-- Explicitly delete the duplicate invalid view that might exist in the database -->
-        <delete model="ir.ui.view" id="account_move_form_binaural_payment_extension"/>
+        <!-- Explicitly delete the specific invalid view from this module -->
+        <!-- We use the fully qualified ID to be absolutely sure -->
+        <delete model="ir.ui.view" id="l10n_ve_accountant.account_move_form_binaural_payment_extension"/>
     </data>
 </odoo>
