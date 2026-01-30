@@ -4,7 +4,7 @@
         <div class="new_icon">
             <div class="icon_div">
                 <div class="toggle-icon" role="button" style="padding:7px;">
-                    <div style="color: white; background-color: #875A7B; padding:2px 5px; border-radius: 5px; border: solid 1px white;">
+                    <div style="color: #875A7B; background-color: white; padding:2px 5px; border-radius: 5px; border: solid 1px #875A7B; font-weight: bold;">
                         USD: <span t-esc="trm"/>
                     </div>
                 </div>
