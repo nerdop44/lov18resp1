@@ -184,20 +184,27 @@ class ResCurrency(models.Model):
                 channel_id = self.env.ref('account_dual_currency.trm_channel')
                 company_ids = self.env['res.company'].search([])
                 nueva = True
+                today = fields.Date.context_today(self)
+                
                 for c in company_ids:
+                    # Buscar tasa existente para hoy (sin hora)
                     tasa_actual = self.env['res.currency.rate'].sudo().search(
-                        [('name', '=', datetime.now()), ('currency_id', '=', self.id), ('company_id', '=', c.id)])
-                    if len(tasa_actual) == 0:
+                        [('name', '=', today), ('currency_id', '=', self.id), ('company_id', '=', c.id)], limit=1)
+                    
+                    if not tasa_actual:
                         self.env['res.currency.rate'].sudo().create({
                                 'currency_id': self.id,
-                                'name': datetime.now(),
+                                'name': today,
                                 'rate': 1 / nueva_tasa,
                                 'company_id': c.id,
                         })
-
                     else:
-                        if rec.server== 'dolar_today':
+                        # Siempre actualizar si hay nueva tasa, sin importar el proveedor
+                        if abs(tasa_actual.rate - (1 / nueva_tasa)) > 0.000001:
                             tasa_actual.rate = 1 / nueva_tasa
+                            nueva = False
+                        else:
+                            # Si es igual, asumimos que no es nueva para el log
                             nueva = False
 
                 if nueva:
@@ -211,7 +218,7 @@ class ResCurrency(models.Model):
                     )
                 else:
                     channel_id.message_post(
-                        body="Tasa de cambio actualizada del %s: %s, desde %s a las %s." % (
+                        body="Tasa de cambio verificada del %s: %s, desde %s a las %s (Sin cambios)." % (
                             rec.name, nueva_tasa, rec.server,
                             datetime.strftime(fields.Datetime.context_timestamp(self, datetime.now()),
                                               "%d-%m-%Y %H:%M:%S")),
