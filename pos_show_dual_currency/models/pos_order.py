@@ -44,8 +44,3 @@ class PosOrder(models.Model):
             order.amount_tax_ref = 0
             order.amount_total_ref = 0
             order.sum_amount_total_ref = 0
-                order.amount_paid_ref = 0
-                order.amount_return_ref = 0
-                order.amount_tax_ref = 0
-                order.amount_total_ref = 0
-                order.sum_amount_total_ref = 0
