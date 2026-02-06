@@ -6,7 +6,7 @@ import { patch } from "@web/core/utils/patch";
 patch(PosStore.prototype, {
     async setup() {
         await super.setup(...arguments);
-        this.res_currency_ref = this.pos_session.res_currency_ref || null;
+        this.res_currency_ref = this.session.res_currency_ref || null;
     },
 
     format_currency_ref(amount) {

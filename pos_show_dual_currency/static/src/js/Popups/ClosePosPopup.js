@@ -98,12 +98,12 @@ patch(ClosePosPopup.prototype, {
             if (this.props.cashControl) {
                 const ref_id = this.props.default_cash_details.default_cash_details_ref.id;
                 const response = await this.pos.data.call('pos.session', 'post_closing_cash_details_ref', [
-                    [this.pos.pos_session.id],
+                    [this.pos.session.id],
                     this.state.payments_usd[ref_id].counted,
                 ]);
             }
             await this.pos.data.call('pos.session', 'update_closing_control_state_session_ref', [
-                [this.pos.pos_session.id],
+                [this.pos.session.id],
                 this.state.notes
             ]);
             this.closeSessionClicked = false;
