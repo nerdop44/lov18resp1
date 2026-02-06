@@ -4,6 +4,8 @@ import { ClosePosPopup } from "@point_of_sale/app/navbar/closing_popup/closing_p
 import { MoneyDetailsPopupUSD } from "./MoneyDetailsPopup";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
+import { _t } from "@web/core/l10n/translation";
+import { ask } from "@point_of_sale/app/store/make_awaitable_dialog";
 
 patch(ClosePosPopup.prototype, {
     setup() {
@@ -22,22 +24,22 @@ patch(ClosePosPopup.prototype, {
         if (!this.props.cashControl || !this.hasDifferenceUSD()) {
             return super.confirm();
         } else if (this.hasUserAuthorityUSD()) {
-            const confirmed = await this.popup.add(ConfirmPopup, {
-                title: this.env._t('Currency Ref Payments Difference'),
-                body: this.env._t('Do you want to accept currency ref payments difference and post a profit/loss journal entry?'),
+            const confirmed = await ask(this.dialog, {
+                title: _t('Currency Ref Payments Difference'),
+                body: _t('Do you want to accept currency ref payments difference and post a profit/loss journal entry?'),
             });
             if (confirmed) {
                 return super.confirm();
             }
         } else {
-            await this.popup.add(ConfirmPopup, {
-                title: this.env._t('Currency Ref Payments Difference'),
+            await ask(this.dialog, {
+                title: _t('Currency Ref Payments Difference'),
                 body: _.str.sprintf(
-                    this.env._t('The maximum difference by currency ref allowed is %s.\n\
+                    _t('The maximum difference by currency ref allowed is %s.\n\
                     Please contact your manager to accept the closing difference.'),
                     this.pos.format_currency_ref(this.props.amount_authorized_diff_ref)
                 ),
-                confirmText: this.env._t('OK'),
+                confirmLabel: _t('OK'),
             });
         }
     },
@@ -99,7 +101,6 @@ patch(ClosePosPopup.prototype, {
                     [this.pos.pos_session.id],
                     this.state.payments_usd[ref_id].counted,
                 ]);
-                // error handling removed for brevity, assuming it works or handled globally
             }
             await this.pos.data.call('pos.session', 'update_closing_control_state_session_ref', [
                 [this.pos.pos_session.id],
@@ -114,11 +115,16 @@ patch(ClosePosPopup.prototype, {
 // Update static parts
 ClosePosPopup.components = { ...ClosePosPopup.components, MoneyDetailsPopupUSD };
 
-const extraProps = {
-    other_payment_methods: { type: Array, optional: true },
-    amount_authorized_diff_ref: { type: Number, optional: true },
-    state: { type: Object, optional: true },
-    cashControl: { type: Boolean, optional: true },
-};
+// Register extra props to satisfy Owl 2 validation
+const extraProps = [
+    "other_payment_methods",
+    "amount_authorized_diff_ref",
+    "state",
+    "cashControl",
+];
 
-Object.assign(ClosePosPopup.props, extraProps);
+extraProps.forEach((prop) => {
+    if (!ClosePosPopup.props.includes(prop)) {
+        ClosePosPopup.props.push(prop);
+    }
+});
