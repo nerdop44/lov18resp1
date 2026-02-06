@@ -9,7 +9,7 @@ from odoo.osv.expression import AND, OR
 from odoo.service.common import exp_version
 
 class PosSession(models.Model):
-    _inherit = "pos.session"
+    _inherit = ["pos.session", "pos.load.mixin"]
 
     tax_today = fields.Float(string="Tasa Sesión", store=True,
                              compute="_tax_today",
@@ -69,12 +69,11 @@ class PosSession(models.Model):
         if message:
             self.message_post(body=message)
 
-    def load_data(self, models_to_load, only_data=False):
-        response = super().load_data(models_to_load, only_data)
+    def _load_pos_data(self, data):
+        response = super()._load_pos_data(data)
         params = self._loader_params_res_currency_ref()
         currency_ref = self._get_pos_ui_res_currency_ref(params)
-        if response.get('pos.session') and response['pos.session'].get('data'):
-            response['pos.session']['data'][0]['res_currency_ref'] = currency_ref
+        data['pos.session']['data'][0]['res_currency_ref'] = currency_ref
         return response
 
     def _loader_params_res_currency_ref(self):
@@ -102,10 +101,13 @@ class PosSession(models.Model):
         res_currency = self.env['res.currency'].search_read(**params['search_params'])
         return res_currency[0]
 
-    def _loader_params_pos_session(self):
-        params = super()._loader_params_pos_session()
-        params['search_params']['fields'].append('cash_register_balance_start_mn_ref')
-        return params
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        return ['cash_register_balance_start_mn_ref', 'res_currency_ref', 'config_id', 'currency_id']
+
+    @api.model
+    def _load_pos_data_domain(self, data):
+        return []
 
     def try_cash_in_out_ref_currency(self, _type, amount, reason, extras, currency_ref):
         sign = 1 if _type == 'in' else -1
