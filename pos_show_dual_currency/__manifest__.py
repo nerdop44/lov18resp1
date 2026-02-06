@@ -29,6 +29,14 @@
             'pos_show_dual_currency/static/src/js/**/*.js',
             'pos_show_dual_currency/static/src/xml/**/*.xml',
         ],
+        'point_of_sale.assets_prod': [
+             'pos_show_dual_currency/static/src/css/pos.css',
+             'pos_show_dual_currency/static/src/js/models.js',
+             'pos_show_dual_currency/static/src/js/Popups/ClosePosPopup.js',
+             'pos_show_dual_currency/static/src/js/pos_extensions.js',
+             'pos_show_dual_currency/static/src/js/**/*.js',
+             'pos_show_dual_currency/static/src/xml/**/*.xml',
+        ],
     },
     "license": "OPL-1",
     'images': [
