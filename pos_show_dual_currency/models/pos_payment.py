@@ -10,15 +10,16 @@ class PosPayment(models.Model):
                                       default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')],
                                                                                            limit=1), )
 
-    tax_today = fields.Float(string="Tasa Sesión", store=True, related='session_id.tax_today',
-                             tracking=True, digits=(16, 4))
+    # tax_today = fields.Float(string="Tasa Sesión", store=True, related='session_id.tax_today',
+    #                          tracking=True, digits=(16, 4))
 
     amount_ref = fields.Monetary(currency_field='currency_id_dif', string='Monto Ref', store=True, readonly=True, compute='_compute_amount_ref', digits=(16, 2))
 
-    @api.depends('amount', 'tax_today')
+    @api.depends('amount')
     def _compute_amount_ref(self):
         for payment in self:
-            payment.amount_ref = payment.amount / (payment.tax_today if payment.tax_today > 0 else 1)
+            # Disabled temporarily - tax_today field is commented out
+            payment.amount_ref = 0
 
     def name_get(self):
         res = []
