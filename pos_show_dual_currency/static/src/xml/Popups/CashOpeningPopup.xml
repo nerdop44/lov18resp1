@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
-    <t t-name="CashOpeningPopup" t-inherit="point_of_sale.CashOpeningPopup" t-inherit-mode="extension">
+    <t t-name="CashOpeningPopup" t-inherit="point_of_sale.OpeningControlPopup" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('opening-cash-section')]" position="after">
-            <div class="opening-cash-section">
-                <span class="info-title">USD Opening cash</span>
-                <div class="cash-input-sub-section" t-on-input="handleInputChangeUSD">
-                    <input class="pos-input" type="number" t-model.number="state.openingCashUSD"/>
-                    <div class="button icon" t-on-click="openDetailsPopupUSD">
-                                <i class="fa fa-calculator" role="img" title="Open the money details popup"/>
-                    </div>
+            <div class="opening-cash-section border-top pt-2 mt-2 text-danger">
+                <span class="info-title">Opening cash (Ref)</span>
+                <div class="d-flex w-100 gap-2 mt-1">
+                    <NumericInput tModel="[state, 'openingCashUSD']" t-on-change="handleInputChangeUSD" class="'w-100 text-danger'"/>
+                    <button class="button icon btn btn-secondary text-danger" t-on-click="openDetailsPopupUSD">
+                        <i class="fa fa-calculator" role="img" title="Open the money details popup"/>
+                    </button>
                 </div>
             </div>
         </xpath>
-        <xpath expr="//textarea[@class='opening-cash-notes']" position="after">
-
+        <xpath expr="//Dialog" position="inside">
             <MoneyDetailsPopupUSD
                     t-if="state.displayMoneyDetailsPopupUSD"
                     manualInputCashCountUSD="manualInputCashCountUSD"
@@ -21,9 +20,5 @@
                     onDiscard.bind="closeDetailsPopupUSD"
             />
         </xpath>
-
     </t>
 </templates>
-
-
-

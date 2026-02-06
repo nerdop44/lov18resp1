@@ -64,9 +64,9 @@
             <div t-if="pos.config.cash_control" class="mb-3 border-top pt-2">
                 <label class="form-label text-danger" t-esc="props.default_cash_details.default_cash_details_ref.name + ' Count'"/>
                 <div class="d-flex w-100 gap-2 mt-1">
-                    <Input tModel="[state.payments_usd[props.default_cash_details.default_cash_details_ref.id], 'counted']"
-                        callback.bind="(value) => handleInputChangeUSD(props.default_cash_details.default_cash_details_ref.id)"
-                        isValid.bind="env.utils.isValidFloat" class="'cash-input w-100 text-danger'"/>
+                    <NumericInput tModel="[state.payments_usd[props.default_cash_details.default_cash_details_ref.id], 'counted']"
+                        t-on-change="() => handleInputChangeUSD(props.default_cash_details.default_cash_details_ref.id)"
+                        class="'cash-input w-100 text-danger'"/>
                     <button class="icon fa fa-money btn btn-secondary text-danger" t-on-click="openDetailsPopupUSD" />
                 </div>
             </div>

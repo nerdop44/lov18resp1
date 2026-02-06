@@ -1,18 +1,17 @@
-odoo.define('pos_show_dual_currency.TRM', function(require) {
-    'use strict';
+/** @odoo-module **/
 
-    const PosComponent = require('point_of_sale.PosComponent');
-    const Registries = require('point_of_sale.Registries');
+import { Component } from "@odoo/owl";
+import { usePos } from "@point_of_sale/app/store/pos_hook";
 
-    // Previously UsernameWidget
-    class TRM extends PosComponent {
-        get trm() {
-            return this.env.pos.format_currency_no_symbol(1 / this.env.pos.config.show_currency_rate);
-        }
+export class TRM extends Component {
+    static template = "pos_show_dual_currency.TRM";
+
+    setup() {
+        this.pos = usePos();
     }
-    TRM.template = 'TRM';
 
-    Registries.Component.add(TRM);
-
-    return TRM;
-});
+    get trm() {
+        const rate = this.pos.config.show_currency_rate || 1;
+        return this.pos.env.utils.formatCurrency(1 / rate, false, this.pos.currency);
+    }
+}

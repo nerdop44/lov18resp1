@@ -1,34 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
-    <t t-name="MoneyDetailsPopupUSD" owl="1">
-        <div class="popup money-details">
-            <main class="body">
-                <div class="money-details-title">
-                    Coins/Bills
+    <t t-name="pos_show_dual_currency.MoneyDetailsPopupUSD" owl="1">
+        <Dialog title.translate="Coins/Notes (Ref)" size="'md'" >
+            <t t-set="bills" t-value="Object.keys(state.moneyDetailsRef).sort((a, b) => b - a)"/>
+            <div t-attf-style="display: grid; grid-template-rows: repeat(calc({{bills.length}}/{{pos.ui.isSmall ? 1 : 2}}), auto); grid-auto-flow: column;">
+                <div t-foreach="bills" t-as="moneyValue" t-key="moneyValue" class="d-flex align-items-center justify-content-center my-1 ">
+                    <NumericInput class="'w-50 text-danger'" tModel="[state.moneyDetailsRef, moneyValue]" min="0" t-on-change="updateMoneyDetailsAmountRef"/>
+                    <label class="oe_link_icon w-25 text-center text-danger" t-att-for="moneyValue">
+                        <span class="ms-1" t-esc="pos.format_currency_ref(_parseFloat(moneyValue))"/>
+                    </label>
                 </div>
-                <div class="money-details-info">
-                    <div t-foreach="[firstHalfMoneyDetailsRef, lastHalfMoneyDetailsRef]" t-as="moneyDetailsListRef"
-                         t-key="moneyDetailsListRef_index">
-                        <t t-foreach="moneyDetailsListRef" t-as="moneyValueRef" t-key="moneyValueRef">
-                            <div class="money-details-value" t-on-input="updateMoneyDetailsAmountRef">
-                                <input class="pos-input" t-att-id="moneyValueRef" type="number"
-                                       t-model.number="state.moneyDetailsRef[moneyValueRef]"/>
-                                <CurrencyAmount forTarget="moneyValueRef" currency="currency_ref"
-                                                amount="moneyValueRef"/>
-                            </div>
-                        </t>
-                    </div>
-                </div>
-                <div class="total-section">
-                    <span>Total</span>
-                    <CurrencyAmount currency="currency_ref"
-                                    amount="env.pos.format_currency_no_symbol(state.total_ref)"/>
-                </div>
-            </main>
-            <footer class="footer">
-                <div class="button" t-on-click="discard">Discard</div>
-                <div class="button" t-on-click="confirm">Confirm</div>
-            </footer>
-        </div>
+            </div>
+            <t t-set-slot="footer" >
+                <button class="button highlight btn btn-lg btn-primary" t-on-click="confirm">Confirm</button>
+                <button class="button btn btn-lg btn-secondary ms-2" t-on-click="discard">Discard</button>
+                <h4 class="total-section ms-auto py-2 text-danger">
+                    Total (Ref) <t t-esc="pos.format_currency_ref(state.total_ref)"/>
+                </h4>
+            </t>
+        </Dialog>
     </t>
 </templates>
