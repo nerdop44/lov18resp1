@@ -13,7 +13,6 @@
     "data": [
         "views/pos_payment_method.xml",
         "views/pos_session.xml",
-        "views/pos_payment.xml",
         "views/pos_config.xml",
         "views/res_config_settings.xml",
         'views/pos_order.xml',
