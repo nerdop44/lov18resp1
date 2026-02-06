@@ -23,6 +23,7 @@
     'assets': {
         'point_of_sale.assets': [
             'pos_show_dual_currency/static/src/css/pos.css',
+             'pos_show_dual_currency/static/src/js/navbar_patch.js',
             'pos_show_dual_currency/static/src/js/models.js',
             'pos_show_dual_currency/static/src/js/Popups/ClosePosPopup.js',
             'pos_show_dual_currency/static/src/js/pos_extensions.js',
@@ -31,6 +32,7 @@
         ],
         'point_of_sale.assets_prod': [
              'pos_show_dual_currency/static/src/css/pos.css',
+             'pos_show_dual_currency/static/src/js/navbar_patch.js',
              'pos_show_dual_currency/static/src/js/models.js',
              'pos_show_dual_currency/static/src/js/Popups/ClosePosPopup.js',
              'pos_show_dual_currency/static/src/js/pos_extensions.js',
@@ -39,6 +41,7 @@
         ],
         'point_of_sale._assets_pos': [
              'pos_show_dual_currency/static/src/css/pos.css',
+             'pos_show_dual_currency/static/src/js/navbar_patch.js',
              'pos_show_dual_currency/static/src/js/models.js',
              'pos_show_dual_currency/static/src/js/Popups/ClosePosPopup.js',
              'pos_show_dual_currency/static/src/js/pos_extensions.js',

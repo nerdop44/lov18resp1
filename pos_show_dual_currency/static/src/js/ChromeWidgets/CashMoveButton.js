@@ -38,7 +38,7 @@ export class CashMoveButtonRefCurrency extends Component {
 
         const extras = { formattedAmount, translatedType };
         await this.pos.data.call('pos.session', 'try_cash_in_out_ref_currency', [
-            [this.pos.pos_session.id],
+            [this.pos.session.id],
             type,
             amount,
             reason,
