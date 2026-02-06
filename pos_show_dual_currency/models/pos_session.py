@@ -33,7 +33,7 @@ class PosSession(models.Model):
         string="Reference Ending Balance",
         currency_field='ref_me_currency_id',
         readonly=True)
-    me_ref_cash_journal_id = fields.Many2one('account.journal', compute='_compute_cash_all', string='Ref Cash Journal',
+    me_ref_cash_journal_id = fields.Many2one('account.journal', compute='_compute_cash_journal', string='Ref Cash Journal',
                                              store=True)
 
     cash_register_total_entry_encoding_ref = fields.Monetary(
@@ -124,8 +124,8 @@ class PosSession(models.Model):
         self.message_post(body='<br/>\n'.join(message_content))
 
     @api.depends('config_id', 'payment_method_ids')
-    def _compute_cash_all(self):
-        super(PosSession, self)._compute_cash_all()
+    def _compute_cash_journal(self):
+        super(PosSession, self)._compute_cash_journal()
         for session in self:
             session.me_ref_cash_journal_id = False
             cash_journal_ref = session.payment_method_ids.filtered(
