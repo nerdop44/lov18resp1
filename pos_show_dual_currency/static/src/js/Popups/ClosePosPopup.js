@@ -113,6 +113,7 @@ patch(ClosePosPopup.prototype, {
 });
 
 // Update static parts using patch for static properties
+console.log("PATCHING ClosePosPopup NOW");
 patch(ClosePosPopup, {
     components: { ...ClosePosPopup.components, MoneyDetailsPopupUSD },
     props: [
@@ -123,3 +124,5 @@ patch(ClosePosPopup, {
         "cashControl",
     ],
 });
+console.log("PATCHED ClosePosPopup props:", ClosePosPopup.props);
+window.alert("DEBUG: ClosePosPopup patched! If you see this, the file loaded.");
