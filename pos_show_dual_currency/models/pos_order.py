@@ -5,9 +5,9 @@ from odoo.exceptions import UserError
 class PosOrder(models.Model):
     _inherit = "pos.order"
 
-    ref_me_currency_id = fields.Many2one('res.currency', related='session_id.ref_me_currency_id',
-                                         string="Reference Currency",
-                                         store=False)
+    # ref_me_currency_id = fields.Many2one('res.currency', related='session_id.ref_me_currency_id',
+    #                                      string="Reference Currency",
+    #                                      store=False)
     session_rate = fields.Float(string="Session Rate", store=True,
                                 related='session_id.tax_today',
                                 tracking=True, digits=(16, 4))
