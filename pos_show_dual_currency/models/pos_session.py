@@ -9,6 +9,7 @@ from odoo.osv.expression import AND, OR
 from odoo.service.common import exp_version
 
 class PosSession(models.Model):
+    _name = "pos.session"
     _inherit = ["pos.session", "pos.load.mixin"]
 
     tax_today = fields.Float(string="Tasa Sesión", store=True,
