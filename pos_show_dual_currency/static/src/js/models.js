@@ -6,7 +6,7 @@ import { patch } from "@web/core/utils/patch";
 patch(PosStore.prototype, {
     async setup() {
         await super.setup(...arguments);
-        this.res_currency_ref = this.data.get("res_currency_ref") || null;
+        this.res_currency_ref = this.pos_session.res_currency_ref || null;
     },
 
     format_currency_ref(amount) {
@@ -33,11 +33,11 @@ patch(PosStore.prototype, {
 
     async getClosePosInfo() {
         const info = await super.getClosePosInfo();
-        // Ensure keys from session are passed to popup props
         return {
             ...info,
-            other_payment_methods: info.other_payment_methods || [],
-            amount_authorized_diff_ref: info.amount_authorized_diff_ref,
+            other_payment_methods: info.other_payment_methods || (info.non_cash_payment_methods ? info.non_cash_payment_methods : []),
+            amount_authorized_diff_ref: this.config.amount_authorized_diff_ref || 0,
+            cashControl: this.config.cash_control,
         };
     }
 });

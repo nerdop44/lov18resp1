@@ -69,6 +69,14 @@ class PosSession(models.Model):
         if message:
             self.message_post(body=message)
 
+    def load_data(self, models_to_load, only_data=False):
+        response = super().load_data(models_to_load, only_data)
+        params = self._loader_params_res_currency_ref()
+        currency_ref = self._get_pos_ui_res_currency_ref(params)
+        if response.get('pos.session') and response['pos.session'].get('data'):
+            response['pos.session']['data'][0]['res_currency_ref'] = currency_ref
+        return response
+
     def _loader_params_res_currency_ref(self):
         currency_id = self.company_id.currency_id.id
         if self.ref_me_currency_id.id:
@@ -94,11 +102,10 @@ class PosSession(models.Model):
         res_currency = self.env['res.currency'].search_read(**params['search_params'])
         return res_currency[0]
 
-    def _pos_data_process(self, loaded_data):
-        params = self._loader_params_res_currency_ref()
-        currency_ref = self._get_pos_ui_res_currency_ref(params)
-        loaded_data['res_currency_ref'] = currency_ref
-        super(PosSession, self)._pos_data_process(loaded_data)
+    def _loader_params_pos_session(self):
+        params = super()._loader_params_pos_session()
+        params['search_params']['fields'].append('cash_register_balance_start_mn_ref')
+        return params
 
     def try_cash_in_out_ref_currency(self, _type, amount, reason, extras, currency_ref):
         sign = 1 if _type == 'in' else -1

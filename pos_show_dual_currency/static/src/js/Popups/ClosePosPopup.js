@@ -115,16 +115,12 @@ patch(ClosePosPopup.prototype, {
 // Update static parts
 ClosePosPopup.components = { ...ClosePosPopup.components, MoneyDetailsPopupUSD };
 
-// Register extra props to satisfy Owl 2 validation
-const extraProps = [
+// Redefine props to satisfy Owl 2 validation
+const originalClosePosPopupProps = ClosePosPopup.props;
+ClosePosPopup.props = [
+    ...originalClosePosPopupProps,
     "other_payment_methods",
     "amount_authorized_diff_ref",
     "state",
     "cashControl",
 ];
-
-extraProps.forEach((prop) => {
-    if (!ClosePosPopup.props.includes(prop)) {
-        ClosePosPopup.props.push(prop);
-    }
-});
