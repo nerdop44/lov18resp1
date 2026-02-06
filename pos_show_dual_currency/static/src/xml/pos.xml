@@ -14,8 +14,11 @@
                                                 border-radius: 2px;
                                                 font-weight: bold;
                                                 font-size: x-small;">
-                    <t t-esc="price_other_currency"/>
+                    <t t-esc="price_other_currency"/> $$$
                 </span>
+            </t>
+            <t t-else="">
+                 <span style="color: blue; position: absolute; top: 0; right: 0;">NO CONFIG</span>
             </t>
         </xpath>
     </t>

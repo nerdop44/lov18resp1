@@ -10,6 +10,7 @@ patch(ProductCard.prototype, {
     setup() {
         super.setup();
         this.pos = usePos();
+        console.log("ProductCard Patch: usePos", this.pos);
     }
 });
 
