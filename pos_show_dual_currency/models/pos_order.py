@@ -26,8 +26,8 @@ class PosOrder(models.Model):
             #     order.margin_ref = order.margin / order.session_rate
             order.margin_ref = 0
 
-            else:
-                order.margin = 0
+            # else:
+            #    order.margin = 0
 
     @api.depends('amount_tax', 'amount_total', 'amount_paid')
     def _compute_amount_all_ref(self):
