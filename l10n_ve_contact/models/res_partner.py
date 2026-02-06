@@ -2,7 +2,7 @@ import logging
 import re
 from odoo import models, fields, api, _
 from odoo.exceptions import MissingError, ValidationError
-from ...tools import binaural_cne_query
+# from ...tools import binaural_cne_query
 
 _logger = logging.getLogger(__name__)
 
@@ -98,10 +98,11 @@ class ResPartner(models.Model):
                 name = vals.get("name")
                 vat = vals.get("vat")
                 if prefix_vat == "V" and not name and prefix_vat in ["V", "E"]:
-                    name, flag = binaural_cne_query.get_default_name_by_vat(self, prefix_vat, vat)
-                    if not flag:
-                        continue
-                    vals["name"] = name
+                    # name, flag = binaural_cne_query.get_default_name_by_vat(self, prefix_vat, vat)
+                    # if not flag:
+                    #     continue
+                    # vals["name"] = name
+                    pass
         return super(ResPartner, self).create(vals_tree)
 
     def _check_vat(self):
