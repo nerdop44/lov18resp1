@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+    <!--
     <template id="pos_daily_report" inherit_id="point_of_sale.report_saledetails">
         <xpath expr="//tr[@t-foreach='products']//td[3]" position="replace">
             <td>
@@ -73,4 +74,5 @@
             </span>
         </xpath>
     </template>
+    -->
 </odoo>
