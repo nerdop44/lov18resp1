@@ -129,7 +129,8 @@ class PosSession(models.Model):
                  _logger.info(">>>>>>>> Debug [Dual Currency]: FORCED SWAP to VEF/Bs (ID: %s)", currency_id)
 
         # Fallback: If we match company currency (e.g. Company=VEF), try to fallback to USD
-        if currency_id == company_currency_id:
+        # BUT ONLY if we didn't just force it!
+        if currency_id == company_currency_id and not should_force_vef:
              _logger.info(">>>>>>>> Debug [Dual Currency]: Dual matches Company. Checking for fallback to USD.")
              if vef_currency and company_currency_id == vef_currency.id:
                  # Company is VEF. Dual is VEF. We likely want USD.
