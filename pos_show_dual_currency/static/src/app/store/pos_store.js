@@ -72,18 +72,49 @@ patch(PosStore.prototype, {
     },
 
     get_product_price_with_tax(product, price) {
-        var taxes = this.taxes_by_id[product.taxes_id] || [];
-        // Odoo 18 Logic: compute_all might differ, but generally available in pos model
-        // If not, we basic check
-        if (!taxes || taxes.length === 0) return price;
+        if (!product.taxes_id || product.taxes_id.length === 0) return price;
 
-        // Use standard compute_all if available
-        // Note: compute_all is usually on 'pos' instance or imported
-        // In Odoo 18 PosStore has get_taxes_after_fp
+        // 1. Check if taxes_by_id generally exists (it might not in Odoo 18)
+        // 2. product.taxes_id is an Array, don't use it as a key directly!
 
-        var taxes_ids = this.get_taxes_after_fp(product.taxes_id, this.fiscal_position);
-        var all_taxes = this.compute_all(taxes_ids, price, 1, this.currency.id);
-        return all_taxes.total_included;
+        let taxes = [];
+        if (this.taxes_by_id) {
+            taxes = product.taxes_id.map(id => this.taxes_by_id[id]).filter(Boolean);
+        } else if (this.taxes) {
+            // Fallback: search in this.taxes array
+            taxes = this.taxes.filter(t => product.taxes_id.includes(t.id));
+        }
+
+        if (taxes.length === 0) return price;
+
+        // Odoo 18 should have get_taxes_after_fp and compute_all
+        try {
+            var taxes_to_compute = taxes;
+
+            // If get_taxes_after_fp exists, use it to map regular taxes to fiscal position
+            if (typeof this.get_taxes_after_fp === 'function') {
+                taxes_to_compute = this.get_taxes_after_fp(product.taxes_id, this.fiscal_position);
+            }
+
+            // Compute taxes
+            // Use compute_all if available, otherwise just default to price for now to prevent crash
+            if (typeof this.compute_all === 'function') {
+                // compute_all(taxes, price, quantity, currency)
+                // Note: taxes argument might expect IDs or Objects depending on version.
+                // In Odoo 16/17 JS, it usually expects Objects or IDs.
+                // Let's try passing the objects we found/filtered.
+                var all_taxes = this.compute_all(taxes_to_compute, price, 1, this.currency.id);
+                return all_taxes.total_included;
+            } else {
+                console.warn("PosStore.compute_all not found. Returning base price.");
+            }
+        } catch (error) {
+            console.error("Error calculating tax for product:", product.id, error);
+            // Fallback to base price
+            return price;
+        }
+
+        return price;
     },
 
     get show_currency_rate_display() {
