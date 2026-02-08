@@ -2,10 +2,13 @@
 <templates id="template" xml:space="preserve">
     <t t-name="DualCurrencyProductCard" t-inherit="point_of_sale.ProductCard" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('product-name')]" position="after">
-             <t t-if="priceInRefCurrency">
-                <span class="currency-ref-tag" style="position: absolute; top: 2px; right: 2px; color: red; background: #5effb0; padding: 2px 5px; border-radius: 2px; font-weight: bold; font-size: x-small;">
-                    <t t-esc="priceInRefCurrency"/> $$$
-                </span>
+             <t t-if="pos.config.show_dual_currency">
+                <div class="product-price-dual" style="font-weight: bold; font-size: small; text-align: right; padding-right: 5px; color: #714B67;">
+                    <div><t t-esc="props.priceFormatted"/></div>
+                    <div style="font-size: x-small; color: #28a745;">
+                        <t t-esc="priceInRefCurrency"/>
+                    </div>
+                </div>
             </t>
         </xpath>
     </t>
