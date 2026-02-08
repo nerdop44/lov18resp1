@@ -56,9 +56,7 @@ patch(Orderline.prototype, {
 
         if (!rate || rate === 0) return "";
 
-        const priceInRef = price / rate;
-        if (isNaN(priceInRef)) return "";
-
-        return this.pos.format_currency_ref(priceInRef);
+        // Use simpler division 
+        return this.pos.format_currency_ref(price / rate);
     }
 });
