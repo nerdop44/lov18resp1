@@ -12,8 +12,10 @@ patch(ProductCard.prototype, {
 
     get priceInRefCurrency() {
         if (!this.pos.config.show_dual_currency) {
-            return null;
+            return "";
         }
+        // Use the pos store method which handles formatting and rate
+        // We need to pass true to indicate we want reference currency
         return this.pos.getProductPriceFormatted(this.props.product, true);
     }
 });
