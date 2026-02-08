@@ -54,7 +54,11 @@ patch(Orderline.prototype, {
 
         const rate = this.pos.config.show_currency_rate || 1;
 
-        if (rate === 0) return "";
-        return this.pos.format_currency_ref(price / rate);
+        if (!rate || rate === 0) return "";
+
+        const priceInRef = price / rate;
+        if (isNaN(priceInRef)) return "";
+
+        return this.pos.format_currency_ref(priceInRef);
     }
 });

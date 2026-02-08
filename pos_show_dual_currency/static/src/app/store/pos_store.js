@@ -46,11 +46,22 @@ patch(PosStore.prototype, {
         });
 
         // Fallback: If formatMonetary returns just the number or fails to add symbol, force it
+        // Check if symbol is missing
         if (!formatted.includes(currency.symbol)) {
             if (currency.position === 'before') {
                 formatted = currency.symbol + ' ' + amount.toFixed(currency.decimal_places);
             } else {
                 formatted = amount.toFixed(currency.decimal_places) + ' ' + currency.symbol;
+            }
+        } else {
+            // If symbol exists but position is wrong (e.g. Odoo formatted it as "100 $" but config says "before")
+            // This is tricky because formatMonetary might have its own logic.
+            // But let's trust formatMonetary unless it failed to add symbol.
+            // However, user said "simbolo de $ debe salir antes del monto".
+            // Let's force it if config says so and it's not seemingly right.
+            if (currency.position === 'before' && !formatted.startsWith(currency.symbol)) {
+                // It might be "100 $"
+                formatted = currency.symbol + ' ' + amount.toFixed(currency.decimal_places);
             }
         }
         return formatted;
@@ -80,12 +91,18 @@ patch(PosStore.prototype, {
         let taxes = [];
         if (this.taxes_by_id) {
             taxes = product.taxes_id.map(id => this.taxes_by_id[id]).filter(Boolean);
-        } else if (this.taxes) {
-            // Fallback: search in this.taxes array
+        }
+
+        // Fallback: search in this.taxes array if taxes_by_id missed or empty
+        if (taxes.length === 0 && this.taxes) {
             taxes = this.taxes.filter(t => product.taxes_id.includes(t.id));
         }
 
-        if (taxes.length === 0) return price;
+        if (taxes.length === 0) {
+            // Debug why we can't find taxes
+            // console.warn("PosStore: Could not find taxes for product", product.id, product.taxes_id);
+            return price;
+        }
 
         // Odoo 18 should have get_taxes_after_fp and compute_all
         try {
