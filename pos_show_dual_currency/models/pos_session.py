@@ -69,7 +69,11 @@ class PosSession(models.Model):
         if message:
             self.message_post(body=message)
 
-    def _loader_params_res_currency_ref(self):
+    @api.model
+    def load_pos_data(self):
+        loaded_data = super().load_pos_data()
+        
+        # Logic adapted from legacy _loader_params_res_currency_ref
         currency_id = self.company_id.currency_id.id
         if self.ref_me_currency_id.id:
             currency_id = self.ref_me_currency_id.id
@@ -83,22 +87,15 @@ class PosSession(models.Model):
                     self.ref_me_currency_id = self.company_id.currency_id_dif.id
                     currency_id = self.company_id.currency_id_dif.id
 
-        return {
-            'search_params': {
-                'domain': [('id', '=', currency_id)],
-                'fields': ['id', 'name', 'symbol', 'position', 'rounding', 'rate', 'decimal_places'],
-            },
-        }
-
-    def _get_pos_ui_res_currency_ref(self, params):
-        res_currency = self.env['res.currency'].search_read(**params['search_params'])
-        return res_currency[0]
-
-    def _pos_data_process(self, loaded_data):
-        params = self._loader_params_res_currency_ref()
-        currency_ref = self._get_pos_ui_res_currency_ref(params)
-        loaded_data['res_currency_ref'] = currency_ref
-        super(PosSession, self)._pos_data_process(loaded_data)
+        currency_fields = ['id', 'name', 'symbol', 'position', 'rounding', 'rate', 'decimal_places']
+        currency_ref = self.env['res.currency'].search_read([('id', '=', currency_id)], currency_fields)
+        
+        if currency_ref:
+            loaded_data['res_currency_ref'] = currency_ref[0]
+        else:
+            loaded_data['res_currency_ref'] = None
+            
+        return loaded_data
 
     def try_cash_in_out_ref_currency(self, _type, amount, reason, extras, currency_ref):
         sign = 1 if _type == 'in' else -1
