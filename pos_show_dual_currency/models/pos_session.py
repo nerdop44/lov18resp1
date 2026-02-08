@@ -78,16 +78,60 @@ class PosSession(models.Model):
         result = super()._load_pos_data(data)
         
         # Injected data for dual currency display
-        currency_id = self.company_id.currency_id.id
-        if self.ref_me_currency_id.id:
-            currency_id = self.ref_me_currency_id.id
-        else:
-            if self.config_id.show_currency:
-                currency_id = self.config_id.show_currency.id
-            elif self.company_id.currency_id_dif:
-                currency_id = self.company_id.currency_id_dif.id
+        company_currency_id = self.company_id.currency_id.id
+        currency_id = company_currency_id
+        
+        # Priority: 1. Config "Show Currency" (if different from company)
+        #           2. Company "Currency Dif" (if different from company)
+        #           3. Fallback to any other active currency? (Not implemented to avoid randomness)
+        
+        target_currency = self.ref_me_currency_id if self.ref_me_currency_id else self.config_id.show_currency
+        
+        if target_currency and target_currency.id != company_currency_id:
+             currency_id = target_currency.id
+        elif self.company_id.currency_id_dif and self.company_id.currency_id_dif.id != company_currency_id:
+             currency_id = self.company_id.currency_id_dif.id
+        
+        if currency_id == company_currency_id:
+            # We are here because Config and Company 'Difference' currency are either not set or same as Company Currency.
+            # We MUST find an alternative for Dual Currency display to make sense.
+            # User specifically requested "Bs" (Bolivars).
+            # If Company is USD (1), we want VEF/VES (2).
+            # If Company is VEF (2), we want USD (1).
+            
+            # 1. Try to find VEF/VES/Bs first (most likely case for Venezuela)
+            # If Company IS VEF, this will be excluded by the ID check, essentially forcing USD if VEF is company.
+            alternative = self.env['res.currency'].search([
+                ('name', 'in', ['VES', 'VEF', 'Bs', 'Bs.']), 
+                ('active', '=', True),
+                ('id', '!=', company_currency_id)
+            ], limit=1)
+            
+            # 2. If we didn't find VEF (maybe because Company IS VEF, or VEF is not active)
+            # Then try to find USD
+            if not alternative:
+                 alternative = self.env['res.currency'].search([
+                    ('name', '=', 'USD'), 
+                    ('active', '=', True),
+                    ('id', '!=', company_currency_id)
+                ], limit=1)
 
-        _logger.info(">>>>>>>> Debug: currency_id=%s <<<<<<<<", currency_id)
+            # 3. Last result: Just get ANY other currency
+            if not alternative:
+                 alternative = self.env['res.currency'].search([('id', '!=', company_currency_id), ('active', '=', True)], limit=1)
+            
+            if alternative:
+                currency_id = alternative.id
+                _logger.info(">>>>>>>> Debug: Forced alternative currency: %s (ID: %s) instead of Company %s <<<<<<<<", alternative.name, alternative.id, company_currency_id)
+            else:
+                _logger.warning(">>>>>>>> Debug: Could not find ANY alternative currency to Company %s! <<<<<<<<", company_currency_id)
+
+        _logger.info(">>>>>>>> Debug: Final Selected currency_id=%s (Company=%s) <<<<<<<<", currency_id, company_currency_id)
+        
+        # Debug: List all active currencies to see what's available
+        all_currencies = self.env['res.currency'].search_read([('active', '=', True)], ['name', 'symbol'])
+        _logger.info(">>>>>>>> Debug: All Active Currencies: %s <<<<<<<<", all_currencies)
+
         currency_fields = ['id', 'name', 'symbol', 'position', 'rounding', 'rate', 'decimal_places']
         currency_ref = self.env['res.currency'].search_read([('id', '=', currency_id)], currency_fields)
         _logger.info(">>>>>>>> Debug: currency_ref found=%s <<<<<<<<", len(currency_ref) if currency_ref else 0)
@@ -97,12 +141,22 @@ class PosSession(models.Model):
             _logger.info(">>>>>>>> Debug: result keys=%s <<<<<<<<", list(result.keys()) if result else 'None')
             
             # Fetch the official TRM (Tasa) for the reference currency
-            rate_tasa = self.env['res.currency'].get_trm_systray()
+            # Ensure we get a float
+            rate_tasa = 0.0
+            try:
+                rate_tasa = self.env['res.currency'].get_trm_systray()
+                if not isinstance(rate_tasa, (int, float)):
+                     rate_tasa = float(rate_tasa)
+            except Exception as e:
+                _logger.error("Error getting TRM: %s", e)
+                # Fallback to currency rate if TRM fails
+                rate_tasa = currency_ref[0].get('rate', 1.0)
+            
             currency_ref[0]['rate'] = rate_tasa  # Inject the "Tasa" instead of native Odoo rate
             
             if result and 'data' in result and result['data']:
                 result['data'][0]['res_currency_ref'] = currency_ref[0]
-                _logger.info(">>>>>>>> Injected res_currency_ref with rate %s into result['data'][0] <<<<<<<<", rate_tasa)
+                _logger.info(">>>>>>>> Injected res_currency_ref: %s with rate %s <<<<<<<<", currency_ref[0]['name'], rate_tasa)
             else:
                 _logger.warning(">>>>>>>> Debug: result['data'] is empty! <<<<<<<<")
         

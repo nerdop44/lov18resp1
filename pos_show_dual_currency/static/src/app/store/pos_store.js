@@ -20,6 +20,13 @@ patch(PosData.prototype, {
                 console.warn(">>>>>>>> res_currency_ref NOT found in RPC response for pos.session", response["pos.session"]);
             }
         }
+
+        if (response['account.tax']) {
+            console.log(">>>>>>>> Account Taxes loaded in RPC:", response['account.tax'].data ? response['account.tax'].data.length : 'N/A');
+        } else {
+            console.warn(">>>>>>>> Account Taxes MISSING in RPC response");
+        }
+
         return response;
     }
 });
@@ -69,13 +76,24 @@ patch(PosStore.prototype, {
 
     getProductPriceFormatted(product, ref = false) {
         // Use get_product_price_with_tax to include taxes if possible
-        const price_with_tax = this.get_product_price_with_tax(product, product.get_price(this.pricelist, 1));
+        let price = product.get_price(this.pricelist, 1);
+        if (typeof price !== 'number') price = 0;
+
+        const price_with_tax = this.get_product_price_with_tax(product, price);
 
         if (ref && this.config.show_dual_currency) {
-            const rate = this.config.show_currency_rate || 1;
-            if (rate === 0) return "";
-            // Use multiplication as now rate is Tasa (USD -> VEF = price * tasa)
-            return this.format_currency_ref(price_with_tax * rate);
+            let rate = this.config.show_currency_rate;
+            // Force float parsing
+            if (typeof rate !== 'number') {
+                rate = parseFloat(rate);
+            }
+            if (isNaN(rate) || rate === 0) rate = 1;
+
+            // Use multiplication: price * tasa
+            const final_val = price_with_tax * rate;
+            if (isNaN(final_val)) return "";
+
+            return this.format_currency_ref(final_val);
         }
         return this.formatCurrency(price_with_tax);
     },
@@ -83,51 +101,52 @@ patch(PosStore.prototype, {
     get_product_price_with_tax(product, price) {
         if (!product.taxes_id || product.taxes_id.length === 0) return price;
 
-        // 1. Check if taxes_by_id generally exists (it might not in Odoo 18)
-        // 2. product.taxes_id is an Array, don't use it as a key directly!
-
         let taxes = [];
-        if (this.taxes_by_id) {
+        // 1. Try checking this.taxes (Odoo 16/17 style)
+        if (this.taxes) {
+            taxes = this.taxes.filter(t => product.taxes_id.includes(t.id));
+        } else if (this.taxes_by_id) {
             taxes = product.taxes_id.map(id => this.taxes_by_id[id]).filter(Boolean);
         }
 
-        // Fallback: search in this.taxes array if taxes_by_id missed or empty
-        if (taxes.length === 0 && this.taxes) {
-            taxes = this.taxes.filter(t => product.taxes_id.includes(t.id));
+        // 2. Try checking Odoo 18 models service style
+        if (taxes.length === 0 && this.models && this.models['account.tax']) {
+            try {
+                // If it's a DataStore collection
+                const taxModel = this.models['account.tax'];
+                if (typeof taxModel.getAll === 'function') {
+                    taxes = taxModel.getAll().filter(t => product.taxes_id.includes(t.id));
+                } else if (Array.isArray(taxModel)) {
+                    taxes = taxModel.filter(t => product.taxes_id.includes(t.id));
+                } else if (taxModel.data) {
+                    taxes = taxModel.data.filter(t => product.taxes_id.includes(t.id));
+                }
+            } catch (e) { console.error("Error accessing models['account.tax']", e); }
         }
 
         if (taxes.length === 0) {
-            console.warn("PosStore: Taxes found/loaded for product?", product.id, taxes.length, "Total taxes loaded:", this.taxes ? this.taxes.length : 0);
+            // Only warn once per product to avoid spam
+            // console.warn("PosStore: Taxes not loaded for", product.id);
             return price;
         }
 
-        // Odoo 18 should have get_taxes_after_fp and compute_all
         try {
-            var taxes_to_compute = taxes;
-
-            // If get_taxes_after_fp exists, use it to map regular taxes to fiscal position
-            if (typeof this.get_taxes_after_fp === 'function') {
-                taxes_to_compute = this.get_taxes_after_fp(product.taxes_id, this.fiscal_position);
-            }
-
             // Compute taxes
-            // Use compute_all if available, otherwise just default to price for now to prevent crash
+            // Logic adapted for Odoo 18/Owl where compute_all might be a utility
+            // or we use a simplified calculation for display if compute_all is missing
+
             if (typeof this.compute_all === 'function') {
                 // compute_all(taxes, price, quantity, currency)
-                // Note: taxes argument might expect IDs or Objects depending on version.
-                // In Odoo 16/17 JS, it usually expects Objects or IDs.
-                // Let's try passing the objects we found/filtered.
-                var all_taxes = this.compute_all(taxes_to_compute, price, 1, this.currency.id);
+                var all_taxes = this.compute_all(taxes, price, 1, this.currency.id);
                 return all_taxes.total_included;
-            } else {
-                console.warn("PosStore.compute_all not found. Returning base price.");
+            } else if (this.get_taxes_after_fp) {
+                // Fallback if compute_all is missing logic (unlikely in POS)
+                return price;
             }
         } catch (error) {
-            console.error("Error calculating tax for product:", product.id, error);
-            // Fallback to base price
+            console.error("Error calculating tax:", error);
             return price;
         }
-
         return price;
     },
 

@@ -49,14 +49,26 @@ patch(Orderline.prototype, {
         // If price is 0, maybe try get_all_prices if available
         if (price === 0 && typeof line.get_all_prices === 'function') {
             const allPrices = line.get_all_prices();
-            price = allPrices.priceWithTax || allPrices.unitPrice || 0;
+            // Ensure we get a number, not undefined
+            price = (allPrices && (allPrices.priceWithTax || allPrices.unitPrice)) || 0;
         }
 
-        const rate = this.pos.config.show_currency_rate || 1;
+        // Ensure price is a number
+        if (typeof price !== 'number') {
+            price = parseFloat(price) || 0;
+        }
 
-        if (!rate || rate === 0) return "";
+        let rate = this.pos.config.show_currency_rate;
+        if (typeof rate !== 'number') {
+            rate = parseFloat(rate);
+        }
+
+        if (!rate || isNaN(rate) || rate === 0) rate = 1;
 
         // User requested multiplication for the "Tasa"
-        return this.pos.format_currency_ref(price * rate);
+        const final_val = price * rate;
+        if (isNaN(final_val)) return "";
+
+        return this.pos.format_currency_ref(final_val);
     }
 });
