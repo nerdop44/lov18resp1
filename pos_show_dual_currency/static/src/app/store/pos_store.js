@@ -68,18 +68,16 @@ patch(PosStore.prototype, {
     },
 
     getProductPriceFormatted(product, ref = false) {
-        // Get base price from pricelist (tax depends on pricelist setting)
-        const price = product.get_price(this.pricelist, 1);
-
-        // Calculate tax if needed (assuming we want tax-included for display if configured)
-        const priceWithTax = this.get_product_price_with_tax(product, price);
+        // Use get_product_price_with_tax to include taxes if possible
+        const price_with_tax = this.get_product_price_with_tax(product, product.get_price(this.pricelist, 1));
 
         if (ref && this.config.show_dual_currency) {
             const rate = this.config.show_currency_rate || 1;
             if (rate === 0) return "";
-            return this.format_currency_ref(priceWithTax / rate);
+            // Use multiplication as now rate is Tasa (USD -> VEF = price * tasa)
+            return this.format_currency_ref(price_with_tax * rate);
         }
-        return this.formatCurrency(price);
+        return this.formatCurrency(price_with_tax);
     },
 
     get_product_price_with_tax(product, price) {
@@ -99,8 +97,7 @@ patch(PosStore.prototype, {
         }
 
         if (taxes.length === 0) {
-            // Debug why we can't find taxes
-            // console.warn("PosStore: Could not find taxes for product", product.id, product.taxes_id);
+            console.warn("PosStore: Taxes found/loaded for product?", product.id, taxes.length, "Total taxes loaded:", this.taxes ? this.taxes.length : 0);
             return price;
         }
 

@@ -56,7 +56,7 @@ patch(Orderline.prototype, {
 
         if (!rate || rate === 0) return "";
 
-        // Use simpler division 
-        return this.pos.format_currency_ref(price / rate);
+        // User requested multiplication for the "Tasa"
+        return this.pos.format_currency_ref(price * rate);
     }
 });
