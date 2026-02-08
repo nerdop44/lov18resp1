@@ -27,15 +27,29 @@ patch(Orderline.prototype, {
         const line = this.props.line;
         let price = 0;
 
-        // Validar métodos disponibles en Odoo 18/17
+        // Try to get the unit price with tax included
+        // In Odoo 18/17, get_unit_display_price() usually returns tax-included price if configured
         if (typeof line.get_unit_display_price === 'function') {
             price = line.get_unit_display_price();
         } else if (typeof line.get_display_price === 'function') {
             price = line.get_display_price();
-        } else if (typeof line.get_unit_price === 'function') {
-            price = line.get_unit_price();
         } else {
-            price = line.price || 0;
+            // Fallback: Manually calculate if object properties exist
+            // check for price_subtotal_incl and quantity
+            if (line.get_price_with_tax) {
+                price = line.get_price_with_tax();
+            } else if (line.get_taxed_price) {
+                price = line.get_taxed_price();
+            } else {
+                // Fallback to basic price, but this might be without tax
+                price = line.get_unit_price ? line.get_unit_price() : (line.price || 0);
+            }
+        }
+
+        // If price is 0, maybe try get_all_prices if available
+        if (price === 0 && typeof line.get_all_prices === 'function') {
+            const allPrices = line.get_all_prices();
+            price = allPrices.priceWithTax || allPrices.unitPrice || 0;
         }
 
         const rate = this.pos.config.show_currency_rate || 1;
