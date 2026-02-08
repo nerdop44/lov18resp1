@@ -1,54 +1,45 @@
-/** @odoo-module **/
+odoo.define('pos_show_dual_currency.CashMoveButtonRefCurrency', function (require) {
+    'use strict';
 
-import { Component } from "@odoo/owl";
-import { usePos } from "@point_of_sale/app/store/pos_hook";
-import { _t } from "@web/core/l10n/translation";
-import { useService } from "@web/core/utils/hooks";
-import { CashMovePopupRefCurrency } from "../Popups/CashMovePopup";
+    const PosComponent = require('point_of_sale.PosComponent');
+    const Registries = require('point_of_sale.Registries');
+    const { _t } = require('web.core');
+    const { renderToString } = require('@web/core/utils/render');
 
-const TRANSLATED_CASH_MOVE_TYPE = {
-    in: _t('in'),
-    out: _t('out'),
-};
+    const TRANSLATED_CASH_MOVE_TYPE = {
+        in: _t('in'),
+        out: _t('out'),
+    };
 
-export class CashMoveButtonRefCurrency extends Component {
-    static template = "pos_show_dual_currency.CashMoveButtonRefCurrency";
-
-    setup() {
-        this.pos = usePos();
-        this.popup = useService("popup");
-        this.notification = useService("notification");
-    }
-
-    async onClickUSD() {
-        const { confirmed, payload } = await this.popup.add(CashMovePopupRefCurrency);
-        if (!confirmed) return;
-
-        const { type, amount, reason, currency_ref } = payload;
-        const translatedType = TRANSLATED_CASH_MOVE_TYPE[type];
-        const formattedAmount = this.pos.format_currency_ref(amount);
-
-        if (!amount) {
-            this.notification.add(
-                _.str.sprintf(_t('Cash in/out of %s is ignored.'), formattedAmount),
-                { type: "warning" }
+    class CashMoveButtonRefCurrency extends PosComponent {
+        async onClickUSD() {
+            const { confirmed, payload } = await this.showPopup('CashMovePopupRefCurrency');
+            if (!confirmed) return;
+            const { type, amount, reason, currency_ref } = payload;
+            const translatedType = TRANSLATED_CASH_MOVE_TYPE[type];
+            const formattedAmount = this.env.pos.format_currency_ref(amount);
+            if (!amount) {
+                return this.showNotification(
+                    _.str.sprintf(this.env._t('Cash in/out of %s is ignored.'), formattedAmount),
+                    3000
+                );
+            }
+            const extras = { formattedAmount, translatedType };
+            await this.rpc({
+                model: 'pos.session',
+                method: 'try_cash_in_out_ref_currency',
+                args: [[this.env.pos.pos_session.id], type, amount, reason, extras, currency_ref],
+            });
+            this.showNotification(
+                _.str.sprintf(this.env._t('Successfully made a cash %s of %s.'), type, formattedAmount),
+                3000
             );
-            return;
         }
 
-        const extras = { formattedAmount, translatedType };
-        await this.pos.data.call('pos.session', 'try_cash_in_out_ref_currency', [
-            [this.pos.session.id],
-            type,
-            amount,
-            reason,
-            extras,
-            currency_ref
-        ]);
-
-        this.notification.add(
-            _.str.sprintf(_t('Successfully made a cash %s of %s.'), type, formattedAmount),
-            { type: "success" }
-        );
     }
-}
+    CashMoveButtonRefCurrency.template = 'CashMoveButtonRefCurrency';
+
+    Registries.Component.add(CashMoveButtonRefCurrency);
+
+    return CashMoveButtonRefCurrency;
+});

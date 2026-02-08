@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="SaleOrderRow" t-inherit="pos_sale.SaleOrderRow" t-inherit-mode="extension" owl="1">
+        <xpath expr="//t[@t-esc='total']" position="after">
+                <span style="color: red;">/</span>
+            <span style="color: red;">
+                    <t t-esc="total_ref"/>
+                </span>
+        </xpath>
+        <xpath expr="//div[@t-if='showAmountUnpaid']"
+               position="inside">
+                (left:<span style="color: red;">/</span>
+            <span style="color: red;" t-esc="showAmountUnpaid_ref"/>)
+        </xpath>
+    </t>
+</templates>

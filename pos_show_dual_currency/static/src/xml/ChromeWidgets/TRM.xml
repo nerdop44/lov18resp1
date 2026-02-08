@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
-    <t t-name="pos_show_dual_currency.TRM" owl="1">
-        <div class="oe_status px-2 d-flex align-items-center bg-view border-start text-danger" style="font-weight: bold;">
+
+    <t t-name="TRM" owl="1">
+        <div class="oe_status">
             <span>TRM $: <span t-esc="trm"/></span>
         </div>
     </t>
+
 </templates>

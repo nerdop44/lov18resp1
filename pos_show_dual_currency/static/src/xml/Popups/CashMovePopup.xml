@@ -1,43 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
-    <t t-name="pos_show_dual_currency.CashMovePopupRefCurrency" owl="1">
-        <Dialog title="props.title" size="'md'" >
-            <div class="cash-move-popup">
-                <div class="cash-move">
-                    <div class="input-amount mb-3">
-                        <div class="btn-group w-100 mb-2">
-                            <button t-on-click="() => this.onClickButton('in')" 
-                                    class="btn btn-outline-primary w-50"
-                                    t-att-class="{ active: state.inputType == 'in' }">
-                                Cash In
-                            </button>
-                            <button t-on-click="() => this.onClickButton('out')" 
-                                    class="btn btn-outline-danger w-50"
-                                    t-att-class="{ active: state.inputType == 'out' }">
-                                Cash Out
-                            </button>
+    <t t-name="CashMovePopupRefCurrency" owl="1">
+        <div class="popup cash-move-popup">
+                    <main class="body">
+                        <div class="cash-move">
+                            <div class="input-amount">
+                                <span t-on-click="() => this.onClickButton('in')" class="input-type"
+                                      t-att-class="{ highlight: state.inputType == 'in' }">
+                                    Cash In
+                                </span>
+                                <span t-on-click="() => this.onClickButton('out')" class="input-type"
+                                      t-att-class="{ 'red-highlight': state.inputType == 'out' }">
+                                    Cash Out
+                                </span>
+                                <div class="input-field">
+                                    <input type="text" name="amount" t-model="state.inputAmount"
+                                           t-ref="input-amount-ref" t-on-keypress="_onAmountKeypress"/>
+                                    <t t-if="env.pos.res_currency_ref.symbol.length > 1">
+                                        <span class="left-currency" t-esc="env.pos.res_currency_ref.symbol"/>
+                                    </t>
+                                    <t t-else="">
+                                        <span class="left-currency" t-esc="env.pos.res_currency_ref.symbol"/>
+                                    </t>
+                                </div>
+                            </div>
+                            <textarea name="reason" t-model="state.inputReason" placeholder="Reason"></textarea>
+                            <span t-if="state.inputHasError" class="error-message">
+                                <t t-esc="errorMessage"/>
+                            </span>
                         </div>
-                        <div class="input-group">
-                            <span class="input-group-text text-danger" t-esc="pos.res_currency_ref.symbol"/>
-                            <input type="text" name="amount" class="form-control text-danger" 
-                                   t-model="state.inputAmount"
-                                   t-ref="input-amount-ref" t-on-keypress="_onAmountKeypress"/>
+                    </main>
+            <footer class="footer cash-move">
+                        <div class="button confirm disable highlight" t-on-click="confirm">
+                            Confirm
                         </div>
-                    </div>
-                    <textarea name="reason" class="form-control mb-2" t-model="state.inputReason" placeholder="Reason"></textarea>
-                    <div t-if="state.inputHasError" class="alert alert-danger p-2">
-                        <t t-esc="errorMessage"/>
-                    </div>
+                <div class="button cancel" t-on-click="cancel">
+                            <t t-esc="props.cancelText"/>
+                        </div>
+                    </footer>
                 </div>
-            </div>
-            <t t-set-slot="footer" >
-                <button class="button confirm btn btn-lg btn-primary highlight" t-on-click="confirm">
-                    Confirm
-                </button>
-                <button class="button cancel btn btn-lg btn-secondary ms-2" t-on-click="cancel">
-                    <t t-esc="props.cancelText"/>
-                </button>
-            </t>
-        </Dialog>
     </t>
 </templates>
+

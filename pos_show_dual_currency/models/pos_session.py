@@ -9,8 +9,7 @@ from odoo.osv.expression import AND, OR
 from odoo.service.common import exp_version
 
 class PosSession(models.Model):
-    _name = "pos.session"
-    _inherit = ["pos.session", "pos.load.mixin"]
+    _inherit = "pos.session"
 
     tax_today = fields.Float(string="Tasa Sesión", store=True,
                              compute="_tax_today",
@@ -34,7 +33,7 @@ class PosSession(models.Model):
         string="Reference Ending Balance",
         currency_field='ref_me_currency_id',
         readonly=True)
-    me_ref_cash_journal_id = fields.Many2one('account.journal', compute='_compute_cash_journal', string='Ref Cash Journal',
+    me_ref_cash_journal_id = fields.Many2one('account.journal', compute='_compute_cash_all', string='Ref Cash Journal',
                                              store=True)
 
     cash_register_total_entry_encoding_ref = fields.Monetary(
@@ -70,17 +69,36 @@ class PosSession(models.Model):
         if message:
             self.message_post(body=message)
 
-    @api.model
-    def _load_pos_data_models(self, config_id):
-        # Ensure the secondary currency is loaded
-        return ['res.currency']
+    def _loader_params_res_currency_ref(self):
+        currency_id = self.company_id.currency_id.id
+        if self.ref_me_currency_id.id:
+            currency_id = self.ref_me_currency_id.id
+        else:
+            if self.config_id.show_currency:
+                self.ref_me_currency_id = self.config_id.show_currency.id
+                currency_id = self.config_id.show_currency.id
+            else:
+                if self.company_id.currency_id_dif:
+                    self.config_id.show_currency = self.company_id.currency_id_dif.id
+                    self.ref_me_currency_id = self.company_id.currency_id_dif.id
+                    currency_id = self.company_id.currency_id_dif.id
 
-    @api.model
-    def _load_pos_data_fields(self, config_id):
-        params = super()._load_pos_data_fields(config_id)
-        params += ['cash_register_balance_start_mn_ref', 'ref_me_currency_id', 'currency_id']
-        return params
+        return {
+            'search_params': {
+                'domain': [('id', '=', currency_id)],
+                'fields': ['id', 'name', 'symbol', 'position', 'rounding', 'rate', 'decimal_places'],
+            },
+        }
 
+    def _get_pos_ui_res_currency_ref(self, params):
+        res_currency = self.env['res.currency'].search_read(**params['search_params'])
+        return res_currency[0]
+
+    def _pos_data_process(self, loaded_data):
+        params = self._loader_params_res_currency_ref()
+        currency_ref = self._get_pos_ui_res_currency_ref(params)
+        loaded_data['res_currency_ref'] = currency_ref
+        super(PosSession, self)._pos_data_process(loaded_data)
 
     def try_cash_in_out_ref_currency(self, _type, amount, reason, extras, currency_ref):
         sign = 1 if _type == 'in' else -1
@@ -106,8 +124,8 @@ class PosSession(models.Model):
         self.message_post(body='<br/>\n'.join(message_content))
 
     @api.depends('config_id', 'payment_method_ids')
-    def _compute_cash_journal(self):
-        super(PosSession, self)._compute_cash_journal()
+    def _compute_cash_all(self):
+        super(PosSession, self)._compute_cash_all()
         for session in self:
             session.me_ref_cash_journal_id = False
             cash_journal_ref = session.payment_method_ids.filtered(

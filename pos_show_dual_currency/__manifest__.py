@@ -13,31 +13,18 @@
     "data": [
         "views/pos_payment_method.xml",
         "views/pos_session.xml",
+        "views/pos_payment.xml",
         "views/pos_config.xml",
         "views/res_config_settings.xml",
+        'views/pos_order.xml',
+        'views/report_saledetails.xml',
     ],
 
     'assets': {
         'point_of_sale.assets': [
             'pos_show_dual_currency/static/src/css/pos.css',
-            'pos_show_dual_currency/static/src/js/navbar_patch.js',
-            'pos_show_dual_currency/static/src/js/Popups/ClosePosPopup.js',
-            'pos_show_dual_currency/static/src/js/**/*.js',
-            # New V18 Structure
-            'pos_show_dual_currency/static/src/app/**/*.js',
-            'pos_show_dual_currency/static/src/app/**/*.xml',
-        ],
-        'point_of_sale.assets_prod': [
-            'pos_show_dual_currency/static/src/css/pos.css',
-            'pos_show_dual_currency/static/src/js/Popups/ClosePosPopup.js',
-            'pos_show_dual_currency/static/src/app/**/*.js',
-            'pos_show_dual_currency/static/src/app/**/*.xml',
-        ],
-        'point_of_sale._assets_pos': [
-            'pos_show_dual_currency/static/src/css/pos.css',
-            'pos_show_dual_currency/static/src/js/Popups/ClosePosPopup.js',
-            'pos_show_dual_currency/static/src/app/**/*.js',
-            'pos_show_dual_currency/static/src/app/**/*.xml',
+            'pos_show_dual_currency/static/src/js/**/*',
+            'pos_show_dual_currency/static/src/xml/**/*.xml',
         ],
     },
     "license": "OPL-1",

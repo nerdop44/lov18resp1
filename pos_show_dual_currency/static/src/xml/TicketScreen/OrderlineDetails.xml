@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="OrderlineDetails" t-inherit="point_of_sale.OrderlineDetails" t-inherit-mode="extension">
+        <xpath expr="//t[@t-esc='totalPrice']" position="after">
+            <span style="color: red;">/</span>
+            <span style="color: red;">
+                <t t-esc="totalPrice_ref"/>
+            </span>
+        </xpath>
+
+    </t>
+
+
+
+</templates>
