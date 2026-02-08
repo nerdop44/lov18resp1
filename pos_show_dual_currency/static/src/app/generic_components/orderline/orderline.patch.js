@@ -11,22 +11,12 @@ patch(Orderline.prototype, {
     },
 
     get priceInRefCurrency() {
-        const line = this.props.line;
-        // Access config from the pos service
         if (!this.pos.config.show_dual_currency) {
             return null;
         }
-
-        const price = line.get_display_price();
         const rate = this.pos.config.show_currency_rate || 1;
-
-        if (rate === 0) return "";
-
-        // Use the helper method on pos store if available, or format manually
-        if (this.pos.format_currency_ref) {
-            return this.pos.format_currency_ref(price / rate);
-        }
-
-        return (price / rate).toFixed(2);
+        // In generic orderline, the price is passed in props
+        const price = parseFloat(this.props.line.price.replace(/[^0-9.-]+/g, "")) || 0;
+        return this.pos.format_currency_ref(price * rate);
     }
 });

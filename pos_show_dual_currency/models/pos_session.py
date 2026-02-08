@@ -1,4 +1,7 @@
+import logging
 from collections import defaultdict
+
+_logger = logging.getLogger(__name__)
 from datetime import timedelta
 from itertools import groupby
 
@@ -70,32 +73,40 @@ class PosSession(models.Model):
             self.message_post(body=message)
 
     @api.model
-    def load_pos_data(self):
-        loaded_data = super().load_pos_data()
+    def _load_pos_data(self, data):
+        _logger.info(">>>>>>>> _load_pos_data called for Dual Currency <<<<<<<<")
+        result = super()._load_pos_data(data)
         
-        # Logic adapted from legacy _loader_params_res_currency_ref
+        # Injected data for dual currency display
         currency_id = self.company_id.currency_id.id
         if self.ref_me_currency_id.id:
             currency_id = self.ref_me_currency_id.id
         else:
             if self.config_id.show_currency:
-                self.ref_me_currency_id = self.config_id.show_currency.id
                 currency_id = self.config_id.show_currency.id
-            else:
-                if self.company_id.currency_id_dif:
-                    self.config_id.show_currency = self.company_id.currency_id_dif.id
-                    self.ref_me_currency_id = self.company_id.currency_id_dif.id
-                    currency_id = self.company_id.currency_id_dif.id
+            elif self.company_id.currency_id_dif:
+                currency_id = self.company_id.currency_id_dif.id
 
+        _logger.info(">>>>>>>> Debug: currency_id=%s <<<<<<<<", currency_id)
         currency_fields = ['id', 'name', 'symbol', 'position', 'rounding', 'rate', 'decimal_places']
         currency_ref = self.env['res.currency'].search_read([('id', '=', currency_id)], currency_fields)
+        _logger.info(">>>>>>>> Debug: currency_ref found=%s <<<<<<<<", len(currency_ref) if currency_ref else 0)
         
         if currency_ref:
-            loaded_data['res_currency_ref'] = currency_ref[0]
-        else:
-            loaded_data['res_currency_ref'] = None
+            # Odoo 18 _load_pos_data returns a dict with 'data' and 'fields'
+            _logger.info(">>>>>>>> Debug: result keys=%s <<<<<<<<", list(result.keys()) if result else 'None')
             
-        return loaded_data
+            # Fetch the official TRM (Tasa) for the reference currency
+            rate_tasa = self.env['res.currency'].get_trm_systray()
+            currency_ref[0]['rate'] = rate_tasa  # Inject the "Tasa" instead of native Odoo rate
+            
+            if result and 'data' in result and result['data']:
+                result['data'][0]['res_currency_ref'] = currency_ref[0]
+                _logger.info(">>>>>>>> Injected res_currency_ref with rate %s into result['data'][0] <<<<<<<<", rate_tasa)
+            else:
+                _logger.warning(">>>>>>>> Debug: result['data'] is empty! <<<<<<<<")
+        
+        return result
 
     def try_cash_in_out_ref_currency(self, _type, amount, reason, extras, currency_ref):
         sign = 1 if _type == 'in' else -1
@@ -564,6 +575,18 @@ class PosSession(models.Model):
                                         bank_payment_method_diffs=None):
         bank_payment_method_diffs = bank_payment_method_diffs or {}
         return self.action_pos_session_close_ref(balancing_account, amount_to_balance, bank_payment_method_diffs)
+
+    @api.model
+    def _loader_params_pos_config(self):
+        result = super()._loader_params_pos_config()
+        result['search_params']['fields'].extend([
+            'show_dual_currency',
+            'show_currency',
+            'show_currency_rate',
+            'show_currency_symbol',
+            'show_currency_position',
+        ])
+        return result
 
     def _loader_params_pos_session(self):
         search_params = super(PosSession, self)._loader_params_pos_session()

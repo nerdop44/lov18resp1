@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_show_dual_currency.OrderWidget" t-inherit="point_of_sale.OrderWidget" t-inherit-mode="extension">
+        <xpath expr="//span[hasclass('total')]" position="after">
+             <t t-if="totalInRefCurrency">
+                <span class="currency-dual-total" style="color: red; font-size: medium; margin-left: 10px;">
+                     / <t t-esc="totalInRefCurrency"/>
+                </span>
+            </t>
+        </xpath>
+    </t>
+</templates>

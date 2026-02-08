@@ -11,7 +11,12 @@ class PosConfig(models.Model):
 
     show_currency = fields.Many2one('res.currency', string='Currency', default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')], limit=1))
 
-    show_currency_rate = fields.Float(string='Rate', related='show_currency.rate')
+    show_currency_rate = fields.Float(string='Rate', compute='_compute_show_currency_rate', store=False)
+
+    @api.depends('show_currency')
+    def _compute_show_currency_rate(self):
+        for config in self:
+            config.show_currency_rate = self.env['res.currency'].get_trm_systray()
 
     #show_currency_rate_real = fields.Float(string='Rate', related='show_currency.rate_real')# darrell
 
