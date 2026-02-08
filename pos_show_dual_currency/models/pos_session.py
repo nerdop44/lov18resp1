@@ -70,45 +70,17 @@ class PosSession(models.Model):
         if message:
             self.message_post(body=message)
 
-    def _load_pos_data(self, data):
-        response = super()._load_pos_data(data)
-        params = self._loader_params_res_currency_ref()
-        currency_ref = self._get_pos_ui_res_currency_ref(params)
-        data['pos.session']['data'][0]['res_currency_ref'] = currency_ref
-        return response
-
-    def _loader_params_res_currency_ref(self):
-        currency_id = self.company_id.currency_id.id
-        if self.ref_me_currency_id.id:
-            currency_id = self.ref_me_currency_id.id
-        else:
-            if self.config_id.show_currency:
-                self.ref_me_currency_id = self.config_id.show_currency.id
-                currency_id = self.config_id.show_currency.id
-            else:
-                if self.company_id.currency_id_dif:
-                    self.config_id.show_currency = self.company_id.currency_id_dif.id
-                    self.ref_me_currency_id = self.company_id.currency_id_dif.id
-                    currency_id = self.company_id.currency_id_dif.id
-
-        return {
-            'search_params': {
-                'domain': [('id', '=', currency_id)],
-                'fields': ['id', 'name', 'symbol', 'position', 'rounding', 'rate', 'decimal_places'],
-            },
-        }
-
-    def _get_pos_ui_res_currency_ref(self, params):
-        res_currency = self.env['res.currency'].search_read(**params['search_params'])
-        return res_currency[0]
+    @api.model
+    def _load_pos_data_models(self, config_id):
+        # Ensure the secondary currency is loaded
+        return ['res.currency']
 
     @api.model
     def _load_pos_data_fields(self, config_id):
-        return ['cash_register_balance_start_mn_ref', 'res_currency_ref', 'config_id', 'currency_id']
+        params = super()._load_pos_data_fields(config_id)
+        params += ['cash_register_balance_start_mn_ref', 'ref_me_currency_id', 'currency_id']
+        return params
 
-    @api.model
-    def _load_pos_data_domain(self, data):
-        return []
 
     def try_cash_in_out_ref_currency(self, _type, amount, reason, extras, currency_ref):
         sign = 1 if _type == 'in' else -1
