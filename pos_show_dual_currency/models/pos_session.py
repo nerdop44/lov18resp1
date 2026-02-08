@@ -92,41 +92,53 @@ class PosSession(models.Model):
         elif self.company_id.currency_id_dif and self.company_id.currency_id_dif.id != company_currency_id:
              currency_id = self.company_id.currency_id_dif.id
         
+        # --- ROBUST VEF/Bs SELECTION LOGIC ---
+        # Search for VEF/VES currency by Name OR Symbol
+        vef_currency = self.env['res.currency'].search([
+            '|', ('name', 'in', ['VES', 'VEF']), ('symbol', 'in', ['Bs', 'Bs.', 'Bs']),
+            ('active', '=', True)
+        ], limit=1)
+
+        _logger.info(">>>>>>>> Debug [Dual Currency]: Company ID: %s, Initial Dual ID: %s", company_currency_id, currency_id)
+        _logger.info(">>>>>>>> Debug [Dual Currency]: VEF Currency Found: %s (ID: %s)", vef_currency.name if vef_currency else 'None', vef_currency.id if vef_currency else 'None')
+
+        if vef_currency:
+             should_force_vef = False
+             
+             # Case 1: No dual currency selected yet (currency_id is False or None)
+             if not currency_id:
+                 should_force_vef = True
+                 _logger.info(">>>>>>>> Debug [Dual Currency]: Case 1 - No dual currency selected. Forcing VEF.")
+             
+             # Case 2: Selected dual currency is explicitly USD
+             elif currency_id:
+                 curr = self.env['res.currency'].browse(currency_id)
+                 if curr.name == 'USD':
+                     should_force_vef = True
+                     _logger.info(">>>>>>>> Debug [Dual Currency]: Case 2 - USD selected. Forcing VEF.")
+            
+             # Case 3: Selected matches Company, and Company is USD
+             if not should_force_vef and currency_id == company_currency_id:
+                 comp_curr = self.company_id.currency_id
+                 if comp_curr.name == 'USD':
+                     should_force_vef = True
+                     _logger.info(">>>>>>>> Debug [Dual Currency]: Case 3 - Company is USD. Forcing VEF.")
+            
+             if should_force_vef:
+                 currency_id = vef_currency.id
+                 _logger.info(">>>>>>>> Debug [Dual Currency]: FORCED SWAP to VEF/Bs (ID: %s)", currency_id)
+
+        # Fallback: If we match company currency (e.g. Company=VEF), try to fallback to USD
         if currency_id == company_currency_id:
-            # We are here because Config and Company 'Difference' currency are either not set or same as Company Currency.
-            # We MUST find an alternative for Dual Currency display to make sense.
-            # User specifically requested "Bs" (Bolivars).
-            # If Company is USD (1), we want VEF/VES (2).
-            # If Company is VEF (2), we want USD (1).
-            
-            # 1. Try to find VEF/VES/Bs first (most likely case for Venezuela)
-            # If Company IS VEF, this will be excluded by the ID check, essentially forcing USD if VEF is company.
-            alternative = self.env['res.currency'].search([
-                ('name', 'in', ['VES', 'VEF', 'Bs', 'Bs.']), 
-                ('active', '=', True),
-                ('id', '!=', company_currency_id)
-            ], limit=1)
-            
-            # 2. If we didn't find VEF (maybe because Company IS VEF, or VEF is not active)
-            # Then try to find USD
-            if not alternative:
-                 alternative = self.env['res.currency'].search([
-                    ('name', '=', 'USD'), 
-                    ('active', '=', True),
-                    ('id', '!=', company_currency_id)
-                ], limit=1)
+             _logger.info(">>>>>>>> Debug [Dual Currency]: Dual matches Company. Checking for fallback to USD.")
+             if vef_currency and company_currency_id == vef_currency.id:
+                 # Company is VEF. Dual is VEF. We likely want USD.
+                 usd_currency = self.env['res.currency'].search([('name', '=', 'USD'), ('active', '=', True)], limit=1)
+                 if usd_currency:
+                     currency_id = usd_currency.id
+                     _logger.info(">>>>>>>> Debug [Dual Currency]: Swapped to USD (ID: %s) because Company is VEF.", currency_id)
 
-            # 3. Last result: Just get ANY other currency
-            if not alternative:
-                 alternative = self.env['res.currency'].search([('id', '!=', company_currency_id), ('active', '=', True)], limit=1)
-            
-            if alternative:
-                currency_id = alternative.id
-                _logger.info(">>>>>>>> Debug: Forced alternative currency: %s (ID: %s) instead of Company %s <<<<<<<<", alternative.name, alternative.id, company_currency_id)
-            else:
-                _logger.warning(">>>>>>>> Debug: Could not find ANY alternative currency to Company %s! <<<<<<<<", company_currency_id)
-
-        _logger.info(">>>>>>>> Debug: Final Selected currency_id=%s (Company=%s) <<<<<<<<", currency_id, company_currency_id)
+        _logger.info(">>>>>>>> Debug [Dual Currency]: FINAL SELECTION ID=%s <<<<<<<<", currency_id)
         
         # Debug: List all active currencies to see what's available
         all_currencies = self.env['res.currency'].search_read([('active', '=', True)], ['name', 'symbol'])
