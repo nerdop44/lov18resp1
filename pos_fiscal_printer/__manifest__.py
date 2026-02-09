@@ -16,15 +16,16 @@
         'views/pos_report_z.xml',
     ],
     'assets': {
-        'point_of_sale.assets': [
+        'point_of_sale._assets_pos': [
             'pos_fiscal_printer/static/src/scss/**/*',
-            'pos_fiscal_printer/static/src/js/AbstractReceiptScreen.js',
-            'pos_fiscal_printer/static/src/js/NotaCreditoPopUp.js',
-            'pos_fiscal_printer/static/src/js/PrintingMixin.js',
-            'pos_fiscal_printer/static/src/js/ReporteZPopUp.js',
-            'pos_fiscal_printer/static/src/js/ReprintingPopUp.js',
-            'pos_fiscal_printer/static/src/js/PartnerDetailsEdit.js',
-            'pos_fiscal_printer/static/src/xml/**/*',
+            # 'pos_fiscal_printer/static/src/js/AbstractReceiptScreen.js',
+            # 'pos_fiscal_printer/static/src/js/NotaCreditoPopUp.js',
+            # 'pos_fiscal_printer/static/src/js/PrintingMixin.js',
+            # 'pos_fiscal_printer/static/src/js/ReporteZPopUp.js',
+            # 'pos_fiscal_printer/static/src/js/ReprintingPopUp.js',
+            # 'pos_fiscal_printer/static/src/js/PartnerDetailsEdit.js',
+            # 'pos_fiscal_printer/static/src/xml/**/*',
+            'pos_fiscal_printer/static/src/app/**/*',
             'pos_fiscal_printer/static/lib/js/**/*',
             'pos_fiscal_printer/static/lib/css/**/*',
         ],
@@ -33,4 +34,5 @@
         # ],
     },
     'license': 'LGPL-3',
+    'installable': True,
 }

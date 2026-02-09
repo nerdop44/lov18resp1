@@ -74,7 +74,6 @@ class PosSession(models.Model):
 
     @api.model
     def _load_pos_data(self, data):
-        _logger.info(">>>>>>>> _load_pos_data called for Dual Currency <<<<<<<<")
         result = super()._load_pos_data(data)
         
         # Injected data for dual currency display
@@ -99,60 +98,45 @@ class PosSession(models.Model):
             ('active', '=', True)
         ], limit=1)
 
-        _logger.info(">>>>>>>> Debug [Dual Currency]: Company ID: %s, Initial Dual ID: %s", company_currency_id, currency_id)
-        _logger.info(">>>>>>>> Debug [Dual Currency]: VEF Currency Found: %s (ID: %s)", vef_currency.name if vef_currency else 'None', vef_currency.id if vef_currency else 'None')
-
         if vef_currency:
              should_force_vef = False
              
              # Case 1: No dual currency selected yet (currency_id is False or None)
              if not currency_id:
                  should_force_vef = True
-                 _logger.info(">>>>>>>> Debug [Dual Currency]: Case 1 - No dual currency selected. Forcing VEF.")
              
              # Case 2: Selected dual currency is explicitly USD
              elif currency_id:
                  curr = self.env['res.currency'].browse(currency_id)
                  if curr.name == 'USD':
-                     should_force_vef = True
-                     _logger.info(">>>>>>>> Debug [Dual Currency]: Case 2 - USD selected. Forcing VEF.")
+                     # Only force switch to VEF if Company is ALSO USD (avoid USD-USD)
+                     # If Company is VEF, then USD is a valid dual currency.
+                     comp_curr = self.company_id.currency_id
+                     if comp_curr.id == currency_id:
+                         should_force_vef = True
             
              # Case 3: Selected matches Company, and Company is USD
              if not should_force_vef and currency_id == company_currency_id:
                  comp_curr = self.company_id.currency_id
                  if comp_curr.name == 'USD':
                      should_force_vef = True
-                     _logger.info(">>>>>>>> Debug [Dual Currency]: Case 3 - Company is USD. Forcing VEF.")
             
              if should_force_vef:
                  currency_id = vef_currency.id
-                 _logger.info(">>>>>>>> Debug [Dual Currency]: FORCED SWAP to VEF/Bs (ID: %s)", currency_id)
 
         # Fallback: If we match company currency (e.g. Company=VEF), try to fallback to USD
         # BUT ONLY if we didn't just force it!
         if currency_id == company_currency_id and not should_force_vef:
-             _logger.info(">>>>>>>> Debug [Dual Currency]: Dual matches Company. Checking for fallback to USD.")
              if vef_currency and company_currency_id == vef_currency.id:
                  # Company is VEF. Dual is VEF. We likely want USD.
                  usd_currency = self.env['res.currency'].search([('name', '=', 'USD'), ('active', '=', True)], limit=1)
                  if usd_currency:
                      currency_id = usd_currency.id
-                     _logger.info(">>>>>>>> Debug [Dual Currency]: Swapped to USD (ID: %s) because Company is VEF.", currency_id)
-
-        _logger.info(">>>>>>>> Debug [Dual Currency]: FINAL SELECTION ID=%s <<<<<<<<", currency_id)
         
-        # Debug: List all active currencies to see what's available
-        all_currencies = self.env['res.currency'].search_read([('active', '=', True)], ['name', 'symbol'])
-        _logger.info(">>>>>>>> Debug: All Active Currencies: %s <<<<<<<<", all_currencies)
-
         currency_fields = ['id', 'name', 'symbol', 'position', 'rounding', 'rate', 'decimal_places']
         currency_ref = self.env['res.currency'].search_read([('id', '=', currency_id)], currency_fields)
-        _logger.info(">>>>>>>> Debug: currency_ref found=%s <<<<<<<<", len(currency_ref) if currency_ref else 0)
         
         if currency_ref:
-            # Odoo 18 _load_pos_data returns a dict with 'data' and 'fields'
-            _logger.info(">>>>>>>> Debug: result keys=%s <<<<<<<<", list(result.keys()) if result else 'None')
-            
             # Fetch the official TRM (Tasa) for the reference currency
             # Ensure we get a float
             rate_tasa = 0.0
@@ -165,13 +149,20 @@ class PosSession(models.Model):
                 # Fallback to currency rate if TRM fails
                 rate_tasa = currency_ref[0].get('rate', 1.0)
             
-            currency_ref[0]['rate'] = rate_tasa  # Inject the "Tasa" instead of native Odoo rate
+            # INVERSE RATE LOGIC for VEF -> USD
+            # If we are displaying USD (ID 1) but Company is VEF (ID 2), we need to divide by rate (multiply by inverse)
+            # rate_tasa is usually Bs/USD (e.g. 50).
+            # We want 1 USD = 50 Bs.
+            # If price is 50 Bs. Target is 1 USD.
+            # 50 * Rate = 1. => Rate = 1/50 = 0.02
+            if currency_ref[0]['name'] == 'USD' and self.company_id.currency_id.name != 'USD':
+                 if rate_tasa and rate_tasa != 0:
+                     rate_tasa = 1.0 / rate_tasa
+            
+            currency_ref[0]['rate'] = rate_tasa  # Inject the (possibly inverted) rate
             
             if result and 'data' in result and result['data']:
                 result['data'][0]['res_currency_ref'] = currency_ref[0]
-                _logger.info(">>>>>>>> Injected res_currency_ref: %s with rate %s <<<<<<<<", currency_ref[0]['name'], rate_tasa)
-            else:
-                _logger.warning(">>>>>>>> Debug: result['data'] is empty! <<<<<<<<")
         
         return result
 
@@ -200,7 +191,7 @@ class PosSession(models.Model):
 
     @api.depends('config_id', 'payment_method_ids')
     def _compute_cash_all(self):
-        super(PosSession, self)._compute_cash_all()
+        # super(PosSession, self)._compute_cash_all()
         for session in self:
             session.me_ref_cash_journal_id = False
             cash_journal_ref = session.payment_method_ids.filtered(
@@ -433,15 +424,15 @@ class PosSession(models.Model):
                         'amount'))
                 closing_control_data['default_cash_details']['default_cash_details_ref'] = default_cash_details_ref
                 closing_control_data['default_cash_details']['moves'] = cash_in_out_list
-        closing_control_data['other_payment_methods'] = [{
-            'name': pm.name,
-            'amount': sum(orders.payment_ids.filtered(lambda p: p.payment_method_id == pm).mapped('amount')),
-            'number': len(orders.payment_ids.filtered(lambda p: p.payment_method_id == pm)),
-            'id': pm.id,
-            'type': pm.type,
-        } for pm in other_payment_method_update_ids]
-        closing_control_data[
-            'amount_authorized_diff_ref'] = self.config_id.amount_authorized_diff_ref if self.config_id.set_maximum_difference else None
+        # closing_control_data['other_payment_methods'] = [{
+        #     'name': pm.name,
+        #     'amount': sum(orders.payment_ids.filtered(lambda p: p.payment_method_id == pm).mapped('amount')),
+        #     'number': len(orders.payment_ids.filtered(lambda p: p.payment_method_id == pm)),
+        #     'id': pm.id,
+        #     'type': pm.type,
+        # } for pm in other_payment_method_update_ids]
+        # closing_control_data[
+        #     'amount_authorized_diff_ref'] = self.config_id.amount_authorized_diff_ref if self.config_id.set_maximum_difference else None
         return closing_control_data
 
     def post_closing_cash_details_ref(self, counted_cash):
@@ -806,6 +797,7 @@ class PosSession(models.Model):
 
         data['payment_method_to_receivable_lines'] = payment_method_to_receivable_lines
         data['payment_to_receivable_lines'] = payment_to_receivable_lines
+        data['online_payment_to_receivable_lines'] = {}
         print('data para linea en banco', data)
         return data
 

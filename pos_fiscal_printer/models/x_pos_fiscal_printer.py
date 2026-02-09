@@ -19,4 +19,5 @@ class XPosFiscalPrinter(models.Model):
     api_url = fields.Char("URL de la API")
 
     x_fiscal_commands_time = fields.Integer("Tiempo de espera", tracking=True, default=750)
+    company_id = fields.Many2one('res.company', string='Compañía', required=True, default=lambda self: self.env.company)
 

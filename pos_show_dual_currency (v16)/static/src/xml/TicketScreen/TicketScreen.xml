@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="TicketScreen" t-inherit="point_of_sale.TicketScreen" t-inherit-mode="extension">
+        <xpath expr="//t[@t-esc='getTotal(order)']" position="after">
+            <span style="color: red;">/</span>
+            <span style="color: red;">
+                <t t-esc="getTotalUSD(order)"/>
+            </span>
+        </xpath>
+    </t>
+
+
+</templates>

@@ -336,12 +336,12 @@ class AccountMove(models.Model):
         Ensure that the foreign_rate and foreign_inverse_rate are computed and computes the foreign
         debit and foreign credit of the line_ids fields (journal entries) when the move is created.
         """
-        for vals in vals_list:
-
-            if 'name' in vals and vals['name'] != "/":
-                existing_record = self.search([('name', '=', vals['name'])], limit=1)
-                if existing_record:
-                    raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
+        # for vals in vals_list:
+        #
+        #     if 'name' in vals and vals['name'] != "/":
+        #         existing_record = self.search([('name', '=', vals['name'])], limit=1)
+        #         if existing_record:
+        #             raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
 
         moves = super().create(vals_list)
         moves._compute_rate()
@@ -370,10 +370,10 @@ class AccountMove(models.Model):
         the move is edited.
         """
 
-        if 'name' in vals:
-            existing_record = self.search([('name', '=', vals['name']), ('id', '!=', self.id)], limit=1)
-            if existing_record:
-                raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
+        # if 'name' in vals:
+        #     existing_record = self.search([('name', '=', vals['name']), ('id', '!=', self.id)], limit=1)
+        #     if existing_record:
+        #         raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
 
         if vals.get("foreign_rate", False):
             for move in self:

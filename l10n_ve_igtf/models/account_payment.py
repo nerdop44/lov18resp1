@@ -98,7 +98,7 @@ class AccountPaymentIgtf(models.Model):
         """
 
         vals = super(AccountPaymentIgtf, self)._prepare_move_line_default_vals(
-            write_off_line_vals
+            write_off_line_vals, force_balance=force_balance
         )
 
         if self.igtf_percentage == self.env.company.igtf_percentage:

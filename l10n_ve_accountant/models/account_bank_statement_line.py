@@ -10,7 +10,8 @@ class AccountBankStatementLine(models.Model):
         liquidity_line_vals, counterpart_line_vals = super()._prepare_move_line_default_vals(
             counterpart_account_id=counterpart_account_id
         )
-        if not self.env.company.currency_foreign_id.is_zero(self.foreign_amount):
+        currency = self.env.company.currency_foreign_id
+        if currency and not currency.is_zero(self.foreign_amount):
             liquidity_line_vals.update(
                 {
                     "foreign_debit": self.foreign_amount > 0 and self.foreign_amount or 0.0,

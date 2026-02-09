@@ -24,9 +24,9 @@
 
     """,
     'depends': [
-                'base','l10n_ve_base','account','account_reports','account_followup','web',
-                'stock_account','account_accountant','analytic','stock_landed_costs','account_debit_note','mail',
-                'account_reports_cash_basis', 'account_asset','product','account_budget'
+                'base','l10n_ve_base','account','web',
+                'stock_account','analytic','stock_landed_costs','account_debit_note','mail',
+                'product'
                 ],
     'data':[
         'security/ir.model.access.csv',
@@ -47,8 +47,8 @@
         'data/channel.xml',
         'views/effective_date_change.xml',
         'views/product_template_attribute_value.xml',
-        'views/account_asset.xml',
-        'views/view_bank_statement_line_tree_bank_rec_widget.xml',
+        # 'views/account_asset.xml',
+        # 'views/view_bank_statement_line_tree_bank_rec_widget.xml',
         'wizard/generar_retencion_igtf_wizard.xml',
         'views/account_analytic_account.xml',
         'views/account_analytic_line.xml',

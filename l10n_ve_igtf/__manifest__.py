@@ -29,5 +29,6 @@
     },
     "pre_init_hook": "pre_init_hook",
     "application": True,
+    "installable": True,
     "binaural": True,
 }

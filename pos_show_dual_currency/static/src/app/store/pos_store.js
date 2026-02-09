@@ -14,8 +14,11 @@ patch(PosData.prototype, {
         if (response && response["pos.session"]) {
             const session = response["pos.session"].data[0];
             if (session && session.res_currency_ref) {
+                // Save to the PosData instance
                 this.res_currency_ref = session.res_currency_ref;
-                console.log(">>>>>>>> Intercepted res_currency_ref from RPC:", this.res_currency_ref);
+                // ALSO try to attach it to the session object itself for easier access if it's consumed later
+                // session.res_currency_ref is already there
+                console.log(">>>>>>>> Intercepted res_currency_ref in PosData:", this.res_currency_ref);
             } else {
                 console.warn(">>>>>>>> res_currency_ref NOT found in RPC response for pos.session", response["pos.session"]);
             }
@@ -33,12 +36,41 @@ patch(PosData.prototype, {
 
 // Patch PosStore to use the intercepted data
 patch(PosStore.prototype, {
+    get res_currency_ref() {
+        return this.get_currency_ref();
+    },
+
+    get_currency_ref() {
+        // 1. Try accessing from PosData if available (this.data is commonly the data service in Odoo 18 PosStore)
+        if (this.data && this.data.res_currency_ref) {
+            return this.data.res_currency_ref;
+        }
+
+        // 2. Try accessing from this.session (if loaded as a property)
+        if (this.session && this.session.res_currency_ref) {
+            return this.session.res_currency_ref;
+        }
+
+        // 3. Try finding it in the loaded models if they are accessible
+        if (this.models && this.models['pos.session']) {
+            // It might be a collection or array
+            const sessionData = this.models['pos.session'].data || this.models['pos.session'];
+            if (Array.isArray(sessionData) && sessionData.length > 0) {
+                const sess = sessionData.find(s => s.id === this.session.id) || sessionData[0];
+                if (sess && sess.res_currency_ref) return sess.res_currency_ref;
+            }
+        }
+
+        return null;
+    },
+
     format_currency_ref(value) {
-        const currency = this.res_currency_ref || {
+        const currency = this.get_currency_ref() || {
             symbol: this.config.show_currency_symbol || "$",
             position: this.config.show_currency_position || "after",
             rounding: 0.01,
             decimal_places: 2,
+            id: 999999 // Fallback ID
         };
 
         // Ensure value is a number
@@ -52,8 +84,9 @@ patch(PosStore.prototype, {
             digits: [69, currency.decimal_places],
         });
 
+
+
         // Fallback: If formatMonetary returns just the number or fails to add symbol, force it
-        // Check if symbol is missing
         if (!formatted.includes(currency.symbol)) {
             if (currency.position === 'before') {
                 formatted = currency.symbol + ' ' + amount.toFixed(currency.decimal_places);
@@ -61,17 +94,35 @@ patch(PosStore.prototype, {
                 formatted = amount.toFixed(currency.decimal_places) + ' ' + currency.symbol;
             }
         } else {
-            // If symbol exists but position is wrong (e.g. Odoo formatted it as "100 $" but config says "before")
-            // This is tricky because formatMonetary might have its own logic.
-            // But let's trust formatMonetary unless it failed to add symbol.
-            // However, user said "simbolo de $ debe salir antes del monto".
-            // Let's force it if config says so and it's not seemingly right.
+            // Correct usage of symbol position if formatMonetary didn't respect it (e.g. locale overrides)
             if (currency.position === 'before' && !formatted.startsWith(currency.symbol)) {
-                // It might be "100 $"
-                formatted = currency.symbol + ' ' + amount.toFixed(currency.decimal_places);
+                // heuristic check: if it ends with symbol but should start
+                if (formatted.endsWith(currency.symbol)) {
+                    formatted = currency.symbol + ' ' + formatted.slice(0, -currency.symbol.length).trim();
+                } else {
+                    formatted = currency.symbol + ' ' + amount.toFixed(currency.decimal_places);
+                }
             }
         }
         return formatted;
+    },
+
+    getAmountInRefCurrency(amount) {
+        if (!amount && amount !== 0) return "";
+        let rate = 1.0;
+        if (this.res_currency_ref && this.res_currency_ref.rate) {
+            rate = this.res_currency_ref.rate;
+        } else {
+            rate = this.config.show_currency_rate;
+        }
+
+        if (typeof rate !== 'number') {
+            rate = parseFloat(rate);
+        }
+        if (isNaN(rate) || rate === 0) rate = 1;
+
+        const final_val = amount * rate;
+        return this.format_currency_ref(final_val);
     },
 
     getProductPriceFormatted(product, ref = false) {
@@ -81,21 +132,20 @@ patch(PosStore.prototype, {
 
         const price_with_tax = this.get_product_price_with_tax(product, price);
 
-        if (ref && this.config.show_dual_currency) {
-            let rate = this.config.show_currency_rate;
-            // Force float parsing
-            if (typeof rate !== 'number') {
-                rate = parseFloat(rate);
-            }
-            if (isNaN(rate) || rate === 0) rate = 1;
-
-            // Use multiplication: price * tasa
-            const final_val = price_with_tax * rate;
-            if (isNaN(final_val)) return "";
-
-            return this.format_currency_ref(final_val);
+        if (ref && (this.config.show_dual_currency || this.res_currency_ref)) {
+            // Use the new centralized helper
+            return this.getAmountInRefCurrency(price_with_tax);
         }
-        return this.formatCurrency(price_with_tax);
+        if (this.currency) {
+            return formatMonetary(price_with_tax, {
+                currencyId: this.currency.id,
+                currencySymbol: this.currency.symbol,
+                currencyPosition: this.currency.position,
+                rounding: this.currency.rounding,
+                digits: [69, this.currency.decimal_places],
+            });
+        }
+        return "" + price_with_tax;
     },
 
     get_product_price_with_tax(product, price) {
@@ -124,11 +174,7 @@ patch(PosStore.prototype, {
             } catch (e) { console.error("Error accessing models['account.tax']", e); }
         }
 
-        if (taxes.length === 0) {
-            // Only warn once per product to avoid spam
-            // console.warn("PosStore: Taxes not loaded for", product.id);
-            return price;
-        }
+        if (taxes.length === 0) return price;
 
         try {
             // Compute taxes

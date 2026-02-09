@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="pos_daily_report" inherit_id="point_of_sale.report_saledetails">
+        <xpath expr="//tr[@t-foreach='products']//td[3]" position="replace">
+            <td>
+                <t t-esc='line["price_unit"]'/>
+                <t t-esc='symbol'/>
+                /
+                <span style="color: red">
+                    <t t-esc='symbol_ref'/>
+                    <t t-esc='line["price_unit_ref"]' t-options="{'widget': 'float', 'precision': currency_precision_ref}"/>
+                </span>
+
+                <t t-if='line["discount"] != 0'>
+                    Disc:<t t-esc='line["discount"]'/>%
+                </t>
+            </td>
+        </xpath>
+
+        <xpath expr="//tr[@t-foreach='payments']" position="replace">
+            <tr t-foreach='payments' t-as='payment'>
+                <td>
+                    <t t-esc="payment['name']"/>
+                </td>
+                <td>
+                    <t t-esc="payment['total']" t-options="{'widget': 'float', 'precision': currency_precision}"/>
+                    <t t-esc='symbol'/>
+                    /
+                    <span style="color: red">
+                        <t t-esc='symbol_ref'/>
+                        <t t-esc="payment['total_ref']"
+                            t-options="{'widget': 'float', 'precision': currency_precision_ref}"/>
+                    </span>
+
+                </td>
+            </tr>
+        </xpath>
+
+        <xpath expr="//tr[@t-foreach='taxes']" position="replace">
+            <tr t-foreach='taxes' t-as='tax'>
+                <td>
+                    <t t-esc="tax['name']"/>
+                </td>
+                <td>
+                    <t t-esc="tax['tax_amount']" t-options="{'widget': 'float', 'precision': currency_precision}"/>
+                    <t t-esc='symbol'/>
+                    /
+                    <span style="color: red">
+                        <t t-esc='symbol_ref'/>
+                        <t t-esc="tax['tax_amount_ref']/rate_today"
+                           t-options="{'widget': 'float', 'precision': currency_precision_ref}"/>
+                    </span>
+                </td>
+                <td>
+                    <t t-esc="tax['base_amount']" t-options="{'widget': 'float', 'precision': currency_precision}"/>
+                    <t t-esc='symbol'/>
+                    /
+                    <span style="color: red">
+                        <t t-esc='symbol_ref'/>
+                        <t t-esc="tax['base_amount_ref']"
+                           t-options="{'widget': 'float', 'precision': currency_precision_ref}"/>
+                    </span>
+                </td>
+            </tr>
+        </xpath>
+        <xpath expr="//t[@t-esc='total_paid']" position="after">
+            <t t-esc='symbol'/>
+            /
+            <span style="color: red">
+                <t t-esc='symbol_ref'/>
+                <t t-esc="total_paid_ref"
+                   t-options="{'widget': 'float', 'precision': currency_precision_ref}"/>
+            </span>
+        </xpath>
+    </template>
+</odoo>

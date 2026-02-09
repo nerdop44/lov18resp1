@@ -12,11 +12,11 @@
         'views/inherited_views.xml',
     ],
     'assets': {
-        'point_of_sale.assets': [
             'pos_igtf_tax/static/src/scss/**/*',
             'pos_igtf_tax/static/src/xml/**/*',
-            'pos_igtf_tax/static/src/js/**/*',
+            'pos_igtf_tax/static/src/app/**/*.js',
         ],
     },
     'license': 'LGPL-3',
+    'installable': True,
 }

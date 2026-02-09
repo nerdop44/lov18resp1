@@ -23,4 +23,5 @@ parroquias. 
     ],
     "application": True,
     "binaural": True,
+    'installable': True,
 }

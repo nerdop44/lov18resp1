@@ -11,64 +11,79 @@ patch(Orderline.prototype, {
     },
 
     get priceInRefCurrency() {
-        if (!this.pos.config.show_dual_currency) {
-            return null;
-        }
-        // Price with tax included is typically what we want for display on the line total or unit price depending on context
-        // Orderline props.line is a generic object in generic_components ?? 
-        // Wait, Orderline in generic_components takes 'line' prop which is a Json object or similar, 
-        // BUT in the main screen it might be the model. 
-        // Wait, Orderline in generic_components is for the widget, not the main screen line?
-        // Actually Orderline in generic_components is for the widget, not the main screen line?
-        // Let's verify what 'line' is. 
-        // In OrderWidget, it passes `line`, which is `currentOrder.get_orderlines()`. 
-        // So `line` is an instance of Orderline model.
-
         const line = this.props.line;
-        let price = 0;
 
-        // Try to get the unit price with tax included
-        // In Odoo 18/17, get_unit_display_price() usually returns tax-included price if configured
-        if (typeof line.get_unit_display_price === 'function') {
-            price = line.get_unit_display_price();
-        } else if (typeof line.get_display_price === 'function') {
-            price = line.get_display_price();
-        } else {
-            // Fallback: Manually calculate if object properties exist
-            // check for price_subtotal_incl and quantity
-            if (line.get_price_with_tax) {
-                price = line.get_price_with_tax();
-            } else if (line.get_taxed_price) {
-                price = line.get_taxed_price();
+        // Helper to safely parse localized numbers (expecting 1.000,00 format for VE/ES)
+        const parseValue = (val) => {
+            if (typeof val === 'number') return val;
+            if (!val) return 0;
+            // Remove currency symbol and whitespace (keep digits, comma, dot, minus)
+            let clean = val.toString().replace(/[^\d.,-]/g, "").trim();
+
+            // Clean up leading/trailing punctuation (e.g. from "Bs.F" -> ".")
+            clean = clean.replace(/^[.,]+|[.,]+$/g, "");
+
+            // Handle 1.000,00 format (common in this context) -> 1000.00
+            // If comma exists and is after the last dot (or no dot), assume it's decimal separator
+            if (clean.includes(',') && (!clean.includes('.') || clean.lastIndexOf(',') > clean.lastIndexOf('.'))) {
+                clean = clean.replace(/\./g, "").replace(",", ".");
             } else {
-                // Fallback to basic price, but this might be without tax
-                price = line.get_unit_price ? line.get_unit_price() : (line.price || 0);
+                // Handle 1,000.00 format -> 1000.00
+                clean = clean.replace(/,/g, "");
             }
+            const floatVal = parseFloat(clean);
+            return isNaN(floatVal) ? 0 : floatVal;
+        };
+
+        try {
+
+
+            if (!this.pos.config.show_dual_currency && !this.pos.res_currency_ref) {
+                return null;
+            }
+
+            let price = 0;
+
+            // Method 1: Try structured object (priceWithTax) if available
+            if (typeof line.get_all_prices === 'function') {
+                const prices = line.get_all_prices();
+                price = prices.priceWithTax;
+            }
+            // Method 2: Try specific getter
+            else if (typeof line.get_price_with_tax === 'function') {
+                price = line.get_price_with_tax();
+            }
+            // Method 3: Parse from props (Fallback for Display Props)
+            else {
+                // Safe bet: Parse unitPrice * Parse qty.
+                const rawUnit = line.unitPrice || line.price;
+                const rawQty = line.qty;
+
+                const unitP = parseValue(rawUnit);
+                const q = parseValue(rawQty);
+                price = unitP * q;
+            }
+
+            if (!price) price = 0;
+
+            let rate = 1.0;
+            if (this.pos.res_currency_ref && this.pos.res_currency_ref.rate) {
+                rate = this.pos.res_currency_ref.rate;
+            } else {
+                rate = this.pos.config.show_currency_rate || 1;
+            }
+
+            // Ensure rate is number
+            if (typeof rate !== 'number') rate = parseFloat(rate) || 1;
+            if (rate === 0) rate = 1;
+
+            const final_val = price * rate;
+
+            return this.pos.format_currency_ref(final_val);
+
+        } catch (e) {
+            console.error("Orderline Price Calculation Error:", e);
+            return "ERR";
         }
-
-        // If price is 0, maybe try get_all_prices if available
-        if (price === 0 && typeof line.get_all_prices === 'function') {
-            const allPrices = line.get_all_prices();
-            // Ensure we get a number, not undefined
-            price = (allPrices && (allPrices.priceWithTax || allPrices.unitPrice)) || 0;
-        }
-
-        // Ensure price is a number
-        if (typeof price !== 'number') {
-            price = parseFloat(price) || 0;
-        }
-
-        let rate = this.pos.config.show_currency_rate;
-        if (typeof rate !== 'number') {
-            rate = parseFloat(rate);
-        }
-
-        if (!rate || isNaN(rate) || rate === 0) rate = 1;
-
-        // User requested multiplication for the "Tasa"
-        const final_val = price * rate;
-        if (isNaN(final_val)) return "";
-
-        return this.pos.format_currency_ref(final_val);
     }
 });

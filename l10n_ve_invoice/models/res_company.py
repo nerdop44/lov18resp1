@@ -12,3 +12,5 @@ class ResCompany(models.Model):
     group_sales_invoicing_series = fields.Boolean()
     show_total_on_usd_invoice = fields.Boolean(default=True)
     show_tag_on_usd_invoice = fields.Boolean(default=True)
+    activate_custom_margin = fields.Boolean(default=False)
+    forma_libre_top_margin = fields.Float(string="Margen Superior Forma Libre (cm)", default=0.0)

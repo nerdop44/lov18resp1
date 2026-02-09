@@ -64,4 +64,5 @@
     "license": "GPL-2",
     "price": 4000,
     "currency": "USD",
+    'installable': True,
 }

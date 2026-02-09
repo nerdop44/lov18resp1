@@ -4,7 +4,7 @@
         <xpath expr="//div[hasclass('payment-status-remaining')]" position="inside">
              <t t-if="pos.config.show_dual_currency">
                 <div class="currency-dual-remaining" style="color: red; font-size: medium; margin-top: 5px;">
-                     Remaining Ref: <t t-esc="pos.format_currency_ref(props.order.get_due() * pos.config.show_currency_rate)"/>
+                     Restante: <t t-esc="pos.getAmountInRefCurrency(props.order.get_due())"/>
                 </div>
             </t>
         </xpath>
@@ -12,9 +12,11 @@
         <xpath expr="//div[hasclass('payment-status-change')]" position="inside">
              <t t-if="pos.config.show_dual_currency">
                 <div class="currency-dual-change" style="color: red; font-size: medium; margin-top: 5px;">
-                     Change Ref: <t t-esc="pos.format_currency_ref(props.order.get_change() * pos.config.show_currency_rate)"/>
+                     Vuelto: <t t-esc="pos.getAmountInRefCurrency(props.order.get_change())"/>
                 </div>
             </t>
         </xpath>
+
+
     </t>
 </templates>

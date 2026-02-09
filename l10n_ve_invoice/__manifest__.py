@@ -23,6 +23,7 @@
         "data/invoice_free_form_paperformat.xml",
         "data/invoice_sale_note_paperformat.xml",
         "report/report_invoice_free_form.xml",
+        "report/report_invoice_free_form_dual.xml",
         "report/report_invoice_sale_note.xml",
         "report/report_invoice.xml",
         #"views/account_move.xml",
@@ -33,4 +34,5 @@
     ],
     "images": ["static/description/icon.png"],
     "application": True,
+    'installable': True,
 }

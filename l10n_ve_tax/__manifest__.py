@@ -19,4 +19,5 @@
         "web.assets_backend": ["l10n_ve_tax/static/src/components/**/*"],
     },
     "binaural": True,
+    'installable': True,
 }
