@@ -66,7 +66,7 @@ patch(PosOrderline.prototype, {
     setup() {
         super.setup(...arguments);
         this.x_is_igtf_line = this.x_is_igtf_line || false;
-        if (this.product.isIgtfProduct) {
+        if (this.product_id?.isIgtfProduct) {
             this.x_is_igtf_line = true;
         }
     },
