@@ -9,14 +9,14 @@ import { roundDecimals } from "@web/core/utils/numbers";
 
 patch(ProductProduct.prototype, {
     get isIgtfProduct() {
-        const { x_igtf_product_id } = this.pos.config;
-        return x_igtf_product_id ? x_igtf_product_id[0] === this.id : false;
+        const config = this.models?.["pos.config"]?.getFirst();
+        return config?.x_igtf_product_id ? config.x_igtf_product_id[0] === this.id : false;
     }
 });
 
 patch(PosPayment.prototype, {
     get isForeignExchange() {
-        const currency_ref = this.pos.res_currency_ref;
+        const currency_ref = this.pos?.res_currency_ref;
         if (currency_ref && this.payment_method_id && this.payment_method_id.currency_id) {
             return this.payment_method_id.currency_id.id === currency_ref.id;
         }
