@@ -5,7 +5,7 @@
             <div class="payment-status-igtf d-flex justify-content-between flex-grow-1">
                 <span class="label">Monto IGTF</span>
                 <span class="amount align-self-end pe-5">
-                    <t t-esc="pos.format_currency_no_symbol(props.order.x_igtf_amount)"/> Bs.F
+                    <t t-esc="env.utils.formatCurrency(props.order.x_igtf_amount)"/> Bs.F
                 </span>
             </div>
         </xpath>

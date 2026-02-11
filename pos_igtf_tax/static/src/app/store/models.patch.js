@@ -27,9 +27,9 @@ patch(PosPayment.prototype, {
     },
 
     set_amount(value) {
-        const igtf_antes = this.order.x_igtf_amount;
+        const igtf_antes = this.pos_order_id.x_igtf_amount;
 
-        if (value === this.order.get_due()) {
+        if (value === this.pos_order_id.get_due()) {
             super.set_amount(value);
         } else {
             if (value !== igtf_antes) {
@@ -46,13 +46,13 @@ patch(PosPayment.prototype, {
         if (!this.isForeignExchange) return;
 
         if (value === igtf_antes) return;
-        this.order.removeIGTF();
+        this.pos_order_id.removeIGTF();
 
-        const price = this.order.x_igtf_amount;
+        const price = this.pos_order_id.x_igtf_amount;
         const product = this.pos.db.product_by_id[igtfProduct[0]];
 
         if (product) {
-            this.order.add_product(product, {
+            this.pos_order_id.add_product(product, {
                 quantity: 1,
                 price: price,
                 lst_price: price,
