@@ -16,7 +16,14 @@ patch(ProductProduct.prototype, {
 
 patch(PosPayment.prototype, {
     get isForeignExchange() {
-        return this.payment_method.x_is_foreign_exchange;
+        const currency_ref = this.pos.res_currency_ref;
+        if (currency_ref && this.payment_method_id && this.payment_method_id.currency_id) {
+            return this.payment_method_id.currency_id.id === currency_ref.id;
+        }
+        return false;
+    },
+    set isForeignExchange(val) {
+        // Allow assignment from server data
     },
 
     set_amount(value) {
@@ -107,6 +114,9 @@ patch(PosOrder.prototype, {
         }
 
         return roundDecimals(parseFloat(final_igtf) || 0, 2);
+    },
+    set x_igtf_amount(val) {
+        // Allow assignment from server data
     },
 
     removeIGTF() {
