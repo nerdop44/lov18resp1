@@ -1,10 +1,52 @@
-
 import tkinter as tk
 from tkinter import scrolledtext, ttk
 import threading
 import os
 import pty
 import datetime
+import json
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class FiscalAPIHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/xreport/print':
+            self.server.emulator.queue_command("I0X")
+            self._send_response({"status": "success", "message": "Reporte X enviado"})
+        elif self.path == '/zreport/print':
+            self.server.emulator.queue_command("I0Z")
+            self._send_response({"status": "success", "message": "Reporte Z enviado"})
+        else:
+            self.send_error(404)
+
+    def do_POST(self):
+        if self.path == '/print_pos_ticket':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data)
+                # Odoo sends params: { cmd: [...] } in JSON-RPC style or direct { cmd: [...] }
+                cmds = data.get('cmd') or data.get('params', {}).get('cmd', [])
+                for cmd in cmds:
+                    self.server.emulator.queue_command(cmd)
+                
+                # Odoo expects a success response, often with lastInvoiceNumber for validation
+                # We simulate a successful state
+                inv_num = self.server.emulator.ent_invoice.get()
+                self._send_response({
+                    "result": True,
+                    "state": {"lastInvoiceNumber": inv_num}
+                })
+            except Exception as e:
+                self.send_error(400, str(e))
+        else:
+            self.send_error(404)
+
+    def _send_response(self, data):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode('utf-8'))
 
 class FiscalPrinterEmulator:
     def __init__(self, root):
@@ -21,6 +63,27 @@ class FiscalPrinterEmulator:
         self.buffer = b""
 
         self.create_widgets()
+        self.start_api_server()
+
+    def start_api_server(self):
+        def run_server():
+            server_address = ('', 5000)
+            self.httpd = HTTPServer(server_address, FiscalAPIHandler)
+            self.httpd.server = self
+            self.log("--- API HTTP INICIADA EN PUERTO 5000 ---")
+            self.httpd.serve_forever()
+
+        self.api_thread = threading.Thread(target=run_server)
+        self.api_thread.daemon = True
+        self.api_thread.start()
+
+    def queue_command(self, cmd):
+        """Thread-safe way to queue command execution in the main UI thread"""
+        self.root.after(0, self.execute_api_command, cmd)
+
+    def execute_api_command(self, cmd):
+        self.log(f"API: {cmd}", "cmd")
+        self.interpret_command(cmd)
 
     def create_widgets(self):
         # Top Config Frame
@@ -28,7 +91,7 @@ class FiscalPrinterEmulator:
         frame_top.pack(fill=tk.X, padx=10)
 
         # Status Section
-        frame_status = tk.LabelFrame(frame_top, text="Estado de Conexión", padx=10, pady=5)
+        frame_status = tk.LabelFrame(frame_top, text="Estado de Conexión Serial", padx=10, pady=5)
         frame_status.pack(side=tk.LEFT, fill=tk.Y, padx=5)
         
         self.lbl_status = tk.Label(frame_status, text="DESCONECTADO", fg="red", font=("Arial", 12, "bold"))
@@ -37,20 +100,22 @@ class FiscalPrinterEmulator:
         self.lbl_port = tk.Label(frame_status, text="Puerto: -", fg="blue")
         self.lbl_port.pack(side=tk.LEFT, padx=10)
 
-        self.btn_start = tk.Button(frame_status, text="ACTIVAR", command=self.start_emulation, bg="#4CAF50", fg="white", width=10)
+        self.btn_start = tk.Button(frame_status, text="ACTIVAR SERIAL", command=self.start_emulation, bg="#4CAF50", fg="white", width=12)
         self.btn_start.pack(side=tk.LEFT, padx=5)
         
-        self.btn_stop = tk.Button(frame_status, text="PARAR", command=self.stop_emulation, state=tk.DISABLED, bg="#f44336", fg="white", width=10)
+        self.btn_stop = tk.Button(frame_status, text="PARAR SERIAL", command=self.stop_emulation, state=tk.DISABLED, bg="#f44336", fg="white", width=12)
         self.btn_stop.pack(side=tk.LEFT, padx=5)
 
         # Configuration Section
-        frame_config = tk.LabelFrame(frame_top, text="Configuración Fiscal", padx=10, pady=5)
+        frame_config = tk.LabelFrame(frame_top, text="Configuración Fiscal / API", padx=10, pady=5)
         frame_config.pack(side=tk.LEFT, fill=tk.Y, padx=5)
         
         tk.Label(frame_config, text="Próxima Factura:").pack(side=tk.LEFT)
         self.ent_invoice = tk.Entry(frame_config, width=10, font=("Consolas", 10))
         self.ent_invoice.insert(0, "00000001")
         self.ent_invoice.pack(side=tk.LEFT, padx=5)
+        
+        tk.Label(frame_config, text="API: http://localhost:5000", fg="gray60").pack(side=tk.LEFT, padx=10)
 
         # Main Content Area (Split Panes)
         paned_window = tk.PanedWindow(self.root, orient=tk.HORIZONTAL)
@@ -58,7 +123,7 @@ class FiscalPrinterEmulator:
 
         # Left Panel: Hex Log (Technical)
         frame_left = tk.Frame(paned_window)
-        tk.Label(frame_left, text="Registro Técnico (Hex/Comandos)", font=("Arial", 9, "bold")).pack(anchor="w")
+        tk.Label(frame_left, text="Registro Técnico (API/Serial/Comandos)", font=("Arial", 9, "bold")).pack(anchor="w")
         self.txt_log = scrolledtext.ScrolledText(frame_left, width=40, height=20, font=("Consolas", 8), bg="#f0f0f0")
         self.txt_log.pack(fill=tk.BOTH, expand=True)
         paned_window.add(frame_left)
@@ -76,17 +141,22 @@ class FiscalPrinterEmulator:
         paned_window.add(frame_right)
 
     def log(self, message, tag=None):
-        self.txt_log.config(state='normal')
-        self.txt_log.insert(tk.END, message + "\n", tag)
-        self.txt_log.see(tk.END)
-        self.txt_log.config(state='disabled')
+        def _log():
+            self.txt_log.config(state='normal')
+            self.txt_log.insert(tk.END, message + "\n", tag)
+            self.txt_log.see(tk.END)
+            self.txt_log.config(state='disabled')
+        # Ensure UI update happens in main thread
+        self.root.after(0, _log)
 
     def print_line(self, text):
         """Prints a visual line to the 'paper' receipt"""
-        self.txt_receipt.config(state='normal')
-        self.txt_receipt.insert(tk.END, text + "\n")
-        self.txt_receipt.see(tk.END)
-        self.txt_receipt.config(state='disabled')
+        def _print():
+            self.txt_receipt.config(state='normal')
+            self.txt_receipt.insert(tk.END, text + "\n")
+            self.txt_receipt.see(tk.END)
+            self.txt_receipt.config(state='disabled')
+        self.root.after(0, _print)
         
     def clear_receipt(self):
         self.txt_receipt.config(state='normal')
@@ -110,7 +180,7 @@ class FiscalPrinterEmulator:
             self.thread.daemon = True
             self.thread.start()
             
-            self.log(f"--- INICIADO EN {self.slave_name} ---")
+            self.log(f"--- SERIAL INICIADO EN {self.slave_name} ---")
             
         except Exception as e:
             self.log(f"Error: {e}")
@@ -125,7 +195,7 @@ class FiscalPrinterEmulator:
         self.lbl_port.config(text="Puerto: -")
         self.btn_start.config(state=tk.NORMAL)
         self.btn_stop.config(state=tk.DISABLED)
-        self.log("--- DETENIDO ---")
+        self.log("--- SERIAL DETENIDO ---")
 
     def read_loop(self):
         while self.running and self.master_fd:
@@ -162,16 +232,10 @@ class FiscalPrinterEmulator:
     def parse_packet(self, packet):
         try:
             # Packet: STX (1) | CMD/DATA (N) | ETX (1) | LRC (1)
-            # Actually JS sends: STX + CMD_STRING + ETX + LRC
-            # So everything between STX and ETX is the payload
             payload = packet[1:-2].decode('utf-8', errors='ignore')
-            
-            cmd_hex = " ".join([f"{b:02X}" for b in packet])
-            self.log(f"RCV: {payload}", "cmd")
-            
+            self.log(f"RCV SERIAL: {payload}", "cmd")
             self.interpret_command(payload)
             self.send_ack()
-            
         except Exception as e:
             self.log(f"Parse Error: {e}")
 
@@ -193,16 +257,8 @@ class FiscalPrinterEmulator:
             self.print_line(f"DIR:     {addr}")
 
         # --- ITEMS ---
-        # Format often: '!' (or ' ') + Amount + Qty + Name
-        # Based on JS: command += amount + quantity + name
-        # Amount is padded 10 chars, Qty 5 chars.
-        
         elif cmd.startswith(" ") or cmd.startswith("!"):
-            # Sales Item
-            # This is a bit loose because padding depends on flags
-            # Assuming standard 10 digit amount, 5 digit qty from JS default
             try:
-                # Basic heuristic parser
                 price_str = cmd[1:11]
                 qty_str = cmd[11:16]
                 name = cmd[16:].replace("|", "")
@@ -228,39 +284,44 @@ class FiscalPrinterEmulator:
             self.print_line(f"FACTURA FISCAL N°: {inv_num}")
             self.print_line(f"FECHA: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}")
             self.print_line("\n\n")
+            self.increment_invoice()
 
         # --- REPORTS ---
-        elif cmd.startswith("U4"):
+        elif cmd.startswith("U4") or cmd.startswith("I0Z"): # I0Z used in POS API/Direct
              self.print_line("\n\n*** REPORTE Z ***")
              self.print_line(f"Z N°: {datetime.datetime.now().strftime('%Y%m%d')}")
-             self.print_line("TOTAL VENTAS: 1234.56")
+             self.print_line("TOTAL VENTAS FISCALES: $$$")
+             self.print_line("*****************\n")
+
+        elif cmd.startswith("I0X"):
+             self.print_line("\n\n*** REPORTE X ***")
+             self.print_line("TOTAL VENTAS HASTA AHORA: $$$")
              self.print_line("*****************\n")
 
         elif "S1" in cmd:
             self.log("Consulta de Estado (S1)")
-            # Should respond with status
             self.send_status_response()
-            return # Skip default ACK
+            return
+
+    def increment_invoice(self):
+        try:
+             inv = self.ent_invoice.get()
+             next_inv = int(inv) + 1
+             def _inc():
+                 self.ent_invoice.delete(0, tk.END)
+                 self.ent_invoice.insert(0, str(next_inv).zfill(8))
+             self.root.after(0, _inc)
+        except: pass
 
     def send_ack(self):
         if self.master_fd:
             os.write(self.master_fd, b'\x06')
 
     def send_status_response(self):
-        # Simulate the response with the invoice number
-        # Format depends on specific printer, but often text based lines
         inv = self.ent_invoice.get().zfill(8)
-        # JS expects: 3rd line to be invoice number
         response = f"OK\nSTATUS\n{inv}\n"
         if self.master_fd:
             os.write(self.master_fd, response.encode('utf-8'))
-            
-        # Auto increment
-        try:
-             next_inv = int(inv) + 1
-             self.ent_invoice.delete(0, tk.END)
-             self.ent_invoice.insert(0, str(next_inv).zfill(8))
-        except: pass
 
 if __name__ == "__main__":
     root = tk.Tk()

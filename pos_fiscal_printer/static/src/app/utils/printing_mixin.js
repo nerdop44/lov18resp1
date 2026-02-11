@@ -526,9 +526,9 @@ export const FiscalPrinterMixin = {
             showConfirmButton: false,
         });
         var url = this.pos.config.api_url + "/zreport/print";
-        $.get(url, function (data, status) {
-            console.log(data);
-            if (data) {
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
                 Swal.fire({
                     position: 'top-end',
                     icon: 'success',
@@ -539,14 +539,23 @@ export const FiscalPrinterMixin = {
             } else {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error en impresion',
+                    title: 'Error en impresión',
                     showConfirmButton: true,
                 });
             }
-        });
-        await new Promise(
-            (res) => setTimeout(() => res(this.modal_imprimiendo.close()), 5000)
-        );
+        } catch (error) {
+            console.error("Error en printZViaApi:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión con la API',
+                text: error.message,
+                showConfirmButton: true,
+            });
+        } finally {
+            if (this.modal_imprimiendo) {
+                this.modal_imprimiendo.close();
+            }
+        }
     },
 
     async printXViaApi() {
@@ -562,13 +571,11 @@ export const FiscalPrinterMixin = {
             allowEscapeKey: false,
             allowEnterKey: false,
             showConfirmButton: false,
-            showConfirmButton: false,
         });
         var url = this.pos.config.api_url + "/xreport/print";
-        $.get(url, function (data, status) {
-
-            console.log(data);
-            if (data) {
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
                 Swal.fire({
                     position: 'top-end',
                     icon: 'success',
@@ -579,14 +586,23 @@ export const FiscalPrinterMixin = {
             } else {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error en impresion',
+                    title: 'Error en impresión',
                     showConfirmButton: true,
                 });
             }
-        });
-        await new Promise(
-            (res) => setTimeout(() => res(this.modal_imprimiendo.close()), 5000)
-        );
+        } catch (error) {
+            console.error("Error en printXViaApi:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión con la API',
+                text: error.message,
+                showConfirmButton: true,
+            });
+        } finally {
+            if (this.modal_imprimiendo) {
+                this.modal_imprimiendo.close();
+            }
+        }
     },
 
     async printViaApi() {
@@ -603,113 +619,150 @@ export const FiscalPrinterMixin = {
             allowEnterKey: false,
             showConfirmButton: false,
         });
-        console.log(this.printerCommands.map(sanitize));
-        var body = { 'cmd': this.printerCommands.map(sanitize) };
+
+        const commands = this.printerCommands.map(sanitize);
+        console.log("Comandos sanitizados:", commands);
+
+        var body = JSON.stringify({
+            params: {
+                cmd: commands
+            }
+        });
+
         var url = this.pos.config.api_url + "/print_pos_ticket";
-        await ajax.jsonRpc(url, 'call', body).then((response) => {
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: body
+            });
+
             this.modal_imprimiendo.close();
-            console.log(response);
-            if (response) {
-                if (response.state.lastInvoiceNumber) {
-                    this.order.impresa = true;
-                    console.log("Finalizada con factura " + response.state.lastInvoiceNumber.toString());
-                    this.order.num_factura = response.state.lastInvoiceNumber.toString();
-                    this.rpc({
-                        model: 'pos.order',
-                        method: 'set_num_factura',
-                        args: [this.order.id, this.order.name, response.state.lastInvoiceNumber.toString()],
-                    });
-                    Swal.fire({
-                        position: 'top-end',
-                        icon: 'success',
-                        title: 'Impresión finalizada con éxito',
-                        showConfirmButton: false,
-                        timer: 1500
-                    });
+
+            if (response.ok) {
+                const data = await response.json();
+                const result = data.result;
+
+                if (result) {
+                    if (result.state && result.state.lastInvoiceNumber) {
+                        this.order.impresa = true;
+                        console.log("Finalizada con factura " + result.state.lastInvoiceNumber.toString());
+                        this.order.num_factura = result.state.lastInvoiceNumber.toString();
+
+                        // Use this.pos.orm.call if available, or this.orm.call
+                        const orm = this.orm || this.env?.services?.orm;
+                        if (orm) {
+                            await orm.call(
+                                'pos.order',
+                                'set_num_factura',
+                                [this.order.id, this.order.name, this.order.num_factura]
+                            );
+                        }
+
+                        Swal.fire({
+                            position: 'top-end',
+                            icon: 'success',
+                            title: 'Impresión finalizada con éxito',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                    } else {
+                        console.log("No hay numero de factura");
+                        Swal.fire({
+                            position: 'top-end',
+                            icon: 'success',
+                            title: 'Impresión finalizada con éxito y sin número de factura',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                    }
                 } else {
-                    console.log("No hay numero de factura");
                     Swal.fire({
-                        position: 'top-end',
-                        icon: 'success',
-                        title: 'Impresión finalizada con éxito y sin número de factura',
-                        showConfirmButton: false,
-                        timer: 1500
+                        icon: 'error',
+                        title: 'Error en impresión',
+                        text: (data.error && data.error.message) || 'Respuesta vacía',
+                        showConfirmButton: true,
                     });
                 }
             } else {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error en impresión, ' + response.state,
+                    title: 'Error en comunicación con la API: ' + response.status,
                     showConfirmButton: true,
                 });
             }
-        }).catch((error) => {
+        } catch (error) {
             this.modal_imprimiendo.close();
+            console.error("Error en printViaApi:", error);
             Swal.fire({
                 icon: 'error',
-                title: 'Error en impresión, ' + error.message,
+                title: 'Error al conectar con la API',
+                text: error.message,
                 showConfirmButton: true,
             });
-        });
-        /*const http = new XMLHttpRequest();
-        http.open('POST', this.pos.config.api_url + '/print_pos_ticket');
-        http.setRequestHeader('Content-type', 'application/json');
-        http.responseType = 'json';
-        http.send(JSON.stringify({"params": {"cmd": this.printerCommands.map(sanitize)}})); // Make sure to stringify
-        http.onload = function() {
-            // Do whatever with response
-            if (this.status == 200) {
-                console.log('response', this.response); // JSON response
-                if(this.response.result){
-                    if(this.response.result.state.lastInvoiceNumber){
-                        console.log("finalizada con factura " + this.response.result.state.lastInvoiceNumber);
-                        this.order.num_factura = this.response.result.state.lastInvoiceNumber;
-                        await this.rpc({
-                           model: 'pos.order',
-                           method: 'set_num_factura',
-                           args: [this.order.id, this.order.name, this.response.result.state.lastInvoiceNumber],
-                        });
-                        Swal.fire({
-                          position: 'top-end',
-                          icon: 'success',
-                          title: 'Impresión finalizada con éxito',
-                          showConfirmButton: false,
-                          timer: 1500
-                        });
-                    }else{
-                        console.log("No hay numero de factura");
-                        Swal.fire({
-                          position: 'top-end',
-                          icon: 'success',
-                          title: 'Impresión finalizada con éxito y sin número de factura',
-                          showConfirmButton: false,
-                          timer: 1500
-                        });
-                    }
-                }else{
+        }
+    },
+    /*const http = new XMLHttpRequest();
+    http.open('POST', this.pos.config.api_url + '/print_pos_ticket');
+    http.setRequestHeader('Content-type', 'application/json');
+    http.responseType = 'json';
+    http.send(JSON.stringify({"params": {"cmd": this.printerCommands.map(sanitize)}})); // Make sure to stringify
+    http.onload = function() {
+        // Do whatever with response
+        if (this.status == 200) {
+            console.log('response', this.response); // JSON response
+            if(this.response.result){
+                if(this.response.result.state.lastInvoiceNumber){
+                    console.log("finalizada con factura " + this.response.result.state.lastInvoiceNumber);
+                    this.order.num_factura = this.response.result.state.lastInvoiceNumber;
+                    await this.rpc({
+                       model: 'pos.order',
+                       method: 'set_num_factura',
+                       args: [this.order.id, this.order.name, this.response.result.state.lastInvoiceNumber],
+                    });
                     Swal.fire({
-                          icon: 'error',
-                          title: 'Error en impresion, ' + this.response.state,
-                          showConfirmButton: true,
+                      position: 'top-end',
+                      icon: 'success',
+                      title: 'Impresión finalizada con éxito',
+                      showConfirmButton: false,
+                      timer: 1500
+                    });
+                }else{
+                    console.log("No hay numero de factura");
+                    Swal.fire({
+                      position: 'top-end',
+                      icon: 'success',
+                      title: 'Impresión finalizada con éxito y sin número de factura',
+                      showConfirmButton: false,
+                      timer: 1500
                     });
                 }
-            } else {
+            }else{
                 Swal.fire({
                       icon: 'error',
-                      title: 'Error en impresion, conexión via API no disponible',
+                      title: 'Error en impresion, ' + this.response.state,
                       showConfirmButton: true,
                 });
             }
-        };
-        http.onerror = function() {
+        } else {
             Swal.fire({
                   icon: 'error',
                   title: 'Error en impresion, conexión via API no disponible',
                   showConfirmButton: true,
             });
-        };*/
+        }
+    };
+    http.onerror = function() {
+        Swal.fire({
+              icon: 'error',
+              title: 'Error en impresion, conexión via API no disponible',
+              showConfirmButton: true,
+        });
+    };*/
 
-    },
 
     async read() {
         window.clearTimeout(this.timeout);
