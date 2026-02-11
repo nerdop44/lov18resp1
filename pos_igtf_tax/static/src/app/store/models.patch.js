@@ -5,7 +5,7 @@ import { PosPayment } from "@point_of_sale/app/models/pos_payment";
 import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { PosOrderline } from "@point_of_sale/app/models/pos_order_line";
 import { patch } from "@web/core/utils/patch";
-import { floatRound } from "@web/core/utils/numbers";
+import { roundDecimals } from "@web/core/utils/numbers";
 
 patch(ProductProduct.prototype, {
     get isIgtfProduct() {
@@ -88,7 +88,10 @@ patch(PosOrder.prototype, {
 
         const igtf_monto = paymentLines
             .filter((p) => p.isForeignExchange)
-            .map(({ amount, payment_method_id: { x_igtf_percentage } }) => amount * (x_igtf_percentage / 100))
+            .map(({ amount, payment_method_id }) => {
+                const percentage = payment_method_id?.x_igtf_percentage || 0;
+                return amount * (percentage / 100);
+            })
             .reduce((prev, current) => prev + current, 0);
 
         const total = (this.lines || [])
@@ -103,7 +106,7 @@ patch(PosOrder.prototype, {
             final_igtf = max_igtf;
         }
 
-        return floatRound(parseFloat(final_igtf) || 0, 2);
+        return roundDecimals(parseFloat(final_igtf) || 0, 2);
     },
 
     removeIGTF() {
