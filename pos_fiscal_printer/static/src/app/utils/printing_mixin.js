@@ -527,7 +527,11 @@ export const FiscalPrinterMixin = {
         });
         var url = this.pos.config.api_url + "/zreport/print";
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: {
+                    'Bypass-Tunnel-Reminder': 'true'
+                }
+            });
             if (response.ok) {
                 Swal.fire({
                     position: 'top-end',
@@ -574,7 +578,11 @@ export const FiscalPrinterMixin = {
         });
         var url = this.pos.config.api_url + "/xreport/print";
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: {
+                    'Bypass-Tunnel-Reminder': 'true'
+                }
+            });
             if (response.ok) {
                 Swal.fire({
                     position: 'top-end',
@@ -635,7 +643,8 @@ export const FiscalPrinterMixin = {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Bypass-Tunnel-Reminder': 'true'
                 },
                 body: body
             });

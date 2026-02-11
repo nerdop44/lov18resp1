@@ -8,7 +8,26 @@ import json
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 class FiscalAPIHandler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        # Redirect standard server logs to emulator technical log
+        message = format % args
+        self.server.emulator.log(f"HTTP: {message}")
+
+    def do_OPTIONS(self):
+        self.server.emulator.log(f">>> RECIBIDO OPTIONS: {self.path}")
+        for header, value in self.headers.items():
+             self.server.emulator.log(f"    {header}: {value}")
+             
+        self.send_response(204)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Access-Control-Allow-Private-Network, X-Requested-With')
+        self.send_header('Access-Control-Allow-Private-Network', 'true')
+        self.end_headers()
+        self.server.emulator.log("<<< ENVIADO 204 OPTIONS (CORS/PNA OK)")
+
     def do_GET(self):
+        self.server.emulator.log(f">>> RECIBIDO GET: {self.path}")
         if self.path == '/xreport/print':
             self.server.emulator.queue_command("I0X")
             self._send_response({"status": "success", "message": "Reporte X enviado"})
@@ -19,24 +38,24 @@ class FiscalAPIHandler(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def do_POST(self):
+        self.server.emulator.log(f">>> RECIBIDO POST: {self.path}")
         if self.path == '/print_pos_ticket':
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             try:
                 data = json.loads(post_data)
-                # Odoo sends params: { cmd: [...] } in JSON-RPC style or direct { cmd: [...] }
                 cmds = data.get('cmd') or data.get('params', {}).get('cmd', [])
+                self.server.emulator.log(f"    Comandos recibidos: {len(cmds)}")
                 for cmd in cmds:
                     self.server.emulator.queue_command(cmd)
                 
-                # Odoo expects a success response, often with lastInvoiceNumber for validation
-                # We simulate a successful state
                 inv_num = self.server.emulator.ent_invoice.get()
                 self._send_response({
                     "result": True,
                     "state": {"lastInvoiceNumber": inv_num}
                 })
             except Exception as e:
+                self.server.emulator.log(f"    ERROR POST: {e}")
                 self.send_error(400, str(e))
         else:
             self.send_error(404)
@@ -45,8 +64,10 @@ class FiscalAPIHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Private-Network', 'true')
         self.end_headers()
         self.wfile.write(json.dumps(data).encode('utf-8'))
+        self.server.emulator.log(f"<<< ENVIADO 200 OK: {self.path}")
 
 class FiscalPrinterEmulator:
     def __init__(self, root):
