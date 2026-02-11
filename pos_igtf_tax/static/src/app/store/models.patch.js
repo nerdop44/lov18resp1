@@ -84,14 +84,14 @@ patch(PosOrderline.prototype, {
 
 patch(PosOrder.prototype, {
     get x_igtf_amount() {
-        const paymentLines = this.payment_lines;
+        const paymentLines = this.payment_ids || [];
 
         const igtf_monto = paymentLines
             .filter((p) => p.isForeignExchange)
-            .map(({ amount, payment_method: { x_igtf_percentage } }) => amount * (x_igtf_percentage / 100))
+            .map(({ amount, payment_method_id: { x_igtf_percentage } }) => amount * (x_igtf_percentage / 100))
             .reduce((prev, current) => prev + current, 0);
 
-        const total = this.lines
+        const total = (this.lines || [])
             .filter((p) => !p.x_is_igtf_line)
             .map((p) => p.get_price_with_tax())
             .reduce((prev, current) => prev + current, 0);
@@ -107,7 +107,7 @@ patch(PosOrder.prototype, {
     },
 
     removeIGTF() {
-        const linesToRemove = this.lines.filter(({ x_is_igtf_line }) => x_is_igtf_line);
+        const linesToRemove = (this.lines || []).filter(({ x_is_igtf_line }) => x_is_igtf_line);
         linesToRemove.forEach((line) => this.removeOrderline(line));
     },
 
