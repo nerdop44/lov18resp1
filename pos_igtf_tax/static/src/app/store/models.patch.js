@@ -16,7 +16,7 @@ patch(ProductProduct.prototype, {
 
 patch(PosPayment.prototype, {
     get isForeignExchange() {
-        const currency_ref = this.pos?.res_currency_ref;
+        const currency_ref = this.models.res_currency_ref;
         if (currency_ref && this.payment_method_id && this.payment_method_id.currency_id) {
             return this.payment_method_id.currency_id.id === currency_ref.id;
         }
@@ -27,6 +27,7 @@ patch(PosPayment.prototype, {
     },
 
     set_amount(value) {
+        const config = this.models["pos.config"].getFirst();
         const igtf_antes = this.pos_order_id.x_igtf_amount;
 
         if (value === this.pos_order_id.get_due()) {
@@ -34,14 +35,14 @@ patch(PosPayment.prototype, {
         } else {
             if (value !== igtf_antes) {
                 if (this.isForeignExchange) {
-                    super.set_amount(value * (1 / this.pos.config.show_currency_rate));
+                    super.set_amount(value * (1 / config.show_currency_rate));
                 } else {
                     super.set_amount(value);
                 }
             }
         }
 
-        const igtfProduct = this.pos.config.x_igtf_product_id;
+        const igtfProduct = config.x_igtf_product_id;
         if (!(igtfProduct || igtfProduct?.length)) return;
         if (!this.isForeignExchange) return;
 
@@ -49,7 +50,7 @@ patch(PosPayment.prototype, {
         this.pos_order_id.removeIGTF();
 
         const price = this.pos_order_id.x_igtf_amount;
-        const product = this.pos.db.product_by_id[igtfProduct[0]];
+        const product = this.models["product.product"].get(igtfProduct[0]);
 
         if (product) {
             this.pos_order_id.add_product(product, {
