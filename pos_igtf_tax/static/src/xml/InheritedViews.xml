@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="reprinting_popup" xml:space="preserve">
     <t t-name="IGTFAmount" t-inherit="point_of_sale.PaymentScreenStatus" t-inherit-mode="extension" owl="1">
-        <xpath expr="//div[contains(@class, 'total-due')]" position="after">
-            <div class="total-due d-flex justify-content-between flex-grow-1">
+        <xpath expr="//div[hasclass('payment-status-remaining')]" position="before">
+            <div class="payment-status-igtf d-flex justify-content-between flex-grow-1">
                 <span class="label">Monto IGTF</span>
                 <span class="amount align-self-end pe-5">
                     <t t-esc="pos.format_currency_no_symbol(props.order.x_igtf_amount)"/> Bs.F
@@ -11,12 +11,12 @@
         </xpath>
     </t>
     <t t-name="Paymentlines" t-inherit="point_of_sale.PaymentScreenPaymentLines" t-inherit-mode="extension" owl="1">
-        <xpath expr="//div[contains(@class, 'paymentline')]" position="attributes">
+        <xpath expr="//div[hasclass('paymentline')]" position="attributes">
             <attribute name="t-att-class">line.payment_method_id.x_is_foreign_exchange ? 'igtf-payment' : ''</attribute>
         </xpath>
     </t>
     <t t-name="PaymentName" t-inherit="point_of_sale.PaymentScreenMethods" t-inherit-mode="extension" owl="1">
-        <xpath expr="//span[contains(@class, 'payment-name')]" position="attributes">
+        <xpath expr="//span[hasclass('payment-name')]" position="attributes">
             <attribute name="t-att-class">paymentMethod.x_is_foreign_exchange ? 'igtf-payment' : ''</attribute>
         </xpath>
     </t>
