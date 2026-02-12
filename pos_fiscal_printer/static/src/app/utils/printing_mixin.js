@@ -530,7 +530,8 @@ export const FiscalPrinterMixin = {
             const response = await fetch(url, {
                 headers: {
                     'Bypass-Tunnel-Reminder': 'true'
-                }
+                },
+                credentials: 'include'
             });
             if (response.ok) {
                 Swal.fire({
@@ -581,7 +582,8 @@ export const FiscalPrinterMixin = {
             const response = await fetch(url, {
                 headers: {
                     'Bypass-Tunnel-Reminder': 'true'
-                }
+                },
+                credentials: 'include'
             });
             if (response.ok) {
                 Swal.fire({
@@ -646,7 +648,8 @@ export const FiscalPrinterMixin = {
                     'Content-Type': 'application/json',
                     'Bypass-Tunnel-Reminder': 'true'
                 },
-                body: body
+                body: body,
+                credentials: 'include'
             });
 
             this.modal_imprimiendo.close();

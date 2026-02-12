@@ -21,14 +21,18 @@ class FiscalAPIHandler(BaseHTTPRequestHandler):
         self.send_response(204)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Access-Control-Allow-Private-Network, X-Requested-With')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Access-Control-Allow-Private-Network, X-Requested-With, Bypass-Tunnel-Reminder')
         self.send_header('Access-Control-Allow-Private-Network', 'true')
         self.end_headers()
-        self.server.emulator.log("<<< ENVIADO 204 OPTIONS (CORS/PNA OK)")
+        self.server.emulator.log("<<< ENVIADO 204 OPTIONS (CORS/PNA/BYPASS OK)")
 
     def do_GET(self):
         self.server.emulator.log(f">>> RECIBIDO GET: {self.path}")
-        if self.path == '/xreport/print':
+        self.server.emulator.log(f"    Bypass Header: {self.headers.get('Bypass-Tunnel-Reminder', 'FALTANTE')}")
+        
+        if self.path == '/ping':
+            self._send_response({"status": "ok", "message": "Emulator is alive"})
+        elif self.path == '/xreport/print':
             self.server.emulator.queue_command("I0X")
             self._send_response({"status": "success", "message": "Reporte X enviado"})
         elif self.path == '/zreport/print':
@@ -39,6 +43,8 @@ class FiscalAPIHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         self.server.emulator.log(f">>> RECIBIDO POST: {self.path}")
+        self.server.emulator.log(f"    Bypass Header: {self.headers.get('Bypass-Tunnel-Reminder', 'FALTANTE')}")
+        
         if self.path == '/print_pos_ticket':
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
