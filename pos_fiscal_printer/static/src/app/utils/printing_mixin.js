@@ -41,31 +41,37 @@ export const FiscalPrinterMixin = {
     async setPort() {
         try {
             if (!this.port) {
-                const port = await navigator.serial.requestPort();
+                const ports = await navigator.serial.getPorts();
+                let port;
+                if (ports.length > 0) {
+                    port = ports[0];
+                } else {
+                    port = await navigator.serial.requestPort();
+                }
+
                 const parity = this.pos.config.x_fiscal_command_parity || "even";
                 console.log("Abriendo puerto serial con paridad:", parity);
-                await port.open({
-                    baudRate: this.pos.config.x_fiscal_command_baudrate || 9600,
-                    parity: parity,
-                    dataBits: 8,
-                    stopBits: 1,
-                    bufferSize: 256,
-                });
+                try {
+                    await port.open({
+                        baudRate: parseInt(this.pos.config.x_fiscal_command_baudrate) || 9600,
+                        parity: parity,
+                        dataBits: 8,
+                        stopBits: 1,
+                        bufferSize: 256,
+                    });
+                } catch (e) {
+                    if (e.name === "InvalidStateError") {
+                        console.log("El puerto ya estaba abierto.");
+                    } else {
+                        throw e;
+                    }
+                }
                 this.port = port;
-                return true;
-            } else {
-                // Check if open... actually web serial port object doesn't have isOpen property easily accessible
-                // but trying to open it again triggers error if open.
-                // The legacy code tries to open it again? 
-                // "await this.port.open(...)"
-                // If it's already open, this throws.
-                // We should probably assume if this.port exists, it's open or we handle error.
-                return true;
             }
+            return true;
         } catch (error) {
-            console.error(error);
-            // alert("Hubo un error al tratar de abrir el puerto"); // Use dialog service
-            this.env.services.notification.add(_t("Hubo un error al tratar de abrir el puerto"), { type: "danger" });
+            console.error("Error en setPort:", error);
+            this.env.services.notification.add(_t("Hubo un error al tratar de abrir el puerto: ") + error.message, { type: "danger" });
             this.port = this.printing = this.writer = false;
             return false;
         }
@@ -121,7 +127,6 @@ export const FiscalPrinterMixin = {
             while (!this.port.readable) {
                 console.log("Esperando puerto");
                 if (this.reader) {
-                    //this.raeder.cancel();
                     await this.reader.releaseLock();
                     this.reader = false;
                 }
@@ -228,24 +233,23 @@ export const FiscalPrinterMixin = {
                     console.log("Error al leer puerto");
                     console.error(error);
                     leer = false;
+                    var comando_desbloqueo = ["7"];
+                    var comando_desbloqueo_cod = comando_desbloqueo.map(toBytes);
+                    // No release here as it's finally handled
+                    return false;
+                } finally {
                     if (this.reader) {
-                        //this.raeder.cancel();
-                        this.reader.releaseLock();
+                        try {
+                            await this.reader.releaseLock();
+                        } catch (e) { console.warn("Error releasing reader lock:", e); }
                         this.reader = false;
                     }
-                    var comando_desbloqueo = ["7"];
-                    var comando_desbloqueo = comando_desbloqueo.map(toBytes);
-                    this.writer = this.port.writable.getWriter();
-                    for (const command of comando_desbloqueo) {
-                        await new Promise(
-                            (res) => setTimeout(() => res(this.writer.write(command)), 150)
-                        );
+                    if (this.writer) {
+                        try {
+                            await this.writer.releaseLock();
+                        } catch (e) { console.warn("Error releasing writer lock:", e); }
+                        this.writer = false;
                     }
-                    await this.writer.releaseLock();
-                    this.writer = false;
-                    this.printing = false;
-
-                    return false;
                 }
             }
         } else {
@@ -338,10 +342,7 @@ export const FiscalPrinterMixin = {
             }
 
         }
-        console.log("Antes de cerrar el puerto");
-        /*cerrar puerto*/
-        await this.port.close();
-        console.log("Puerto cerrado");
+        console.log("Factura finalizada, puerto permanece abierto.");
     },
 
     async write_s2() {
@@ -442,10 +443,15 @@ export const FiscalPrinterMixin = {
                     }
                 } catch (error) {
                     leer = false;
-                    console.error(error);
+                    console.error("Error en lectura write_s2:", error);
                 } finally {
+                    if (this.reader) {
+                        try {
+                            this.reader.releaseLock();
+                        } catch (e) { }
+                        this.reader = false;
+                    }
                     leer = false;
-                    console.error("Finalizado");
                 }
             }
             await this.orm.call(
@@ -504,8 +510,15 @@ export const FiscalPrinterMixin = {
                     console.log(myArray);
                 }
             } catch (error) {
-                console.error(error);
+                console.error("Error en lectura write_Z:", error);
                 this.read_Z = false;
+            } finally {
+                if (this.reader) {
+                    try {
+                        this.reader.releaseLock();
+                    } catch (e) { }
+                    this.reader = false;
+                }
             }
         }
 
@@ -843,7 +856,7 @@ export const FiscalPrinterMixin = {
     },
 
     async doPrinting(mode) {
-        if (!(this.order.get_paymentlines().every(({ x_printer_code }) => Boolean(x_printer_code)))) {
+        if (!(this.order.payment_ids.every((p) => Boolean(p.payment_method_id?.x_printer_code)))) {
             this.env.services.notification.add(_t("Algunos métodos de pago no tienen código de impresora"), { type: "danger" });
             return;
         }
@@ -875,7 +888,7 @@ export const FiscalPrinterMixin = {
     },
 
     setHeader(payload) {
-        const client = this.order.get_partner();
+        const client = this.order.partner_id || {};
         if (payload) {
             this.printerCommands.push("iF*" + payload.invoiceNumber.padStart(11, "0"));
             this.printerCommands.push("iD*" + payload.date);
@@ -883,49 +896,51 @@ export const FiscalPrinterMixin = {
         }
 
         this.printerCommands.push("iR*" + (client.vat || "No tiene"));
-        this.printerCommands.push("iS*" + sanitize(client.name));
+        this.printerCommands.push("iS*" + sanitize(client.name || "Cliente Contado"));
 
         this.printerCommands.push("i00Teléfono: " + (client.phone || "No tiene"));
         this.printerCommands.push("i01Dirección: " + sanitize(client.street || "No tiene"));
         this.printerCommands.push("i02Email: " + (client.email || "No tiene"));
-        if (this.order.name) {
-            this.printerCommands.push("i03Ref: " + this.order.name);
+        if (this.order.pos_reference) {
+            this.printerCommands.push("i03Ref: " + this.order.pos_reference);
         }
     },
 
     setTotal() {
         this.printerCommands.push("3");
         const aplicar_igtf = this.pos.config.aplicar_igtf;
-        const es_nota = this.order.get_orderlines().some(({ refunded_orderline_id }) => Boolean(refunded_orderline_id));
+        const es_nota = this.order.lines.some((l) => Boolean(l.refunded_orderline_id));
 
-        const paymentlines = this.order.get_paymentlines();
+        const paymentlines = this.order.payment_ids;
         if (es_nota) {
-            if (paymentlines.filter(({ amount }) => amount < 0).every(({ isForeignExchange }) => isForeignExchange) && aplicar_igtf) {
+            if (paymentlines.filter((p) => p.amount < 0).every((p) => p.isForeignExchange) && aplicar_igtf) {
                 this.printerCommands.push("122");
             } else {
-                paymentlines.filter(({ amount }) => amount < 0).forEach((payment, i, array) => {
+                paymentlines.filter((p) => p.amount < 0).forEach((payment, i, array) => {
+                    const printer_code = payment.payment_method_id?.x_printer_code;
                     if ((i + 1) === array.length && array.length === 1) {
-                        this.printerCommands.push("1" + payment.x_printer_code);
+                        this.printerCommands.push("1" + printer_code);
                     } else {
                         let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
                         let [entero, decimal] = amountStr.split(",");
                         entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
-                        this.printerCommands.push("2" + payment.x_printer_code + entero + decimal);
+                        this.printerCommands.push("2" + printer_code + entero + decimal);
                     }
                 });
             }
         } else {
-            if (paymentlines.filter(({ amount }) => amount > 0).every(({ isForeignExchange }) => isForeignExchange) && aplicar_igtf) {
+            if (paymentlines.filter((p) => p.amount > 0).every((p) => p.isForeignExchange) && aplicar_igtf) {
                 this.printerCommands.push("122");
             } else {
-                paymentlines.filter(({ amount }) => amount > 0).forEach((payment, i, array) => {
+                paymentlines.filter((p) => p.amount > 0).forEach((payment, i, array) => {
+                    const printer_code = payment.payment_method_id?.x_printer_code;
                     if ((i + 1) === array.length && array.length === 1) {
-                        this.printerCommands.push("1" + payment.x_printer_code);
+                        this.printerCommands.push("1" + printer_code);
                     } else {
                         let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
                         let [entero, decimal] = amountStr.split(",");
                         entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
-                        this.printerCommands.push("2" + payment.x_printer_code + entero + decimal);
+                        this.printerCommands.push("2" + printer_code + entero + decimal);
                     }
                 });
             }
@@ -947,25 +962,25 @@ export const FiscalPrinterMixin = {
     },
 
     setLines(char) {
-        this.order.get_orderlines()
-            .filter(({ x_is_igtf_line }) => !x_is_igtf_line)
+        this.order.lines
+            .filter((l) => !l.x_is_igtf_line)
             .forEach((line) => {
                 let command = "";
-                const taxes = line.get_taxes();
+                const taxes = line.tax_ids || [];
 
-                if (!(taxes.length) || taxes.every(({ x_tipo_alicuota }) => x_tipo_alicuota === "exento")) {
+                if (!(taxes.length) || taxes.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
-                } else if (taxes.every(({ x_tipo_alicuota }) => x_tipo_alicuota === "general")) {
+                } else if (taxes.every((t) => t.x_tipo_alicuota === "general")) {
                     command += (char === "GC") ? "d1" : "!";
                 } else {
                     command += (char === "GC") ? "d0" : " ";
                 }
 
-                let price = (line.get_price_without_tax() / line.quantity).toFixed(2).replace(".", ",");
+                let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
                 if (line.discount > 0) {
                     price = (line.get_all_prices(1).priceWithoutTaxBeforeDiscount).toFixed(2).replace(".", ",");
                 }
-                let qty = (Math.abs(line.quantity)).toFixed(3).replace(".", ",");
+                let qty = (Math.abs(line.qty)).toFixed(3).replace(".", ",");
 
                 let [pEnt, pDec] = price.split(",");
                 let [qEnt, qDec] = qty.split(",");
@@ -975,11 +990,11 @@ export const FiscalPrinterMixin = {
 
                 command += pEnt + pDec + qEnt + qDec;
 
-                if (line.product_id.default_code) {
+                if (line.product_id?.default_code) {
                     command += `|${line.product_id.default_code}|`;
                 }
 
-                command += sanitize(line.product_id.display_name);
+                command += sanitize(line.product_id?.display_name || "");
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
@@ -987,24 +1002,24 @@ export const FiscalPrinterMixin = {
                     this.printerCommands.push("p-" + disc);
                 }
 
-                if (line.customerNote) {
-                    this.printerCommands.push((char === "GC" ? "A##" : "@##") + sanitize(line.customerNote) + "##");
+                if (line.customer_note) {
+                    this.printerCommands.push((char === "GC" ? "A##" : "@##") + sanitize(line.customer_note) + "##");
                 }
             });
     },
 
     printNoFiscal() {
-        this.order.get_orderlines()
-            .filter(({ x_is_igtf_line }) => !x_is_igtf_line)
+        this.order.lines
+            .filter((l) => !l.x_is_igtf_line)
             .forEach((line) => {
-                const name = sanitize(line.product_id.display_name);
-                const code = line.product_id.default_code || "";
+                const name = sanitize(line.product_id?.display_name || "");
+                const code = line.product_id?.default_code || "";
                 this.printerCommands.push(`80 ${name} [${code}]`);
-                this.printerCommands.push(`80*x${line.quantity} ${(line.get_price_with_tax()).toFixed(2)}`);
+                this.printerCommands.push(`80*x${line.qty} ${(line.get_price_with_tax()).toFixed(2)}`);
             });
 
-        if (this.order.get_change()) {
-            this.printerCommands.push("80*CAMBIO: " + (this.order.get_change()).toFixed(2));
+        if (this.order.amount_return) {
+            this.printerCommands.push("80*CAMBIO: " + (this.order.amount_return).toFixed(2));
         }
         this.printerCommands.push("81$TOTAL: " + (this.order.get_total_with_tax()).toFixed(2));
     },
