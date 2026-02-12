@@ -12,8 +12,9 @@ const patchConfig = {
     setup() {
         super.setup();
         this.orm = useService("orm");
+        this.dialog = useService("dialog");
 
-        // Initialize mixin properties
+        // Initialize mixin properties on the instance
         Object.assign(this, {
             printerCommands: [],
             printing: false,
@@ -29,26 +30,17 @@ const patchConfig = {
         if (this.currentOrder.impresa) {
             super.orderDone();
         } else {
-            this.env.services.dialog.add(ConfirmationDialog, {
+            this.dialog.add(ConfirmationDialog, {
                 title: _t("Confirmación"),
                 body: _t("Debe imprimir el documento fiscal. ¿Desea continuar sin imprimir?"),
                 confirm: () => super.orderDone(),
                 cancel: () => { },
             });
-            /* 
-            // Strict enforcement as in legacy:
-            this.env.services.notification.add(_t("Debe imprimir el documento fiscal"), { type: "danger" });
-            */
         }
     }
 };
 
-// Manually merge FiscalPrinterMixin
-const descriptors = Object.getOwnPropertyDescriptors(FiscalPrinterMixin);
-for (const [key, desc] of Object.entries(descriptors)) {
-    if (!patchConfig.hasOwnProperty(key)) {
-        Object.defineProperty(patchConfig, key, desc);
-    }
-}
+// Properly merge the mixin into patchConfig
+Object.assign(patchConfig, FiscalPrinterMixin);
 
 patch(ReceiptScreen.prototype, patchConfig);

@@ -1,14 +1,18 @@
 /** @odoo-module */
 
-import { AbstractAwaitablePopup } from "@point_of_sale/app/utils/abstract_awaitable_popup";
-import { onMounted, useState } from "@odoo/owl";
+import { Component, useState } from "@odoo/owl";
+import { Dialog } from "@web/core/dialog/dialog";
 import { usePos } from "@point_of_sale/app/store/pos_hook";
 
-export class NotaCreditoPopUp extends AbstractAwaitablePopup {
+export class NotaCreditoPopUp extends Component {
     static template = "pos_fiscal_printer.NotaCreditoPopUp";
+    static components = { Dialog };
+    static props = {
+        getPayload: Function,
+        close: Function,
+    };
 
     setup() {
-        super.setup();
         this.pos = usePos();
         this.fields = useState({
             printerCode: this.pos.config.x_fiscal_printer_code || "",
@@ -17,7 +21,12 @@ export class NotaCreditoPopUp extends AbstractAwaitablePopup {
         });
     }
 
-    getPayload() {
-        return this.fields;
+    confirm() {
+        this.props.getPayload(this.fields);
+        this.props.close();
+    }
+
+    cancel() {
+        this.props.close();
     }
 }
