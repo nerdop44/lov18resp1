@@ -11,8 +11,10 @@ const patchConfig = {
         super.setup();
         this.orm = useService("orm");
         this.pos = useService("pos");
+
+        // Ensure state is initialized correctly
         this.state = useState({
-            ...this.state,
+            ...(this.state || {}),
             zReport: "",
         });
 
@@ -26,6 +28,18 @@ const patchConfig = {
             reader: false,
             verificar_desconexion: false,
         });
+    },
+
+    // Define accessors manually to link with global POS state
+    get port() {
+        return this.pos.serialPort;
+    },
+    set port(serialPort) {
+        this.pos.serialPort = serialPort;
+    },
+
+    get readerStream() {
+        return this.port?.readable?.getReader();
     },
 
     openDetailsPopup() {
@@ -66,12 +80,24 @@ const patchConfig = {
     }
 };
 
-// Manually merge FiscalPrinterMixin to avoid spread operator invoking getters
-const descriptors = Object.getOwnPropertyDescriptors(FiscalPrinterMixin);
-for (const [key, desc] of Object.entries(descriptors)) {
-    if (!patchConfig.hasOwnProperty(key)) {
-        Object.defineProperty(patchConfig, key, desc);
-    }
-}
+// Explicitly assign mixin methods to avoid descriptor/getter issues with Owl
+Object.assign(patchConfig, {
+    setPort: FiscalPrinterMixin.setPort,
+    actionPrint: FiscalPrinterMixin.actionPrint,
+    printViaUSB: FiscalPrinterMixin.printViaUSB,
+    printViaApi: FiscalPrinterMixin.printViaApi,
+    printZViaApi: FiscalPrinterMixin.printZViaApi,
+    printXViaApi: FiscalPrinterMixin.printXViaApi,
+    write: FiscalPrinterMixin.write,
+    write_s2: FiscalPrinterMixin.write_s2,
+    write_Z: FiscalPrinterMixin.write_Z,
+    escribe_leer: FiscalPrinterMixin.escribe_leer,
+    setHeader: FiscalPrinterMixin.setHeader,
+    setLines: FiscalPrinterMixin.setLines,
+    setTotal: FiscalPrinterMixin.setTotal,
+    printFiscal: FiscalPrinterMixin.printFiscal,
+    printNoFiscal: FiscalPrinterMixin.printNoFiscal,
+    showPopup: FiscalPrinterMixin.showPopup,
+});
 
 patch(ClosePosPopup.prototype, patchConfig);

@@ -40,7 +40,12 @@ const patchConfig = {
     }
 };
 
-// Properly merge the mixin into patchConfig
-Object.assign(patchConfig, FiscalPrinterMixin);
+// Properly merge the mixin into patchConfig using descriptors to avoid early evaluation of getters
+const descriptors = Object.getOwnPropertyDescriptors(FiscalPrinterMixin);
+for (const [key, desc] of Object.entries(descriptors)) {
+    if (!patchConfig.hasOwnProperty(key)) {
+        Object.defineProperty(patchConfig, key, desc);
+    }
+}
 
 patch(ReceiptScreen.prototype, patchConfig);

@@ -366,11 +366,13 @@ class FiscalPrinterEmulator:
              self.print_line(f"Z N°: {datetime.datetime.now().strftime('%Y%m%d')}")
              self.print_line("TOTAL VENTAS FISCALES: $$$")
              self.print_line("*****************\n")
+             self.send_ack()
 
         elif cmd.startswith("I0X"):
              self.print_line("\n\n*** REPORTE X ***")
              self.print_line("TOTAL VENTAS HASTA AHORA: $$$")
              self.print_line("*****************\n")
+             self.send_ack()
 
         elif "S1" in cmd:
             self.log("Consulta de Estado (S1)")
