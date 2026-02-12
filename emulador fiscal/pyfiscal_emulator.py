@@ -5,9 +5,11 @@ import os
 import pty
 import datetime
 import json
+import serial
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 class FiscalAPIHandler(BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
     def log_message(self, format, *args):
         # Redirect standard server logs to emulator technical log
         message = format % args
@@ -15,21 +17,18 @@ class FiscalAPIHandler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.server.emulator.log(f">>> RECIBIDO OPTIONS: {self.path}")
-        for header, value in self.headers.items():
-             self.server.emulator.log(f"    {header}: {value}")
-             
+        origin = self.headers.get('Origin', '*')
         self.send_response(204)
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', origin)
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Access-Control-Allow-Private-Network, X-Requested-With, Bypass-Tunnel-Reminder')
-        self.send_header('Access-Control-Allow-Private-Network', 'true')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Bypass-Tunnel-Reminder, X-Requested-With, Authorization')
+        self.send_header('Access-Control-Allow-Credentials', 'true')
+        self.send_header('Access-Control-Max-Age', '1728000')
         self.end_headers()
-        self.server.emulator.log("<<< ENVIADO 204 OPTIONS (CORS/PNA/BYPASS OK)")
+        self.server.emulator.log(f"<<< ENVIADO 204 OPTIONS a {origin}")
 
     def do_GET(self):
         self.server.emulator.log(f">>> RECIBIDO GET: {self.path}")
-        self.server.emulator.log(f"    Bypass Header: {self.headers.get('Bypass-Tunnel-Reminder', 'FALTANTE')}")
-        
         if self.path == '/ping':
             self._send_response({"status": "ok", "message": "Emulator is alive"})
         elif self.path == '/xreport/print':
@@ -39,14 +38,12 @@ class FiscalAPIHandler(BaseHTTPRequestHandler):
             self.server.emulator.queue_command("I0Z")
             self._send_response({"status": "success", "message": "Reporte Z enviado"})
         else:
-            self.send_error(404)
+            self._send_response({"error": "not found"}, status_code=404)
 
     def do_POST(self):
         self.server.emulator.log(f">>> RECIBIDO POST: {self.path}")
-        self.server.emulator.log(f"    Bypass Header: {self.headers.get('Bypass-Tunnel-Reminder', 'FALTANTE')}")
-        
         if self.path == '/print_pos_ticket':
-            content_length = int(self.headers['Content-Length'])
+            content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length)
             try:
                 data = json.loads(post_data)
@@ -62,18 +59,21 @@ class FiscalAPIHandler(BaseHTTPRequestHandler):
                 })
             except Exception as e:
                 self.server.emulator.log(f"    ERROR POST: {e}")
-                self.send_error(400, str(e))
+                self._send_response({"error": str(e)}, status_code=400)
         else:
-            self.send_error(404)
+            self._send_response({"error": "not found"}, status_code=404)
 
-    def _send_response(self, data):
-        self.send_response(200)
+    def _send_response(self, data, status_code=200):
+        origin = self.headers.get('Origin', '*')
+        self.send_response(status_code)
         self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Private-Network', 'true')
+        self.send_header('Access-Control-Allow-Origin', origin)
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Bypass-Tunnel-Reminder, X-Requested-With, Authorization')
+        self.send_header('Access-Control-Allow-Credentials', 'true')
         self.end_headers()
         self.wfile.write(json.dumps(data).encode('utf-8'))
-        self.server.emulator.log(f"<<< ENVIADO 200 OK: {self.path}")
+        self.server.emulator.log(f"<<< ENVIADO {status_code} a {origin}")
 
 class FiscalPrinterEmulator:
     def __init__(self, root):
@@ -142,7 +142,20 @@ class FiscalPrinterEmulator:
         self.ent_invoice.insert(0, "00000001")
         self.ent_invoice.pack(side=tk.LEFT, padx=5)
         
-        tk.Label(frame_config, text="API: http://localhost:5000", fg="gray60").pack(side=tk.LEFT, padx=10)
+        tk.Label(frame_config, text="Port Path:").pack(side=tk.LEFT, padx=5)
+        self.ent_port_path = tk.Entry(frame_config, width=15, font=("Consolas", 9))
+        self.ent_port_path.delete(0, tk.END)
+        self.ent_port_path.insert(0, "/tmp/ttyEMU")
+        self.ent_port_path.pack(side=tk.LEFT, padx=2)
+
+        self.cb_baud = ttk.Combobox(frame_config, values=["9600", "19200", "38400", "57600", "115200"], width=7)
+        self.cb_baud.set("9600")
+        self.cb_baud.pack(side=tk.LEFT, padx=2)
+
+        tk.Label(frame_config, text="Parity:").pack(side=tk.LEFT, padx=2)
+        self.cb_parity = ttk.Combobox(frame_config, values=["None", "Even", "Odd"], width=6)
+        self.cb_parity.set("None")
+        self.cb_parity.pack(side=tk.LEFT, padx=2)
 
         # Main Content Area (Split Panes)
         paned_window = tk.PanedWindow(self.root, orient=tk.HORIZONTAL)
@@ -192,12 +205,34 @@ class FiscalPrinterEmulator:
 
     def start_emulation(self):
         try:
-            self.master_fd, slave_fd = pty.openpty()
-            self.slave_name = os.ttyname(slave_fd)
+            port_path = self.ent_port_path.get().strip()
+            baud = int(self.cb_baud.get())
+            parity_str = self.cb_parity.get().lower()
             
-            self.lbl_port.config(text=f"Puerto: {self.slave_name}")
+            parity = serial.PARITY_NONE
+            if parity_str == "even": parity = serial.PARITY_EVEN
+            elif parity_str == "odd": parity = serial.PARITY_ODD
+
+            if port_path and not port_path.startswith("-"):
+                self.log(f"Intentando abrir puerto serial: {port_path} @ {baud} ({parity_str})...")
+                self.ser = serial.Serial(
+                    port=port_path,
+                    baudrate=baud,
+                    parity=parity,
+                    stopbits=serial.STOPBITS_ONE,
+                    bytesize=serial.EIGHTBITS,
+                    timeout=0.1
+                )
+                self.lbl_port.config(text=f"Puerto: {port_path}")
+                self.log(f"--- SERIAL (REAL/VIRTUAL) INICIADO EN {port_path} ---")
+            else:
+                self.log("Usando PTY (Legacy Mode)...")
+                self.master_fd, slave_fd = pty.openpty()
+                self.slave_name = os.ttyname(slave_fd)
+                self.lbl_port.config(text=f"Puerto: {self.slave_name}")
+                self.log(f"--- PTY INICIADO EN {self.slave_name} ---")
+            
             self.lbl_status.config(text="ESCUCHANDO", fg="green")
-            
             self.running = True
             self.btn_start.config(state=tk.DISABLED)
             self.btn_stop.config(state=tk.NORMAL)
@@ -207,13 +242,15 @@ class FiscalPrinterEmulator:
             self.thread.daemon = True
             self.thread.start()
             
-            self.log(f"--- SERIAL INICIADO EN {self.slave_name} ---")
-            
         except Exception as e:
-            self.log(f"Error: {e}")
+            self.log(f"Error al iniciar: {e}")
+            self.lbl_status.config(text="ERROR", fg="orange")
 
     def stop_emulation(self):
         self.running = False
+        if hasattr(self, 'ser') and self.ser:
+            self.ser.close()
+            self.ser = None
         if self.master_fd:
             os.close(self.master_fd)
             self.master_fd = None
@@ -225,12 +262,22 @@ class FiscalPrinterEmulator:
         self.log("--- SERIAL DETENIDO ---")
 
     def read_loop(self):
-        while self.running and self.master_fd:
+        while self.running:
             try:
-                data = os.read(self.master_fd, 1024)
-                if data:
-                    self.process_data(data)
-            except OSError:
+                # Read from Serial
+                if hasattr(self, 'ser') and self.ser:
+                    if self.ser.in_waiting > 0:
+                        data = self.ser.read(self.ser.in_waiting)
+                        self.process_data(data)
+                    else:
+                        os.sched_yield() # Be nice to CPU
+                # Read from PTY
+                elif self.master_fd:
+                    data = os.read(self.master_fd, 1024)
+                    if data:
+                        self.process_data(data)
+            except Exception as e:
+                self.log(f"Read Loop Error: {e}")
                 break
                 
     def process_data(self, data):
@@ -341,14 +388,22 @@ class FiscalPrinterEmulator:
         except: pass
 
     def send_ack(self):
-        if self.master_fd:
-            os.write(self.master_fd, b'\x06')
+        try:
+            if hasattr(self, 'ser') and self.ser:
+                self.ser.write(b'\x06')
+            elif self.master_fd:
+                os.write(self.master_fd, b'\x06')
+        except: pass
 
     def send_status_response(self):
         inv = self.ent_invoice.get().zfill(8)
         response = f"OK\nSTATUS\n{inv}\n"
-        if self.master_fd:
-            os.write(self.master_fd, response.encode('utf-8'))
+        try:
+            if hasattr(self, 'ser') and self.ser:
+                self.ser.write(response.encode('utf-8'))
+            elif self.master_fd:
+                os.write(self.master_fd, response.encode('utf-8'))
+        except: pass
 
 if __name__ == "__main__":
     root = tk.Tk()

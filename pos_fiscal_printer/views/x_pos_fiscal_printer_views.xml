@@ -11,6 +11,7 @@
                 <field name="flag_21" />
                 <field name="serial_port" required="1" />
                 <field name="connection_type" />
+                <field name="x_fiscal_command_parity" />
                 <field name="api_url" />
             </list>
         </field>
@@ -28,6 +29,7 @@
                         <field name="flag_21" />
                         <field name="serial_port" />
                         <field name="connection_type" />
+                        <field name="x_fiscal_command_parity" />
                         <field name="api_url" />
                     </group>
                 </sheet>

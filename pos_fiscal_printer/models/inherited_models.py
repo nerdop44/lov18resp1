@@ -65,6 +65,25 @@ class PosSession(models.Model):
             }
 
             self.env['mail.activity'].sudo().create(activity)
+ 
+    def _loader_params_pos_config(self):
+        result = super()._loader_params_pos_config()
+        result['search_params']['fields'].extend([
+            'x_fiscal_command_parity',
+            'x_fiscal_command_baudrate',
+            'x_fiscal_printer_id'
+        ])
+        return result
+
+    def _loader_params_res_company(self):
+        result = super()._loader_params_res_company()
+        result['search_params']['fields'].extend([
+            'vat',
+            'street',
+            'city',
+            'phone'
+        ])
+        return result
 
     def _loader_params_pos_payment_method(self):
         result = super()._loader_params_pos_payment_method()
@@ -104,7 +123,9 @@ class PosConfig(models.Model):
     x_fiscal_printer_code = fields.Char(related="x_fiscal_printer_id.serial")
     flag_21 = fields.Selection([('00', '00'), ('30', '30')], string="Flag 21", related="x_fiscal_printer_id.flag_21")
     connection_type = fields.Selection([('serial', 'Serial'), ('usb', 'USB'), ('usb_serial', 'USB Serial'),('file', 'Archivo'), ('api', 'API')], related="x_fiscal_printer_id.connection_type")
+    x_fiscal_command_parity = fields.Selection(related="x_fiscal_printer_id.x_fiscal_command_parity")
     api_url = fields.Char(related="x_fiscal_printer_id.api_url")
+
 
 class PosPaymentMethod(models.Model):
     _inherit = "pos.payment.method"
@@ -150,6 +171,11 @@ class ResConfigSettings(models.TransientModel):
 
     api_url = fields.Char(related="pos_config_id.api_url",
         store=True)
+    pos_x_fiscal_command_parity = fields.Selection(
+        related="pos_config_id.x_fiscal_command_parity",
+        store=True,
+        readonly=False
+    )
 
 
     @api.constrains("pos_x_fiscal_commands_time")

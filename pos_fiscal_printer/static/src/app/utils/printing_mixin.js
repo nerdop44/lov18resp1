@@ -42,9 +42,11 @@ export const FiscalPrinterMixin = {
         try {
             if (!this.port) {
                 const port = await navigator.serial.requestPort();
+                const parity = this.pos.config.x_fiscal_command_parity || "even";
+                console.log("Abriendo puerto serial con paridad:", parity);
                 await port.open({
                     baudRate: this.pos.config.x_fiscal_command_baudrate || 9600,
-                    parity: "even",
+                    parity: parity,
                     dataBits: 8,
                     stopBits: 1,
                     bufferSize: 256,
@@ -82,9 +84,20 @@ export const FiscalPrinterMixin = {
         if (this.pos.config.connection_type === "usb_serial") {
             signals_to_send = { requestToSend: true };
         }
-        await this.port.setSignals(signals_to_send);
-        var signals = await this.port.getSignals();
-        console.log("signals: ", signals);
+        try {
+            await this.port.setSignals(signals_to_send);
+        } catch (e) {
+            console.warn("Error al setear señales (normal en emuladores):", e);
+        }
+
+        var signals = { clearToSend: true, dataSetReady: true };
+        try {
+            signals = await this.port.getSignals();
+            console.log("signals: ", signals);
+        } catch (e) {
+            console.warn("Error al leer señales (normal en emuladores):", e);
+        }
+
         if (this.pos.config.connection_type === "usb_serial") {
             console.log("signals DSR: ", signals.dataSetReady);
             console.log("signals CTS: ", signals.clearToSend);
@@ -350,10 +363,22 @@ export const FiscalPrinterMixin = {
         if (this.pos.config.connection_type === "usb_serial") {
             signals_to_send = { requestToSend: true };
         }
-        await this.port.setSignals(signals_to_send);
+        try {
+            await this.port.setSignals(signals_to_send);
+        } catch (e) {
+            console.warn("Error al setear señales (normal en emuladores):", e);
+        }
+
         console.log("Leyendo S1", this.port.readable)
-        var signals = await this.port.getSignals();
-        console.log("signals: ", signals);
+
+        var signals = { clearToSend: true, dataSetReady: true };
+        try {
+            signals = await this.port.getSignals();
+            console.log("signals: ", signals);
+        } catch (e) {
+            console.warn("Error al leer señales (normal en emuladores):", e);
+        }
+
         if (this.pos.config.connection_type === "usb_serial") {
             console.log("signals DSR: ", signals.dataSetReady);
             console.log("signals CTS: ", signals.clearToSend);
