@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_fiscal_printer.ReceiptScreenPatch" t-inherit="point_of_sale.ReceiptScreen" t-inherit-mode="extension" owl="1">
+        <xpath expr="//div[hasclass('receipt-options')]" position="inside">
+            <div class="d-flex flex-column gap-2 mt-3 p-2 border rounded bg-light">
+                <span class="fw-bold text-center border-bottom mb-1">Opciones Fiscales</span>
+                <div class="d-flex gap-1">
+                    <button class="button btn btn-lg btn-primary w-100 py-3" t-att-disabled="printing" t-on-click="() => this.doPrinting('fiscal')">
+                        <i class="fa fa-file-text me-1" />Factura fiscal
+                    </button>
+                    <button class="button btn btn-lg btn-info text-white w-100 py-3" t-att-disabled="printing" t-on-click="() => this.doPrinting('noFiscal')">
+                        <i class="fa fa-file-o me-1" />Nota entrega
+                    </button>
+                </div>
+                <button class="button btn btn-lg btn-warning text-white w-100 py-3" t-att-disabled="printing" t-on-click="() => this.doPrinting('notaCredito')">
+                    <i class="fa fa-undo me-1" />Nota de crédito
+                </button>
+            </div>
+        </xpath>
+    </t>
+</templates>

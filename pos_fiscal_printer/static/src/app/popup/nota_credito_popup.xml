@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_fiscal_printer.NotaCreditoPopUp">
+        <div class="popup popup-med">
+            <header class="title bg-primary text-white p-3">
+                Nota de crédito
+            </header>
+            <main class="p-3">
+                <div class="d-flex flex-column gap-3">
+                    <div class="d-flex flex-column">
+                        <label class="form-label fw-bold">Código de impresora</label>
+                        <input type="text" class="form-control" t-model="fields.printerCode" maxlength="10" minlength="10" required="1" />
+                    </div>
+                    <div class="d-flex flex-column">
+                        <label class="form-label fw-bold">N° de factura</label>
+                        <input type="text" class="form-control" t-model="fields.invoiceNumber" maxlength="11" required="1" />
+                    </div>
+                    <div class="d-flex flex-column">
+                        <label class="form-label fw-bold">Fecha de factura</label>
+                        <input type="date" class="form-control" t-model="fields.date" required="1" />
+                    </div>
+                </div>
+            </main>
+            <footer class="footer d-flex justify-content-end gap-2 p-3 border-top">
+                <button class="btn btn-lg btn-primary highlight" t-on-click="confirm">
+                    Confirmar
+                </button>
+                <button class="btn btn-lg btn-secondary cancel" t-on-click="cancel">
+                    Cancelar
+                </button>
+            </footer>
+        </div>
+    </t>
+</templates>
