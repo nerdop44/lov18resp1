@@ -6,7 +6,7 @@
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Accounting/Localizations/Account Chart",
-    "version": "18.0.1.1.0",
+    "version": "18.0.1.0.8",
     # any module necessary for this one to work correctly
     "depends": [
         "base",
@@ -15,6 +15,9 @@
         "l10n_ve_tax",
         "l10n_ve_contact",
         "l10n_ve_rate",
+        #####
+        ##"l10n_ve_payment_extension", # Dependencia de Binaural Retenciones
+        ##"l10n_ve_invoice", # Dependencia de Binaural Facturación
     ],
     # always loaded
     "data": [
@@ -23,7 +26,7 @@
         "data/ir_actions_server.xml",
         "data/paperformats.xml",
         "views/account_invoice_report.xml",
-        "views/account_move.xml",
+    #    "views/account_move.xml",
         "views/account_move_line.xml",
         "views/account_payment.xml",
         "views/ir_property.xml",

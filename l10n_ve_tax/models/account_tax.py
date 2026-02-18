@@ -15,6 +15,8 @@ class AccountTax(models.Model):
     def _prepare_tax_totals(
         self, base_lines, currency, tax_lines=None, is_company_currency_requested=False
     ):
+        _logger.criltical("¡¡¡MI METODO _prepare_tax_totals SE ESTÁ EJECUTANDO!!!") # Línea agregada
+
         """
         This function adds the alternate currency tax amounts to tax_totals.
         In it, the parent function is executed 2 times, once for the original
@@ -114,34 +116,45 @@ class AccountTax(models.Model):
                 is_company_currency_requested=is_company_currency_requested,
             )
 
-        res["groups_by_foreign_subtotal"] = foreign_taxes["groups_by_subtotal"]
-        res["foreign_subtotals"] = foreign_taxes["subtotals"]
-        res["foreign_amount_untaxed"] = foreign_taxes["amount_untaxed"]
-        res["foreign_amount_total"] = foreign_taxes["amount_total"]
-        res["foreign_formatted_amount_untaxed"] = foreign_taxes["formatted_amount_untaxed"]
-        res["foreign_formatted_amount_total"] = foreign_taxes["formatted_amount_total"]
+        res["groups_by_foreign_subtotal"] = foreign_taxes.get("groups_by_subtotal") # Usar .get() para evitar KeyError si no existe
+        res["foreign_subtotals"] = foreign_taxes.get("subtotals", [])
+        res["foreign_amount_untaxed"] = foreign_taxes.get("amount_untaxed", 0.0)
+        res["foreign_amount_total"] = foreign_taxes.get("amount_total", 0.0)
+        res["foreign_formatted_amount_untaxed"] = foreign_taxes.get("formatted_amount_untaxed", "")
+        res["foreign_formatted_amount_total"] = foreign_taxes.get("formatted_amount_total", "")
 
         res["show_discount"] = self.env.company.show_discount_on_moves
 
-        res["subtotal"] = res_without_discount["amount_untaxed"]
+        res["subtotal"] = res_without_discount.get("amount_untaxed", 0.0)
         res["formatted_subtotal"] = formatLang(self.env, res["subtotal"], currency_obj=currency)
 
-        res["foreign_subtotal"] = foreign_taxes_without_discount["amount_untaxed"]
+        res["foreign_subtotal"] = foreign_taxes_without_discount.get("amount_untaxed", 0.0)
         res["foreign_formatted_subtotal"] = formatLang(
             self.env, res["foreign_subtotal"], currency_obj=foreign_currency
         )
 
-        res["discount_amount"] = res["amount_untaxed"] - res_without_discount["amount_untaxed"]
+        res["discount_amount"] = res.get("amount_untaxed", 0.0) - res_without_discount.get("amount_untaxed", 0.0)
+
         res["formatted_discount_amount"] = formatLang(
             self.env, res["discount_amount"], currency_obj=currency
         )
         res["foreign_discount_amount"] = (
-            foreign_taxes["amount_untaxed"] - foreign_taxes_without_discount["amount_untaxed"]
+            foreign_taxes.get("amount_untaxed", 0.0) - foreign_taxes_without_discount.get("amount_untaxed", 0.0)
         )
         res["foreign_formatted_discount_amount"] = formatLang(
             self.env, res["foreign_discount_amount"], currency_obj=foreign_currency
         )
+# Asegúrate de que estos totales formateados estén en el nivel superior de 'res'
+        res["formatted_amount_total"] = res.get("formatted_amount_total", "0.00") # Toma el valor de la moneda base
+        res["foreign_formatted_amount_total"] = foreign_taxes.get("formatted_amount_total", "0.00") # Toma el valor de la moneda extranjera
 
+        # Incluye la información de los grupos de impuestos
+        res["groups"] = res.get("groups", {}) # Asegúrate de que la clave 'groups' exista
+        if "groups_by_subtotal" in foreign_taxes:
+            # Asigna los grupos de impuestos en moneda extranjera usando el nombre del subtotal 'foreign_subtotals'
+            res["groups"]["foreign_subtotals"] = foreign_taxes["groups_by_subtotal"].get("foreign_subtotals", [])
+
+        
         # Registro de depuración final antes de retornar
         _logger.debug("Final Tax Totals: %s", res)
         

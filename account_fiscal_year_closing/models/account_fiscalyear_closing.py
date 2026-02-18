@@ -26,7 +26,7 @@ class AccountFiscalyearClosing(models.Model):
 
     def _default_year(self):
         company = self._default_company_id()
-        lock_date = company.fiscalyear_lock_date or fields.Date.today()
+        lock_date = company.fiscalyear_lock_date or fields.Date.context_today(self)
         fiscalyear = lock_date.year
         if (
             lock_date.month < int(company.fiscalyear_last_month)

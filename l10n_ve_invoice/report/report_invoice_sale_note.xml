@@ -6,12 +6,8 @@
             <field name="name">Sale Note</field>
             <field name="model">account.move</field>
             <field name="report_type">qweb-pdf</field>
-            <!--<field name="report_name">l10n_ve_invoice.template_invoice_sale_note_binaural_invoice</field>
-            <field name="report_file">l10n_ve_invoice.template_invoice_sale_note_binaural_invoice</field>-->
-
-            <field name="report_name">l10n_ve_invoice.template_invoice_sale_note_l10n_ve_invoice</field>
-            <field name="report_file">l10n_ve_invoice.template_invoice_sale_note_l10n_ve_invoice</field>
-            
+            <field name="report_name">l10n_ve_invoice.template_invoice_sale_note_binaural_invoice</field>
+            <field name="report_file">l10n_ve_invoice.template_invoice_sale_note_binaural_invoice</field>
             <field name="attachment">(object.state == 'posted') and ((object.name or 'INV').replace('/','_') + '.pdf')</field>
             <field name="paperformat_id" ref="l10n_ve_invoice.invoice_sale_note_paperformat_binaural_invoice"/>
             <field name="binding_model_id" ref="account.model_account_move"/>
@@ -19,7 +15,8 @@
             <field name="print_report_name" >(object.state == 'posted') and ((object.name or 'INV').replace('/','_') + '.pdf')</field>
         </record>
 
-        <template id="template_invoice_sale_note_l10n_ve_invoice">
+        <!--<template id="template_invoice_sale_note_l10n_ve_invoice">-->
+        <template id="l10n_ve_invoice.template_invoice_sale_note_binaural_invoice">
             <t t-call="web.html_container">
                 <xpath expr="//t[@t-call='web.report_layout']" position="replace">
                     <t t-foreach="docs" t-as="invoice">

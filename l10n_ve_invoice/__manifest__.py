@@ -1,8 +1,8 @@
 {
     "name": "Binaural Facturación",
     "summary": """
-       Modulo para contabilidad Venezolana (Green Build) """,
-    "version": "18.0.1.0.4",
+       Modulo para contabilidad Venezolana """,
+    "version": "18.0.1.0.3",
     "license": "LGPL-3",
     "author": "Binauraldev",
     "website": "https://l10n_vedev.com/",
@@ -10,7 +10,7 @@
     # any module necessary for this one to work correctly
     "depends": [
         "l10n_ve_base",
-        "l10n_ve_accountant",
+        #"l10n_ve_accountant",
         "l10n_ve_contact",
         "l10n_ve_tax",
     ],
@@ -26,7 +26,7 @@
         "report/report_invoice_free_form_dual.xml",
         "report/report_invoice_sale_note.xml",
         "report/report_invoice.xml",
-        "views/account_move.xml",
+        #"views/account_move.xml",
         "views/account_journal_views.xml",
         "views/res_config_settings.xml",
         "views/menu.xml",

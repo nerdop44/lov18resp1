@@ -37,6 +37,7 @@ but you will need set manually account defaults for taxes.
 """,
     "depends": [
         "account",
+        "l10n_ve_location",
     ],
     "demo": [
         "demo/demo_company.xml",
@@ -48,9 +49,6 @@ but you will need set manually account defaults for taxes.
         "security/ir_rule.xml",
         #data
         "data/ir_sequence.xml",
-        "data/res_country_state.xml",
-        "data/res_country_municipality.xml",
-        "data/res_country_parish.xml",
         #views
         "views/account_journal_views.xml",
         "views/account_move_views.xml",

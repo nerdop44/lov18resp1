@@ -37,7 +37,10 @@ class AccountMove(models.Model):
 
     @api.onchange("move_type")
     def _onchange_move_type(self):
-        self.invoice_date = False if self.move_type == "entry" else fields.Date.today()
+        self.invoice_date = False if self.move_type == "entry" else fields.Date.context_today(self)
+        # --- MODIFICACIÓN AGREGADA AQUÍ ---
+        if not self.date:
+            self.date = fields.Date.context_today(self)
 
     foreign_rate = fields.Float(
         compute="_compute_rate",
@@ -84,25 +87,25 @@ class AccountMove(models.Model):
         store=True,
     )
 
-    #    # INICIO: Añadir los siguientes campos aquí
-    # retention_iva_line_ids = fields.One2many(
-    #     "account.retention.iva.line",
-    #     "move_id",
-    #     string="Líneas de Retención de IVA",
-    #     copy=True,
-    # )
-    # retention_islr_line_ids = fields.One2many(
-    #     "account.retention.islr.line",
-    #     "move_id",
-    #     string="Líneas de Retención de ISLR",
-    #     copy=True,
-    # )
-    # retention_municipal_line_ids = fields.One2many(
-    #     "account.retention.municipal.line",
-    #     "move_id",
-    #     string="Líneas de Retención Municipal",
-    #     copy=True,
-    # )
+    # INICIO: Añadir los siguientes campos aquí
+    retention_iva_line_ids = fields.One2many(
+        "account.retention.iva.line",
+        "move_id",
+        string="Líneas de Retención de IVA",
+        copy=True,
+    )
+    retention_islr_line_ids = fields.One2many(
+        "account.retention.islr.line",
+        "move_id",
+        string="Líneas de Retención de ISLR",
+        copy=True,
+    )
+    retention_municipal_line_ids = fields.One2many(
+        "account.retention.municipal.line",
+        "move_id",
+        string="Líneas de Retención Municipal",
+        copy=True,
+    )
     # FIN: De los campos a añadir
     # === INICIO DE LA MODIFICACIÓN PARA base_currency_is_vef ===
     base_currency_is_vef = fields.Boolean(
@@ -110,6 +113,20 @@ class AccountMove(models.Model):
         store=True, # Lo almacenamos para optimizar el rendimiento
         help="Indica si la moneda base de la compañía es el Bolívar Venezolano (VEF/VES)."
     )
+
+    @api.depends('company_id.currency_id')
+    def _compute_base_currency_is_vef(self):
+        # Primero, intentamos buscar la moneda VEF/VES por su ID externo.
+        # En Odoo 14+, lo más común es 'base.VES'. Si es una versión anterior, podría ser 'base.VEF'.
+        vef_currency = self.env.ref('base.VES', raise_if_not_found=False)
+        
+        # Si no la encontramos por ID externo, la buscamos por el código 'VEF' o 'VES'.
+        if not vef_currency:
+            vef_currency = self.env['res.currency'].search([('name', 'in', ['VEF', 'VES'])], limit=1)
+
+        for rec in self:
+            rec.base_currency_is_vef = (rec.company_id.currency_id == vef_currency)
+    # === FIN DE LA MODIFICACIÓN PARA base_currency_is_vef ===
 
     @api.depends('company_id.currency_id')
     def _compute_base_currency_is_vef(self):
@@ -310,22 +327,15 @@ class AccountMove(models.Model):
                             "string", _("Foreign Currency ") + " " + foreign_currency_symbol
                         )
                         res["arch"] = etree.tostring(doc, encoding="unicode")
-# ... (resto del método get_view) ...
-            # if view_type == "form":
-            #     view_id = self.env.ref(
-            #         "l10n_ve_accountant.view_account_move_form_binaural_invoice"
-            #     ).id
-            #     doc = etree.XML(res["arch"])
-            #     page = doc.xpath("//page[@name='foreign_currency']")
-            #     if page:
-            #         page[0].set(
-            #             "string", _("Foreign Currency ") + " " + foreign_currency_symbol
-            #         )
-            #         res["arch"] = etree.tostring(doc, encoding="unicode")
         return res
 
     @api.model_create_multi
     def create(self, vals_list):
+        today = fields.Date.context_today(self)
+        for vals in vals_list:
+            # Aseguramos que siempre haya fecha contable
+            if not vals.get("date"):
+                vals["date"] = today
         """
         Ensure that the foreign_rate and foreign_inverse_rate are computed and computes the foreign
         debit and foreign credit of the line_ids fields (journal entries) when the move is created.
@@ -346,7 +356,7 @@ class AccountMove(models.Model):
                 move.foreign_inverse_rate = move.reversed_entry_id.foreign_inverse_rate
             Rate = self.env["res.currency.rate"]
             rate_values = Rate.compute_rate(
-                move.foreign_currency_id.id, move.invoice_date or fields.Date.today()
+                move.foreign_currency_id.id, move.invoice_date or fields.Date.context_today(self)
             )
             last_foreign_rate = rate_values.get("foreign_rate", 0)
             if move.manually_set_rate and move.foreign_rate != last_foreign_rate:
@@ -690,7 +700,7 @@ class AccountMove(models.Model):
             if move.manually_set_rate:
                 continue
             date_field = "invoice_date" if is_sale else "date"
-            rate_date = getattr(move, date_field) or fields.Date.today()
+            rate_date = getattr(move, date_field) or fields.Date.context_today(self)
             rate_values = Rate.compute_rate(move.foreign_currency_id.id, rate_date)
             move.foreign_rate = rate_values.get("foreign_rate", 0)
             move.foreign_inverse_rate = rate_values.get("foreign_inverse_rate", 0)

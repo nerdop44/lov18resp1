@@ -1,10 +1,9 @@
-
 <templates xml:space="preserve">
 
-    <t 
-        t-name="l10n_ve_accountant.TaxGroupComponent" 
-        t-inherit="account.TaxGroupComponent" 
-        t-inherit-mode="extension" 
+    <t
+        t-name="l10n_ve_accountant.TaxGroupComponent"
+        t-inherit="account.TaxGroupComponent"
+        t-inherit-mode="extension"
         owl="1">
         <xpath expr="//tr/td[2]/t[@t-if]/t[@t-else]/span/span" position="replace">
             <span class="o_tax_group_amount_value o_tree_monetary">
@@ -82,29 +81,30 @@
                         />
                     </td>
                 </tr>
-                <t t-foreach="totals.foreign_subtotals" t-as="subtotal" t-key="subtotal['name']">
-                    <tr>
-                        <td class="o_td_label">
-                            <label class="o_form_label o_tax_total_label" t-esc="subtotal['name']"/>
-                        </td>
+                <t t-if="totals.foreign_subtotals and totals.foreign_subtotals.length > 0">
+                    <t t-foreach="totals.foreign_subtotals" t-as="subtotal" t-key="subtotal['name']">
+                        <tr>
+                            <td class="o_td_label">
+                                <label class="o_form_label o_tax_total_label" t-esc="subtotal['name']"/>
+                            </td>
 
-                        <td class="o_tree_monetary">
-                            <span t-att-name="subtotal['name']" style="white-space: nowrap; font-weight: bold;" t-out="subtotal['formatted_amount']"/>
-                        </td>
-                    </tr>
-
-                    <t t-foreach="totals.groups_by_foreign_subtotal[subtotal['name']]" t-as="taxGroup" t-key="taxGroup.group_key">
-                        <TaxGroupComponent
-                            currency="currency"
-                            taxGroup="taxGroup"
-                            isReadonly="readonly"
-                            onChangeTaxGroup.bind="_onChangeTaxValueByTaxGroup"
-                            invalidate.bind="invalidate"
-                        />
-                    </t>
+                            <td class="o_tree_monetary">
+                                <span t-att-name="subtotal['name']" style="white-space: nowrap; font-weight: bold;" t-out="subtotal['formatted_amount']"/>
+                            </td>
+                        </tr>
+                        <t t-if="totals.groups_by_foreign_subtotal and totals.groups_by_foreign_subtotal[subtotal['name']] and totals.groups_by_foreign_subtotal[subtotal['name']].length > 0">
+                            <t t-foreach="totals.groups_by_foreign_subtotal[subtotal['name']]" t-as="taxGroup" t-key="taxGroup.group_key">
+                                <TaxGroupComponent
+                                    currency="currency"
+                                    taxGroup="taxGroup"
+                                    isReadonly="readonly"
+                                    onChangeTaxGroup.bind="_onChangeTaxValueByTaxGroup"
+                                    invalidate.bind="invalidate"
+                                />
+                            </t>
+                        </t>
+                        </t>
                 </t>
-
-                <!-- Total amount with all taxes-->
                 <tr>
                     <td class="o_td_label">
                         <label class="o_form_label o_tax_total_label">Total</label>

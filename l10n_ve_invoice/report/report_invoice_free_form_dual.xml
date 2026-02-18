@@ -270,7 +270,6 @@
                              <!-- User request: "el igtf no aplica en forma libre vef" -->
                              <t t-set="igtf_vef" t-value="0"/>
                              <t t-set="igtf_usd" t-value="0"/>
-                             <t t-set="base_vef" t-value="o.currency_id.name in ['VES', 'VEF']"/>
                              <t t-set="has_igtf" t-value="(o.currency_id == usd_currency) and (not is_vef_report)"/>
                              <t t-if="has_igtf">
                                  <t t-set="igtf_usd" t-value="usd_total * 0.03"/>
@@ -364,9 +363,10 @@
                     <div name="coletilla" class="footer-text-compact"> 
                         <span t-if="o.company_id.show_tag_on_usd_invoice">
                             A los efectos de lo previsto en el <strong>Art. 25</strong> de la Ley de
-                            De la factura en <strong>USD</strong> calculado a la tasa de cambio
-                        establecida por BCV de 1US$ por <strong><t t-out="o.foreign_rate" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></strong>
-                    </span>
+                            Impuesto al Valor Agregado se expresa el monto total
+                            de la factura en <strong>USD</strong> calculado a la tasa de cambio
+                            establecida por BCV de 1US$ por <strong><t t-out="o.foreign_rate" t-options='{"widget": "monetary", "display_currency": o.env["res.currency"].browse(int(%(base.VEF)s))}'/></strong>
+                        </span>
                     </div>
 
 
