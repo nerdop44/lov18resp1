@@ -122,33 +122,43 @@ class ResCurrency(models.Model):
 
     def get_bcv(self):
         url = "https://www.bcv.org.ve/"
-        req = requests.get(url, verify=False)
+        try:
+            req = requests.get(url, verify=False, timeout=10)
+        except Exception:
+            return False
 
         status_code = req.status_code
         if status_code == 200:
-
             html = BeautifulSoup(req.text, "html.parser")
             # Dolar
-            dolar = html.find('div', {'id': 'dolar'})
-            dolar = str(dolar.find('strong')).split()
+            dolar_tag = html.find('div', {'id': 'dolar'})
+            if not dolar_tag:
+                return False
+            dolar = str(dolar_tag.find('strong')).split()
             dolar = str.replace(dolar[1], '.', '')
-            dolar = float(str.replace(dolar, ',', '.'))
+            val_usd = float(str.replace(dolar, ',', '.'))
+
             # Euro
-            euro = html.find('div', {'id': 'euro'})
-            euro = str(euro.find('strong')).split()
-            euro = str.replace(euro[1], '.', '')
-            euro = float(str.replace(euro, ',', '.'))
-
-            if self.name == 'USD':
-                bcv = dolar
-            elif self.name == 'EUR':
-                bcv = euro
+            euro_tag = html.find('div', {'id': 'euro'})
+            if not euro_tag:
+                val_eur = 0.0
             else:
-                bcv = False
+                euro = str(euro_tag.find('strong')).split()
+                euro = str.replace(euro[1], '.', '')
+                val_eur = float(str.replace(euro, ',', '.'))
 
-            return bcv
+            curr_name = self.name
+            if curr_name in ['VES', 'VEF']:
+                return 1.0
+            elif curr_name == 'USD':
+                return val_usd
+            elif curr_name == 'EUR':
+                return val_eur
+            else:
+                return False
         else:
             return False
+
 
     def get_dolar_today_promedio(self):
         url = "https://s3.amazonaws.com/dolartoday/data.json"
@@ -172,63 +182,57 @@ class ResCurrency(models.Model):
 
     def actualizar_tasa(self):
         for rec in self:
-            nueva_tasa = 0
+            nueva_tasa_bcv = 0
             if rec.server == 'bcv':
-                tasa_bcv = rec.get_bcv()
-                if tasa_bcv:
-                    nueva_tasa = tasa_bcv
+                nueva_tasa_bcv = rec.get_bcv()
             elif rec.server == 'dolar_today':
-                tasa_dt = rec.get_dolar_today_promedio()
-                if tasa_dt:
-                    nueva_tasa = tasa_dt
+                nueva_tasa_bcv = rec.get_dolar_today_promedio()
 
-            if nueva_tasa > 0:
+            if nueva_tasa_bcv:
                 channel_id = self.env.ref('account_dual_currency.trm_channel')
                 company_ids = self.env['res.company'].search([])
-                nueva = True
                 today = fields.Date.context_today(self)
                 
                 for c in company_ids:
-                    # Buscar tasa existente para hoy (sin hora)
+                    # Obtener valor BCV de la moneda base de la compañía
+                    base_bcv = c.currency_id.get_bcv() or 1.0
+                    
+                    # Cálculo de la tasa Odoo: (Valor BCV Base / Valor BCV Destino)
+                    # Ej: Base VES (1.0), Destino USD (36.5) -> Rate = 1/36.5 = 0.027...
+                    # Ej: Base USD (36.5), Destino VES (1.0) -> Rate = 36.5/1 = 36.5
+                    odoo_rate = base_bcv / nueva_tasa_bcv
+                    
+                    # Buscar tasa existente para hoy
                     tasa_actual = self.env['res.currency.rate'].sudo().search(
-                        [('name', '=', today), ('currency_id', '=', self.id), ('company_id', '=', c.id)], limit=1)
+                        [('name', '=', today), ('currency_id', '=', rec.id), ('company_id', '=', c.id)], limit=1)
                     
                     if not tasa_actual:
                         self.env['res.currency.rate'].sudo().create({
-                                'currency_id': self.id,
+                                'currency_id': rec.id,
                                 'name': today,
-                                'rate': 1 / nueva_tasa,
+                                'rate': odoo_rate,
                                 'company_id': c.id,
                         })
+                        nueva = True
                     else:
-                        # Siempre actualizar si hay nueva tasa, sin importar el proveedor
-                        if abs(tasa_actual.rate - (1 / nueva_tasa)) > 0.000001:
-                            tasa_actual.rate = 1 / nueva_tasa
-                            nueva = False
+                        if abs(tasa_actual.rate - odoo_rate) > 0.000001:
+                            tasa_actual.rate = odoo_rate
+                            nueva = True
                         else:
-                            # Si es igual, asumimos que no es nueva para el log
                             nueva = False
 
-                if nueva:
-                    channel_id.message_post(
-                        body="Nueva tasa de cambio del %s: %s, actualizada desde %s a las %s." % (
-                            rec.name, nueva_tasa, rec.server,
-                            datetime.strftime(fields.Datetime.context_timestamp(self, datetime.now()),
-                                              "%d-%m-%Y %H:%M:%S")),
-                        message_type='notification',
-                        subtype_xmlid='mail.mt_comment',
-                    )
-                else:
-                    channel_id.message_post(
-                        body="Tasa de cambio verificada del %s: %s, desde %s a las %s (Sin cambios)." % (
-                            rec.name, nueva_tasa, rec.server,
-                            datetime.strftime(fields.Datetime.context_timestamp(self, datetime.now()),
-                                              "%d-%m-%Y %H:%M:%S")),
-                        message_type='notification',
-                        subtype_xmlid='mail.mt_comment',
-                    )
+                    if nueva:
+                        channel_id.message_post(
+                            body="Tasa de cambio actualizada para %s (%s): %s (en %s), servidor %s a las %s." % (
+                                rec.name, c.name, odoo_rate, c.currency_id.name, rec.server,
+                                datetime.strftime(fields.Datetime.context_timestamp(self, datetime.now()),
+                                                  "%d-%m-%Y %H:%M:%S")),
+                            message_type='notification',
+                            subtype_xmlid='mail.mt_comment',
+                        )
                 if rec.act_productos:
                     rec.actualizar_productos()
+
 
 
     @api.model
