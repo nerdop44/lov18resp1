@@ -19,6 +19,10 @@ import json
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+
+
     currency_id_dif = fields.Many2one("res.currency",
                                       string="Moneda Dual Ref.",
                                       default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')],

@@ -15,6 +15,10 @@ _logger = logging.getLogger(__name__)
 class AccountMove(models.Model):
     _inherit = "account.move"
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter in ('digits', 'states') or super()._valid_field_parameter(field_name, parameter)
+
+
     def _get_fields_to_compute_lines(self):
         return ["invoice_line_ids", "line_ids", "foreign_inverse_rate", "foreign_rate"]
 

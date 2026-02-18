@@ -6,6 +6,10 @@ class AccountRetentionIvaLine(models.Model):
     _name = "account.retention.iva.line"
     _description = "Account Retention IVA Line"
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+
+
     # ...
     state = fields.Selection([
         ('draft', 'Draft'),
@@ -201,6 +205,10 @@ class AccountRetentionIvaLine(models.Model):
 class AccountRetentionIslrLine(models.Model):
     _name = "account.retention.islr.line"
     _description = "Account Retention ISLR Line"
+
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+
 
     # ...
     state = fields.Selection([
@@ -398,6 +406,10 @@ class AccountRetentionIslrLine(models.Model):
 class AccountRetentionMunicipalLine(models.Model):
     _name = "account.retention.municipal.line"
     _description = "Account Retention Municipal Line"
+
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+
 
     # ...
     state = fields.Selection([

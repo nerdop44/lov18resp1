@@ -11,6 +11,10 @@ from odoo.tools.float_utils import float_compare, float_is_zero
 class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+
+
     debit_usd = fields.Monetary(currency_field='currency_id_dif', string='Débito $', store=True, compute="_debit_usd",
                                  readonly=False, )
     credit_usd = fields.Monetary(currency_field='currency_id_dif', string='Crédito $', store=True,
