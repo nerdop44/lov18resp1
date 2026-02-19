@@ -295,3 +295,40 @@ class ResCurrency(models.Model):
                 pass
 
         return round(tasa, 4)
+
+    @api.model
+    def get_trm_systray(self):
+        company_id = self.env.company
+        currency_dif = company_id.currency_id_dif
+        if not currency_dif:
+            return 0.0
+
+        # Busqueda directa de la ultima tasa registrada
+        last_rate = self.env['res.currency.rate'].search([
+            ('currency_id', '=', currency_dif.id),
+            ('company_id', '=', company_id.id),
+        ], order='name desc', limit=1)
+
+        tasa = 1.0
+        if last_rate:
+            if last_rate.rate < 1.0 and last_rate.rate > 0:
+                 tasa = 1 / last_rate.rate
+            elif last_rate.rate >= 1.0:
+                 tasa = last_rate.rate
+        
+        # Fallback: Si la tasa es 1.0, intentar usar el inverse_rate moneda si está disponible
+        if tasa == 1.0 and currency_dif.inverse_rate and currency_dif.inverse_rate > 1:
+            tasa = currency_dif.inverse_rate
+
+        # Fallback: BCV Directo (Solo si sigue siendo 1.0)
+        if tasa == 1.0:
+            try:
+                usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+                if usd_currency:
+                    bcv_rate = usd_currency.get_bcv()
+                    if bcv_rate and bcv_rate > 1:
+                        tasa = bcv_rate
+            except Exception:
+                pass
+
+        return round(tasa, 4)
