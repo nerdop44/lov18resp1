@@ -53,8 +53,8 @@ class ProductProduct(models.Model):
         :rtype: dict
         """
         self.ensure_one()
-        tasa = self.env['res.currency'].sudo().search([('name', '=', 'USD')], limit=1)
-        unit_cost_usd = float(unit_cost) / tasa.inverse_rate
+        tasa = self.env.company.currency_id_dif
+        unit_cost_usd = float(unit_cost) / tasa.inverse_rate if tasa and tasa.inverse_rate else 0.0
         vals = {
             'product_id': self.id,
             'value': unit_cost * quantity,

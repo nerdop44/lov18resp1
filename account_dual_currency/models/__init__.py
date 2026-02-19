@@ -32,4 +32,6 @@ from . import account_analytic_account
 from . import account_analytic_line
 from . import product_pricelist
 from . import sale_order
+from . import sale_order_line
+from . import purchase_order_line
 from . import bank_rec_widget

@@ -1,25 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <record id="view_order_form_inherit_dual_currency" model="ir.ui.view">
-            <field name="name">sale.order.form.inherit.dual_currency</field>
-            <field name="model">sale.order</field>
-            <field name="inherit_id" ref="sale.view_order_form"/>
+        <record id="view_purchase_order_form_inherit_dual_currency" model="ir.ui.view">
+            <field name="name">purchase.order.form.inherit.dual_currency</field>
+            <field name="model">purchase.order</field>
+            <field name="inherit_id" ref="purchase.purchase_order_form"/>
             <field name="arch" type="xml">
-                <!-- Tasa y moneda de referencia en el header -->
+                <!-- Tasa en el header -->
                 <xpath expr="//field[@name='payment_term_id']" position="after">
                     <field name="currency_id_dif" invisible="1"/>
                     <field name="tasa_referencial" readonly="1" string="Tasa Ref."/>
-                    <field name="intervalo_tasa" invisible="1"/>
                 </xpath>
-                <!-- Columnas en líneas de pedido -->
+                <!-- Columnas opcionales en líneas -->
                 <xpath expr="//field[@name='price_subtotal']" position="after">
                     <field name="price_unit_dif" optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
                     <field name="price_subtotal_dif" optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
                 </xpath>
                 <!-- Panel de totales en moneda de referencia -->
-                <xpath expr="//group[@name='sale_total']" position="after">
-                    <group class="oe_subtotal_footer oe_right" colspan="2" name="sale_total_ref">
+                <xpath expr="//div[@id='purchase_total']" position="after">
+                    <group class="oe_subtotal_footer oe_right" colspan="2" name="purchase_total_ref">
                         <field name="amount_untaxed_dif" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
                         <field name="amount_tax_dif" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
                         <div class="oe_subtotal_footer_separator oe_inline o_td_label">

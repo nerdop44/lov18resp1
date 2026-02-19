@@ -54,6 +54,7 @@
         'views/account_analytic_line.xml',
         'views/product_pricelist.xml',
         'views/sale_order_view.xml',
+        'views/purchase_order_view.xml',
         # 'views/crossovered_budget_lines.xml',  # Disabled: requires account_budget to be installed first
     ],
     'assets': {

@@ -7,6 +7,46 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 class PurchaseOrder(models.Model):
     _inherit = 'purchase.order'
 
+    currency_id_dif = fields.Many2one("res.currency",
+                                      string="Moneda Dual Ref.",
+                                      related="company_id.currency_id_dif",
+                                      store=True, readonly=True)
+
+    tasa_referencial = fields.Float(string="Tasa Referencial", digits=(16, 4),
+                                    compute='_compute_tasa_ref_po', store=True)
+
+    amount_total_dif = fields.Monetary(string='Total Ref.', store=True, readonly=True,
+                                       compute='_compute_amount_dif_po', currency_field='currency_id_dif')
+    amount_untaxed_dif = fields.Monetary(string='Base Ref.', store=True, readonly=True,
+                                         compute='_compute_amount_dif_po', currency_field='currency_id_dif')
+    amount_tax_dif = fields.Monetary(string='Impuesto Ref.', store=True, readonly=True,
+                                     compute='_compute_amount_dif_po', currency_field='currency_id_dif')
+
+    @api.depends('company_id', 'currency_id_dif')
+    def _compute_tasa_ref_po(self):
+        for record in self:
+            if record.currency_id_dif:
+                record.tasa_referencial = record.currency_id_dif.inverse_rate
+            else:
+                record.tasa_referencial = 1.0
+
+    @api.depends('amount_total', 'amount_untaxed', 'amount_tax', 'tasa_referencial', 'currency_id')
+    def _compute_amount_dif_po(self):
+        for record in self:
+            if record.tasa_referencial and record.tasa_referencial > 0:
+                if record.currency_id == record.currency_id_dif:
+                    record.amount_total_dif = record.amount_total
+                    record.amount_untaxed_dif = record.amount_untaxed
+                    record.amount_tax_dif = record.amount_tax
+                else:
+                    record.amount_total_dif = record.amount_total / record.tasa_referencial
+                    record.amount_untaxed_dif = record.amount_untaxed / record.tasa_referencial
+                    record.amount_tax_dif = record.amount_tax / record.tasa_referencial
+            else:
+                record.amount_total_dif = 0
+                record.amount_untaxed_dif = 0
+                record.amount_tax_dif = 0
+
     def action_create_invoice(self):
         """Create the invoice associated to the PO.
         """

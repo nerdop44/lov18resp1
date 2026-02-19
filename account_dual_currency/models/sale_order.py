@@ -8,8 +8,8 @@ class SaleOrder(models.Model):
 
     currency_id_dif = fields.Many2one("res.currency",
                                       string="Moneda Dual Ref.",
-                                      default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')], limit=1),
-                                      readonly=True)
+                                      related="company_id.currency_id_dif",
+                                      store=True, readonly=True)
     
     tasa_referencial = fields.Float(string="Tasa Referencial", digits=(16, 4), compute='_compute_tasa_referencial', store=True)
 
