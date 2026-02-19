@@ -122,9 +122,12 @@ class ResCurrency(models.Model):
 
     def get_bcv(self):
         url = "https://www.bcv.org.ve/"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+        }
         try:
-            req = requests.get(url, verify=False, timeout=10)
-        except Exception:
+            req = requests.get(url, headers=headers, verify=False, timeout=10)
+        except Exception as e:
             return False
 
         status_code = req.status_code
@@ -135,8 +138,14 @@ class ResCurrency(models.Model):
             if not dolar_tag:
                 return False
             dolar = str(dolar_tag.find('strong')).split()
+            # Handle potential parsing errors if format changes
+            if len(dolar) < 2:
+                return False
             dolar = str.replace(dolar[1], '.', '')
-            val_usd = float(str.replace(dolar, ',', '.'))
+            try:
+                val_usd = float(str.replace(dolar, ',', '.'))
+            except ValueError:
+                return False
 
             # Euro
             euro_tag = html.find('div', {'id': 'euro'})
@@ -144,16 +153,25 @@ class ResCurrency(models.Model):
                 val_eur = 0.0
             else:
                 euro = str(euro_tag.find('strong')).split()
-                euro = str.replace(euro[1], '.', '')
-                val_eur = float(str.replace(euro, ',', '.'))
+                if len(euro) > 1:
+                    euro = str.replace(euro[1], '.', '')
+                    try:
+                        val_eur = float(str.replace(euro, ',', '.'))
+                    except ValueError:
+                        val_eur = 0.0
+                else:
+                    val_eur = 0.0
 
             curr_name = self.name
-            if curr_name in ['VES', 'VEF']:
-                return 1.0
-            elif curr_name == 'USD':
+            if curr_name == 'USD':
                 return val_usd
             elif curr_name == 'EUR':
                 return val_eur
+            elif curr_name in ['VES', 'VEF']:
+                 # If we are strictly asking for VES rate, it's 1. 
+                 # But if we want the "Dolar" value, we should probably ask for USD currency.
+                 # For now, return 1.0 as standard behaviour, but get_trm_systray handles the fallback.
+                return 1.0
             else:
                 return False
         else:
@@ -266,10 +284,12 @@ class ResCurrency(models.Model):
         # Fallback: Si la tasa es 1.0 (sin datos o error), intentar obtener del BCV para mostrar algo real
         if tasa == 1.0:
             try:
+                # Explicitly try to get the USD currency rate from BCV
                 usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
                 if usd_currency:
                     bcv_rate = usd_currency.get_bcv()
-                    if bcv_rate:
+                    # Only update if we got a valid rate significantly different from 1 or 0
+                    if bcv_rate and bcv_rate > 1:
                         tasa = bcv_rate
             except Exception as e:
                 pass
