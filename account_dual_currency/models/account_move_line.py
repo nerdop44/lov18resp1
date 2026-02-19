@@ -12,7 +12,7 @@ class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
     def _valid_field_parameter(self, field_name, parameter):
-        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+        return super()._valid_field_parameter(field_name, parameter)
 
 
     debit_usd = fields.Monetary(currency_field='currency_id_dif', string='Débito $', store=True, compute="_debit_usd",
@@ -24,7 +24,7 @@ class AccountMoveLine(models.Model):
     price_unit_usd = fields.Monetary(currency_field='currency_id_dif', string='Precio $', store=True,
                                      compute='_price_unit_usd', readonly=False)
     price_subtotal_usd = fields.Monetary(currency_field='currency_id_dif', string='SubTotal $', store=True,
-                                         compute="_price_subtotal_usd", digits=(16, 2))
+                                         compute="_price_subtotal_usd")
     amount_residual_usd = fields.Monetary(string='Residual Amount USD', compute='_compute_amount_residual_usd', store=True,
                                        help="The residual amount on a journal item expressed in the company currency.")
     balance_usd = fields.Monetary(string='Balance Ref.',

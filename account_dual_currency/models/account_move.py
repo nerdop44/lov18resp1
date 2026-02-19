@@ -20,7 +20,7 @@ class AccountMove(models.Model):
     _inherit = 'account.move'
 
     def _valid_field_parameter(self, field_name, parameter):
-        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+        return super()._valid_field_parameter(field_name, parameter)
 
 
     currency_id_dif = fields.Many2one("res.currency",
@@ -40,15 +40,15 @@ class AccountMove(models.Model):
 
     name_rate = fields.Char(store=True, readonly=True, compute='_name_ref')
     amount_untaxed_usd = fields.Monetary(currency_field='currency_id_dif', string="Base imponible Ref.", store=True,
-                                         compute="_amount_all_usd", digits=(16, 2), copy=False)
+                                         compute="_amount_all_usd", copy=False)
     amount_tax_usd = fields.Monetary(currency_field='currency_id_dif', string="Impuestos Ref.", store=True,
-                                     readonly=True, digits=(16, 2), compute="_amount_all_usd", copy=False)
+                                     readonly=True, compute="_amount_all_usd", copy=False)
     amount_total_usd = fields.Monetary(currency_field='currency_id_dif', string='Total Ref.', store=True, readonly=True,
                                        compute='_amount_all_usd',
-                                       digits=(16, 2), tracking=True)
+                                       tracking=True)
 
     amount_residual_usd = fields.Monetary(currency_field='currency_id_dif', compute='_compute_amount', string='Adeudado Ref.',
-                                          readonly=True, digits=(16, 2), store=True, copy=False)
+                                          readonly=True, store=True, copy=False)
     invoice_payments_widget_usd = fields.Binary(groups="account.group_account_invoice,account.group_account_readonly",
                                               compute='_compute_payments_widget_reconciled_info_USD')
 

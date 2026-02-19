@@ -7,7 +7,7 @@ class AccountPayment(models.Model):
     _inherit = 'account.payment'
 
     def _valid_field_parameter(self, field_name, parameter):
-        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+        return super()._valid_field_parameter(field_name, parameter)
 
 
     tax_today = fields.Float(string="Tasa", default=lambda self: self._get_default_tasa(), digits=(16, 4))
@@ -30,8 +30,7 @@ class AccountPayment(models.Model):
     aplicar_igtf_divisa = fields.Boolean(string="Aplicar IGTF")
     igtf_divisa_porcentage = fields.Float('% IGTF', related='company_id.igtf_divisa_porcentage')
 
-    mount_igtf = fields.Monetary(currency_field='currency_id', string='Importe IGTF', readonly=True,
-                                 digits=(16, 2))
+    mount_igtf = fields.Monetary(currency_field='currency_id', string='Importe IGTF', readonly=True)
 
     amount_total_pagar = fields.Monetary(currency_field='currency_id', string="Total Pagar(Importe + IGTF):",
                                          readonly=True)

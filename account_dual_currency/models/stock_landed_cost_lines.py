@@ -7,7 +7,7 @@ class LandedCostLine(models.Model):
     _inherit = "stock.landed.cost.lines"
 
     def _valid_field_parameter(self, field_name, parameter):
-        return parameter in ['tracking', 'digits'] or super()._valid_field_parameter(field_name, parameter)
+        return super()._valid_field_parameter(field_name, parameter)
 
 
     price_unit = fields.Monetary(currency_field="company_currency_id", string="Cost in Company Currency")
@@ -18,7 +18,7 @@ class LandedCostLine(models.Model):
 
     tax_today = fields.Float(string="Tasa", store=True,
                              default=lambda self: self.env.company.currency_id_dif.inverse_rate,
-                             tracking=True, digits=(16, 4))
+                             digits=(16, 4))
 
     @api.onchange("currency_price_unit")
     def _onchange_currency_price_unit(self):

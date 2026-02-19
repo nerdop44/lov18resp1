@@ -7,7 +7,7 @@ class AccountPaymentRegister(models.TransientModel):
     _inherit = 'account.payment.register'
 
     def _valid_field_parameter(self, field_name, parameter):
-        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+        return super()._valid_field_parameter(field_name, parameter)
 
 
     amount = fields.Monetary(currency_field='currency_id', store=True, readonly=False)
@@ -15,13 +15,12 @@ class AccountPaymentRegister(models.TransientModel):
     tax_invoice = fields.Float(string="Tasa Factura", digits=(16, 4))
     currency_id_dif = fields.Many2one("res.currency",string="Divisa de Referencia")
     currency_id_name = fields.Char(related="currency_id.name")
-    amount_residual_usd = fields.Monetary(currency_field='currency_id_dif',string='Adeudado Divisa Ref.', readonly=True, digits=(16, 2))
-    payment_difference_bs = fields.Monetary(string="Diferencia Bs", currency_field='company_currency_id', digits=(16, 2))
-    payment_difference_usd = fields.Monetary(string="Diferencia $", currency_field='currency_id_dif',
-                                            digits=(16, 2))
+    amount_residual_usd = fields.Monetary(currency_field='currency_id_dif',string='Adeudado Divisa Ref.', readonly=True)
+    payment_difference_bs = fields.Monetary(string="Diferencia Bs", currency_field='company_currency_id')
+    payment_difference_usd = fields.Monetary(string="Diferencia $", currency_field='currency_id_dif')
     journal_id_dif = fields.Many2one('account.journal', 'Diario de diferencia', store=True,
                                  domain="[('company_id', '=', company_id)]")
-    amount_usd = fields.Monetary(currency_field='currency_id_dif',string='Importe $', readonly=True, digits=(16, 2))
+    amount_usd = fields.Monetary(currency_field='currency_id_dif',string='Importe $', readonly=True)
 
     journal_igtf_id = fields.Many2one('account.journal', string='Diario IGTF', check_company=True)
     aplicar_igtf_divisa = fields.Boolean(string="Aplicar IGTF",
