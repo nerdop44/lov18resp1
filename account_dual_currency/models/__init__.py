@@ -31,4 +31,5 @@ from . import account_bank_statement_line
 from . import account_analytic_account
 from . import account_analytic_line
 from . import product_pricelist
+from . import sale_order
 from . import bank_rec_widget
