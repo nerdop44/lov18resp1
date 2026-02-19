@@ -74,27 +74,14 @@ class AccountFiscalyearClosing(models.Model):
         readonly=True,
         default="draft",
     )
-    calculation_date = fields.Datetime(
-        string="Calculation date",
-        readonly=True,
-    )
-    date_start = fields.Date(
-        string="From date",
+    calculation_date = fields.Date(string="Date", required=True, default=fields.Date.context_today)
+    date_range_id = fields.Many2one("date.range", string="Date range")
+    period_id = fields.Many2one("date.range", string="Period")
+    journal_id = fields.Many2one(
+        "account.journal",
+        string="Journal",
         required=True,
-        readonly=True,
-        states={"draft": [("readonly", False)]},
-    )
-    date_end = fields.Date(
-        string="To date",
-        required=True,
-        readonly=True,
-        states={"draft": [("readonly", False)]},
-    )
-    date_opening = fields.Date(
-        string="Opening date",
-        required=True,
-        readonly=True,
-        states={"draft": [("readonly", False)]},
+        domain="[('type', '=', 'general')]",
     )
     closing_template_id = fields.Many2one(
         comodel_name="account.fiscalyear.closing.template",

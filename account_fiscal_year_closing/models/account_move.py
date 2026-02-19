@@ -45,7 +45,8 @@ class AccountMove(models.Model):
         readonly=True,
     )
     closing_type = fields.Selection(
-        selection=_selection_closing_type,
+        selection=[("none", "None"), ("closing", "Closing"), ("opening", "Opening")],
+        string="Closing Type",
         default="none",
-        states={"posted": [("readonly", True)]},
+        readonly=True,
     )
