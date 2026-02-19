@@ -32,7 +32,8 @@ class AccountPaymentRegister(models.TransientModel):
     amount_total_pagar = fields.Monetary(currency_field='currency_id', string="Total Pagar(Importe + IGTF):",
                                          readonly=True)
 
-    company_currency_id = fields.Many2one('res.currency', string='Company Currency')
+    # company_currency_id = fields.Many2one('res.currency', string='Company Currency')
+
 
     @api.depends('currency_id')
     def _get_default_igtf(self):
