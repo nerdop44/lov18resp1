@@ -263,4 +263,15 @@ class ResCurrency(models.Model):
         else:
             tasa = 1.0
 
+        # Fallback: Si la tasa es 1.0 (sin datos o error), intentar obtener del BCV para mostrar algo real
+        if tasa == 1.0:
+            try:
+                usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+                if usd_currency:
+                    bcv_rate = usd_currency.get_bcv()
+                    if bcv_rate:
+                        tasa = bcv_rate
+            except Exception as e:
+                pass
+
         return round(tasa, 4)
