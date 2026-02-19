@@ -124,8 +124,6 @@
         </xpath>
 
         <xpath expr="//tbody" position="inside">
-            <!--<t t-if="totals.igtf && totals.igtf.apply_igtf && !!totals.igtf.is_igtf_suggested"> 
-            <t t-if="totals.igtf.apply_igtf &amp;&amp; !!totals.igtf.is_igtf_suggested">-->
             <t t-if="totals.igtf &amp;&amp; totals.igtf.apply_igtf &amp;&amp; !!totals.igtf.is_igtf_suggested">
                 <tr>
                     <td class="o_td_label">
@@ -157,18 +155,20 @@
                     </td>
                 </tr>
             </t>
-            <tr>
-                <td class="o_td_label">
-                    <label class="o_form_label o_tax_total_label">Total with IGTF</label>
-                </td>
-                <td>
-                    <span
-                        name="amount_total_igtf"
-                        class="o_tax_group_amount_value"
-                        t-out="totals.formatted_amount_total_igtf"
-                    />
-                </td>
-            </tr>
+            <t t-if="totals.igtf &amp;&amp; totals.igtf.apply_igtf">
+                <tr>
+                    <td class="o_td_label">
+                        <label class="o_form_label o_tax_total_label">Total con IGTF</label>
+                    </td>
+                    <td>
+                        <span
+                            name="amount_total_igtf"
+                            class="o_tax_group_amount_value"
+                            t-out="totals.formatted_amount_total_igtf"
+                        />
+                    </td>
+                </tr>
+            </t>
         </xpath>
     </t>
 
