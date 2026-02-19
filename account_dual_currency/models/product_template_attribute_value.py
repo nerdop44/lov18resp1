@@ -7,6 +7,10 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 class ProductTemplateAttributeValue(models.Model):
     _inherit = 'product.template.attribute.value'
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+
+
     currency_id_dif = fields.Many2one('res.currency', string='Currency USD', default=lambda self: self.env.user.company_id.currency_id_dif.id)
 
     price_extra_usd = fields.Monetary(string='Precio Extra $', currency_field='currency_id_dif', digits=(16, 2))

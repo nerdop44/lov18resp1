@@ -6,6 +6,10 @@ from odoo.exceptions import UserError
 class AccountMove(models.Model):
     _inherit = 'account.payment'
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+
+
     tax_today = fields.Float(string="Tasa", default=lambda self: self._get_default_tasa(), digits=(16, 4))
     currency_id_dif = fields.Many2one("res.currency",
                                       string="Divisa de Referencia",
