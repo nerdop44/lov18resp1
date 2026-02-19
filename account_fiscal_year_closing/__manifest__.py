@@ -14,6 +14,7 @@
     "installable": True,
     "depends": [
         "account",
+        "date_range",
     ],
     "data": [
         "security/account_fiscalyear_closing_security.xml",

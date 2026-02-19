@@ -171,12 +171,12 @@ class AccountBankStatementLine(models.Model):
                                         considered as the amount in foreign currency. If not specified, the full balance is took.
                                         This value must be provided if move_line is not.
             'amount_residual':          The residual amount to reconcile expressed in the company's currency.
-                                        /!\ This value should be equivalent to move_line.amount_residual except we want
+                                        /! This value should be equivalent to move_line.amount_residual except we want
                                         to avoid browsing the record when the only thing we need in an overview of the
                                         reconciliation, for example in the reconciliation widget.
             'amount_residual_currency': The residual amount to reconcile expressed in the foreign's currency.
                                         Using this key doesn't make sense without passing 'currency_id' in vals.
-                                        /!\ This value should be equivalent to move_line.amount_residual_currency except
+                                        /! This value should be equivalent to move_line.amount_residual_currency except
                                         we want to avoid browsing the record when the only thing we need in an overview
                                         of the reconciliation, for example in the reconciliation widget.
             **kwargs:                   Additional values that need to land on the account.move.line to create.
