@@ -263,5 +263,4 @@ class ResCurrency(models.Model):
         else:
             tasa = 1.0
 
-        decimal_dual_currency_rate = self.env['decimal.precision'].precision_get('Dual_Currency_rate')
-        return round(tasa, decimal_dual_currency_rate if decimal_dual_currency_rate else 2)
+        return round(tasa, 4)
