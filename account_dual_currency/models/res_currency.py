@@ -272,57 +272,18 @@ class ResCurrency(models.Model):
             ('company_id', '=', company_id.id),
         ], order='name desc', limit=1)
 
-        if last_rate and last_rate.rate > 0:
-            # Si la tasa es menor a 1 (ej: 0.0025 USD/VES), la invertimos para mostrar 398 VES/USD
-            if last_rate.rate < 1.0:
-                 tasa = 1 / last_rate.rate
-            else:
-                 tasa = last_rate.rate
-        else:
-            tasa = 1.0
-
-        # Fallback: Si la tasa es 1.0 (sin datos o error), intentar obtener del BCV para mostrar algo real
-        if tasa == 1.0:
-            try:
-                # Explicitly try to get the USD currency rate from BCV
-                usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
-                if usd_currency:
-                    bcv_rate = usd_currency.get_bcv()
-                    # Only update if we got a valid rate significantly different from 1 or 0
-                    if bcv_rate and bcv_rate > 1:
-                        tasa = bcv_rate
-            except Exception as e:
-                pass
-
-        return round(tasa, 4)
-
-    @api.model
-    def get_trm_systray(self):
-        company_id = self.env.company
-        currency_dif = company_id.currency_id_dif
-        if not currency_dif:
-            return 0.0
-
-        # Busqueda directa de la ultima tasa registrada
-        last_rate = self.env['res.currency.rate'].search([
-            ('currency_id', '=', currency_dif.id),
-            ('company_id', '=', company_id.id),
-        ], order='name desc', limit=1)
-
-        tasa = 1.0
+        tasa = 0.0
         if last_rate:
-            if last_rate.rate < 1.0 and last_rate.rate > 0:
-                 tasa = 1 / last_rate.rate
-            elif last_rate.rate >= 1.0:
-                 tasa = last_rate.rate
-        
-        # Fallback: Si la tasa es 1.0, intentar usar el inverse_rate moneda si está disponible
-        if tasa == 1.0 and currency_dif.inverse_rate and currency_dif.inverse_rate > 1:
+             tasa = last_rate.rate
+
+        # Si la tasa es 0 o 1, intentar usar el inverse_rate (calculado desde Odoo) si existe
+        if (tasa == 0.0 or tasa == 1.0) and currency_dif.inverse_rate and currency_dif.inverse_rate > 1:
             tasa = currency_dif.inverse_rate
 
-        # Fallback: BCV Directo (Solo si sigue siendo 1.0)
-        if tasa == 1.0:
+        # Fallback: BCV Directo (Solo si sigue siendo 0 o 1)
+        if tasa == 0.0 or tasa == 1.0:
             try:
+                # Intentamos obtener la tasa del Dólar (USD) del BCV
                 usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
                 if usd_currency:
                     bcv_rate = usd_currency.get_bcv()
@@ -330,5 +291,10 @@ class ResCurrency(models.Model):
                         tasa = bcv_rate
             except Exception:
                 pass
+
+        # Lógica final de visualización:
+        # En Venezuela siempre queremos ver "xx.xx Bs/S por Dolar".
+        if tasa < 1.0 and tasa > 0.0:
+            tasa = 1.0 / tasa
 
         return round(tasa, 4)
