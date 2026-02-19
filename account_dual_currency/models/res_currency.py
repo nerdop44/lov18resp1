@@ -3,6 +3,9 @@ from odoo import api, fields, models, _
 from datetime import date, timedelta, datetime
 from bs4 import BeautifulSoup
 import requests
+import logging
+
+_logger = logging.getLogger(__name__)
 import urllib3
 urllib3.disable_warnings()
 class ResCurrency(models.Model):
@@ -262,39 +265,50 @@ class ResCurrency(models.Model):
 
     @api.model
     def get_trm_systray(self):
-        # company_id = self.env.company
-        # currency_dif = company_id.currency_id_dif
-        # if not currency_dif:
-        #     return 0.0
+        company_id = self.env.company
+        currency_dif = company_id.currency_id_dif
+        
+        _logger.info(f"TRM DEBUG: Company {company_id.name} (ID: {company_id.id}), Currency Dif: {currency_dif.name if currency_dif else 'None'}")
 
-        # Busqueda directa de la ultima tasa registrada (COMENTADO POR SOLICITUD DE USUARIO)
-        # last_rate = self.env['res.currency.rate'].search([
-        #     ('currency_id', '=', currency_dif.id),
-        #     ('company_id', '=', company_id.id),
-        # ], order='name desc', limit=1)
+        if not currency_dif:
+            return 0.0
+
+        # Busqueda directa de la ultima tasa registrada
+        last_rate = self.env['res.currency.rate'].search([
+            ('currency_id', '=', currency_dif.id),
+            ('company_id', '=', company_id.id),
+        ], order='name desc', limit=1)
 
         tasa = 0.0
-        # if last_rate:
-        #      tasa = last_rate.rate
+        if last_rate:
+             tasa = last_rate.rate
+        
+        _logger.info(f"TRM DEBUG: Initial DB Rate: {tasa}")
 
-        # Si la tasa es 0 o 1, intentar usar el inverse_rate (calculado desde Odoo) si existe (COMENTADO)
-        # if (tasa == 0.0 or tasa == 1.0) and currency_dif.inverse_rate and currency_dif.inverse_rate > 1:
-        #    tasa = currency_dif.inverse_rate
+        # Si la tasa es 0 o 1, intentar usar el inverse_rate (calculado desde Odoo) si existe
+        if (tasa == 0.0 or tasa == 1.0) and currency_dif.inverse_rate and currency_dif.inverse_rate > 1:
+            tasa = currency_dif.inverse_rate
+            _logger.info(f"TRM DEBUG: Using Inverse Rate fallback: {tasa}")
 
-        # Lógica forzada: Usar SIEMPRE el scrap del BCV
-        try:
-            # Intentamos obtener la tasa del Dólar (USD) del BCV
-            usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
-            if usd_currency:
-                bcv_rate = usd_currency.get_bcv()
-                if bcv_rate:
-                    tasa = bcv_rate
-        except Exception:
-            tasa = 0.0
+        # Fallback: BCV Directo (Solo si sigue siendo 0 o 1)
+        if tasa == 0.0 or tasa == 1.0:
+            try:
+                # Intentamos obtener la tasa del Dólar (USD) del BCV
+                usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+                if usd_currency:
+                    bcv_rate = usd_currency.get_bcv()
+                    if bcv_rate and bcv_rate > 1:
+                        tasa = bcv_rate
+                        _logger.info(f"TRM DEBUG: BCV Scrape Success: {tasa}")
+            except Exception as e:
+                _logger.error(f"TRM DEBUG: BCV Scrape connection failed: {e}")
+                pass
 
         # Lógica final de visualización:
         # En Venezuela siempre queremos ver "xx.xx Bs/S por Dolar".
         if tasa < 1.0 and tasa > 0.0:
             tasa = 1.0 / tasa
+            _logger.info(f"TRM DEBUG: Rate inverted for display: {tasa}")
 
+        _logger.info(f"TRM DEBUG: Final Rate returned to systray: {round(tasa, 4)}")
         return round(tasa, 4)
