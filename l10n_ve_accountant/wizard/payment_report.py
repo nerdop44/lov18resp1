@@ -4,6 +4,7 @@ from odoo.exceptions import UserError, RedirectWarning, ValidationError
 
 class PaymentReport(models.TransientModel):
     _name = "payment.report"
+    _description = "Payment Report"
 
     payment_type = fields.Selection(
         [("outbound", "Outbound"), ("inbound", "Inbound")],

@@ -28,6 +28,7 @@ initial_amounts = {
 
 class AccountInvoiceDetailsReport(models.AbstractModel):
     _name = "report.l10n_ve_accountant.report_account_invoices_details"
+    _description = "Account Invoice Details Report"
 
     def _get_domain_search_moves(self, wizard):
         return [

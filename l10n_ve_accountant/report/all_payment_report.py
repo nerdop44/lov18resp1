@@ -6,6 +6,7 @@ from datetime import date
 
 class ReportAllPayments(models.AbstractModel):
     _name = "report.l10n_ve_accountant.financial_all_payments"
+    _description = "Financial All Payments Report"
 
     @api.model
     def _get_report_values(self, docids, data=None):

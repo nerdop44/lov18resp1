@@ -27,8 +27,7 @@ class AccountPaymentRegister(models.TransientModel):
                                          default=lambda self: self._get_default_igtf())
     igtf_divisa_porcentage = fields.Float('% IGTF', related='company_id.igtf_divisa_porcentage')
 
-    mount_igtf = fields.Monetary(currency_field='currency_id', string='Importe IGTF', readonly=True,
-                                 digits=(16, 2))
+    mount_igtf = fields.Monetary(currency_field='currency_id', string='Importe IGTF', readonly=True)
 
     amount_total_pagar = fields.Monetary(currency_field='currency_id', string="Total Pagar(Importe + IGTF):",
                                          readonly=True)
