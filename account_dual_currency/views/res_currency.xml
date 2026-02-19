@@ -9,7 +9,7 @@
                     <header>
                         <field name="sincronizar" invisible="1"/>
                         <field name="facturas_por_actualizar" invisible="1"/>
-                        <button name="actualizar_tasa" string="Actualizar Ahora" class="oe_highlight" type="object"  invisible="not sincronizar"/>
+                        <button name="actualizar_tasa" string="Actualizar Ahora" class="oe_highlight" type="object"/>
 
                         <button name="actualizar_facturas" string="Actualizar Facturas" class="oe_highlight" type="object" invisible="not facturas_por_actualizar"/>
                         <button name="actualizar_productos" string="Actualizar Productos" class="oe_highlight" type="object"/>
