@@ -9,17 +9,17 @@ class SaleOrder(models.Model):
     currency_id_dif = fields.Many2one("res.currency",
                                       string="Moneda Dual Ref.",
                                       related="company_id.currency_id_dif",
-                                      store=True, readonly=True)
+                                      store=False, readonly=True)
     
-    tasa_referencial = fields.Float(string="Tasa Referencial", digits=(16, 4), compute='_compute_tasa_referencial', store=True)
+    tasa_referencial = fields.Float(string="Tasa Referencial", digits=(16, 4), compute='_compute_tasa_referencial', store=False)
 
-    amount_total_dif = fields.Monetary(string='Total Ref.', store=True, readonly=True, compute='_compute_amount_total_dif', currency_field='currency_id_dif')
+    amount_total_dif = fields.Monetary(string='Total Ref.', store=False, readonly=True, compute='_compute_amount_total_dif', currency_field='currency_id_dif')
 
-    amount_untaxed_dif = fields.Monetary(string='Base Ref.', store=True, readonly=True, compute='_compute_amount_total_dif', currency_field='currency_id_dif')
+    amount_untaxed_dif = fields.Monetary(string='Base Ref.', store=False, readonly=True, compute='_compute_amount_total_dif', currency_field='currency_id_dif')
 
-    amount_tax_dif = fields.Monetary(string='Impuesto Ref.', store=True, readonly=True, compute='_compute_amount_total_dif', currency_field='currency_id_dif')
+    amount_tax_dif = fields.Monetary(string='Impuesto Ref.', store=False, readonly=True, compute='_compute_amount_total_dif', currency_field='currency_id_dif')
 
-    intervalo_tasa = fields.Selection([('diario', 'Diario'), ('semanal', 'Semanal'), ('mensual', 'Mensual')], string='Intervalo de Tasa', default='diario')
+    intervalo_tasa = fields.Selection([('diario', 'Diario'), ('semanal', 'Semanal'), ('mensual', 'Mensual')], string='Intervalo de Tasa', default='diario', store=False)
     
     @api.depends('company_id')
     def _compute_tasa_referencial(self):
