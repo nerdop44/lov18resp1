@@ -8,21 +8,21 @@ class SaleOrderLine(models.Model):
         "res.currency",
         string="Moneda Ref.",
         related="order_id.currency_id_dif",
-        store=True, readonly=True
+        store=False, readonly=True
     )
 
     price_unit_dif = fields.Monetary(
         string='P. Unit. Ref.',
         currency_field='currency_id_dif',
         compute='_compute_price_dif_sol',
-        store=True
+        store=False
     )
 
     price_subtotal_dif = fields.Monetary(
         string='Subtotal Ref.',
         currency_field='currency_id_dif',
         compute='_compute_price_dif_sol',
-        store=True
+        store=False
     )
 
     @api.depends('price_unit', 'price_subtotal', 'order_id.tasa_referencial', 'order_id.currency_id')
@@ -30,7 +30,7 @@ class SaleOrderLine(models.Model):
         for line in self:
             tasa = line.order_id.tasa_referencial
             if tasa and tasa > 0:
-                if line.order_id.currency_id == line.currency_id_dif:
+                if line.order_id.currency_id == line.order_id.currency_id_dif:
                     line.price_unit_dif = line.price_unit
                     line.price_subtotal_dif = line.price_subtotal
                 else:
