@@ -255,7 +255,11 @@ class ResCurrency(models.Model):
         ], order='name desc', limit=1)
 
         if last_rate and last_rate.rate > 0:
-            tasa = 1 / last_rate.rate
+            # Si la tasa es menor a 1 (ej: 0.0025 USD/VES), la invertimos para mostrar 398 VES/USD
+            if last_rate.rate < 1.0:
+                 tasa = 1 / last_rate.rate
+            else:
+                 tasa = last_rate.rate
         else:
             tasa = 1.0
 
