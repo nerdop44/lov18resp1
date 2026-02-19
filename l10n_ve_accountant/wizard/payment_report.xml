@@ -12,7 +12,7 @@
                             <field name="journal_id" />
                             <field name="start_date" />
                             <field name="end_date" />
-                            
+                            <field name="currency_report_id" string="Ver en Moneda"/>
                         </group>
                     </group>
                                       

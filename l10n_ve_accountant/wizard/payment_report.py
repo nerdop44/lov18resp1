@@ -16,6 +16,11 @@ class PaymentReport(models.TransientModel):
     )
     start_date = fields.Date(string="Start Date", default=fields.Date.context_today, required=True)
     end_date = fields.Date(string="End Date", default=fields.Date.context_today, required=True)
+    currency_report_id = fields.Many2one(
+        "res.currency",
+        string="Ver en Moneda",
+        default=lambda self: self.env.company.currency_id_dif,
+    )
 
     def generate_report_payment(self):
         data = {
@@ -24,6 +29,8 @@ class PaymentReport(models.TransientModel):
                 "journal_id": self.journal_id.id,
                 "start_date": self.start_date,
                 "end_date": self.end_date,
+                "currency_report_id": self.currency_report_id.id,
+                "currency_report_name": self.currency_report_id.name or "",
             }
         }
         return self.env.ref("l10n_ve_accountant.action_report_all_payments").report_action(

@@ -21,37 +21,36 @@ class SaleOrder(models.Model):
 
     intervalo_tasa = fields.Selection([('diario', 'Diario'), ('semanal', 'Semanal'), ('mensual', 'Mensual')], string='Intervalo de Tasa', default='diario', store=False)
     
-    @api.depends('company_id')
+    @api.depends('company_id', 'currency_id_dif')
     def _compute_tasa_referencial(self):
         for record in self:
-            # Lógica básica: obtener tasa inversa de la moneda de referencia de la compañía
-            # Asumiendo que currency_id_dif es la moneda secundaria configurada en la compañía
-            if record.currency_id_dif:
-                 record.tasa_referencial = record.currency_id_dif.inverse_rate
+            dif = record.currency_id_dif or record.company_id.currency_id_dif
+            if dif and dif.inverse_rate:
+                record.tasa_referencial = dif.inverse_rate
             else:
-                 record.tasa_referencial = 1.0
+                record.tasa_referencial = 1.0
 
-    @api.depends('amount_total', 'tasa_referencial', 'currency_id')
+    @api.depends('amount_total', 'amount_untaxed', 'amount_tax', 'tasa_referencial', 'currency_id', 'company_id')
     def _compute_amount_total_dif(self):
+        today = fields.Date.today()
         for record in self:
-            if record.tasa_referencial and record.tasa_referencial > 0:
-                 # Si la moneda del pedido es la misma que la ref, es 1:1 (no debería pasar mucho si la ref es diff)
-                 if record.currency_id == record.currency_id_dif:
-                     record.amount_total_dif = record.amount_total
-                     record.amount_untaxed_dif = record.amount_untaxed
-                     record.amount_tax_dif = record.amount_tax
-                 else:
-                     # Si la moneda del pedido es Bs, dividimos por tasa para tener Ref (USD)
-                     # OJO: La logica de conversion depende de como esté tasa_referencial.
-                     # Si tasa_referencial = Bs/USD (ej 40), y Amount es Bs.
-                     # Amount Ref = Amount Bs / Tasa
-                     record.amount_total_dif = record.amount_total / record.tasa_referencial
-                     record.amount_untaxed_dif = record.amount_untaxed / record.tasa_referencial
-                     record.amount_tax_dif = record.amount_tax / record.tasa_referencial
+            dif = record.currency_id_dif or record.company_id.currency_id_dif
+            if not dif:
+                record.amount_total_dif = 0
+                record.amount_untaxed_dif = 0
+                record.amount_tax_dif = 0
+                continue
+            src = record.currency_id
+            company = record.company_id
+            if src == dif:
+                record.amount_total_dif = record.amount_total
+                record.amount_untaxed_dif = record.amount_untaxed
+                record.amount_tax_dif = record.amount_tax
             else:
-                 record.amount_total_dif = 0
-                 record.amount_untaxed_dif = 0
-                 record.amount_tax_dif = 0
+                record.amount_total_dif = src._convert(record.amount_total, dif, company, today, round=True)
+                record.amount_untaxed_dif = src._convert(record.amount_untaxed, dif, company, today, round=True)
+                record.amount_tax_dif = src._convert(record.amount_tax, dif, company, today, round=True)
+
 
     @api.onchange('currency_id')
     def _onchange_currency_id(self):
