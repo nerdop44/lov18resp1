@@ -3,7 +3,7 @@ from odoo.tools import float_round
 from odoo.exceptions import UserError
 
 
-class AccountMove(models.Model):
+class AccountPayment(models.Model):
     _inherit = 'account.payment'
 
     def _valid_field_parameter(self, field_name, parameter):
@@ -205,7 +205,7 @@ class AccountMove(models.Model):
                 pay.move_id.write({
                     'tax_today': pay.tax_today,
                 })
-        super(AccountMove, self)._synchronize_to_moves(changed_fields)
+        super(AccountPayment, self)._synchronize_to_moves(changed_fields)
 
     # @api.depends('reconciled_invoice_ids')
     # def _compute_payment_state(self):

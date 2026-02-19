@@ -4,6 +4,10 @@ import datetime
 class StockValuationLayer(models.Model):
     _inherit = 'stock.valuation.layer'
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter == 'force_save' or super()._valid_field_parameter(field_name, parameter)
+
+
     currency_id_dif = fields.Many2one("res.currency",
                                      string="Divisa de Referencia",
                                      default=lambda self: self.env.company.currency_id_dif )

@@ -6,6 +6,10 @@ from odoo.exceptions import UserError
 class AccountPaymentRegister(models.TransientModel):
     _inherit = 'account.payment.register'
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+
+
     amount = fields.Monetary(currency_field='currency_id', store=True, readonly=False)
     tax_today = fields.Float(string="Tasa Actual", digits=(16, 4))
     tax_invoice = fields.Float(string="Tasa Factura", digits=(16, 4))

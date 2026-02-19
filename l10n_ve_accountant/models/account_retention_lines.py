@@ -241,9 +241,9 @@ class AccountRetentionIslrLine(models.Model):
     )
     # **Añade esta línea (o similar, según tu necesidad):**
     payment_concept_id = fields.Many2one(
-        'tu.modelo.de.concepto.de.pago', # <--- ¡IMPORTANTE! Reemplaza esto con el nombre real de tu modelo de concepto de pago (ej. 'account.payment.concept' o similar)
+        'payment.concept',
         string='Concepto de Pago',
-        required=True # O False, si es opcional
+        required=True
     )
     foreign_currency_id = fields.Many2one(
         related="move_id.foreign_currency_id",
@@ -560,7 +560,7 @@ class AccountRetentionMunicipalLine(models.Model):
     )
     # Faltante
     economic_activity_id = fields.Many2one(
-        'your.economic.activity.model', # ¡IMPORTANTE! Reemplaza con el nombre real de tu modelo de actividad económica
+        'economic.activity',
         string='Actividad Económica',
         required=True
     )

@@ -25,7 +25,7 @@ class AccountMoveLine(models.Model):
                                      compute='_price_unit_usd', readonly=False)
     price_subtotal_usd = fields.Monetary(currency_field='currency_id_dif', string='SubTotal $', store=True,
                                          compute="_price_subtotal_usd", digits=(16, 2))
-    amount_residual_usd = fields.Monetary(string='Residual Amount USD', computed='_compute_amount_residual_usd', store=True,
+    amount_residual_usd = fields.Monetary(string='Residual Amount USD', compute='_compute_amount_residual_usd', store=True,
                                        help="The residual amount on a journal item expressed in the company currency.")
     balance_usd = fields.Monetary(string='Balance Ref.',
                                   currency_field='currency_id_dif', store=True, readonly=False,

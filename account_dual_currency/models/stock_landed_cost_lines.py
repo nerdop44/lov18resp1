@@ -6,6 +6,10 @@ from odoo import api, fields, models
 class LandedCostLine(models.Model):
     _inherit = "stock.landed.cost.lines"
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter in ['tracking', 'digits'] or super()._valid_field_parameter(field_name, parameter)
+
+
     price_unit = fields.Monetary(currency_field="company_currency_id", string="Cost in Company Currency")
     currency_id = fields.Many2one(related="cost_id.currency_id")
     currency_price_unit = fields.Monetary(currency_field="currency_id", string="Cost")

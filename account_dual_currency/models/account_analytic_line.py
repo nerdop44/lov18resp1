@@ -9,18 +9,11 @@ class AccountAnalyticLine(models.Model):
 
     amount_usd = fields.Monetary(currency_field='currency_id_dif', string='Importe $', required=True, default=0.0)
 
-    @api.model
-    def create(self, vals):
-        #print("vals",vals)
-        if isinstance(vals, list):
-            for val in vals:
-                if 'move_line_id' in val:
-                    move_id = self.env['account.move.line'].search([('id','=',val['move_line_id'])])
-                    amount_usd = move_id.debit_usd if move_id.debit_usd > 0 else move_id.credit_usd
-                    val['amount_usd'] = amount_usd
-        else:
-            if 'move_line_id' in vals:
-                move_id = self.env['account.move.line'].search([('id', '=', vals['move_line_id'])])
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+             if 'move_line_id' in vals:
+                move_id = self.env['account.move.line'].browse(vals['move_line_id'])
                 amount_usd = move_id.debit_usd if move_id.debit_usd > 0 else move_id.credit_usd
                 vals['amount_usd'] = amount_usd
-        return super(AccountAnalyticLine, self).create(vals)
+        return super(AccountAnalyticLine, self).create(vals_list)
