@@ -14,7 +14,7 @@ class AccountPaymentRegister(models.TransientModel):
     tax_today = fields.Float(string="Tasa Actual", digits=(16, 4))
     tax_invoice = fields.Float(string="Tasa Factura", digits=(16, 4))
     currency_id_dif = fields.Many2one("res.currency",string="Divisa de Referencia")
-    currency_id_name = fields.Char(related="currency_id.name")
+    currency_id_name = fields.Char(string="Nombre de Divisa", related="currency_id.name")
     amount_residual_usd = fields.Monetary(currency_field='currency_id_dif',string='Adeudado Divisa Ref.', readonly=True)
     payment_difference_bs = fields.Monetary(string="Diferencia Bs", currency_field='company_currency_id')
     payment_difference_usd = fields.Monetary(string="Diferencia $", currency_field='currency_id_dif')

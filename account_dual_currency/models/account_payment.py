@@ -25,7 +25,7 @@ class AccountPayment(models.Model):
         readonly=True,
         help="Asiento contable de diferencia en tipo de cambio")
 
-    currency_id_name = fields.Char(related="currency_id.name")
+    currency_id_name = fields.Char(string="Nombre de Divisa", related="currency_id.name")
     journal_igtf_id = fields.Many2one('account.journal', string='Diario IGTF', check_company=True)
     aplicar_igtf_divisa = fields.Boolean(string="Aplicar IGTF")
     igtf_divisa_porcentage = fields.Float('% IGTF', related='company_id.igtf_divisa_porcentage')
