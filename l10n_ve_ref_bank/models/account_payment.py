@@ -17,7 +17,7 @@ class AccountPayment(models.Model):
                 found_pay = self.env["account.payment"].search(
                     [
                         ("id", "!=", payment.id),
-                        ("ref", "=", payment.ref),
+                        ("memo", "=", payment.memo),
                         ("company_id.id", "=", payment.company_id.id),
                         ("move_id.state", "=", "posted"),
                         ("journal_id.type", "=", "bank"),
@@ -36,7 +36,7 @@ class AccountPayment(models.Model):
                 payment.journal_id.ref_length_required > 0
                 and payment.journal_id.type == "bank"
             ):
-                if len(str(payment.ref)) != payment.journal_id.ref_length_required:
+                if len(str(payment.memo)) != payment.journal_id.ref_length_required:
                     raise ValidationError(
                         _(
                             f"No cumple con la condición de longitud bancaria de { payment.journal_id.ref_length_required} caracteres en el campo memo"
