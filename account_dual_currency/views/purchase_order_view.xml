@@ -6,7 +6,7 @@
             <field name="model">purchase.order</field>
             <field name="inherit_id" ref="purchase.purchase_order_form"/>
             <field name="arch" type="xml">
-                <!-- Tasa en el header: usando currency_id que siempre existe en cotizaciones y órdenes -->
+                <!-- Tasa en el header: usando currency_id que siempre existe tanto en RFQs como en Órdenes -->
                 <xpath expr="//field[@name='currency_id']" position="after">
                     <field name="currency_id_dif" invisible="1"/>
                     <field name="tasa_referencial" readonly="1" string="Tasa Ref. (BCV)"/>
@@ -19,7 +19,7 @@
                     <field name="price_subtotal_dif" optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
                 </xpath>
                 <!-- Panel de totales en moneda de referencia -->
-                <xpath expr="//field[@name='amount_total']" position="after">
+                <xpath expr="//field[@name='tax_totals']" position="before">
                     <group class="oe_subtotal_footer" name="purchase_total_ref">
                         <field name="amount_untaxed_dif" string="Base Ref." widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
                         <field name="amount_tax_dif" string="Impuesto Ref." widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>

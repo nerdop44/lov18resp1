@@ -45,8 +45,7 @@
                     <attribute name="colspan">3</attribute>
                 </xpath>
 
-                <!-- Panel de totales en moneda de referencia: se inserta ANTES del tax_totals -->
-                <!-- Usando tax_totals/../.. para apuntar al row/div contenedor -->
+                <!-- Panel de totales en moneda de referencia: Ancla directmente al widget tax_totals -->
                 <xpath expr="//field[@name='tax_totals']" position="before">
                     <field name="currency_id_dif" invisible="1"/>
                     <group class="oe_subtotal_footer"
