@@ -240,11 +240,11 @@ class AccountRetentionIslrLine(models.Model):
         store=True # Opcional, para que se guarde en la DB
     )
     # **Añade esta línea (o similar, según tu necesidad):**
-    payment_concept_id = fields.Many2one(
-        'payment.concept',
-        string='Concepto de Pago',
-        required=True
-    )
+    # payment_concept_id = fields.Many2one(
+    #     'payment.concept',
+    #     string='Concepto de Pago',
+    #     required=True
+    # )
     foreign_currency_id = fields.Many2one(
         related="move_id.foreign_currency_id",
         string="Moneda Extranjera",
@@ -559,11 +559,11 @@ class AccountRetentionMunicipalLine(models.Model):
         related="move_id.date", string="Fecha de Factura", store=True
     )
     # Faltante
-    economic_activity_id = fields.Many2one(
-        'economic.activity',
-        string='Actividad Económica',
-        required=True
-    )
+    # economic_activity_id = fields.Many2one(
+    #     'economic.activity',
+    #     string='Actividad Económica',
+    #     required=True
+    # )
     # CAMBIO: Añadido el campo 'l10n_ve_tax_type' como related field.
 #    l10n_ve_tax_type = fields.Selection(related='tax_id.tax_group_id.l10n_ve_tax_type', store=True, readonly=True)
 

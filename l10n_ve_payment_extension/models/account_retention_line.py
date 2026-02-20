@@ -130,7 +130,7 @@ class AccountRetentionLine(models.Model):
     foreign_currency_inverse_rate = fields.Float(string="Inverse Rate")
 
     # Después de la definición de tus fields (campos) y antes de tus @api.depends o @api.onchange existentes.
-# Por ejemplo, puedes ponerlo después de 'foreign_currency_rate = fields.Float(string="Rate")'
+    # Por ejemplo, puedes ponerlo después de 'foreign_currency_rate = fields.Float(string="Rate")'
 
     @api.onchange('move_id')
     def _onchange_move_id_populate_fields(self):
