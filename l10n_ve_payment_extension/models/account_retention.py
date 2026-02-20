@@ -507,11 +507,20 @@ class AccountRetention(models.Model):
         Versión segura para crear pagos que no modifica movimientos publicados.
         Ahora incluye lógica de desviación para ISLR (borrador), replicando el flujo de IVA.
         """
-        journal = journals.get((self.type_retention, self.type))
-        if not journal:
-            raise UserError(_(f"No journal configured for retention type '{self.type_retention}' and invoice type '{self.type}'."))
-        journal_id = journal.id
         for retention in self:
+            journals = {
+                ("iva", "in_invoice"): retention.company_id.iva_supplier_retention_journal_id,
+                ("iva", "out_invoice"): retention.company_id.iva_customer_retention_journal_id,
+                ("islr", "in_invoice"): retention.company_id.islr_supplier_retention_journal_id,
+                ("islr", "out_invoice"): retention.company_id.islr_customer_retention_journal_id,
+                ("municipal", "in_invoice"): retention.company_id.municipal_supplier_retention_journal_id,
+                ("municipal", "out_invoice"): retention.company_id.municipal_customer_retention_journal_id,
+            }
+            journal = journals.get((retention.type_retention, retention.type))
+            if not journal:
+                continue # Skip if no journal configured for this specific record
+
+            journal_id = journal.id
             # 1. El municipal no crea pagos automáticos. Salto inmediato.
             if retention.type_retention == "municipal":
                 continue
