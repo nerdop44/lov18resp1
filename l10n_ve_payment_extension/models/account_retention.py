@@ -484,68 +484,15 @@ class AccountRetention(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         res = super().create(vals_list)
-        # Solo ISLR se sincroniza en create (es idempotente y no requiere journal info adicional)
-        for r in res:
-            if r.type_retention == "islr" and r.retention_line_ids:
-                try:
-                    r._create_islr_payments_on_draft()
-                except Exception:
-                    pass  # No bloquear el guardado si falla
         return res
 
     def write(self, vals):
         res = super().write(vals)
-        if vals.get("retention_line_ids", False):
-            for r in self:
-                if r.type_retention == "islr" and r.state == "draft":
-                    try:
-                        r._create_islr_payments_on_draft()
-                    except Exception:
-                        pass  # No bloquear el guardado si falla
         return res
 
     def action_generate_payment(self):
-        """
-        Genera el pago de retención en estado borrador al hacer clic en 'Generar Pago'.
-        
-        - Para IVA: usa _sync_iva_payments_on_draft (agrupa por factura).
-        - Para ISLR: usa _create_islr_payments_on_draft (agrupa por concepto+factura).
-        - Para Municipal: notifica que no hay pagos automáticos.
-        
-        El pago se crea con payment_method_line_id correcto para el diario configurado.
-        """
-        self.ensure_one()
-        
-        if not self.retention_line_ids:
-            raise UserError(_("No hay líneas de retención. Agregue facturas antes de generar el pago."))
-        
-        if self.state == "emitted":
-            raise UserError(_("La retención ya fue aprobada. No se puede generar un nuevo pago."))
-        
-        if self.type_retention == "municipal":
-            raise UserError(_("Las retenciones municipales no generan pagos automáticos. Agréguelos manualmente si aplica."))
-        
-        if self.type_retention == "iva":
-            self._sync_iva_payments_on_draft()
-        elif self.type_retention == "islr":
-            self._create_islr_payments_on_draft()
-        
-        if not self.payment_ids:
-            raise UserError(_(
-                "No se pudo generar el pago. Verifique que los diarios de retención estén configurados "
-                "en Configuración → Empresa y que tengan métodos de pago activos."
-            ))
-        
-        return {
-            "type": "ir.actions.client",
-            "tag": "display_notification",
-            "params": {
-                "title": _("Pago generado"),
-                "message": _("Se generó el pago de retención en estado borrador. Puede aprobarlo al emitir el comprobante."),
-                "type": "success",
-                "sticky": False,
-            },
-        }
+        # Desactivado a favor de Opción A (Pago al Aprobar)
+        pass
 
     def unlink(self):
         for record in self:
@@ -602,7 +549,6 @@ class AccountRetention(models.Model):
         """
         Sincroniza los pagos IVA en borrador.
         Agrupa las líneas de retención por factura y crea/actualiza un pago por grupo.
-        Idempotente: puede llamarse múltiples veces sin duplicar pagos.
         """
         self.ensure_one()
         Payment = self.env["account.payment"]
@@ -616,6 +562,14 @@ class AccountRetention(models.Model):
         if not journal:
             return
 
+        # Odoo 18 requiere payment_method_line_id
+        payment_method_line = journal.outbound_payment_method_line_ids[0] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[0]
+        if not payment_method_line:
+             # Fallback simple
+             payment_method_line = journal._get_available_payment_method_lines(
+                 "outbound" if self.type == "in_invoice" else "inbound"
+             )[:1]
+
         partner_type = "supplier" if self.type in ("in_invoice", "in_refund") else "customer"
 
         # Agrupar líneas por factura
@@ -624,7 +578,6 @@ class AccountRetention(models.Model):
             if line.move_id:
                 lines_by_move[line.move_id] += line
 
-        # Obtener pagos existentes por factura (usando retention_line_ids)
         existing_payments = {}
         for payment in self.payment_ids:
             linked_moves = payment.retention_line_ids.mapped("move_id")
@@ -634,24 +587,22 @@ class AccountRetention(models.Model):
         payments_to_keep = self.env["account.payment"]
 
         for move, lines in lines_by_move.items():
-            # Determinar dirección del pago
             if move.move_type in ("in_invoice", "out_refund"):
                 payment_type = "outbound"
-                payment_method_ref = "account.account_payment_method_manual_out"
             else:
                 payment_type = "inbound"
-                payment_method_ref = "account.account_payment_method_manual_in"
 
-            # Si es nota de crédito, invertir la dirección
             if move.move_type in ("in_refund", "out_refund"):
                 payment_type = "inbound" if partner_type == "supplier" else "outbound"
 
+            # Moneda del pago: VEF (Regla universal venezolana)
+            currency_vef = self.env.company.currency_foreign_id
+            # Monto en VEF
+            total_retention_vef = sum(lines.mapped("foreign_retention_amount"))
+            # Tasa
             foreign_rate = lines[0].foreign_currency_rate if lines else 1.0
-            total_retention = sum(lines.mapped("retention_amount"))
 
-            if self.env.company.currency_id.is_zero(total_retention) and all(
-                self.env.company.currency_foreign_id.is_zero(l.foreign_retention_amount) for l in lines
-            ):
+            if currency_vef.is_zero(total_retention_vef):
                 continue
 
             payment_vals = {
@@ -662,9 +613,10 @@ class AccountRetention(models.Model):
                 "is_retention": True,
                 "journal_id": journal.id,
                 "payment_type": payment_type,
-                "payment_method_id": self.env.ref(payment_method_ref).id,
+                "payment_method_line_id": payment_method_line.id if payment_method_line else False,
                 "foreign_rate": foreign_rate,
-                "currency_id": self.env.company.currency_id.id,
+                "currency_id": currency_vef.id,
+                "amount": total_retention_vef,
                 "date": self.date_accounting or fields.Date.context_today(self),
                 "retention_line_ids": [(6, 0, lines.ids)],
             }
@@ -674,19 +626,17 @@ class AccountRetention(models.Model):
                 payment.write(payment_vals)
             elif not payment:
                 payment = Payment.create(payment_vals)
-                payment.write({
-                    "foreign_inverse_rate": Rate.compute_inverse_rate(payment.foreign_rate)
-                })
+                if hasattr(payment, 'foreign_inverse_rate'):
+                    payment.write({
+                        "foreign_inverse_rate": Rate.compute_inverse_rate(payment.foreign_rate)
+                    })
             else:
-                # Si el pago ya fue contabilizado, no tocarlo
                 payments_to_keep |= payment
                 continue
 
             lines.write({"payment_id": payment.id})
-            payment.compute_retention_amount_from_retention_lines()
             payments_to_keep |= payment
 
-        # Eliminar pagos en borrador que ya no corresponden a ninguna factura
         payments_to_remove = self.payment_ids.filtered(
             lambda p: p not in payments_to_keep and p.state == "draft"
         )
@@ -944,9 +894,6 @@ class AccountRetention(models.Model):
     def _create_islr_payments_on_draft(self):
         """
         Sincroniza los pagos de ISLR en modo borrador, agrupados por concepto y factura.
-        Este método es idempotente: crea, actualiza o elimina pagos según sea necesario,
-        en lugar de borrarlos y recrearlos siempre.
-        Se llama desde create/write a través de _safe_create_payments.
         """
         self.ensure_one()
         Payment = self.env['account.payment']
@@ -957,6 +904,16 @@ class AccountRetention(models.Model):
             if self.type == 'in_invoice'
             else self.env.company.islr_customer_retention_journal_id.id
         )
+        journal = self.env['account.journal'].browse(journal_id)
+        if not journal:
+            return
+
+        # Odoo 18 requiere payment_method_line_id
+        payment_method_line = journal.outbound_payment_method_line_ids[0] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[0]
+        if not payment_method_line:
+             payment_method_line = journal._get_available_payment_method_lines(
+                 "outbound" if self.type == "in_invoice" else "inbound"
+             )[:1]
 
         # 1. Determinar los pagos que DEBERÍAN existir
         lines_by_concept_and_move = defaultdict(lambda: self.env['account.retention.line'])
@@ -968,8 +925,11 @@ class AccountRetention(models.Model):
 
         # 2. Iterar sobre los pagos requeridos para crear o actualizar
         for (concept, move), lines in lines_by_concept_and_move.items():
-            total_retention = sum(lines.mapped('retention_amount'))
-            if self.company_currency_id.is_zero(total_retention):
+            # Moneda VEF
+            currency_vef = self.env.company.currency_foreign_id
+            total_retention_vef = sum(lines.mapped('foreign_retention_amount'))
+            
+            if currency_vef.is_zero(total_retention_vef):
                 continue
 
             partner_type = 'supplier' if self.type in ('in_invoice', 'in_refund') else 'customer'
@@ -977,46 +937,53 @@ class AccountRetention(models.Model):
             if move.move_type in ('in_refund', 'out_refund'):
                 payment_type = 'inbound' if payment_type == 'outbound' else 'outbound'
 
-            payment_method_ref = (
-                "account.account_payment_method_manual_in"
-                if payment_type == "inbound"
-                else "account.account_payment_method_manual_out"
-            )
-
             payment_vals = {
                 'retention_id': self.id,
                 'partner_id': self.partner_id.id,
                 'payment_type_retention': 'islr',
                 'is_retention': True,
-                'journal_id': journal_id,
+                'journal_id': journal.id,
                 'partner_type': partner_type,
                 'payment_type': payment_type,
                 'payment_concept_id': concept.id,
                 'foreign_rate': lines[0].foreign_currency_rate,
-                'payment_method_id': self.env.ref(payment_method_ref).id,
-                'amount': total_retention,
-                'currency_id': self.env.company.currency_id.id,
+                'payment_method_line_id': payment_method_line.id if payment_method_line else False,
+                'amount': total_retention_vef,
+                'currency_id': currency_vef.id,
                 'date': self.date_accounting or fields.Date.context_today(self),
                 "retention_line_ids": [Command.set(lines.ids)],
             }
 
             # Si ya existe un pago para este concepto, se actualiza. Si no, se crea.
             payment = existing_payments.get(concept)
-            if payment:
+            if payment and payment.state == 'draft':
                 payment.write(payment_vals)
-            else:
+            elif not payment:
                 payment = Payment.create(payment_vals)
+            else:
+                payments_to_keep |= payment
+                continue
             
-            # Asignar payment_id a las líneas (importante para la bidireccionalidad)
             lines.write({'payment_id': payment.id})
             payments_to_keep |= payment
 
         # 3. Eliminar pagos que ya no son necesarios
-        payments_to_remove = self.payment_ids - payments_to_keep
+        payments_to_remove = self.payment_ids.filtered(lambda p: p not in payments_to_keep and p.state == 'draft')
         if payments_to_remove:
             payments_to_remove.unlink()
 
         return payments_to_keep
+
+    def _safe_create_payments(self):
+        """
+        Crea los pagos según el tipo de retención.
+        Se llama desde action_post como Opción A.
+        """
+        for retention in self:
+            if retention.type_retention == "iva":
+                retention._sync_iva_payments_on_draft()
+            elif retention.type_retention == "islr":
+                retention._create_islr_payments_on_draft()
     
     def action_post(self):
 

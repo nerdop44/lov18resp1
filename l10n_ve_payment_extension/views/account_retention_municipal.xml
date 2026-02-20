@@ -69,12 +69,6 @@
 							</group>
 						</page>
 						<page name="Payments" string="Pagos">
-							<div class="mb-2">
-								<button name="action_generate_payment" type="object"
-										string="⚡ Generar Pago"
-										class="btn-secondary"
-										invisible="state != 'draft' or not retention_line_ids"/>
-							</div>
 							<field name="payment_ids" nolabel="1" invisible="not partner_id" readonly="1">
 								<list string="Pagos" editable="bottom">
 									<field name="date"/>
