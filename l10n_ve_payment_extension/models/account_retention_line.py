@@ -222,33 +222,49 @@ class AccountRetentionLine(models.Model):
     @api.depends("payment_concept_id", "move_id")
     def _compute_related_fields(self):
         """
-        This compute is used to get the related fields from the payment concept of the partner
-    to generate the ISLR retention line
+        Calcula los campos relacionados con el concepto de pago para retenciones ISLR.
+        Aplica la regla universal venezolana: los montos siempre se expresan en VEF (Bs.).
         """
         lines_from_islr_retention = self.filtered(
             lambda l: (not l.retention_id or l.retention_id.type_retention == "islr")
         )
-
 
         for record in lines_from_islr_retention:
             if not record.move_id:
                 continue
 
             tax_totals = record.move_id.tax_totals or {}
-        
-            # Obtenemos los valores de la factura primero
-            amount_total = tax_totals.get('total_amount', 0.0)
-            # =========== CORRECCIÓN APLICADA AQUÍ ===========
-            amount_untaxed = tax_totals.get('base_amount', 0.0) 
 
-            # Asignamos los valores de la factura para que sean visibles inmediatamente
-            record.invoice_total = amount_total
-            record.foreign_invoice_total = tax_totals.get('foreign_amount_total', amount_total)
-            record.invoice_amount = amount_untaxed
-            record.foreign_invoice_amount = tax_totals.get('foreign_amount_untaxed', amount_untaxed)
-            record.foreign_currency_rate = record.move_id.foreign_rate or 1.0
+            # =====================================================================
+            # REGLA UNIVERSAL VENEZOLANA: montos siempre en VEF para retenciones
+            # =====================================================================
+            vef_currency = self.env.company.currency_foreign_id
+            invoice_currency = record.move_id.currency_id
+            invoice_is_in_vef = (vef_currency and invoice_currency == vef_currency) or (
+                not vef_currency and invoice_currency == self.env.company.currency_id
+            )
+            foreign_rate = record.move_id.foreign_rate or 1.0
 
-            # Si no hay concepto de pago, nos detenemos aquí
+            # Montos en moneda empresa
+            amount_untaxed_company = tax_totals.get('base_amount_currency', tax_totals.get('base_amount', 0.0))
+            amount_total_company = tax_totals.get('total_amount_currency', tax_totals.get('total_amount', 0.0))
+
+            # Montos en VEF
+            if invoice_is_in_vef:
+                vef_untaxed = amount_untaxed_company
+                vef_total = amount_total_company
+            else:
+                vef_untaxed = tax_totals.get('foreign_amount_untaxed', amount_untaxed_company * foreign_rate)
+                vef_total = tax_totals.get('foreign_amount_total', amount_total_company * foreign_rate)
+
+            # Asignar valores — los campos foreign_ siempre son en VEF
+            record.invoice_total = amount_total_company
+            record.foreign_invoice_total = vef_total
+            record.invoice_amount = amount_untaxed_company
+            record.foreign_invoice_amount = vef_untaxed
+            record.foreign_currency_rate = foreign_rate
+
+            # Si no hay concepto de pago, no continuamos
             if not record.payment_concept_id:
                 continue
 
@@ -256,8 +272,7 @@ class AccountRetentionLine(models.Model):
                 raise UserError(_("The partner does not have a type of person"))
 
             partner_person_type_id = record.move_id.partner_id.type_person_id.id
-        
-            # Buscamos la coincidencia y asignamos los valores del concepto
+
             payment_concept = record.payment_concept_id.line_payment_concept_ids
             for line in payment_concept:
                 if partner_person_type_id == line.type_person_id.id:
@@ -265,11 +280,11 @@ class AccountRetentionLine(models.Model):
                     record.related_percentage_tax_base = line.percentage_tax_base or 0.0
                     record.related_percentage_fees = line.tariff_id.percentage if line.tariff_id else 0.0
                     record.related_amount_subtract_fees = line.tariff_id.amount_subtract if line.tariff_id else 0.0
-                
+
                     if not record.retention_id or record.retention_id.type == "in_invoice":
-                        record.invoice_amount = amount_untaxed
-                        record.foreign_invoice_amount = tax_totals.get('foreign_amount_untaxed', amount_untaxed)
-                    break # Salimos del bucle al encontrar la primera coincidencia
+                        record.invoice_amount = amount_untaxed_company
+                        record.foreign_invoice_amount = vef_untaxed
+                    break  # Salir al encontrar la primera coincidencia
                 
     @api.depends("invoice_amount", "foreign_invoice_amount", "foreign_currency_rate")
     def _compute_amounts(self):
@@ -314,33 +329,31 @@ class AccountRetentionLine(models.Model):
     )
     def _compute_retention_amount(self):
         """
-        This compute is used to get the retention amount from the payment concept of the partner
-        to generate the ISLR retention line.
+        Calcula el monto de retención ISLR para líneas de proveedor.
+        Regla universal venezolana:
+        - retention_amount: en la moneda de la empresa
+        - foreign_retention_amount: SIEMPRE en VEF (Bs.)
+          foreign_invoice_amount ya fue asignado en VEF por _compute_related_fields
         """
-        base_currency_is_vef = self.env.company.currency_id == self.env.ref("base.VEF")
-
         islr_supplier_retention_lines = self.filtered(
             lambda l: (not l.retention_id and l.payment_concept_id)
             or (l.retention_id.type_retention == "islr" and l.retention_id.type == "in_invoice")
         )
         for record in islr_supplier_retention_lines:
             foreign_rate = record.move_id.foreign_rate or 1.0
-            
-            if not base_currency_is_vef:
-                record.retention_amount = (
-                    (record.invoice_amount * (record.related_percentage_tax_base / 100))
-                    * (record.related_percentage_fees / 100)
-                ) - (record.related_amount_subtract_fees / foreign_rate)
-            else:
-                record.retention_amount = (
-                    (record.invoice_amount * (record.related_percentage_tax_base / 100))
-                    * (record.related_percentage_fees / 100)
-                ) - record.related_amount_subtract_fees
 
+            # Retención en moneda empresa
+            record.retention_amount = (
+                (record.invoice_amount * (record.related_percentage_tax_base / 100))
+                * (record.related_percentage_fees / 100)
+            ) - (record.related_amount_subtract_fees / foreign_rate if foreign_rate else 0.0)
+
+            # Retención en VEF (siempre — foreign_invoice_amount ya está en VEF)
             record.foreign_retention_amount = (
                 (record.foreign_invoice_amount * (record.related_percentage_tax_base / 100))
                 * (record.related_percentage_fees / 100)
             ) - record.related_amount_subtract_fees
+
 
     @api.onchange("economic_activity_id", "move_id")
     def onchange_economic_activity_id(self):
