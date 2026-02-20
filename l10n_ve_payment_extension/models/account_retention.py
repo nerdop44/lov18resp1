@@ -504,8 +504,10 @@ class AccountRetention(models.Model):
 
     def _safe_create_payments(self):
         """
-        Versión segura para crear pagos que no modifica movimientos publicados.
-        Ahora incluye lógica de desviación para ISLR (borrador), replicando el flujo de IVA.
+        Crea o actualiza los pagos en borrador para retenciones IVA e ISLR.
+        Para IVA: sincroniza el pago por factura (igual que ISLR).
+        Para ISLR: sincroniza por concepto+factura via _create_islr_payments_on_draft.
+        Para Municipal: no crea pagos automáticos.
         """
         for retention in self:
             journals = {
@@ -518,44 +520,127 @@ class AccountRetention(models.Model):
             }
             journal = journals.get((retention.type_retention, retention.type))
             if not journal:
-                continue # Skip if no journal configured for this specific record
+                continue
 
-            journal_id = journal.id
-            # 1. El municipal no crea pagos automáticos. Salto inmediato.
+            # El municipal no crea pagos automáticos
             if retention.type_retention == "municipal":
                 continue
-                
-            # 2. Las retenciones contabilizadas (emitted) no deben crear/recrear pagos.
-            if retention.state != 'draft':
+
+            # Las retenciones contabilizadas no deben recrear pagos
+            if retention.state != "draft":
                 continue
-                
-            # 3. LÓGICA ISLR: Siempre se llama para recrear/actualizar en borrador si hay cambios en líneas.
+
+            # Sin líneas de retención, no hay nada que pagar
+            if not retention.retention_line_ids:
+                continue
+
+            # LÓGICA ISLR: sincronizar por concepto+factura
             if retention.type_retention == "islr":
                 retention._create_islr_payments_on_draft()
                 continue
-            
-            # 4. LÓGICA IVA: Solo se crea si es IVA y *NO* tiene pagos (mantenemos la lógica original de IVA).
-            if retention.type_retention == "iva" and not retention.payment_ids:
-                payment_vals = {
-                    "retention_id": retention.id,
-                    "partner_id": retention.partner_id.id,
-                    "payment_type_retention": "iva",
-                    "is_retention": True,
-                    "currency_id": self.env.user.company_id.currency_id.id,
-                }
 
-                def account_retention_line_empty_recordset():
-                    return self.env["account.retention.line"]
+            # LÓGICA IVA: sincronizar un pago por cada factura agrupada
+            if retention.type_retention == "iva":
+                retention._sync_iva_payments_on_draft()
 
-                if retention.type == "in_invoice":
-                    retention._create_payments_for_iva_supplier(
-                        payment_vals, account_retention_line_empty_recordset
-                    )
-                if retention.type == "out_invoice":
-                    retention._create_payments_for_iva_customer(
-                        payment_vals, account_retention_line_empty_recordset
-                    )
-    
+    def _sync_iva_payments_on_draft(self):
+        """
+        Sincroniza los pagos IVA en borrador.
+        Agrupa las líneas de retención por factura y crea/actualiza un pago por grupo.
+        Idempotente: puede llamarse múltiples veces sin duplicar pagos.
+        """
+        self.ensure_one()
+        Payment = self.env["account.payment"]
+        Rate = self.env["res.currency.rate"]
+
+        journal = (
+            self.env.company.iva_supplier_retention_journal_id
+            if self.type == "in_invoice"
+            else self.env.company.iva_customer_retention_journal_id
+        )
+        if not journal:
+            return
+
+        partner_type = "supplier" if self.type in ("in_invoice", "in_refund") else "customer"
+
+        # Agrupar líneas por factura
+        lines_by_move = defaultdict(lambda: self.env["account.retention.line"])
+        for line in self.retention_line_ids:
+            if line.move_id:
+                lines_by_move[line.move_id] += line
+
+        # Obtener pagos existentes por factura (usando retention_line_ids)
+        existing_payments = {}
+        for payment in self.payment_ids:
+            linked_moves = payment.retention_line_ids.mapped("move_id")
+            for move in linked_moves:
+                existing_payments[move] = payment
+
+        payments_to_keep = self.env["account.payment"]
+
+        for move, lines in lines_by_move.items():
+            # Determinar dirección del pago
+            if move.move_type in ("in_invoice", "out_refund"):
+                payment_type = "outbound"
+                payment_method_ref = "account.account_payment_method_manual_out"
+            else:
+                payment_type = "inbound"
+                payment_method_ref = "account.account_payment_method_manual_in"
+
+            # Si es nota de crédito, invertir la dirección
+            if move.move_type in ("in_refund", "out_refund"):
+                payment_type = "inbound" if partner_type == "supplier" else "outbound"
+
+            foreign_rate = lines[0].foreign_currency_rate if lines else 1.0
+            total_retention = sum(lines.mapped("retention_amount"))
+
+            if self.env.company.currency_id.is_zero(total_retention) and all(
+                self.env.company.currency_foreign_id.is_zero(l.foreign_retention_amount) for l in lines
+            ):
+                continue
+
+            payment_vals = {
+                "retention_id": self.id,
+                "partner_id": self.partner_id.id,
+                "partner_type": partner_type,
+                "payment_type_retention": "iva",
+                "is_retention": True,
+                "journal_id": journal.id,
+                "payment_type": payment_type,
+                "payment_method_id": self.env.ref(payment_method_ref).id,
+                "foreign_rate": foreign_rate,
+                "currency_id": self.env.company.currency_id.id,
+                "date": self.date_accounting or fields.Date.context_today(self),
+                "retention_line_ids": [(6, 0, lines.ids)],
+            }
+
+            payment = existing_payments.get(move)
+            if payment and payment.state == "draft":
+                payment.write(payment_vals)
+            elif not payment:
+                payment = Payment.create(payment_vals)
+                payment.write({
+                    "foreign_inverse_rate": Rate.compute_inverse_rate(payment.foreign_rate)
+                })
+            else:
+                # Si el pago ya fue contabilizado, no tocarlo
+                payments_to_keep |= payment
+                continue
+
+            lines.write({"payment_id": payment.id})
+            payment.compute_retention_amount_from_retention_lines()
+            payments_to_keep |= payment
+
+        # Eliminar pagos en borrador que ya no corresponden a ninguna factura
+        payments_to_remove = self.payment_ids.filtered(
+            lambda p: p not in payments_to_keep and p.state == "draft"
+        )
+        if payments_to_remove:
+            payments_to_remove.unlink()
+
+        return payments_to_keep
+
+
 
 #    # Bloque de código a REEMPLAZAR (buscar _safe_create_payments en tu archivo)
 ## =========================================================================
