@@ -1396,68 +1396,101 @@ class AccountRetention(models.Model):
         lines_data = []
         if "subtotals" in invoice_id.tax_totals and invoice_id.tax_totals["subtotals"]:
             _logger.warning(f"Tax Totals for invoice ID {invoice_id.id}: {invoice_id.tax_totals}")
+
+            # --- Detección de moneda de la factura ---
+            # Si la factura está en moneda extranjera (USD), los valores en tax_groups
+            # corresponden a la moneda de la factura. Debemos convertirlos a la moneda
+            # de la compañía (Bs.) usando el foreign_rate de la factura.
+            company_currency = self.env.company.currency_id
+            invoice_is_foreign_currency = (invoice_id.currency_id != company_currency)
+            foreign_rate = invoice_id.foreign_rate or 1.0
+            foreign_inverse_rate = 1.0 / foreign_rate if foreign_rate else 0.0
+
             for subtotal in invoice_id.tax_totals["subtotals"]:
                 subtotal_name = subtotal.get("name", "Subtotal")  # Default name
                 for tax_group_data in subtotal.get("tax_groups", []):
                     tax = tax_ids.filtered(lambda t: t.tax_group_id.id == tax_group_data.get("id"))
                     if not tax:
                         _logger.warning(f"compute_retention_lines_data: No se encontró impuesto para el grupo de impuestos con ID {tax_group_data.get('id')}.")
-
                         continue
                     tax = tax[0]
                     _logger.warning(f"compute_retention_lines_data: Impuesto encontrado: ID {tax.id}, Nombre {tax.name}, Grupo de Impuestos ID {tax.tax_group_id.id}")
 
-                    retention_amount = tax_group_data["tax_amount"] * (withholding_amount / 100)
+                    # --- LÓGICA DE CONVERSIÓN DE MONEDA ---
+                    # En Odoo 18:
+                    # - base_amount_currency: monto base en la moneda de la factura
+                    # - tax_amount_currency: monto de impuesto en la moneda de la factura
+                    # - base_amount: monto base en la moneda de la compañía
+                    # - tax_amount: monto de impuesto en la moneda de la compañía
+                    #
+                    # Si la factura es en USD:
+                    # - invoice_amount (Bs.) = base_amount_currency * foreign_rate
+                    # - iva_amount (Bs.) = tax_amount_currency * foreign_rate
+                    # - foreign_invoice_amount (USD) = base_amount_currency
+                    # - foreign_iva_amount (USD) = tax_amount_currency
+                    #
+                    # Si la factura es en Bs.:
+                    # - invoice_amount (Bs.) = base_amount (ya es en Bs.)
+                    # - iva_amount (Bs.) = tax_amount (ya es en Bs.)
+                    # - foreign_invoice_amount (USD) = base_amount / foreign_rate
+                    # - foreign_iva_amount (USD) = tax_amount / foreign_rate
+
+                    base_amount_currency = tax_group_data.get("base_amount_currency", tax_group_data.get("base_amount", 0.0))
+                    tax_amount_currency_val = tax_group_data.get("tax_amount_currency", tax_group_data.get("tax_amount", 0.0))
+
+                    if invoice_is_foreign_currency:
+                        # Factura en USD: convertimos a Bs. multiplicando por la tasa
+                        invoice_amount_bs = base_amount_currency * foreign_rate
+                        iva_amount_bs = tax_amount_currency_val * foreign_rate
+                        foreign_invoice_amount_usd = base_amount_currency
+                        foreign_iva_amount_usd = tax_amount_currency_val
+                    else:
+                        # Factura en Bs.: los montos ya están en Bs.
+                        invoice_amount_bs = tax_group_data.get("base_amount", 0.0)
+                        iva_amount_bs = tax_group_data.get("tax_amount", 0.0)
+                        foreign_invoice_amount_usd = invoice_amount_bs * foreign_inverse_rate if foreign_rate else 0.0
+                        foreign_iva_amount_usd = iva_amount_bs * foreign_inverse_rate if foreign_rate else 0.0
+
+                    retention_amount = iva_amount_bs * (withholding_amount / 100)
                     retention_amount = float_round(
                         retention_amount,
                         precision_digits=invoice_id.company_currency_id.decimal_places,
                     )
-                    # --- INICIO DE CAMBIOS ---
-                    # Ensure foreign_rate is not zero to prevent division by zero errors
-                    foreign_rate = invoice_id.foreign_rate
-                    if not foreign_rate or foreign_rate == 0.0:
-                        _logger.error(
-                            f"Tasa de cambio extranjera (foreign_rate) es cero o nula para la factura {invoice_id.display_name} "
-                            f"({invoice_id.id}) con moneda {invoice_id.currency_id.name} para la fecha {invoice_id.date}. "
-                            "Verifique las tasas de cambio configuradas en Finanzas -> Configuración -> Monedas -> Tasas."
-                        )
-                        raise UserError(_(
-                            "No se pudo crear la línea de retención. La tasa de cambio para la factura '%s' (moneda %s) "
-                            "es cero o no está definida para la fecha %s. Por favor, configure la tasa de cambio "
-                            "en Configuración > Monedas > Tasas."
-                        ) % (invoice_id.display_name, invoice_id.currency_id.name, invoice_id.date))
-
-                    # Calculate foreign_inverse_rate
-                    foreign_inverse_rate = 1 / foreign_rate if foreign_rate else 0.0
-                    # --- FIN DE CAMBIOS ---
                     foreign_retention_amount = float_round(
-                        (tax_group_data.get("tax_amount_currency", 0.0) * (withholding_amount / 100)),
-                        precision_digits=invoice_id.foreign_currency_id.decimal_places,
+                        foreign_iva_amount_usd * (withholding_amount / 100),
+                        precision_digits=invoice_id.foreign_currency_id.decimal_places if invoice_id.foreign_currency_id else 2,
                     )
+
+                    invoice_total_bs = invoice_id.tax_totals.get("total_amount", 0.0)
+                    if invoice_is_foreign_currency:
+                        invoice_total_bs = invoice_id.tax_totals.get("total_amount_currency", 0.0) * foreign_rate
+
                     line_data = {
                         "name": _("Iva Retention"),
                         "invoice_type": invoice_id.move_type,
                         "move_id": invoice_id.id,
                         "payment_id": payment.id if payment else None,
                         "aliquot": tax.amount,
-                        "iva_amount": tax_group_data["tax_amount"],
-                        "invoice_total": invoice_id.tax_totals["total_amount"],
+                        "iva_amount": iva_amount_bs,
+                        "invoice_total": invoice_total_bs,
                         "related_percentage_tax_base": withholding_amount,
-                        "invoice_amount": tax_group_data["base_amount"],
-                        "foreign_currency_rate": foreign_rate, ###invoice_id.foreign_rate,
-                        "foreign_currency_inverse_rate": foreign_inverse_rate, # <--- AÑADE ESTA LÍNEA
-                        "foreign_iva_amount": tax_group_data.get("tax_amount_currency", 0.0),
+                        "invoice_amount": invoice_amount_bs,
+                        "foreign_currency_rate": foreign_rate,
+                        "foreign_currency_inverse_rate": foreign_inverse_rate,
+                        "foreign_iva_amount": foreign_iva_amount_usd,
                         "foreign_invoice_total": invoice_id.tax_totals.get("total_amount_currency", 0.0),
-                        "retention_amount": retention_amount,  # ¡Añade esta línea!
-                        "foreign_retention_amount": foreign_retention_amount,  # ¡Y esta!
+                        "foreign_invoice_amount": foreign_invoice_amount_usd,
+                        "retention_amount": retention_amount,
+                        "foreign_retention_amount": foreign_retention_amount,
                     }
-                    # Agrega esta condición para evitar líneas con monto cero
+                    # Evitar líneas con monto cero
                     if line_data.get("retention_amount") != 0.0 or line_data.get("foreign_retention_amount") != 0.0:
-
                         lines_data.append(line_data)
+
         _logger.warning(f"compute_retention_lines_data: Datos de las líneas de retención calculadas: {lines_data}")
 
         return lines_data
+
         
 
 #        lines_data = []
