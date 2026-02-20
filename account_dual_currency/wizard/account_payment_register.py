@@ -202,7 +202,7 @@ class AccountPaymentRegister(models.TransientModel):
             'amount': self.amount,
             'payment_type': self.payment_type,
             'partner_type': self.partner_type,
-            'ref': self.communication,
+            'memo': self.communication,
             'journal_id': self.journal_id.id,
             'currency_id': self.currency_id.id,
             'partner_id': self.partner_id.id,
