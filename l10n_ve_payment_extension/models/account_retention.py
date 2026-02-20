@@ -1397,31 +1397,39 @@ class AccountRetention(models.Model):
         if "subtotals" in invoice_id.tax_totals and invoice_id.tax_totals["subtotals"]:
             _logger.warning(f"Tax Totals for invoice ID {invoice_id.id}: {invoice_id.tax_totals}")
 
-            # =====================================================================
-            # SISTEMA BIMONETARIO VE: empresa en USD, moneda foránea = VEF (Bs.)
-            # =====================================================================
-            # En este sistema:
-            # - base_amount_currency / tax_amount_currency = montos en USD (moneda de la factura = moneda empresa)
-            # - foreign_amount_untaxed / foreign_amount_total = montos en Bs. VEF (calculados por l10n_ve_tax)
-            # - foreign_rate = tasa BCV (USD→Bs.)
+            # ==========================================================================
+            # REGLA UNIVERSAL VENEZOLANA: Las retenciones SIEMPRE se expresan en VEF
+            # ==========================================================================
+            # La lógica es independiente de cuál sea la moneda base de la empresa.
+            # El principio es:
+            #   1. Si la factura ya está en VEF → montos de retención en VEF directamente
+            #   2. Si la factura está en cualquier otra moneda (USD, EUR, etc.) →
+            #      convertir a VEF usando la tasa de l10n_ve_tax (ya precalculada en
+            #      tax_totals['foreign_amount_untaxed'] y ['foreign_amount_total'])
             #
-            # Para la retención IVA:
-            # - invoice_amount = monto en USD (base_amount_currency)
-            # - iva_amount = IVA en USD (tax_amount_currency)
-            # - foreign_invoice_amount = monto en Bs. (foreign_amount_untaxed de tax_totals)
-            # - foreign_iva_amount = IVA en Bs. (tax_amount_currency × foreign_rate)
-            # - retention_amount = iva_amount_usd × withholding_percentage (en USD)
-            # - foreign_retention_amount = foreign_iva_amount_bs × withholding_percentage (en Bs.)
-            # =====================================================================
+            # En todos los casos también guardamos los montos en la moneda de la empresa
+            # para el registro contable en la moneda del sistema.
+            # ==========================================================================
 
             tax_totals = invoice_id.tax_totals
+
+            # Identificar el VEF como moneda objetivo de retención
+            # Se asume que company.currency_foreign_id es VEF (configurado por el módulo)
+            vef_currency = self.env.company.currency_foreign_id
+            invoice_currency = invoice_id.currency_id
+
+            # Tasa de la factura (moneda empresa → VEF)
             foreign_rate = invoice_id.foreign_rate or 1.0
             foreign_inverse_rate = 1.0 / foreign_rate if foreign_rate else 0.0
-            has_foreign_currency = bool(self.env.company.currency_foreign_id)
 
-            # Totales globales en Bs. del tax_totals (ya calculados por l10n_ve_tax)
-            global_foreign_amount_untaxed = tax_totals.get("foreign_amount_untaxed", 0.0)
-            global_foreign_amount_total = tax_totals.get("foreign_amount_total", 0.0)
+            # ¿La factura ya está en VEF?
+            invoice_is_in_vef = (vef_currency and invoice_currency == vef_currency) or (
+                not vef_currency and invoice_currency == self.env.company.currency_id
+            )
+
+            # Montos globales en VEF precalculados por l10n_ve_tax en _get_tax_totals_summary
+            global_vef_untaxed = tax_totals.get("foreign_amount_untaxed", 0.0)
+            global_vef_total = tax_totals.get("foreign_amount_total", 0.0)
 
             for subtotal in tax_totals["subtotals"]:
                 subtotal_name = subtotal.get("name", "Subtotal")
@@ -1431,45 +1439,74 @@ class AccountRetention(models.Model):
                 for idx, tax_group_data in enumerate(subtotal_tax_groups):
                     tax = tax_ids.filtered(lambda t: t.tax_group_id.id == tax_group_data.get("id"))
                     if not tax:
-                        _logger.warning(f"compute_retention_lines_data: No se encontró impuesto para el grupo de impuestos con ID {tax_group_data.get('id')}.")
+                        _logger.warning(f"compute_retention_lines_data: No se encontró impuesto para el grupo ID {tax_group_data.get('id')}.")
                         continue
                     tax = tax[0]
-                    _logger.warning(f"compute_retention_lines_data: Impuesto encontrado: ID {tax.id}, Nombre {tax.name}, Grupo de Impuestos ID {tax.tax_group_id.id}")
+                    _logger.warning(f"compute_retention_lines_data: Impuesto: ID {tax.id}, Nombre {tax.name}")
 
-                    # Montos en la moneda de la empresa (USD en este caso)
-                    invoice_amount_company = tax_group_data.get("base_amount_currency", tax_group_data.get("base_amount", 0.0))
-                    iva_amount_company = tax_group_data.get("tax_amount_currency", tax_group_data.get("tax_amount", 0.0))
+                    # Montos en la moneda de empresa (lo que sea: USD, VEF, EUR, etc.)
+                    invoice_amount_company = tax_group_data.get(
+                        "base_amount_currency", tax_group_data.get("base_amount", 0.0)
+                    )
+                    iva_amount_company = tax_group_data.get(
+                        "tax_amount_currency", tax_group_data.get("tax_amount", 0.0)
+                    )
 
-                    if has_foreign_currency and foreign_rate and foreign_rate != 1.0:
-                        # Sistema bimonetario: calcular montos en Bs. usando la tasa
-                        # Usar los valores ya calculados en tax_totals si es un solo grupo,
-                        # de lo contrario calcular proporcionalmente
-                        if total_groups == 1:
-                            # Un solo grupo: usar directamente los totales bimonetarios de tax_totals
-                            foreign_invoice_amount_bs = global_foreign_amount_untaxed
-                            foreign_iva_amount_bs = global_foreign_amount_total - global_foreign_amount_untaxed
+                    # ==========================================================
+                    # Calcular montos en VEF (el objetivo SIEMPRE es VEF)
+                    # ==========================================================
+                    if invoice_is_in_vef:
+                        # La factura ya está en VEF → usar montos directamente
+                        vef_invoice_amount = invoice_amount_company
+                        vef_iva_amount = iva_amount_company
+                        vef_invoice_total = tax_totals.get(
+                            "total_amount_currency", tax_totals.get("total_amount", 0.0)
+                        )
+                    elif global_vef_untaxed > 0:
+                        # La factura está en otra moneda y l10n_ve_tax ya calculó los VEF
+                        # Usar los valores globales precalculados (proporcional si hay múltiples grupos)
+                        if  total_groups == 1:
+                            vef_invoice_amount = global_vef_untaxed
+                            vef_iva_amount = global_vef_total - global_vef_untaxed
                         else:
-                            # Múltiples grupos: calcular proporcionalmente
-                            foreign_invoice_amount_bs = invoice_amount_company * foreign_rate
-                            foreign_iva_amount_bs = iva_amount_company * foreign_rate
+                            # Múltiples grupos: calcular proporcional al porcentaje del grupo sobre el total
+                            total_company_untaxed = tax_totals.get("base_amount_currency", tax_totals.get("base_amount", 1.0)) or 1.0
+                            proportion = invoice_amount_company / total_company_untaxed if total_company_untaxed else 0.0
+                            vef_invoice_amount = global_vef_untaxed * proportion
+                            vef_iva_amount = (global_vef_total - global_vef_untaxed) * proportion
+                        vef_invoice_total = global_vef_total
                     else:
-                        # Sin moneda foránea o tasa 1:1 — montos son iguales en ambas monedas
-                        foreign_invoice_amount_bs = invoice_amount_company
-                        foreign_iva_amount_bs = iva_amount_company
+                        # Fallback: convertir usando la tasa directo
+                        vef_invoice_amount = invoice_amount_company * foreign_rate
+                        vef_iva_amount = iva_amount_company * foreign_rate
+                        vef_invoice_total = (
+                            tax_totals.get("total_amount_currency", tax_totals.get("total_amount", 0.0))
+                            * foreign_rate
+                        )
 
-                    # Retención = IVA × porcentaje de retención
-                    # Se calcula en ambas monedas
+                    # Retención en VEF (siempre)
+                    vef_retention_amount = float_round(
+                        vef_iva_amount * (withholding_amount / 100),
+                        precision_digits=vef_currency.decimal_places if vef_currency else 2,
+                    )
+
+                    # Retención en moneda empresa (para el apunte contable)
                     retention_amount_company = float_round(
                         iva_amount_company * (withholding_amount / 100),
                         precision_digits=invoice_id.company_currency_id.decimal_places,
                     )
-                    foreign_retention_amount_bs = float_round(
-                        foreign_iva_amount_bs * (withholding_amount / 100),
-                        precision_digits=invoice_id.foreign_currency_id.decimal_places if invoice_id.foreign_currency_id else 2,
+
+                    invoice_total_company = tax_totals.get(
+                        "total_amount_currency", tax_totals.get("total_amount", 0.0)
                     )
 
-                    invoice_total_company = tax_totals.get("total_amount_currency", tax_totals.get("total_amount", 0.0))
-                    foreign_invoice_total_bs = global_foreign_amount_total if has_foreign_currency and foreign_rate != 1.0 else invoice_total_company
+                    _logger.warning(
+                        f"Retención calculada: "
+                        f"invoice={invoice_amount_company} {invoice_currency.name}, "
+                        f"iva={iva_amount_company} {invoice_currency.name}, "
+                        f"vef_invoice={vef_invoice_amount}, vef_iva={vef_iva_amount}, "
+                        f"tasa={foreign_rate}, ret_vef={vef_retention_amount}"
+                    )
 
                     line_data = {
                         "name": _("Iva Retention"),
@@ -1477,16 +1514,16 @@ class AccountRetention(models.Model):
                         "move_id": invoice_id.id,
                         "payment_id": payment.id if payment else None,
                         "aliquot": tax.amount,
-                        # Montos en moneda empresa (USD)
+                        # Montos en moneda empresa
                         "invoice_amount": invoice_amount_company,
                         "iva_amount": iva_amount_company,
                         "invoice_total": invoice_total_company,
                         "retention_amount": retention_amount_company,
-                        # Montos en moneda foránea (Bs./VEF)
-                        "foreign_invoice_amount": foreign_invoice_amount_bs,
-                        "foreign_iva_amount": foreign_iva_amount_bs,
-                        "foreign_invoice_total": foreign_invoice_total_bs,
-                        "foreign_retention_amount": foreign_retention_amount_bs,
+                        # Montos en VEF (siempre — regla universal de retenciones VE)
+                        "foreign_invoice_amount": vef_invoice_amount,
+                        "foreign_iva_amount": vef_iva_amount,
+                        "foreign_invoice_total": vef_invoice_total,
+                        "foreign_retention_amount": vef_retention_amount,
                         # Tasa
                         "foreign_currency_rate": foreign_rate,
                         "foreign_currency_inverse_rate": foreign_inverse_rate,
@@ -1495,6 +1532,7 @@ class AccountRetention(models.Model):
                     # Evitar líneas con monto cero
                     if line_data.get("retention_amount") != 0.0 or line_data.get("foreign_retention_amount") != 0.0:
                         lines_data.append(line_data)
+
 
         _logger.warning(f"compute_retention_lines_data: Datos de las líneas de retención calculadas: {lines_data}")
 
