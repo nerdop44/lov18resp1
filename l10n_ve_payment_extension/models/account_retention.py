@@ -132,18 +132,19 @@ class AccountRetention(models.Model):
     )
 
     foreign_total_invoice_amount = fields.Float(
-        string="Foreign StateTaxable Income",
+        string="Total Facturado (Bs.)",
         compute="_compute_totals",
-        help="Taxable Income Total",
+        help="Total base imponible en VEF",
         store=True,
     )
     foreign_total_iva_amount = fields.Float(
-        string="Foreign Total IVA", compute="_compute_totals", store=True
+        string="Total IVA (Bs.)", compute="_compute_totals", store=True
     )
     foreign_total_retention_amount = fields.Float(
+        string="Total Retenido (Bs.)",
         compute="_compute_totals",
         store=True,
-        help="Retained Amount Total",
+        help="Total monto retenido en VEF",
     )
     original_lines_per_invoice_counter = fields.Char(
         help=(
@@ -483,14 +484,68 @@ class AccountRetention(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         res = super().create(vals_list)
-        res._safe_create_payments()
+        # Solo ISLR se sincroniza en create (es idempotente y no requiere journal info adicional)
+        for r in res:
+            if r.type_retention == "islr" and r.retention_line_ids:
+                try:
+                    r._create_islr_payments_on_draft()
+                except Exception:
+                    pass  # No bloquear el guardado si falla
         return res
 
     def write(self, vals):
         res = super().write(vals)
         if vals.get("retention_line_ids", False):
-            self._safe_create_payments()
+            for r in self:
+                if r.type_retention == "islr" and r.state == "draft":
+                    try:
+                        r._create_islr_payments_on_draft()
+                    except Exception:
+                        pass  # No bloquear el guardado si falla
         return res
+
+    def action_generate_payment(self):
+        """
+        Genera el pago de retención en estado borrador al hacer clic en 'Generar Pago'.
+        
+        - Para IVA: usa _sync_iva_payments_on_draft (agrupa por factura).
+        - Para ISLR: usa _create_islr_payments_on_draft (agrupa por concepto+factura).
+        - Para Municipal: notifica que no hay pagos automáticos.
+        
+        El pago se crea con payment_method_line_id correcto para el diario configurado.
+        """
+        self.ensure_one()
+        
+        if not self.retention_line_ids:
+            raise UserError(_("No hay líneas de retención. Agregue facturas antes de generar el pago."))
+        
+        if self.state == "emitted":
+            raise UserError(_("La retención ya fue aprobada. No se puede generar un nuevo pago."))
+        
+        if self.type_retention == "municipal":
+            raise UserError(_("Las retenciones municipales no generan pagos automáticos. Agréguelos manualmente si aplica."))
+        
+        if self.type_retention == "iva":
+            self._sync_iva_payments_on_draft()
+        elif self.type_retention == "islr":
+            self._create_islr_payments_on_draft()
+        
+        if not self.payment_ids:
+            raise UserError(_(
+                "No se pudo generar el pago. Verifique que los diarios de retención estén configurados "
+                "en Configuración → Empresa y que tengan métodos de pago activos."
+            ))
+        
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Pago generado"),
+                "message": _("Se generó el pago de retención en estado borrador. Puede aprobarlo al emitir el comprobante."),
+                "type": "success",
+                "sticky": False,
+            },
+        }
 
     def unlink(self):
         for record in self:

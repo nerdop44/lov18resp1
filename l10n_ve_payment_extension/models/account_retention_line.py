@@ -120,13 +120,13 @@ class AccountRetentionLine(models.Model):
         store=True,
     )
 
-    # foreign currency
+    # Montos en VEF (Bs.) — Regla universal venezolana
     foreign_invoice_amount = fields.Float(
-        string="Foreign taxable income", compute="_compute_amounts", store=True, readonly=False
+        string="Base Imponible (Bs.)", compute="_compute_amounts", store=True, readonly=False
     )
-    foreign_invoice_total = fields.Float(string="Foreign total invoiced")
-    foreign_iva_amount = fields.Float(string="Foreign IVA")
-    foreign_currency_rate = fields.Float(string="Rate")
+    foreign_invoice_total = fields.Float(string="Total Factura (Bs.)")
+    foreign_iva_amount = fields.Float(string="IVA (Bs.)")
+    foreign_currency_rate = fields.Float(string="Tasa")
     foreign_currency_inverse_rate = fields.Float(string="Inverse Rate")
 
     # Después de la definición de tus fields (campos) y antes de tus @api.depends o @api.onchange existentes.

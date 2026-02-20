@@ -56,8 +56,15 @@
 							</group>
 						</page>
 						<page name="Payments" string="Pagos">
-							<field name="payment_ids" nolabel="1" invisible="not partner_id" readonly="state in ['emitted', 'cancel']">
-								<list string="Pagos" editable="bottom">
+							<div class="mb-2">
+								<button name="action_generate_payment" type="object"
+										string="⚡ Generar Pago"
+										class="btn-secondary"
+										invisible="state != 'draft' or not retention_line_ids"
+										confirm="¿Generar el pago de retención en borrador con el monto calculado?"/>
+							</div>
+							<field name="payment_ids" nolabel="1" invisible="not partner_id" readonly="1">
+								<list string="Pagos">
 									<field name="date"/>
 									<field name="name"/>
 									<field name="currency_id" column_invisible="False"/>
