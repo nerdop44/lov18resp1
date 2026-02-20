@@ -160,6 +160,55 @@ class AccountTax(models.Model):
         
         return res
 
+    @api.model
+    def _get_tax_totals_summary(self, base_lines, currency, company, cash_rounding=None):
+        """
+        Extensión de Odoo 18 que inyecta los campos bimonetarios en tax_totals.
+        En Odoo 18, _compute_tax_totals llama a _get_tax_totals_summary en lugar de
+        _prepare_tax_totals, por lo que debemos extender este método para añadir
+        los campos bimonetarios necesarios para los libros fiscales.
+        """
+        # Llama al método estándar de Odoo 18
+        res = super()._get_tax_totals_summary(
+            base_lines=base_lines,
+            currency=currency,
+            company=company,
+            cash_rounding=cash_rounding,
+        )
+
+        if not res:
+            return res
+
+        foreign_currency = company.currency_foreign_id or False
+        if not foreign_currency:
+            return res
+
+        # Construir base_lines en el formato que espera get_foreign_base_tax_lines
+        # _get_tax_totals_summary recibe base_lines en un formato diferente a _prepare_tax_totals
+        # Necesitamos convertirlos si es necesario
+        try:
+            foreign_base_lines, foreign_tax_lines = self.get_foreign_base_tax_lines(
+                base_lines, None, foreign_currency
+            )
+
+            # Calcular totales en moneda foránea
+            foreign_taxes = super()._prepare_tax_totals(
+                foreign_base_lines,
+                foreign_currency,
+            )
+
+            if foreign_taxes:
+                res["groups_by_foreign_subtotal"] = foreign_taxes.get("groups_by_subtotal")
+                res["foreign_subtotals"] = foreign_taxes.get("subtotals", [])
+                res["foreign_amount_untaxed"] = foreign_taxes.get("amount_untaxed", 0.0)
+                res["foreign_amount_total"] = foreign_taxes.get("amount_total", 0.0)
+                res["foreign_formatted_amount_untaxed"] = foreign_taxes.get("formatted_amount_untaxed", "")
+                res["foreign_formatted_amount_total"] = foreign_taxes.get("formatted_amount_total", "")
+        except Exception as e:
+            _logger.warning("Error calculating foreign tax totals: %s", e)
+
+        return res
+
     def get_foreign_base_tax_lines(self, base_lines, tax_lines, currency):
         foreign_base_lines = [line.copy() for line in base_lines if line]
         foreign_tax_lines = None
