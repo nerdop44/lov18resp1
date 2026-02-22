@@ -563,7 +563,7 @@ class AccountRetention(models.Model):
             return
 
         # Odoo 18 requiere payment_method_line_id
-        payment_method_line = journal.outbound_payment_method_line_ids[0] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[0]
+        payment_method_line = journal.outbound_payment_method_line_ids[:1] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[:1]
         if not payment_method_line:
              # Fallback simple
              payment_method_line = journal._get_available_payment_method_lines(
@@ -909,7 +909,7 @@ class AccountRetention(models.Model):
             return
 
         # Odoo 18 requiere payment_method_line_id
-        payment_method_line = journal.outbound_payment_method_line_ids[0] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[0]
+        payment_method_line = journal.outbound_payment_method_line_ids[:1] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[:1]
         if not payment_method_line:
              payment_method_line = journal._get_available_payment_method_lines(
                  "outbound" if self.type == "in_invoice" else "inbound"
