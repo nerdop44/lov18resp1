@@ -212,12 +212,20 @@ class AccountPayment(models.Model):
             self.is_retention = True
             self.payment_type_retention = self.retention_id.type_retention
             
-            # Intentar pre-cargar el diario
+            # Para ISLR, intentar asignar el primer concepto de las líneas
+            if self.retention_id.type_retention == 'islr' and self.retention_id.retention_line_ids:
+                concept = self.retention_id.retention_line_ids.filtered('payment_concept_id')[:1].payment_concept_id
+                if concept:
+                    self.payment_concept_id = concept
+
+            # Intentar pre-cargar el diario (Inluyendo Municipal)
             journals = {
                 ("iva", "in_invoice"): self.env.company.iva_supplier_retention_journal_id,
                 ("iva", "out_invoice"): self.env.company.iva_customer_retention_journal_id,
                 ("islr", "in_invoice"): self.env.company.islr_supplier_retention_journal_id,
                 ("islr", "out_invoice"): self.env.company.islr_customer_retention_journal_id,
+                ("municipal", "in_invoice"): self.env.company.municipal_supplier_retention_journal_id,
+                ("municipal", "out_invoice"): self.env.company.municipal_customer_retention_journal_id,
             }
             journal = journals.get((self.retention_id.type_retention, self.retention_id.type))
             if journal:

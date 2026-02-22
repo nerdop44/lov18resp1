@@ -58,8 +58,8 @@
 							</group>
 						</page>
 						<page name="Payments" string="Pagos">
-							<field name="payment_ids" nolabel="1" readonly="1">
-								<list string="Pagos">
+							<field name="payment_ids" nolabel="1" readonly="state in ['emitted', 'cancel']">
+								<list string="Pagos" editable="bottom">
 									<field name="date"/>
 									<field name="name"/>
 									<field name="amount"/>
