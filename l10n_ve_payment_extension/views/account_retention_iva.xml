@@ -48,7 +48,7 @@
 									<field name="foreign_invoice_amount" widget="monetary" string="Base Imponible (Bs.)" options="{'currency_field': 'foreign_currency_id'}"/>
 									<field name="foreign_iva_amount" widget="monetary" string="IVA (Bs.)" options="{'currency_field': 'foreign_currency_id'}"/>
 									<field name="foreign_retention_amount" widget="monetary" string="Monto Retenido (Bs.)" options="{'currency_field': 'foreign_currency_id'}"/>
-									<field name="foreign_currency_rate" string="Tasa" optional="hide"/>
+									<field name="foreign_currency_rate" string="Tasa de Retención" optional="hide"/>
 								</list>
 							</field>
 							<group col="2" colspan="2">
@@ -64,7 +64,7 @@
 									<field name="name"/>
 									<field name="amount"/>
 									<field name="state"/>
-									<field name="foreign_rate" optional="hide" string="Tasa"/>
+									<field name="foreign_rate" optional="hide" string="Tasa de Retención"/>
 									<field name="partner_id" optional="hide"/>
 									<field name="currency_id" optional="hide"/>
 								</list>

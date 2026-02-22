@@ -126,7 +126,7 @@ class AccountRetentionLine(models.Model):
     )
     foreign_invoice_total = fields.Float(string="Total Factura (Bs.)")
     foreign_iva_amount = fields.Float(string="IVA (Bs.)")
-    foreign_currency_rate = fields.Float(string="Tasa")
+    foreign_currency_rate = fields.Float(string="Tasa (Extensión de Pago)")
     foreign_currency_inverse_rate = fields.Float(string="Inverse Rate")
 
     # Después de la definición de tus fields (campos) y antes de tus @api.depends o @api.onchange existentes.

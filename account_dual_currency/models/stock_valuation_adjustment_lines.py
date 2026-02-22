@@ -8,7 +8,7 @@ class AdjustmentLines(models.Model):
     _inherit = 'stock.valuation.adjustment.lines'
 
     former_cost_usd = fields.Monetary(currency_field='currency_id_dif', string='Valor Original $')
-    tax_today = fields.Float(string="Tasa", store=True)
+    tax_today = fields.Float(string="Tasa (Ajuste de Valoración)", store=True)
     currency_id_dif = fields.Many2one(related="cost_id.company_id.currency_id_dif")
     additional_landed_cost_usd = fields.Monetary(currency_field='currency_id_dif',string='Costo adicionales $')
     final_cost_usd = fields.Monetary(currency_field='currency_id_dif', string=

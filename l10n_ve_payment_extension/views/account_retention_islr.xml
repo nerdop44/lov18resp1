@@ -46,7 +46,7 @@
 									<field name="related_percentage_tax_base" force_save="1" readonly="1" />
 									<field name="related_percentage_fees" force_save="1" readonly="1" />
 									<field name="related_amount_subtract_fees" force_save="1" readonly="1" />
-									<field name="foreign_currency_rate" force_save="1" readonly="1" optional="hide" string="Tasa"/>
+									<field name="foreign_currency_rate" force_save="1" readonly="1" optional="hide" string="Tasa de Retención"/>
 									<field name="foreign_retention_amount" force_save="1" string="Monto Retenido (Bs.)" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="parent.type == 'in_invoice'"/>
 								</list>
 							</field>

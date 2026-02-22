@@ -16,7 +16,7 @@ class LandedCostLine(models.Model):
 
     company_currency_id = fields.Many2one(related="cost_id.company_currency_id", string="Moneda de la Empresa")
 
-    tax_today = fields.Float(string="Tasa", store=True,
+    tax_today = fields.Float(string="Tasa (Línea de Costo)", store=True,
                              default=lambda self: self.env.company.currency_id_dif.inverse_rate,
                              digits=(16, 4))
 

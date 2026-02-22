@@ -30,7 +30,7 @@ class AccountMove(models.Model):
 
     acuerdo_moneda = fields.Boolean(string="Acuerdo de Factura Bs.", default=False)
 
-    tax_today = fields.Float(string="Tasa", store=True,
+    tax_today = fields.Float(string="Tasa de Factura", store=True,
                              default=lambda self: self.env.company.currency_id_dif.inverse_rate,
                              tracking=True, digits=(16, 4))
 

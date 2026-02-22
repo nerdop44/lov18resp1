@@ -16,7 +16,7 @@
                     <field name="name_rate" string="Moneda de Referencia"/>
                     <field name="edit_trm" invisible="1"/>
                     <field name="tax_today_edited" />
-                    <field name="tax_today" string="Tasa" readonly="[('edit_trm', '=', False)]"/>
+                    <field name="tax_today" string="Tasa de Factura" readonly="[('edit_trm', '=', False)]"/>
                     <field name="same_currency" invisible="1"/>
                     <field name="verificar_pagos" invisible="1"/>
                 </xpath>
@@ -33,7 +33,7 @@
 
                 <!-- Apuntes contables: débito/crédito USD -->
                 <xpath expr="//field[@name='line_ids']/list/field[@name='credit']" position="after">
-                    <field name="tax_today" string="Tasa" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
+                    <field name="tax_today" string="Tasa de Factura" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
                     <field name="currency_id_dif" readonly="1" invisible="1"/>
                     <field name="debit_usd" sum="Débito Total $"  widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
                     <field name="credit_usd" sum="Crédito Total $"  widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>

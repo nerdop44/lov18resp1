@@ -7,7 +7,7 @@
             <field name="inherit_id" ref="account.view_move_line_tree"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='credit']" position="after">
-                    <field name="tax_today" string="Tasa"/>
+                    <field name="tax_today" string="Tasa del Asiento"/>
                     <field name="currency_id_dif" readonly="1" invisible="1"/>
                     <field name="debit_usd"  sum="Débito Total $" />
                     <field name="credit_usd"  sum="Crédito Total $"/>
@@ -24,7 +24,7 @@
             <field name="inherit_id" ref="account.view_move_line_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='balance']" position="after">
-                    <field name="tax_today" string="Tasa"/>
+                    <field name="tax_today" string="Tasa del Asiento"/>
                     <field name="currency_id_dif" readonly="1" invisible="1"/>
                     <field name="debit_usd" readonly="1"/>
                     <field name="credit_usd" readonly="1"/>
@@ -41,7 +41,7 @@
             <field name="inherit_id" ref="account.view_move_line_tree_grouped"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='credit']" position="after">
-                    <field name="tax_today" string="Tasa"></field>
+                    <field name="tax_today" string="Tasa del Asiento"></field>
                     <field name="currency_id_dif" readonly="1" invisible="1"></field>
                     <field name="debit_usd"  sum="Débito Total $" ></field>
                     <field name="credit_usd"  sum="Crédito Total $"></field>
