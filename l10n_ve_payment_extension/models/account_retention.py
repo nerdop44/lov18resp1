@@ -562,14 +562,6 @@ class AccountRetention(models.Model):
         if not journal:
             return
 
-        # Odoo 18 requiere payment_method_line_id
-        payment_method_line = journal.outbound_payment_method_line_ids[:1] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[:1]
-        if not payment_method_line:
-             # Fallback simple
-             payment_method_line = journal._get_available_payment_method_lines(
-                 "outbound" if self.type == "in_invoice" else "inbound"
-             )[:1]
-
         partner_type = "supplier" if self.type in ("in_invoice", "in_refund") else "customer"
 
         # Agrupar líneas por factura
@@ -605,6 +597,14 @@ class AccountRetention(models.Model):
             if currency_vef.is_zero(total_retention_vef):
                 continue
 
+            # Odoo 18 requiere payment_method_line_id (detectado según sentido de la factura/movimiento)
+            payment_method_line = (journal.outbound_payment_method_line_ids if payment_type == "outbound" else journal.inbound_payment_method_line_ids)[:1]
+            if not payment_method_line:
+                payment_method_line = journal._get_available_payment_method_lines(payment_type)[:1]
+            
+            if not payment_method_line:
+                raise UserError(_("El diario %s no tiene configurado un método de pago para pagos de tipo %s.") % (journal.display_name, payment_type))
+
             payment_vals = {
                 "retention_id": self.id,
                 "partner_id": self.partner_id.id,
@@ -613,7 +613,7 @@ class AccountRetention(models.Model):
                 "is_retention": True,
                 "journal_id": journal.id,
                 "payment_type": payment_type,
-                "payment_method_line_id": payment_method_line.id if payment_method_line else False,
+                "payment_method_line_id": payment_method_line.id,
                 "foreign_rate": foreign_rate,
                 "currency_id": currency_vef.id,
                 "amount": total_retention_vef,
@@ -908,13 +908,6 @@ class AccountRetention(models.Model):
         if not journal:
             return
 
-        # Odoo 18 requiere payment_method_line_id
-        payment_method_line = journal.outbound_payment_method_line_ids[:1] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[:1]
-        if not payment_method_line:
-             payment_method_line = journal._get_available_payment_method_lines(
-                 "outbound" if self.type == "in_invoice" else "inbound"
-             )[:1]
-
         # 1. Determinar los pagos que DEBERÍAN existir
         lines_by_concept_and_move = defaultdict(lambda: self.env['account.retention.line'])
         for line in self.retention_line_ids.filtered(lambda l: l.payment_concept_id):
@@ -937,6 +930,14 @@ class AccountRetention(models.Model):
             if move.move_type in ('in_refund', 'out_refund'):
                 payment_type = 'inbound' if payment_type == 'outbound' else 'outbound'
 
+            # Odoo 18 requiere payment_method_line_id
+            payment_method_line = (journal.outbound_payment_method_line_ids if payment_type == "outbound" else journal.inbound_payment_method_line_ids)[:1]
+            if not payment_method_line:
+                payment_method_line = journal._get_available_payment_method_lines(payment_type)[:1]
+            
+            if not payment_method_line:
+                raise UserError(_("El diario %s no tiene configurado un método de pago para pagos de tipo %s.") % (journal.display_name, payment_type))
+
             payment_vals = {
                 'retention_id': self.id,
                 'partner_id': self.partner_id.id,
@@ -947,7 +948,7 @@ class AccountRetention(models.Model):
                 'payment_type': payment_type,
                 'payment_concept_id': concept.id,
                 'foreign_rate': lines[0].foreign_currency_rate,
-                'payment_method_line_id': payment_method_line.id if payment_method_line else False,
+                'payment_method_line_id': payment_method_line.id,
                 'amount': total_retention_vef,
                 'currency_id': currency_vef.id,
                 'date': self.date_accounting or fields.Date.context_today(self),
