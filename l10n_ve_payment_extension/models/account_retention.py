@@ -603,7 +603,8 @@ class AccountRetention(models.Model):
                 payment_method_line = journal._get_available_payment_method_lines(payment_type)[:1]
             
             if not payment_method_line:
-                raise UserError(_("El diario %s no tiene configurado un método de pago para pagos de tipo %s.") % (journal.display_name, payment_type))
+                _logger.warning("El diario %s no tiene configurado un método de pago para pagos de tipo %s. El pago no se sincronizará automáticamente.", journal.display_name, payment_type)
+                continue
 
             payment_vals = {
                 "retention_id": self.id,
