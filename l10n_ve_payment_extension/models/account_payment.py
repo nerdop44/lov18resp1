@@ -202,3 +202,23 @@ class AccountPayment(models.Model):
                     )
                 )
             )
+    @api.onchange("retention_id")
+    def onchange_retention_id(self):
+        if self.retention_id:
+            self.partner_id = self.retention_id.partner_id
+            self.partner_type = "supplier" if self.retention_id.type in ("in_invoice", "in_refund") else "customer"
+            self.amount = self.retention_id.foreign_total_retention_amount
+            self.currency_id = self.retention_id.foreign_currency_id
+            self.is_retention = True
+            self.payment_type_retention = self.retention_id.type_retention
+            
+            # Intentar pre-cargar el diario
+            journals = {
+                ("iva", "in_invoice"): self.env.company.iva_supplier_retention_journal_id,
+                ("iva", "out_invoice"): self.env.company.iva_customer_retention_journal_id,
+                ("islr", "in_invoice"): self.env.company.islr_supplier_retention_journal_id,
+                ("islr", "out_invoice"): self.env.company.islr_customer_retention_journal_id,
+            }
+            journal = journals.get((self.retention_id.type_retention, self.retention_id.type))
+            if journal:
+                self.journal_id = journal
