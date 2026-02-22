@@ -40,7 +40,7 @@ class AccountRetentionIvaLine(models.Model):
     )
     # --- CAMBIO: AHORA SE LLAMA foreign_invoice_total ---
     foreign_invoice_total = fields.Monetary( # ¡RENOMBRADO AQUÍ!
-        string="Monto de Factura (ME)",
+        string="Total Factura ME (IVA)",
         related="move_id.foreign_total_billed",
         currency_field="foreign_currency_id",
         store=True,
@@ -127,7 +127,7 @@ class AccountRetentionIvaLine(models.Model):
     # ---------------------------------
     # --- CAMBIO: AÑADIDO ESTE CAMPO ---
     foreign_invoice_amount = fields.Monetary(
-        string="Monto de Factura (ME)",
+        string="Monto Factura ME (IVA)",
         related="move_id.foreign_total_billed",  # ¡IMPORTANTE! Verifica que este sea el campo correcto en account.move
         currency_field="foreign_currency_id",
         store=True,
@@ -253,7 +253,7 @@ class AccountRetentionIslrLine(models.Model):
     )
     # --- CAMBIO: AHORA SE LLAMA foreign_invoice_total ---
     foreign_invoice_total = fields.Monetary( # ¡RENOMBRADO AQUÍ!
-        string="Monto de Factura (ME)",
+        string="Total Factura ME (ISLR)",
         related="move_id.foreign_total_billed",
         currency_field="foreign_currency_id",
         store=True,
@@ -337,7 +337,7 @@ class AccountRetentionIslrLine(models.Model):
     # ---------------------------------
     # --- CAMBIO: AÑADIDO ESTE CAMPO ---
     foreign_invoice_amount = fields.Monetary(
-        string="Monto de Factura (ME)",
+        string="Monto Factura ME (ISLR)",
         related="move_id.foreign_total_billed",  # ¡IMPORTANTE! Verifica que este sea el campo correcto en account.move
         currency_field="foreign_currency_id",
         store=True,
@@ -441,7 +441,7 @@ class AccountRetentionMunicipalLine(models.Model):
     )
     # --- CAMBIO: AHORA SE LLAMA foreign_invoice_total ---
     foreign_invoice_total = fields.Monetary( # ¡RENOMBRADO AQUÍ!
-        string="Monto de Factura (ME)",
+        string="Total Factura ME (Munic)",
         related="move_id.foreign_total_billed",
         currency_field="foreign_currency_id",
         store=True,
@@ -512,7 +512,7 @@ class AccountRetentionMunicipalLine(models.Model):
     # ---------------------------------
     # --- CAMBIO: AÑADIDO ESTE CAMPO ---
     foreign_invoice_amount = fields.Monetary(
-        string="Monto de Factura (ME)",
+        string="Monto Factura ME (Munic)",
         related="move_id.foreign_total_billed",  # ¡IMPORTANTE! Verifica que este sea el campo correcto en account.move
         currency_field="foreign_currency_id",
         store=True,

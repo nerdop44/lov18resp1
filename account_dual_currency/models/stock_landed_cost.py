@@ -9,11 +9,12 @@ class StockLandedCost(models.Model):
 
     currency_id = fields.Many2one(
         comodel_name="res.currency",
+        string="Moneda del Documento",
         required=True,
         related="",
         default=lambda self: self.env.user.company_id.currency_id,
     )
-    company_currency_id = fields.Many2one('res.currency', related='company_id.currency_id')
+    company_currency_id = fields.Many2one('res.currency', string="Moneda de la Compañía", related='company_id.currency_id')
     amount_total = fields.Monetary(
         'Total', compute='_compute_total_amount',
         store=True, tracking=True, currency_field="company_currency_id")

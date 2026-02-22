@@ -11,10 +11,10 @@ class LandedCostLine(models.Model):
 
 
     price_unit = fields.Monetary(currency_field="company_currency_id", string="Cost in Company Currency")
-    currency_id = fields.Many2one(related="cost_id.currency_id")
-    currency_price_unit = fields.Monetary(currency_field="currency_id", string="Cost")
+    currency_id = fields.Many2one(related="cost_id.currency_id", string="Moneda de Referencia")
+    currency_price_unit = fields.Monetary(currency_field="currency_id", string="Costo")
 
-    company_currency_id = fields.Many2one(related="cost_id.company_currency_id")
+    company_currency_id = fields.Many2one(related="cost_id.company_currency_id", string="Moneda de la Empresa")
 
     tax_today = fields.Float(string="Tasa", store=True,
                              default=lambda self: self.env.company.currency_id_dif.inverse_rate,

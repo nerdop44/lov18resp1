@@ -6,11 +6,13 @@ class AccountPartialReconcile(models.Model):
 
     debit_move_foreign_inverse_rate = fields.Float(
         related="debit_move_id.foreign_inverse_rate",
+        string="Tasa Inversa Extranjera (Débito)",
         store=True,
         index=True,
     )
     credit_move_foreign_inverse_rate = fields.Float(
         related="credit_move_id.foreign_inverse_rate",
+        string="Tasa Inversa Extranjera (Crédito)",
         store=True,
         index=True,
     )
