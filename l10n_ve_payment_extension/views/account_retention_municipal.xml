@@ -69,7 +69,7 @@
 							</group>
 						</page>
 						<page name="Payments" string="Pagos">
-							<field name="payment_ids" nolabel="1" invisible="not partner_id" readonly="state in ['emitted', 'cancel']">
+							<field name="payment_ids" nolabel="1" invisible="not partner_id" readonly="state != 'draft'">
 								<list string="Pagos" editable="bottom">
 									<field name="date"/>
 									<field name="name"/>

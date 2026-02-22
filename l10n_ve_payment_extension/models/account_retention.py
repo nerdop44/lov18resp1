@@ -484,10 +484,13 @@ class AccountRetention(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         res = super().create(vals_list)
+        res._safe_create_payments()
         return res
 
     def write(self, vals):
         res = super().write(vals)
+        if vals.get("retention_line_ids", False):
+            self._safe_create_payments()
         return res
 
     def action_generate_payment(self):
@@ -507,24 +510,12 @@ class AccountRetention(models.Model):
     def _safe_create_payments(self):
         """
         Crea o actualiza los pagos en borrador para retenciones IVA e ISLR.
-        Para IVA: sincroniza el pago por factura (igual que ISLR).
+        Para IVA: sincroniza el pago por factura.
         Para ISLR: sincroniza por concepto+factura via _create_islr_payments_on_draft.
         Para Municipal: no crea pagos automáticos.
         """
         for retention in self:
-            journals = {
-                ("iva", "in_invoice"): retention.company_id.iva_supplier_retention_journal_id,
-                ("iva", "out_invoice"): retention.company_id.iva_customer_retention_journal_id,
-                ("islr", "in_invoice"): retention.company_id.islr_supplier_retention_journal_id,
-                ("islr", "out_invoice"): retention.company_id.islr_customer_retention_journal_id,
-                ("municipal", "in_invoice"): retention.company_id.municipal_supplier_retention_journal_id,
-                ("municipal", "out_invoice"): retention.company_id.municipal_customer_retention_journal_id,
-            }
-            journal = journals.get((retention.type_retention, retention.type))
-            if not journal:
-                continue
-
-            # El municipal no crea pagos automáticos
+            # El municipal no crea pagos automáticos por ahora (puedes agregarlo aquí si es necesario)
             if retention.type_retention == "municipal":
                 continue
 
@@ -934,10 +925,8 @@ class AccountRetention(models.Model):
             # Odoo 18 requiere payment_method_line_id
             payment_method_line = (journal.outbound_payment_method_line_ids if payment_type == "outbound" else journal.inbound_payment_method_line_ids)[:1]
             if not payment_method_line:
-                payment_method_line = journal._get_available_payment_method_lines(payment_type)[:1]
-            
-            if not payment_method_line:
-                raise UserError(_("El diario %s no tiene configurado un método de pago para pagos de tipo %s.") % (journal.display_name, payment_type))
+                _logger.warning("El diario %s no tiene configurado un método de pago para pagos de tipo %s. El pago no se sincronizará automáticamente.", journal.display_name, payment_type)
+                continue
 
             payment_vals = {
                 'retention_id': self.id,
@@ -976,16 +965,6 @@ class AccountRetention(models.Model):
 
         return payments_to_keep
 
-    def _safe_create_payments(self):
-        """
-        Crea los pagos según el tipo de retención.
-        Se llama desde action_post como Opción A.
-        """
-        for retention in self:
-            if retention.type_retention == "iva":
-                retention._sync_iva_payments_on_draft()
-            elif retention.type_retention == "islr":
-                retention._create_islr_payments_on_draft()
     
     def action_post(self):
 
