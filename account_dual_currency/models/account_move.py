@@ -32,7 +32,7 @@ class AccountMove(models.Model):
 
     tax_today = fields.Float(string="Tasa de Factura", store=True,
                              default=lambda self: self.env.company.currency_id_dif.inverse_rate,
-                             tracking=True, digits=(16, 4))
+                             tracking=True)
 
     tax_today_edited = fields.Boolean(string="Tasa Manual", default=False)
 

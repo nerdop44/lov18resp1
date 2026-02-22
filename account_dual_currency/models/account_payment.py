@@ -10,7 +10,7 @@ class AccountPayment(models.Model):
         return super()._valid_field_parameter(field_name, parameter)
 
 
-    tax_today = fields.Float(string="Tasa de Pago", default=lambda self: self._get_default_tasa(), digits=(16, 4))
+    tax_today = fields.Float(string="Tasa de Pago", default=lambda self: self._get_default_tasa())
     currency_id_dif = fields.Many2one("res.currency",
                                       string="Divisa de Referencia",
                                       default=lambda self: self.env.company.currency_id_dif )
