@@ -26,14 +26,12 @@ class AccountPaymentRegister(models.TransientModel):
 
     foreign_rate = fields.Float(
         help="The rate of the payment",
-        digits="Tasa",
     )
     foreign_inverse_rate = fields.Float(
         help=(
             "Rate that will be used as factor to multiply of the foreign currency for the payment "
             "and the moves created by the wizard."
         ),
-        digits=(16, 15),
     )
 
     @api.onchange("foreign_rate")

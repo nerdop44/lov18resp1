@@ -34,7 +34,7 @@ class AccountRetentionIvaLine(models.Model):
         readonly=True,
     )
     foreign_invoice_total = fields.Monetary(
-        string="Total Factura ME (IVA)",
+        string="Total Factura ME - IVA",
         related="move_id.foreign_total_billed",
         currency_field="foreign_currency_id",
         store=True,
@@ -98,7 +98,7 @@ class AccountRetentionIvaLine(models.Model):
         readonly=True,
     )
     foreign_invoice_amount = fields.Monetary(
-        string="Monto Factura ME (IVA)",
+        string="Monto Factura ME - IVA",
         related="move_id.foreign_total_billed",
         currency_field="foreign_currency_id",
         store=True,
@@ -200,7 +200,7 @@ class AccountRetentionIslrLine(models.Model):
         readonly=True,
     )
     foreign_invoice_total = fields.Monetary(
-        string="Total Factura ME (ISLR)",
+        string="Total Factura ME - ISLR",
         related="move_id.foreign_total_billed",
         currency_field="foreign_currency_id",
         store=True,
@@ -268,7 +268,7 @@ class AccountRetentionIslrLine(models.Model):
         readonly=True,
     )
     foreign_invoice_amount = fields.Monetary(
-        string="Monto Factura ME (ISLR)",
+        string="Monto Factura ME - ISLR",
         related="move_id.foreign_total_billed",
         currency_field="foreign_currency_id",
         store=True,
@@ -368,7 +368,7 @@ class AccountRetentionMunicipalLine(models.Model):
         readonly=True,
     )
     foreign_invoice_total = fields.Monetary(
-        string="Total Factura ME (Munic)",
+        string="Total Factura ME - Municipal",
         related="move_id.foreign_total_billed",
         currency_field="foreign_currency_id",
         store=True,
@@ -432,7 +432,7 @@ class AccountRetentionMunicipalLine(models.Model):
         readonly=True,
     )
     foreign_invoice_amount = fields.Monetary(
-        string="Monto Factura ME (Munic)",
+        string="Monto Factura ME - Municipal",
         related="move_id.foreign_total_billed",
         currency_field="foreign_currency_id",
         store=True,
