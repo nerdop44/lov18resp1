@@ -6,7 +6,7 @@
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Accountant/Accountant",
-    "version": "18.0.1.0.21",
+    "version": "18.0.1.0.22",
     # any module necessary for this one to work correctly
     "depends": [
         "base",
