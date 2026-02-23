@@ -162,7 +162,11 @@ class AccountRetentionLine(models.Model):
             vef_total = getattr(invoice, 'amount_total_bs', 0.0)
             vef_untaxed = getattr(invoice, 'amount_untaxed_bs', 0.0)
             vef_iva = getattr(invoice, 'amount_tax_bs', 0.0)
-            rate = getattr(invoice, 'tax_today', invoice.foreign_rate or 1.0)
+            rate = getattr(invoice, 'tax_today', 0.0)
+            if not rate or rate == 1.0:
+                rate = getattr(invoice, 'foreign_rate', 0.0)
+            if not rate:
+                rate = 1.0
 
             # Si no es VEF o los campos duales están vacíos, forzamos conversión por tasa
             if not is_vef or not vef_total:
@@ -300,7 +304,12 @@ class AccountRetentionLine(models.Model):
             vef_untaxed = getattr(invoice, 'amount_untaxed_bs', 0.0)
             vef_total = getattr(invoice, 'amount_total_bs', 0.0)
             vef_iva = getattr(invoice, 'amount_tax_bs', 0.0)
-            rate = getattr(invoice, 'tax_today', invoice.foreign_rate or 1.0)
+            # Priorizar foreign_rate si tax_today es 1.0 (caso común de facturas en USD con compañía USD)
+            rate = getattr(invoice, 'tax_today', 0.0)
+            if not rate or rate == 1.0:
+                rate = getattr(invoice, 'foreign_rate', 0.0)
+            if not rate:
+                rate = 1.0
             
             # Si no es VEF o los campos duales están vacíos, forzamos conversión por tasa
             if not is_vef or not vef_untaxed:
