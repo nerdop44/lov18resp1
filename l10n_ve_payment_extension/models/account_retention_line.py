@@ -283,7 +283,7 @@ class AccountRetentionLine(models.Model):
                         record.foreign_invoice_amount = vef_untaxed
                     break  # Salir al encontrar la primera coincidencia
                 
-    @api.depends("move_id", "move_id.amount_untaxed", "move_id.amount_untaxed_bs")
+    @api.depends("move_id", "move_id.amount_untaxed")
     def _compute_amounts(self):
         base_currency_is_vef = self.env.company.currency_id == self.env.ref("base.VEF")
         if not base_currency_is_vef:

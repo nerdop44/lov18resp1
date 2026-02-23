@@ -6,7 +6,7 @@
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Accountant/Accountant",
-    "version": "18.0.1.0.14",
+    "version": "18.0.1.0.15",
     # any module necessary for this one to work correctly
     "depends": [
         "base",
@@ -19,6 +19,7 @@
         "l10n_ve_tax_payer",
         "l10n_ve_base",
         "product",
+        "account_dual_currency",
     ],
     # always loaded
     "data": [
