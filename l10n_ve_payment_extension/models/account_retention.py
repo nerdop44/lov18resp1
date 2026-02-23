@@ -1021,6 +1021,9 @@ class AccountRetention(models.Model):
 
                 # Procesar cada pago con contexto seguro (se mantiene igual)
                 for payment in retention.payment_ids.with_context(skip_manually_modified_check=True):
+                    # FORZAR SINCRONIZACIÓN DEL CORRELATIVO AL PAGO AHORA QUE HAY NÚMERO
+                    payment._synchronize_to_moves(set())
+                    
                     _logger.info(f"Procesando pago {payment.id}")
                     if not payment.move_id:
                         if hasattr(payment, 'action_create'):
