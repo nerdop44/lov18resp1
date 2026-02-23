@@ -283,29 +283,26 @@ class AccountRetentionLine(models.Model):
                         record.foreign_invoice_amount = vef_untaxed
                     break  # Salir al encontrar la primera coincidencia
                 
-    @api.depends("move_id", "move_id.amount_untaxed")
+    @api.depends("move_id", "move_id.amount_untaxed", "move_id.amount_untaxed_bs")
     def _compute_amounts(self):
-        base_currency_is_vef = self.env.company.currency_id == self.env.ref("base.VEF")
-        if not base_currency_is_vef:
-            for record in self:
-                if not record.move_id:
-                    continue
-                tax_totals = record.move_id.tax_totals or {}
-                amount_untaxed = tax_totals.get('amount_untaxed', 0)
-                foreign_amount_untaxed = tax_totals.get('foreign_amount_untaxed', amount_untaxed)
+        for record in self:
+            if not record.move_id:
+                continue
+            
+            invoice = record.move_id
+            # Monto base de la factura (Moneda de la empresa, ej. USD)
+            amount_untaxed = invoice.amount_untaxed
+            
+            # Monto en Bolívares (VEF)
+            # Priorizamos fields de dual currency si existen, sino usamos el tax_totals como fallback
+            vef_untaxed = getattr(invoice, 'amount_untaxed_bs', 0.0)
+            if not vef_untaxed:
+                tax_totals = invoice.tax_totals or {}
+                vef_untaxed = tax_totals.get('foreign_amount_untaxed', amount_untaxed)
 
-                if not record.retention_id or record.retention_id.type == "in_invoice":
-                    record.invoice_amount = amount_untaxed
-                    record.foreign_invoice_amount = foreign_amount_untaxed
-                    # No break here, as it should apply to all lines in the recordset
-        else:
-             for record in self:
-                 if not record.move_id:
-                     continue
-                 tax_totals = record.move_id.tax_totals or {}
-                 if not record.retention_id or record.retention_id.type == "in_invoice":
-                     record.invoice_amount = tax_totals.get("amount_untaxed", 0)
-                     record.foreign_invoice_amount = tax_totals.get("foreign_amount_untaxed", record.invoice_amount)
+            if not record.retention_id or record.retention_id.type == "in_invoice":
+                record.invoice_amount = amount_untaxed
+                record.foreign_invoice_amount = vef_untaxed
 
     @api.onchange(
         "invoice_amount",
