@@ -62,7 +62,8 @@ class AccountMove(models.Model):
 #    )
 #    # FIN DE LAS MODIFICACIONES SUGERIDAS
    
-    @api.constrains("correlative", "is_contingency")
+    @api.constrains("correlative")
+    #@api.constrains("correlative", "is_contingency")
     def _check_correlative(self):
         AccountMove = self.env["account.move"]
         is_series_invoicing_enabled = self.company_id.group_sales_invoicing_series
