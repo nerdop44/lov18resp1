@@ -5,7 +5,12 @@ from odoo.tools import float_is_zero, float_repr
 class ProductProduct(models.Model):
     _inherit = 'product.product'
 
-    currency_id_dif = fields.Many2one('res.currency', string='Moneda Diferente', default=lambda self: self.env.company.currency_id_dif.id)
+    currency_id_dif = fields.Many2one('res.currency', string='Moneda Diferente', compute='_compute_currency_id_dif')
+
+    def _compute_currency_id_dif(self):
+        for rec in self:
+            rec.currency_id_dif = self.env.company.currency_id_dif.id
+
 
     list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif')
     standard_price_usd = fields.Float(string="Costo Alterno", company_dependent=True)
