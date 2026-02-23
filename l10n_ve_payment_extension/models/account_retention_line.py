@@ -42,8 +42,17 @@ class AccountRetentionLine(models.Model):
 
     # Para campos monetarios, Odoo 18 lo gestiona automáticamente
     # Simplemente elimina el parámetro 'digits'
-    invoice_amount = fields.Float(string="Taxable income", digits=(16, 2))
-    retention_amount = fields.Float()
+    invoice_amount = fields.Float(
+        string="Taxable income",
+        compute="_compute_amounts",
+        store=True,
+        readonly=False,
+    )
+    retention_amount = fields.Float(
+        compute="_compute_retention_amount",
+        store=True,
+        readonly=False,
+    )
 #    aliquot = fields.Float(digits=(16, 2))
     amount_tax_ret = fields.Float(string="Retained tax", digits=(16, 2))
     base_ret = fields.Float("Retained base", digits=(16, 2))
@@ -140,22 +149,18 @@ class AccountRetentionLine(models.Model):
         """
         if self.move_id:
             invoice = self.move_id
+            
+            # Usar campos directos de la factura (más confiable que tax_totals en Odoo 18)
+            self.invoice_total = invoice.amount_total
+            self.invoice_amount = invoice.amount_untaxed
+            self.iva_amount = invoice.amount_tax
+            
+            # Campos duales si están disponibles (Regla universal venezolana: foreign es Bs.)
+            self.foreign_invoice_total = getattr(invoice, 'amount_total_bs', self.invoice_total)
+            self.foreign_invoice_amount = getattr(invoice, 'amount_untaxed_bs', self.invoice_amount)
+            self.foreign_iva_amount = getattr(invoice, 'amount_tax_bs', self.iva_amount)
 
-            # Asegurarse de que 'tax_totals' esté disponible y tenga los datos necesarios
-            # Odoo 16+ ya tiene 'tax_totals' como un diccionario bien estructurado.
-            tax_totals = invoice.tax_totals if hasattr(invoice, 'tax_totals') and invoice.tax_totals else {}
-
-            self.invoice_total = tax_totals.get('amount_total', 0.0)
-            self.foreign_invoice_total = tax_totals.get('foreign_amount_total', self.invoice_total) 
-
-            self.invoice_amount = tax_totals.get('amount_untaxed', 0.0)
-            self.foreign_invoice_amount = tax_totals.get('foreign_amount_untaxed', self.invoice_amount) 
-
-            # >>> ESTO ES CLAVE: Poblar los campos de IVA directamente desde tax_totals de la factura
-            self.iva_amount = tax_totals.get('amount_tax', 0.0) 
-            self.foreign_iva_amount = tax_totals.get('foreign_amount_tax', self.iva_amount) 
-
-            self.foreign_currency_rate = invoice.foreign_rate or 1.0
+            self.foreign_currency_rate = getattr(invoice, 'tax_today', invoice.foreign_rate or 1.0)
 
             self.is_retention_client = invoice.move_type in ('out_invoice', 'out_refund', 'out_debit')
             self.invoice_type = invoice.move_type
@@ -219,7 +224,7 @@ class AccountRetentionLine(models.Model):
 
     # =========== CAMBIO AQUÍ ===========
     @api.onchange("payment_concept_id", "move_id")
-    @api.depends("payment_concept_id", "move_id")
+    @api.depends("payment_concept_id", "move_id", "retention_id.type_retention")
     def _compute_related_fields(self):
         """
         Calcula los campos relacionados con el concepto de pago para retenciones ISLR.
@@ -236,28 +241,20 @@ class AccountRetentionLine(models.Model):
             tax_totals = record.move_id.tax_totals or {}
 
             # =====================================================================
-            # REGLA UNIVERSAL VENEZOLANA: montos siempre en VEF para retenciones
+            # REGLA UNIVERSAL VENEZOLANA: montos siempre en Bs. para retenciones
             # =====================================================================
-            vef_currency = self.env.company.currency_foreign_id
-            invoice_currency = record.move_id.currency_id
-            invoice_is_in_vef = (vef_currency and invoice_currency == vef_currency) or (
-                not vef_currency and invoice_currency == self.env.company.currency_id
-            )
-            foreign_rate = record.move_id.foreign_rate or 1.0
-
+            invoice = record.move_id
+            
             # Montos en moneda empresa
-            amount_untaxed_company = tax_totals.get('base_amount_currency', tax_totals.get('base_amount', 0.0))
-            amount_total_company = tax_totals.get('total_amount_currency', tax_totals.get('total_amount', 0.0))
+            amount_untaxed_company = invoice.amount_untaxed
+            amount_total_company = invoice.amount_total
 
-            # Montos en VEF
-            if invoice_is_in_vef:
-                vef_untaxed = amount_untaxed_company
-                vef_total = amount_total_company
-            else:
-                vef_untaxed = tax_totals.get('foreign_amount_untaxed', amount_untaxed_company * foreign_rate)
-                vef_total = tax_totals.get('foreign_amount_total', amount_total_company * foreign_rate)
+            # Montos en Bs. (foreign_ siempre son en Bs.)
+            vef_untaxed = getattr(invoice, 'amount_untaxed_bs', amount_untaxed_company)
+            vef_total = getattr(invoice, 'amount_total_bs', amount_total_company)
+            foreign_rate = getattr(invoice, 'tax_today', invoice.foreign_rate or 1.0)
 
-            # Asignar valores — los campos foreign_ siempre son en VEF
+            # Asignar valores
             record.invoice_total = amount_total_company
             record.foreign_invoice_total = vef_total
             record.invoice_amount = amount_untaxed_company
@@ -286,7 +283,7 @@ class AccountRetentionLine(models.Model):
                         record.foreign_invoice_amount = vef_untaxed
                     break  # Salir al encontrar la primera coincidencia
                 
-    @api.depends("invoice_amount", "foreign_invoice_amount", "foreign_currency_rate")
+    @api.depends("move_id", "move_id.amount_untaxed", "move_id.amount_untaxed_bs")
     def _compute_amounts(self):
         base_currency_is_vef = self.env.company.currency_id == self.env.ref("base.VEF")
         if not base_currency_is_vef:
