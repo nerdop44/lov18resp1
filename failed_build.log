@@ -1,0 +1,111 @@
+-------------------------------------------------------------------------------
+Executed command: odoo-bin --stop-after-init --log-db krill-energy-prueba-28936649 --http-interface=127.0.0.1 -u account_dual_currency,l10n_ve_payment_extension --without-demo=all 
+-------------------------------------------------------------------------------
+2026-02-23 12:58:56,033 4 INFO ? odoo: Odoo version 18.0 
+2026-02-23 12:58:56,033 4 INFO ? odoo: Using configuration file at /home/odoo/.config/odoo/odoo.conf 
+2026-02-23 12:58:56,033 4 INFO ? odoo: addons paths: ['/home/odoo/src/odoo/odoo/addons', '/home/odoo/.local/share/Odoo/addons/18.0', '/home/odoo/src/odoo/addons', '/home/odoo/src/enterprise', '/home/odoo/src/themes', '/home/odoo/src/user/nerdop44/lov18resp1', '/home/odoo/data/addons/18.0'] 
+2026-02-23 12:58:56,033 4 INFO ? odoo: database: p_krill_energy_prueba_28936649@192.168.1.1:5432 
+2026-02-23 12:58:56,043 4 INFO ? odoo: Could not determine if database krill-energy-prueba-28936649 exists, skipping auto-creation: permission denied for table pg_database
+ 
+Warn: Can't find .pfb for face 'Courier'
+2026-02-23 12:58:56,220 4 INFO ? odoo.addons.base.models.ir_actions_report: Will use the Wkhtmltopdf binary at /opt/odoo.sh/odoosh/bin/wkhtmltopdf 
+2026-02-23 12:58:56,283 4 INFO ? odoo.addons.base.models.ir_actions_report: Will use the Wkhtmltoimage binary at /usr/local/bin/wkhtmltoimage 
+2026-02-23 12:58:56,517 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading 1 modules... 
+2026-02-23 12:58:56,548 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: 1 modules loaded in 0.03s, 0 queries (+0 extra) 
+2026-02-23 12:58:56,565 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: updating modules list 
+2026-02-23 12:58:56,567 4 INFO krill-energy-prueba-28936649 odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a 
+2026-02-23 12:58:57,989 4 INFO krill-energy-prueba-28936649 odoo.addons.base.models.ir_module: ALLOW access to module.button_upgrade on ['Binaural Retenciones', '[LocVe] Venezuela: Account Dual Currency'] to user __system__ #1 via n/a 
+2026-02-23 12:58:57,990 4 INFO krill-energy-prueba-28936649 odoo.addons.base.models.ir_module: ALLOW access to module.update_list on ['Binaural Retenciones', '[LocVe] Venezuela: Account Dual Currency'] to user __system__ #1 via n/a 
+2026-02-23 12:58:59,005 4 INFO krill-energy-prueba-28936649 odoo.addons.base.models.ir_module: ALLOW access to module.button_install on [] to user __system__ #1 via n/a 
+2026-02-23 12:58:59,063 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading 212 modules... 
+2026-02-23 12:59:01,551 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: Loading module account_dual_currency (195/212) 
+2026-02-23 12:59:02,166 4 INFO krill-energy-prueba-28936649 odoo.modules.registry: module account_dual_currency: creating or updating database tables 
+2026-02-23 12:59:02,745 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/security/ir.model.access.csv 
+2026-02-23 12:59:03,689 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/security/res_groups.xml 
+2026-02-23 12:59:03,693 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/res_currency.xml 
+2026-02-23 12:59:03,721 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/res_config_settings.xml 
+2026-02-23 12:59:03,784 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/account_move_view.xml 
+2026-02-23 12:59:03,893 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/account_move_line.xml 
+2026-02-23 12:59:04,069 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/wizard/account_payment_register.xml 
+2026-02-23 12:59:04,082 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/account_payment.xml 
+2026-02-23 12:59:04,098 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/product_template.xml 
+2026-02-23 12:59:04,167 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/stock_landed_cost.xml 
+2026-02-23 12:59:04,184 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/stock_valuation_layer.xml 
+2026-02-23 12:59:04,205 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/account_journal_dashboard.xml 
+2026-02-23 12:59:04,227 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/data/decimal_precision.xml 
+2026-02-23 12:59:04,230 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/data/cron.xml 
+2026-02-23 12:59:04,242 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/data/channel.xml 
+2026-02-23 12:59:04,263 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/effective_date_change.xml 
+2026-02-23 12:59:04,288 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/product_template_attribute_value.xml 
+2026-02-23 12:59:04,302 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/account_asset.xml 
+2026-02-23 12:59:04,317 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/view_bank_statement_line_tree_bank_rec_widget.xml 
+2026-02-23 12:59:04,329 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/wizard/generar_retencion_igtf_wizard.xml 
+2026-02-23 12:59:04,334 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/account_analytic_account.xml 
+2026-02-23 12:59:04,353 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/account_analytic_line.xml 
+2026-02-23 12:59:04,369 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/product_pricelist.xml 
+2026-02-23 12:59:04,378 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/sale_order_view.xml 
+2026-02-23 12:59:04,417 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading account_dual_currency/views/purchase_order_view.xml 
+2026-02-23 12:59:04,447 4 INFO krill-energy-prueba-28936649 odoo.addons.base.models.ir_module: module account_dual_currency: no translation for language es_VE 
+2026-02-23 12:59:04,447 4 INFO krill-energy-prueba-28936649 odoo.addons.base.models.ir_module: module account_dual_currency: no translation for language es_ES 
+2026-02-23 12:59:04,488 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: Module account_dual_currency loaded in 2.94s, 1104 queries (+1106 other) 
+2026-02-23 12:59:04,533 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: Loading module l10n_ve_payment_extension (204/212) 
+2026-02-23 12:59:05,493 4 INFO krill-energy-prueba-28936649 odoo.modules.registry: module l10n_ve_payment_extension: creating or updating database tables 
+2026-02-23 12:59:06,067 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/security/ir.model.access.csv 
+2026-02-23 12:59:06,097 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/security/ir_rule.xml 
+2026-02-23 12:59:06,110 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/data/sequence_data.xml 
+2026-02-23 12:59:06,113 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/data/type_person_data.xml 
+2026-02-23 12:59:06,121 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/data/account_withholding_type_data.xml 
+2026-02-23 12:59:06,124 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/data/report_paperformat_data.xml 
+2026-02-23 12:59:06,127 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/data/tax_unit_data.xml 
+2026-02-23 12:59:06,129 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/data/fees_retention_data.xml 
+2026-02-23 12:59:06,133 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/data/payment_concept_data.xml 
+2026-02-23 12:59:06,137 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/report/retention_line_report_views.xml 
+2026-02-23 12:59:06,155 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/report/retention_voucher_templates.xml 
+2026-02-23 12:59:06,172 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/report/retention_voucher_reports.xml 
+2026-02-23 12:59:06,176 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/report/arcv_report.xml 
+2026-02-23 12:59:06,186 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/ir_sequence.xml 
+2026-02-23 12:59:06,192 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/res_config_settings.xml 
+2026-02-23 12:59:06,275 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/tax_unit.xml 
+2026-02-23 12:59:06,289 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/fees_retention.xml 
+2026-02-23 12:59:06,303 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/economic_activity.xml 
+2026-02-23 12:59:06,313 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/economic_branch.xml 
+2026-02-23 12:59:06,326 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/payment_concept.xml 
+2026-02-23 12:59:06,339 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/product.xml 
+2026-02-23 12:59:06,356 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/product_category.xml 
+2026-02-23 12:59:06,370 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/res_company.xml 
+2026-02-23 12:59:06,383 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/signature_config.xml 
+2026-02-23 12:59:06,396 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/type_withholding.xml 
+2026-02-23 12:59:06,404 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/account_retention_line.xml 
+2026-02-23 12:59:06,412 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/account_retention_iva.xml 
+2026-02-23 12:59:06,434 4 INFO krill-energy-prueba-28936649 odoo.models.unlink: User #1 deleted ir.actions.act_window.view records with IDs: [1087, 1088] 
+2026-02-23 12:59:06,442 4 INFO krill-energy-prueba-28936649 odoo.models.unlink: User #1 deleted ir.actions.act_window.view records with IDs: [1089, 1090] 
+2026-02-23 12:59:06,445 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/account_retention_municipal.xml 
+2026-02-23 12:59:06,465 4 INFO krill-energy-prueba-28936649 odoo.models.unlink: User #1 deleted ir.actions.act_window.view records with IDs: [1091, 1092] 
+2026-02-23 12:59:06,472 4 INFO krill-energy-prueba-28936649 odoo.models.unlink: User #1 deleted ir.actions.act_window.view records with IDs: [1093, 1094] 
+2026-02-23 12:59:06,475 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/account_payment.xml 
+2026-02-23 12:59:06,496 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/res_partner.xml 
+2026-02-23 12:59:06,535 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/account_move.xml 
+2026-02-23 12:59:06,592 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/account_retention_islr.xml 
+2026-02-23 12:59:06,603 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/wizard/account_payment_register.xml 
+2026-02-23 12:59:06,617 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/wizard/arcv_report.xml 
+2026-02-23 12:59:06,623 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/wizard/municipal_retention_xlsx_report.xml 
+2026-02-23 12:59:06,629 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/wizard/municipal_retention_patent_report.xml 
+2026-02-23 12:59:06,634 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/wizard/wizard_retention_islr.xml 
+2026-02-23 12:59:06,640 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/wizard/wizard_retention_iva.xml 
+2026-02-23 12:59:06,646 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading l10n_ve_payment_extension/views/menu.xml 
+2026-02-23 12:59:06,726 4 INFO krill-energy-prueba-28936649 odoo.addons.base.models.ir_module: module l10n_ve_payment_extension: loading translation file /home/odoo/src/user/nerdop44/lov18resp1/l10n_ve_payment_extension/i18n/es_VE.po for language es_VE 
+2026-02-23 12:59:06,726 4 INFO krill-energy-prueba-28936649 odoo.tools.translate: loading base translation file /home/odoo/src/user/nerdop44/lov18resp1/l10n_ve_payment_extension/i18n/es_VE.po for language es_VE 
+2026-02-23 12:59:06,736 4 INFO krill-energy-prueba-28936649 odoo.addons.base.models.ir_module: module l10n_ve_payment_extension: no translation for language es_ES 
+2026-02-23 12:59:06,772 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: Module l10n_ve_payment_extension loaded in 2.24s, 1430 queries (+1430 other) 
+2026-02-23 12:59:06,809 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: 212 modules loaded in 7.75s, 2534 queries (+2536 extra) 
+2026-02-23 12:59:06,812 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading 212 modules... 
+2026-02-23 12:59:06,812 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: 212 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-02-23 12:59:06,814 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: loading 212 modules... 
+2026-02-23 12:59:06,814 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: 212 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-02-23 12:59:07,396 4 INFO krill-energy-prueba-28936649 odoo.modules.registry: verifying fields for every extended model 
+2026-02-23 12:59:08,295 4 INFO krill-energy-prueba-28936649 odoo.modules.loading: Modules loaded. 
+2026-02-23 12:59:08,317 4 INFO krill-energy-prueba-28936649 odoo.modules.registry: Registry changed, signaling through the database 
+2026-02-23 12:59:08,317 4 INFO krill-energy-prueba-28936649 odoo.modules.registry: Registry loaded in 11.812s 
+2026-02-23 12:59:08,317 4 INFO krill-energy-prueba-28936649 odoo.service.server: Initiating shutdown 
+2026-02-23 12:59:08,318 4 INFO krill-energy-prueba-28936649 odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-02-23 12:59:08,318 4 INFO krill-energy-prueba-28936649 odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=16): Closed 1 connections  
