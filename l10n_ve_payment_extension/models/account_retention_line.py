@@ -312,12 +312,10 @@ class AccountRetentionLine(models.Model):
 
             record.invoice_amount = amount_untaxed
             record.foreign_invoice_amount = vef_untaxed or amount_untaxed
-            record.invoice_total = invoice.amount_total
             record.foreign_invoice_total = vef_total or invoice.amount_total
             
             record.iva_amount = invoice.amount_tax
             record.foreign_iva_amount = vef_iva or invoice.amount_tax
-            record.foreign_currency_rate = rate
             record.foreign_currency_rate = rate
 
     @api.depends(

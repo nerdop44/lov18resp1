@@ -21,19 +21,11 @@
             <field name="arch" type="xml">
                    <xpath expr="//field[@name='list_price']" position="after">
                       <field name="currency_id_dif" invisible="1"/>
-                      <field name="list_price_usd" string="Precio de Venta (Bs.)" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                      <field name="list_price_usd" string="Precio de Venta (Bs.)"/>
                    </xpath>
-                <xpath expr="//div[@name='standard_price_uom']" position="after">
-                    <label for="standard_price_usd" string="Costo de Compra (Bs.)" groups="base.group_user"
-                           invisible="[('product_variant_count', '&gt;', 1), ('is_product_variant', '=', False)]"/>
-                    <div name="standard_price_uom_usd" groups="base.group_user"
-                         invisible="[('product_variant_count', '&gt;', 1), ('is_product_variant', '=', False)]"
-                         class="o_row">
-                        <field name="standard_price_usd" widget="monetary" options="{'currency_field': 'currency_id_dif', 'field_digits': True}" />
-                        <span groups="uom.group_uom" class="oe_read_only">por
-                            <field name="uom_name"/>
-                        </span>
-                    </div>
+                <xpath expr="//field[@name='standard_price']" position="after">
+                    <field name="currency_id_dif" invisible="1"/>
+                    <field name="standard_price_usd" string="Costo de Compra (Bs.)" invisible="product_variant_count &gt; 1 and not is_product_variant"/>
                     <field name="costo_reposicion_usd" string="Costo Reposición (Bs.)" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
                  </xpath>
             </field>
