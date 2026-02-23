@@ -21,11 +21,11 @@
             <field name="arch" type="xml">
                    <xpath expr="//field[@name='list_price']" position="after">
                       <field name="currency_id_dif" invisible="1"/>
-                      <field name="list_price_usd" string="Precio Bs." widget="monetary" options="{'currency_field': 'currency_id_dif'}" invisible="0"/>
+                      <field name="list_price_usd" string="Precio de Venta (Bs.)" widget="monetary" options="{'currency_field': 'currency_id_dif'}" invisible="0"/>
                    </xpath>
                 <xpath expr="//div[@name='standard_price_uom']" position="after">
                     <field name="currency_id_dif" invisible="1"/>
-                    <label for="standard_price_usd" string="Costo Bs." groups="base.group_user"
+                    <label for="standard_price_usd" string="Costo de Compra (Bs.)" groups="base.group_user"
                            invisible="[('product_variant_count', '&gt;', 1), ('is_product_variant', '=', False)]"/>
                     <div name="standard_price_uom_usd" groups="base.group_user"
                          invisible="[('product_variant_count', '&gt;', 1), ('is_product_variant', '=', False)]"
@@ -35,7 +35,7 @@
                             <field name="uom_name"/>
                         </span>
                     </div>
-                    <field name="costo_reposicion_usd" string="Costo Reposición Bs." widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
+                    <field name="costo_reposicion_usd" string="Costo Reposición (Bs.)" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
                  </xpath>
             </field>
         </record>

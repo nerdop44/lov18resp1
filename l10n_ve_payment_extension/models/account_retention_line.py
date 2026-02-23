@@ -154,17 +154,21 @@ class AccountRetentionLine(models.Model):
             self.invoice_amount = invoice.amount_untaxed
             self.iva_amount = invoice.amount_tax
             
+            # Regla de Oro: Siempre convertir a VEF si la factura no está en VEF
+            is_vef = invoice.currency_id.name in ['VES', 'VEF']
+            
             # Priorizamos fields de dual currency (Bs.)
             vef_total = getattr(invoice, 'amount_total_bs', 0.0)
             vef_untaxed = getattr(invoice, 'amount_untaxed_bs', 0.0)
             vef_iva = getattr(invoice, 'amount_tax_bs', 0.0)
             rate = getattr(invoice, 'tax_today', invoice.foreign_rate or 1.0)
 
-            if not vef_total and rate > 1.0:
+            # Si no es VEF o los campos duales están vacíos, forzamos conversión por tasa
+            if not is_vef or not vef_total:
                 vef_total = invoice.amount_total * rate
-            if not vef_untaxed and rate > 1.0:
+            if not is_vef or not vef_untaxed:
                 vef_untaxed = invoice.amount_untaxed * rate
-            if not vef_iva and rate > 1.0:
+            if not is_vef or not vef_iva:
                 vef_iva = invoice.amount_tax * rate
 
             self.foreign_invoice_total = vef_total or invoice.amount_total
@@ -287,17 +291,21 @@ class AccountRetentionLine(models.Model):
             invoice = record.move_id
             # Monto base de la factura (USD)
             amount_untaxed = invoice.amount_untaxed
+            # Regla de Oro: Siempre convertir a VEF si la factura no está en VEF
+            is_vef = invoice.currency_id.name in ['VES', 'VEF']
+            
             # Montos en Bolívares (VEF)
             vef_untaxed = getattr(invoice, 'amount_untaxed_bs', 0.0)
             vef_total = getattr(invoice, 'amount_total_bs', 0.0)
             vef_iva = getattr(invoice, 'amount_tax_bs', 0.0)
             rate = getattr(invoice, 'tax_today', invoice.foreign_rate or 1.0)
             
-            if not vef_untaxed and rate > 1.0:
+            # Si no es VEF o los campos duales están vacíos, forzamos conversión por tasa
+            if not is_vef or not vef_untaxed:
                 vef_untaxed = amount_untaxed * rate
-            if not vef_total and rate > 1.0:
+            if not is_vef or not vef_total:
                 vef_total = invoice.amount_total * rate
-            if not vef_iva and rate > 1.0:
+            if not is_vef or not vef_iva:
                 vef_iva = invoice.amount_tax * rate
 
             record.invoice_amount = amount_untaxed
