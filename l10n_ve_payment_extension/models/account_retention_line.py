@@ -308,6 +308,7 @@ class AccountRetentionLine(models.Model):
             record.foreign_invoice_amount = vef_untaxed
             record.invoice_total = invoice.amount_total
             
+            vef_total = getattr(invoice, 'amount_total_bs', 0.0)
             if not vef_total and rate > 1.0:
                 vef_total = invoice.amount_total * rate
             record.foreign_invoice_total = vef_total or invoice.amount_total
