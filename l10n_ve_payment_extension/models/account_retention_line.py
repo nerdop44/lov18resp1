@@ -155,7 +155,8 @@ class AccountRetentionLine(models.Model):
             self.iva_amount = invoice.amount_tax
             
             # Regla de Oro: Siempre convertir a VEF si la factura no está en VEF
-            is_vef = invoice.currency_id.name in ['VES', 'VEF']
+            currency_name = invoice.currency_id.name if invoice.currency_id else ''
+            is_vef = currency_name in ['VES', 'VEF']
             
             # Priorizamos fields de dual currency (Bs.)
             vef_total = getattr(invoice, 'amount_total_bs', 0.0)
@@ -165,11 +166,11 @@ class AccountRetentionLine(models.Model):
 
             # Si no es VEF o los campos duales están vacíos, forzamos conversión por tasa
             if not is_vef or not vef_total:
-                vef_total = invoice.amount_total * rate
+                vef_total = invoice.amount_total * (rate if rate else 1.0)
             if not is_vef or not vef_untaxed:
-                vef_untaxed = invoice.amount_untaxed * rate
+                vef_untaxed = invoice.amount_untaxed * (rate if rate else 1.0)
             if not is_vef or not vef_iva:
-                vef_iva = invoice.amount_tax * rate
+                vef_iva = invoice.amount_tax * (rate if rate else 1.0)
 
             self.foreign_invoice_total = vef_total or invoice.amount_total
             self.foreign_invoice_amount = vef_untaxed or invoice.amount_untaxed
@@ -292,7 +293,8 @@ class AccountRetentionLine(models.Model):
             # Monto base de la factura (USD)
             amount_untaxed = invoice.amount_untaxed
             # Regla de Oro: Siempre convertir a VEF si la factura no está en VEF
-            is_vef = invoice.currency_id.name in ['VES', 'VEF']
+            currency_name = invoice.currency_id.name if invoice.currency_id else ''
+            is_vef = currency_name in ['VES', 'VEF']
             
             # Montos en Bolívares (VEF)
             vef_untaxed = getattr(invoice, 'amount_untaxed_bs', 0.0)
@@ -302,11 +304,11 @@ class AccountRetentionLine(models.Model):
             
             # Si no es VEF o los campos duales están vacíos, forzamos conversión por tasa
             if not is_vef or not vef_untaxed:
-                vef_untaxed = amount_untaxed * rate
+                vef_untaxed = amount_untaxed * (rate if rate else 1.0)
             if not is_vef or not vef_total:
-                vef_total = invoice.amount_total * rate
+                vef_total = invoice.amount_total * (rate if rate else 1.0)
             if not is_vef or not vef_iva:
-                vef_iva = invoice.amount_tax * rate
+                vef_iva = invoice.amount_tax * (rate if rate else 1.0)
 
             record.invoice_amount = amount_untaxed
             record.foreign_invoice_amount = vef_untaxed or amount_untaxed
@@ -315,6 +317,7 @@ class AccountRetentionLine(models.Model):
             
             record.iva_amount = invoice.amount_tax
             record.foreign_iva_amount = vef_iva or invoice.amount_tax
+            record.foreign_currency_rate = rate
             record.foreign_currency_rate = rate
 
     @api.depends(
