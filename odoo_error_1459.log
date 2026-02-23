@@ -1,0 +1,67 @@
+2026-02-23 14:58:17,717 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:58:17] "GET /web/image?model=res.users&field=avatar_128&id=2 HTTP/1.0" 304 - 9 0.004 0.007
+2026-02-23 14:58:17,725 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:58:17] "POST /web/action/load HTTP/1.0" 200 - 10 0.003 0.005
+2026-02-23 14:58:17,735 4 INFO ? werkzeug: 91.109.163.39 - - [23/Feb/2026 14:58:17] "GET /web/static/src/libs/fontawesome/fonts/fontawesome-webfont.woff2?v=4.7.0 HTTP/1.0" 200 - 0 0.000 0.001
+2026-02-23 14:58:17,746 4 INFO ? werkzeug: 91.109.163.39 - - [23/Feb/2026 14:58:17] "GET /web/static/lib/odoo_ui_icons/fonts/odoo_ui_icons.woff2 HTTP/1.0" 200 - 0 0.000 0.001
+2026-02-23 14:58:17,889 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:58:17] "POST /web/dataset/call_kw/product.template/get_views HTTP/1.0" 200 - 4 0.002 0.019
+2026-02-23 14:58:18,078 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:58:18] "POST /web/dataset/call_kw/product.template/web_read HTTP/1.0" 200 - 67 0.025 0.036
+2026-02-23 14:58:18,354 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:58:18] "POST /web/dataset/call_kw/product.category/has_access HTTP/1.0" 200 - 1 0.000 0.002
+2026-02-23 14:58:18,530 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:58:18] "POST /mail/thread/data HTTP/1.0" 200 - 13 0.005 0.008
+2026-02-23 14:58:18,627 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:58:18] "POST /mail/thread/messages HTTP/1.0" 200 - 3 0.001 0.003
+2026-02-23 14:58:59,879 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:58:59] "POST /websocket/update_bus_presence HTTP/1.1" 200 - 4 0.001 0.004
+2026-02-23 14:59:03,956 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:03] "GET /odoo/action-817/18 HTTP/1.0" 200 - 22 0.006 0.014
+2026-02-23 14:59:04,220 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:04] "GET /web/assets/deabcf1/web.assets_web.min.css HTTP/1.0" 200 - 3 0.001 0.003
+2026-02-23 14:59:04,233 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:04] "GET /web/assets/bdb5ca0/web.assets_web.min.js HTTP/1.0" 200 - 3 0.001 0.003
+2026-02-23 14:59:04,307 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:04] "GET /web/webclient/translations/5823953b69e4f0f6931d937b4f8905cdfd8d57bf?lang=es_VE HTTP/1.0" 200 - 1 0.000 0.035
+2026-02-23 14:59:04,316 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:04] "GET /web/manifest.webmanifest HTTP/1.0" 200 - 7 0.004 0.027
+2026-02-23 14:59:04,405 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:04] "GET /web/webclient/load_menus/b370947637ed00dd79b01949f9029612d9e0d3b09a155ea1261baa8777ae2e53 HTTP/1.0" 200 - 239 0.078 0.063
+2026-02-23 14:59:04,893 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:04] "POST /websocket/peek_notifications HTTP/1.1" 200 - 10 0.003 0.006
+2026-02-23 14:59:06,117 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:06] "GET /web/assets/e011ca5/web.assets_web_print.min.css HTTP/1.0" 200 - 3 0.001 0.003
+2026-02-23 14:59:07,295 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:07] "GET /web/webclient/translations/5823953b69e4f0f6931d937b4f8905cdfd8d57bf?lang=es_VE HTTP/1.0" 200 - 1 0.000 0.031
+2026-02-23 14:59:07,380 4 INFO ? werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:07] "GET /web/static/img/favicon.ico HTTP/1.0" 200 - 0 0.000 0.001
+2026-02-23 14:59:07,805 4 INFO krill-energy-prueba-27822700 odoo.addons.account_dual_currency.models.res_currency: TRM DEBUG: Company KRILL Energy, C.A. (ID: 1), Currency Dif: VEF 
+2026-02-23 14:59:07,807 4 INFO krill-energy-prueba-27822700 odoo.addons.account_dual_currency.models.res_currency: TRM DEBUG: Initial DB Rate: 405.3518 
+2026-02-23 14:59:07,807 4 INFO krill-energy-prueba-27822700 odoo.addons.account_dual_currency.models.res_currency: TRM DEBUG: Final Rate returned to systray: 405.3518 
+2026-02-23 14:59:07,808 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:07] "POST /web/dataset/call_kw/res.currency/get_trm_systray HTTP/1.0" 200 - 5 0.003 0.007
+2026-02-23 14:59:07,858 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:07] "POST /mail/data HTTP/1.0" 200 - 20 0.007 0.011
+2026-02-23 14:59:07,939 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:07] "GET /web/image?model=res.users&field=avatar_128&id=2 HTTP/1.0" 304 - 9 0.003 0.008
+2026-02-23 14:59:07,955 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:07] "POST /web/action/load HTTP/1.0" 200 - 10 0.003 0.006
+2026-02-23 14:59:07,958 4 INFO ? werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:07] "GET /web/static/src/libs/fontawesome/fonts/fontawesome-webfont.woff2?v=4.7.0 HTTP/1.0" 200 - 0 0.000 0.001
+2026-02-23 14:59:07,972 4 INFO ? werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:07] "GET /web/static/lib/odoo_ui_icons/fonts/odoo_ui_icons.woff2 HTTP/1.0" 200 - 0 0.000 0.001
+2026-02-23 14:59:08,123 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:08] "POST /web/dataset/call_kw/account.retention/get_views HTTP/1.0" 200 - 44 0.016 0.034
+2026-02-23 14:59:08,264 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:08] "POST /web/dataset/call_kw/account.retention/web_read HTTP/1.0" 200 - 19 0.009 0.013
+2026-02-23 14:59:11,904 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:11] "POST /websocket/update_bus_presence HTTP/1.1" 200 - 4 0.001 0.004
+2026-02-23 14:59:14,913 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:14] "POST /websocket/update_bus_presence HTTP/1.1" 200 - 4 0.001 0.003
+2026-02-23 14:59:16,655 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:16] "POST /websocket/update_bus_presence HTTP/1.1" 200 - 4 0.001 0.003
+2026-02-23 14:59:18,460 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:18] "POST /websocket/update_bus_presence HTTP/1.1" 200 - 4 0.001 0.003
+2026-02-23 14:59:21,468 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 14:59:21] "POST /websocket/update_bus_presence HTTP/1.1" 200 - 4 0.001 0.004
+2026-02-23 15:01:30,215 4 INFO krill-energy-prueba-27822700 odoo.service.server: Initiating shutdown 
+2026-02-23 15:01:30,216 4 INFO krill-energy-prueba-27822700 odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-02-23 15:01:30,595 4 INFO krill-energy-prueba-27822700 odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=10): Closed 6 connections  
+2026-02-23 15:06:45,198 4 INFO ? odoo: Odoo version 18.0 
+2026-02-23 15:06:45,198 4 INFO ? odoo: Using configuration file at /home/odoo/.config/odoo/odoo.conf 
+2026-02-23 15:06:45,198 4 INFO ? odoo: addons paths: ['/home/odoo/src/odoo/odoo/addons', '/home/odoo/.local/share/Odoo/addons/18.0', '/home/odoo/src/odoo/addons', '/home/odoo/src/enterprise', '/home/odoo/src/themes', '/home/odoo/src/user/nerdop44/lov18resp1', '/home/odoo/data/addons/18.0'] 
+2026-02-23 15:06:45,199 4 INFO ? odoo: database: p_krill_energy_prueba_27822700@192.168.1.1:5432 
+2026-02-23 15:06:45,210 4 INFO ? odoo: Could not determine if database krill-energy-prueba-27822700 exists, skipping auto-creation: permission denied for table pg_database
+ 
+2026-02-23 15:06:45,394 4 INFO ? odoo.addons.base.models.ir_actions_report: Will use the Wkhtmltopdf binary at /opt/odoo.sh/odoosh/bin/wkhtmltopdf 
+2026-02-23 15:06:45,473 4 INFO ? odoo.addons.base.models.ir_actions_report: Will use the Wkhtmltoimage binary at /usr/local/bin/wkhtmltoimage 
+2026-02-23 15:06:45,705 4 INFO ? odoo.service.server: Watching addons folder /home/odoo/src/odoo/odoo/addons 
+2026-02-23 15:06:45,705 4 INFO ? odoo.service.server: Watching addons folder /home/odoo/.local/share/Odoo/addons/18.0 
+2026-02-23 15:06:45,706 4 INFO ? odoo.service.server: Watching addons folder /home/odoo/src/odoo/addons 
+2026-02-23 15:06:45,706 4 INFO ? odoo.service.server: Watching addons folder /home/odoo/src/enterprise 
+2026-02-23 15:06:45,706 4 INFO ? odoo.service.server: Watching addons folder /home/odoo/src/themes 
+2026-02-23 15:06:45,706 4 INFO ? odoo.service.server: Watching addons folder /home/odoo/src/user/nerdop44/lov18resp1 
+2026-02-23 15:06:45,706 4 INFO ? odoo.service.server: Watching addons folder /home/odoo/data/addons/18.0 
+2026-02-23 15:06:46,802 4 INFO ? odoo.service.server: AutoReload watcher running with inotify 
+2026-02-23 15:06:46,803 4 INFO ? odoo.service.server: HTTP service (werkzeug) running through socket activation 
+2026-02-23 15:06:46,820 4 INFO krill-energy-prueba-27822700 odoo.modules.loading: loading 1 modules... 
+2026-02-23 15:06:46,854 4 INFO krill-energy-prueba-27822700 odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-02-23 15:06:46,990 4 INFO krill-energy-prueba-27822700 odoo.modules.loading: loading 212 modules... 
+2026-02-23 15:06:49,882 4 INFO krill-energy-prueba-27822700 odoo.modules.loading: 212 modules loaded in 2.89s, 0 queries (+0 extra) 
+2026-02-23 15:06:50,129 4 INFO krill-energy-prueba-27822700 odoo.modules.loading: Modules loaded. 
+2026-02-23 15:06:50,135 4 INFO krill-energy-prueba-27822700 odoo.modules.registry: Registry loaded in 3.332s 
+2026-02-23 15:06:50,147 4 INFO krill-energy-prueba-27822700 odoo.addons.base.models.ir_http: Generating routing map for key None 
+2026-02-23 15:06:50,179 4 INFO krill-energy-prueba-27822700 werkzeug: 91.109.163.39 - - [23/Feb/2026 15:06:50] "POST /web/webclient/version_info HTTP/1.0" 200 - 5 0.004 3.371
+2026-02-23 15:09:01,649 4 INFO krill-energy-prueba-27822700 odoo.service.server: Initiating shutdown 
+2026-02-23 15:09:01,649 4 INFO krill-energy-prueba-27822700 odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-02-23 15:09:01,945 4 INFO krill-energy-prueba-27822700 odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=10): Closed 3 connections  
