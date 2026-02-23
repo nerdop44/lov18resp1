@@ -274,18 +274,37 @@ class AccountRetentionLine(models.Model):
             amount_untaxed = invoice.amount_untaxed
             # Monto en Bolívares (VEF)
             vef_untaxed = getattr(invoice, 'amount_untaxed_bs', 0.0)
+            rate = getattr(invoice, 'tax_today', invoice.foreign_rate or 1.0)
+            
             if not vef_untaxed:
-                # Fallback indirecto si amount_untaxed_bs está vacío
+                # Fallback 1: tax_totals
                 tax_totals = invoice.tax_totals or {}
-                vef_untaxed = tax_totals.get('foreign_amount_untaxed', amount_untaxed)
+                vef_untaxed = tax_totals.get('foreign_amount_untaxed', 0.0)
+                
+            if not vef_untaxed and rate > 1.0:
+                # Fallback 2: Manual conversion if tax_today exists
+                vef_untaxed = amount_untaxed * rate
+
+            if not vef_untaxed:
+                # Fallback 3: Use company amount (last resort)
+                vef_untaxed = amount_untaxed
 
             record.invoice_amount = amount_untaxed
             record.foreign_invoice_amount = vef_untaxed
             record.invoice_total = invoice.amount_total
-            record.foreign_invoice_total = getattr(invoice, 'amount_total_bs', invoice.amount_total)
+            
+            vef_total = getattr(invoice, 'amount_total_bs', 0.0)
+            if not vef_total and rate > 1.0:
+                vef_total = invoice.amount_total * rate
+            record.foreign_invoice_total = vef_total or invoice.amount_total
+            
             record.iva_amount = invoice.amount_tax
-            record.foreign_iva_amount = getattr(invoice, 'amount_tax_bs', invoice.amount_tax)
-            record.foreign_currency_rate = getattr(invoice, 'tax_today', invoice.foreign_rate or 1.0)
+            vef_iva = getattr(invoice, 'amount_tax_bs', 0.0)
+            if not vef_iva and rate > 1.0:
+                vef_iva = invoice.amount_tax * rate
+            record.foreign_iva_amount = vef_iva or invoice.amount_tax
+            
+            record.foreign_currency_rate = rate
 
     @api.depends(
         "invoice_amount",
@@ -307,11 +326,11 @@ class AccountRetentionLine(models.Model):
         - foreign_retention_amount: SIEMPRE en VEF (Bs.)
           foreign_invoice_amount ya fue asignado en VEF por _compute_related_fields
         """
-        islr_supplier_retention_lines = self.filtered(
+        islr_retention_lines = self.filtered(
             lambda l: (not l.retention_id and l.payment_concept_id)
-            or (l.retention_id.type_retention == "islr" and l.retention_id.type == "in_invoice")
+            or (l.retention_id.type_retention == "islr")
         )
-        for record in islr_supplier_retention_lines:
+        for record in islr_retention_lines:
             # Tasa para des-sustraer en moneda empresa
             foreign_rate = record.foreign_currency_rate or 1.0
 
