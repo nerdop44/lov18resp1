@@ -7,8 +7,8 @@ class ProductProduct(models.Model):
 
     currency_id_dif = fields.Many2one('res.currency', string='Moneda Diferente', default=lambda self: self.env.company.currency_id_dif.id)
 
-    list_price_usd = fields.Monetary(string="Precio de venta $", currency_field='currency_id_dif')
-    standard_price_usd = fields.Float(string="Costo $", company_dependent=True)
+    list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif')
+    standard_price_usd = fields.Float(string="Costo Alterno", company_dependent=True)
 
     value_usd_svl = fields.Float(compute='_compute_value_usd_svl', compute_sudo=True)
 
