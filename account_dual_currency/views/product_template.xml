@@ -20,7 +20,7 @@
             <field name="inherit_id" ref="product.product_template_form_view"/>
             <field name="arch" type="xml">
                  <xpath expr="//field[@name='taxes_id']" position="before">
-                    <field name="list_price_usd" />
+                    <field name="list_price_usd" string="Precio Bs." />
                  </xpath>
                 <xpath expr="//div[@name='standard_price_uom']" position="after">
                     <field name="currency_id_dif" invisible="1"/>
@@ -29,12 +29,12 @@
                     <div name="standard_price_uom_usd" groups="base.group_user"
                          invisible="[('product_variant_count', '&gt;', 1), ('is_product_variant', '=', False)]"
                          class="o_row">
-                        <field name="standard_price_usd" widget="monetary" options="{'currency_field': 'currency_id_dif', 'field_digits': True}" />
+                        <field name="standard_price_usd" string="Costo Bs." widget="monetary" options="{'currency_field': 'currency_id_dif', 'field_digits': True}" />
                         <span groups="uom.group_uom" class="oe_read_only">por
                             <field name="uom_name"/>
                         </span>
                     </div>
-                    <field name="costo_reposicion_usd" />
+                    <field name="costo_reposicion_usd" string="Costo Reposición Bs." />
                  </xpath>
             </field>
         </record>

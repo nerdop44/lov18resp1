@@ -155,12 +155,22 @@ class AccountRetentionLine(models.Model):
             self.iva_amount = invoice.amount_tax
             
             # Priorizamos fields de dual currency (Bs.)
-            self.foreign_invoice_total = getattr(invoice, 'amount_total_bs', self.invoice_total)
-            self.foreign_invoice_amount = getattr(invoice, 'amount_untaxed_bs', self.invoice_amount)
-            self.foreign_iva_amount = getattr(invoice, 'amount_tax_bs', self.iva_amount)
+            vef_total = getattr(invoice, 'amount_total_bs', 0.0)
+            vef_untaxed = getattr(invoice, 'amount_untaxed_bs', 0.0)
+            vef_iva = getattr(invoice, 'amount_tax_bs', 0.0)
+            rate = getattr(invoice, 'tax_today', invoice.foreign_rate or 1.0)
 
-            # Tasa
-            self.foreign_currency_rate = getattr(invoice, 'tax_today', invoice.foreign_rate or 1.0)
+            if not vef_total and rate > 1.0:
+                vef_total = invoice.amount_total * rate
+            if not vef_untaxed and rate > 1.0:
+                vef_untaxed = invoice.amount_untaxed * rate
+            if not vef_iva and rate > 1.0:
+                vef_iva = invoice.amount_tax * rate
+
+            self.foreign_invoice_total = vef_total or invoice.amount_total
+            self.foreign_invoice_amount = vef_untaxed or invoice.amount_untaxed
+            self.foreign_iva_amount = vef_iva or invoice.amount_tax
+            self.foreign_currency_rate = rate
 
             self.is_retention_client = invoice.move_type in ('out_invoice', 'out_refund', 'out_debit')
             self.invoice_type = invoice.move_type
@@ -168,8 +178,7 @@ class AccountRetentionLine(models.Model):
             # Limpiar campos de ISLR/Municipal al cambiar factura
             self.payment_concept_id = False
             self.economic_activity_id = False
-            self.retention_amount = 0.0
-            self.foreign_retention_amount = 0.0
+            self._compute_retention_amount() # Forzar recalculo de otros tipos
         else:
             self.invoice_total = 0.0
             self.foreign_invoice_total = 0.0
@@ -259,6 +268,12 @@ class AccountRetentionLine(models.Model):
                 record.related_percentage_fees = 0.0
                 record.related_amount_subtract_fees = 0.0
                 
+    @api.onchange('payment_concept_id')
+    def _onchange_payment_concept_id(self):
+        """Dispara el cálculo inmediato del ISLR en la UI al seleccionar el concepto."""
+        self._compute_related_fields()
+        self._compute_retention_amount()
+
     @api.depends("move_id", "move_id.amount_untaxed", "move_id.amount_untaxed_bs")
     def _compute_amounts(self):
         """
@@ -293,7 +308,6 @@ class AccountRetentionLine(models.Model):
             record.foreign_invoice_amount = vef_untaxed
             record.invoice_total = invoice.amount_total
             
-            vef_total = getattr(invoice, 'amount_total_bs', 0.0)
             if not vef_total and rate > 1.0:
                 vef_total = invoice.amount_total * rate
             record.foreign_invoice_total = vef_total or invoice.amount_total
@@ -303,7 +317,7 @@ class AccountRetentionLine(models.Model):
             if not vef_iva and rate > 1.0:
                 vef_iva = invoice.amount_tax * rate
             record.foreign_iva_amount = vef_iva or invoice.amount_tax
-            
+
             record.foreign_currency_rate = rate
 
     @api.depends(

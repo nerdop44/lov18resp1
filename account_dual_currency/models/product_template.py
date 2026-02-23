@@ -34,7 +34,15 @@ class Productos(models.Model):
                 if rec.list_price_usd >0:
                     tasa = self.env.company.currency_id_dif
                     if tasa:
-                        rec.list_price = rec.list_price_usd * tasa.inverse_rate
+                        rec.with_context(from_usd=True).list_price = rec.list_price_usd * tasa.inverse_rate
+
+    @api.onchange('list_price')
+    def _onchange_list_price_sync_bs(self):
+        for rec in self:
+            if rec.list_price and not self._context.get('from_usd'):
+                tasa = self.env.company.currency_id_dif
+                if tasa and tasa.inverse_rate > 0:
+                    rec.list_price_usd = rec.list_price / tasa.inverse_rate
 
     @api.onchange('standard_price_usd')
     def _onchange_standard_price_usd(self):
@@ -46,6 +54,14 @@ class Productos(models.Model):
                 if rec.standard_price_usd > 0:
                     tasa = self.env.company.currency_id_dif
                     if tasa:
-                        rec.standard_price = rec.standard_price_usd * tasa.inverse_rate
+                        rec.with_context(from_usd=True).standard_price = rec.standard_price_usd * tasa.inverse_rate
+
+    @api.onchange('standard_price')
+    def _onchange_standard_price_sync_bs(self):
+        for rec in self:
+            if rec.standard_price and not self._context.get('from_usd'):
+                tasa = self.env.company.currency_id_dif
+                if tasa and tasa.inverse_rate > 0:
+                    rec.standard_price_usd = rec.standard_price / tasa.inverse_rate
 
 
