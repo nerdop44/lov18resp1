@@ -23,11 +23,10 @@
                       <field name="currency_id_dif" invisible="1"/>
                       <field name="list_price_usd" string="Precio de Venta (Bs.)"/>
                    </xpath>
-                <xpath expr="//field[@name='standard_price']" position="after">
-                    <field name="currency_id_dif" invisible="1"/>
-                    <field name="standard_price_usd" string="Costo de Compra (Bs.)" invisible="product_variant_count &gt; 1 and not is_product_variant"/>
-                    <field name="costo_reposicion_usd" string="Costo Reposición (Bs.)" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
-                 </xpath>
+                   <xpath expr="//field[@name='standard_price']" position="after">
+                      <field name="standard_price_usd" string="Costo de Compra (Bs.)" invisible="product_variant_count &gt; 1 and not is_product_variant"/>
+                      <field name="costo_reposicion_usd" string="Costo Reposición (Bs.)" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
+                   </xpath>
             </field>
         </record>
 
