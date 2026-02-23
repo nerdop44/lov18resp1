@@ -41,8 +41,10 @@ class ProductProduct(models.Model):
             if rec.standard_price_usd and rec.categ_id.property_valuation == 'manual_periodic':
                 if rec.standard_price_usd > 0:
                     tasa = self.env.company.currency_id_dif
-                    if tasa:
-                        rec.standard_price = rec.standard_price_usd * tasa.inverse_rate
+                    if tasa and tasa.inverse_rate:
+                        new_val = rec.standard_price_usd * tasa.inverse_rate
+                        if abs(rec.standard_price - new_val) > 0.01:
+                            rec.standard_price = new_val
 
     def _prepare_in_svl_vals(self, quantity, unit_cost):
         """Prepare the values for a stock valuation layer created by a receipt.
