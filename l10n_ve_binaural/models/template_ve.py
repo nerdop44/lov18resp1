@@ -6,7 +6,7 @@ from odoo.addons.account.models.chart_template import template
 class AccountChartTemplate(models.AbstractModel):
     _inherit = "account.chart.template"
 
-    @template("ve")
+#     @template("ve")
 #     def _get_ve_template_data(self):
 #         return {
 #             "code_digits": "7",
@@ -17,7 +17,7 @@ class AccountChartTemplate(models.AbstractModel):
 #             "name": _("Venezuela - Binaural"),
 #         }
 # 
-    @template("ve", "res.company")
+#     @template("ve", "res.company")
 #     def _get_ve_res_company(self):
 #         return {
 #             self.env.company.id: {
