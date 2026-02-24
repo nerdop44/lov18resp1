@@ -14,9 +14,11 @@
 #        "views/account_move.xml",
 #    ],
     "images": ["static/description/icon.png"],
-    "application": True,
+    "application": False,
 #    "assets": {
 #        "web.assets_backend": ["l10n_ve_tax/static/src/components/**/*"],
 #    },
     "binaural": True,
+    "installable": False,
+    "application": False,
 }

@@ -33,5 +33,7 @@
 #         "wizard/accounting_reports_views.xml",
 #     ],
     "images": ["static/description/icon.png"],
-    "application": True,
+    "application": False,
+    "installable": False,
+    "application": False,
 }

@@ -12,6 +12,8 @@
 #        "views/res_partner.xml",
 #    ],
     "images": ["static/description/icon.png"],
-    "application": True,
+    "application": False,
     "binaural": True,
+    "installable": False,
+    "application": False,
 }

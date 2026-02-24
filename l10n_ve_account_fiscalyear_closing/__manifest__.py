@@ -19,6 +19,8 @@
 #        "views/account_fiscalyear_closing_template.xml",
 #    ],
     "images": ["static/description/icon.png"],
-    "application": True,
+    "application": False,
     "binaural": True,
+    "installable": False,
+    "application": False,
 }

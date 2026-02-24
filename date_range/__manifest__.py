@@ -8,7 +8,7 @@
     "website": "https://github.com/OCA/server-ux",
     "author": "ACSONE SA/NV, Odoo Community Association (OCA)",
     "license": "LGPL-3",
-    "installable": True,
+    "installable": False,
     "depends": ["web"],
 #    "data": [
 #        "data/ir_cron_data.xml",

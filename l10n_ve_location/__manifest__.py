@@ -21,6 +21,8 @@ parroquias. 
 #        "views/res_partner_views.xml",
 #        "views/menus.xml",
 #    ],
-    "application": True,
+    "application": False,
     "binaural": True,
+    "installable": False,
+    "application": False,
 }
