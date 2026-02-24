@@ -17,7 +17,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
         '''
         queries = []
         params = []
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         if self.pool['account.account'].name.translate:
             lang = self.env.user.lang or get_lang(self.env).code
             account_name = f"COALESCE(account_account.name->>'{lang}', account_account.name->>'en_US')"
@@ -82,7 +82,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
 
         queries = []
         params = []
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         if self.pool['account.account'].name.translate:
             lang = self.env.user.lang or get_lang(self.env).code
             account_name = f"COALESCE(account_account.name->>'{lang}', account_account.name->>'en_US')"
@@ -291,7 +291,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
 
         queries = []
         params = []
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         for column_group_key, column_group_options in report._split_options_per_column_group(options).items():
             move_ids = self._get_move_ids_query(report, payment_account_ids, column_group_options)
 

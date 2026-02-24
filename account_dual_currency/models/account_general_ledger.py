@@ -29,7 +29,7 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         # Create the currency table.
         # As the currency table is the same whatever the comparisons, create it only once.
         ct_query = self.env['res.currency']._get_query_currency_table(options)
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         # ============================================
         # 1) Get sums for all accounts.
         # ============================================
@@ -144,7 +144,7 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         additional_domain = [('account_id', 'in', expanded_account_ids)] if expanded_account_ids is not None else None
         queries = []
         all_params = []
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         lang = self.env.user.lang or get_lang(self.env).code
         journal_name = f"COALESCE(journal.name->>'{lang}', journal.name->>'en_US')" if \
             self.pool['account.journal'].name.translate else 'journal.name'
@@ -253,7 +253,7 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         """
         queries = []
         params = []
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         for column_group_key, options_group in report._split_options_per_column_group(options).items():
             new_options = self._get_options_initial_balance(options_group)
             ct_query = self.env['res.currency']._get_query_currency_table(new_options)

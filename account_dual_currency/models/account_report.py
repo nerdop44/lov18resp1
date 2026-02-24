@@ -51,8 +51,8 @@ class AccountReport(models.AbstractModel):
             'company': self.env.company,
         }
         self = self.with_context(
-            currency_dif=options['currency_dif'],
-            currency_id_company_name=options['currency_id_company_name'],
+            currency_dif=options.get('currency_dif', self.env.company.currency_id.symbol),
+            currency_id_company_name=options.get('currency_id_company_name', self.env.company.currency_id.symbol),
         )
         print_mode_self = self.with_context(print_mode=True)
 
@@ -98,12 +98,11 @@ class AccountReport(models.AbstractModel):
             company_id = self._context.get('allowed_company_ids')[0]
             company = self.env['res.company'].browse(company_id)
             if company:
-                currency_id_company_name = company.currency_id.symbol
-                currency_id_dif_name = company.currency_id_dif.symbol
+                currency_id_company_name = company.currency_id.symbol if company.currency_id else 'Bs'
+                currency_id_dif_name = company.currency_id_dif.symbol if company.currency_id_dif else 'USD'
         currency_dif = currency_id_company_name
         if previous_options:
-            if "currency_dif" in previous_options:
-                currency_dif = previous_options['currency_dif']
+            currency_dif = previous_options.get('currency_dif', currency_id_company_name)
         options['currency_dif'] = currency_dif
         options['currency_id_company_name'] = currency_id_company_name
         options['currency_id_dif_name'] = currency_id_dif_name
@@ -168,7 +167,9 @@ class AccountReport(models.AbstractModel):
                       then it will be the number of matching amls. If there is a groupby, it will be the number of distinct grouping
                       keys at the first level of this groupby (so, if groupby is 'partner_id, account_id', the number of partners).
         """
-        currency_dif = options['currency_dif']
+        # Prepare options
+        self._get_options(options)
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         def _format_result_depending_on_groupby(formula_rslt):
             if not current_groupby:
                 if formula_rslt:

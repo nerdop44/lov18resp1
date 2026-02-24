@@ -16,7 +16,7 @@ class AssetReportCustomHandler(models.AbstractModel):
 
         self.env['account.move.line'].check_access_rights('read')
         self.env['account.asset'].check_access_rights('read')
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         move_filter = f"""move.state {"!= 'cancel'" if options.get('all_entries') else "= 'posted'"}"""
 
         if options.get('multi_company', False):

@@ -15,7 +15,7 @@ class JournalReportCustomHandler(models.AbstractModel):
     def _get_journal_initial_balance(self, options, journal_id, date_month=False):
         queries = []
         params = []
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         report = self.env.ref('account_reports.journal_report')
         for column_group_key, options_group in report._split_options_per_column_group(options).items():
             new_options = self.env['account.general.ledger.report.handler']._get_options_initial_balance(options_group)  # Same options as the general ledger
@@ -54,7 +54,7 @@ class JournalReportCustomHandler(models.AbstractModel):
     def _query_aml(self, options, offset=0, journal=False):
         params = []
         queries = []
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         lang = self.env.user.lang or get_lang(self.env).code
         acc_name = f"COALESCE(acc.name->>'{lang}', acc.name->>'en_US')" if \
             self.pool['account.account'].name.translate else 'acc.name'
@@ -227,7 +227,7 @@ class JournalReportCustomHandler(models.AbstractModel):
         }
         """
         report = self.env.ref('account_reports.journal_report')
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         # Use the same option as we use to get the tax details, but this time to generate the query used to fetch the
         # grid information
         tax_report_options = self._get_generic_tax_report_options(options, data)

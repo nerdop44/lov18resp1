@@ -1,0 +1,100 @@
+2026-02-12 12:29:15,845 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80044] 
+2026-02-12 12:29:15,845 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12870] 
+2026-02-12 12:29:15,845 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12869@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__display_name) 
+2026-02-12 12:29:15,883 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80043] 
+2026-02-12 12:29:15,884 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12869] 
+2026-02-12 12:29:15,884 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12868@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__id) 
+2026-02-12 12:29:16,045 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80042] 
+2026-02-12 12:29:16,045 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12868] 
+2026-02-12 12:29:16,046 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12867@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__date) 
+2026-02-12 12:29:16,095 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80041] 
+2026-02-12 12:29:16,095 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12867] 
+2026-02-12 12:29:16,095 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12866@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__related_percentage_tax_base) 
+2026-02-12 12:29:16,147 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80040] 
+2026-02-12 12:29:16,147 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12866] 
+2026-02-12 12:29:16,147 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12865@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__move_type) 
+2026-02-12 12:29:16,186 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80039] 
+2026-02-12 12:29:16,186 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12865] 
+2026-02-12 12:29:16,186 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12864@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__company_currency_id) 
+2026-02-12 12:29:16,221 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80038] 
+2026-02-12 12:29:16,221 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12864] 
+2026-02-12 12:29:16,222 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12863@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__tax_id) 
+2026-02-12 12:29:16,256 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80037] 
+2026-02-12 12:29:16,256 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12863] 
+2026-02-12 12:29:16,256 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12862@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__invoice_total) 
+2026-02-12 12:29:16,423 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80036] 
+2026-02-12 12:29:16,423 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12862] 
+2026-02-12 12:29:16,423 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12861@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__aliquot) 
+2026-02-12 12:29:16,466 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80035] 
+2026-02-12 12:29:16,466 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12861] 
+2026-02-12 12:29:16,466 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12860@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__foreign_invoice_amount) 
+2026-02-12 12:29:16,507 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80034] 
+2026-02-12 12:29:16,508 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12860] 
+2026-02-12 12:29:16,508 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12859@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__invoice_amount) 
+2026-02-12 12:29:16,549 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80033] 
+2026-02-12 12:29:16,549 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12859] 
+2026-02-12 12:29:16,549 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12858@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__iva_amount) 
+2026-02-12 12:29:16,590 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80032] 
+2026-02-12 12:29:16,590 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12858] 
+2026-02-12 12:29:16,590 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12857@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__foreign_retention_amount) 
+2026-02-12 12:29:16,627 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80031] 
+2026-02-12 12:29:16,627 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12857] 
+2026-02-12 12:29:16,627 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12856@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__foreign_base_amount) 
+2026-02-12 12:29:16,783 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80030] 
+2026-02-12 12:29:16,783 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12856] 
+2026-02-12 12:29:16,783 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12855@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__retention_amount) 
+2026-02-12 12:29:16,825 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80029] 
+2026-02-12 12:29:16,825 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12855] 
+2026-02-12 12:29:16,825 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12854@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__base_amount) 
+2026-02-12 12:29:16,864 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80028] 
+2026-02-12 12:29:16,865 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12854] 
+2026-02-12 12:29:16,865 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12853@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__foreign_inverse_rate) 
+2026-02-12 12:29:16,904 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80027] 
+2026-02-12 12:29:16,904 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12853] 
+2026-02-12 12:29:16,904 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12852@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__foreign_rate) 
+2026-02-12 12:29:16,944 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80026] 
+2026-02-12 12:29:16,944 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12852] 
+2026-02-12 12:29:16,944 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12851@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__foreign_iva_amount) 
+2026-02-12 12:29:16,985 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80025] 
+2026-02-12 12:29:16,985 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12851] 
+2026-02-12 12:29:16,986 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12850@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__foreign_currency_rate) 
+2026-02-12 12:29:17,155 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80024] 
+2026-02-12 12:29:17,155 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12850] 
+2026-02-12 12:29:17,156 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12849@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__foreign_invoice_total) 
+2026-02-12 12:29:17,202 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80023] 
+2026-02-12 12:29:17,202 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12849] 
+2026-02-12 12:29:17,202 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12848@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__foreign_currency_id) 
+2026-02-12 12:29:17,243 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80022] 
+2026-02-12 12:29:17,243 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12848] 
+2026-02-12 12:29:17,244 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12847@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__move_id) 
+2026-02-12 12:29:17,285 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80021] 
+2026-02-12 12:29:17,285 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12847] 
+2026-02-12 12:29:17,285 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12846@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__name) 
+2026-02-12 12:29:17,328 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80020] 
+2026-02-12 12:29:17,328 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12846] 
+2026-02-12 12:29:17,328 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12845@ir.model.fields (l10n_ve_accountant.field_account_retention_iva_line__state) 
+2026-02-12 12:29:17,369 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80019] 
+2026-02-12 12:29:17,369 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12845] 
+2026-02-12 12:29:17,370 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 12819@ir.model.fields (l10n_ve_accountant.field_account_payment__is_manually_modified) 
+2026-02-12 12:29:17,412 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [79993] 
+2026-02-12 12:29:17,412 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.fields records with IDs: [12819] 
+2026-02-12 12:29:17,413 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 849@ir.model (l10n_ve_accountant.model_account_retention_municipal_line) 
+2026-02-12 12:29:17,420 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: The model account.retention.municipal.line could not be dropped because it did not exist in the registry. 
+2026-02-12 12:29:17,430 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [79950] 
+2026-02-12 12:29:17,430 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model records with IDs: [849] 
+2026-02-12 12:29:17,431 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 848@ir.model (l10n_ve_accountant.model_account_retention_islr_line) 
+2026-02-12 12:29:17,435 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: The model account.retention.islr.line could not be dropped because it did not exist in the registry. 
+2026-02-12 12:29:17,441 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [79949] 
+2026-02-12 12:29:17,441 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model records with IDs: [848] 
+2026-02-12 12:29:17,441 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: Deleting 847@ir.model (l10n_ve_accountant.model_account_retention_iva_line) 
+2026-02-12 12:29:17,445 4 INFO krill-energy-produccion-28561046 odoo.addons.base.models.ir_model: The model account.retention.iva.line could not be dropped because it did not exist in the registry. 
+2026-02-12 12:29:17,451 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [79948] 
+2026-02-12 12:29:17,451 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model records with IDs: [847] 
+2026-02-12 12:29:17,453 4 INFO krill-energy-produccion-28561046 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [80012, 80011, 80010, 79970, 79969, 79968] 
+2026-02-12 12:29:17,457 4 INFO krill-energy-produccion-28561046 odoo.modules.registry: verifying fields for every extended model 
+2026-02-12 12:29:18,523 4 INFO krill-energy-produccion-28561046 odoo.modules.loading: Modules loaded. 
+2026-02-12 12:29:18,546 4 INFO krill-energy-produccion-28561046 odoo.modules.registry: Registry changed, signaling through the database 
+2026-02-12 12:29:18,546 4 INFO krill-energy-produccion-28561046 odoo.modules.registry: Registry loaded in 18.490s 
+2026-02-12 12:29:18,547 4 INFO krill-energy-produccion-28561046 odoo.service.server: Initiating shutdown 
+2026-02-12 12:29:18,547 4 INFO krill-energy-produccion-28561046 odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-02-12 12:29:18,547 4 INFO krill-energy-produccion-28561046 odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=16): Closed 2 connections  
