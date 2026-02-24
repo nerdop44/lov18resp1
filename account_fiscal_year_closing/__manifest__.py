@@ -16,12 +16,12 @@
         "account",
         "date_range",
     ],
-    "data": [
-        "security/account_fiscalyear_closing_security.xml",
-        "security/ir.model.access.csv",
-        "views/account_fiscalyear_closing_views.xml",
-        "views/account_fiscalyear_closing_template_views.xml",
-        "views/account_move_views.xml",
-        "wizards/account_fiscal_year_closing_unbalanced_move_views.xml",
-    ],
+#    "data": [
+#        "security/account_fiscalyear_closing_security.xml",
+#        "security/ir.model.access.csv",
+#        "views/account_fiscalyear_closing_views.xml",
+#        "views/account_fiscalyear_closing_template_views.xml",
+#        "views/account_move_views.xml",
+#        "wizards/account_fiscal_year_closing_unbalanced_move_views.xml",
+#    ],
 }
