@@ -16,7 +16,7 @@ class StockLandedCost(models.Model):
     )
     company_currency_id = fields.Many2one('res.currency', string="Moneda Compañía (Landed)")
     amount_total = fields.Monetary(
-        'Total', compute='_compute_total_amount',
+        'Total', 
         store=True, tracking=True, currency_field="company_currency_id")
 
     move_ids = fields.Many2many('account.move', readonly=True)

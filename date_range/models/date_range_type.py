@@ -25,7 +25,7 @@ class DateRangeType(models.Model):
     active = fields.Boolean(
         help="The active field allows you to hide the date range type "
         "without removing it.",
-        default=True,
+        default=False,
     )
     company_id = fields.Many2one(
         comodel_name="res.company", string="Company", index=1, default=_default_company

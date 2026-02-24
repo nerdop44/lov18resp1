@@ -14,14 +14,14 @@ class PurchaseOrderLine(models.Model):
     price_unit_dif = fields.Monetary(
         string='P. Unit. Ref.',
         currency_field='currency_id_dif',
-        compute='_compute_price_dif_pol',
+        
         store=False
     )
 
     price_subtotal_dif = fields.Monetary(
         string='Subtotal Ref.',
         currency_field='currency_id_dif',
-        compute='_compute_price_dif_pol',
+        
         store=False
     )
 

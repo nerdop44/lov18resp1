@@ -18,18 +18,18 @@ class AccountMoveLine(models.Model):
     debit_usd = fields.Monetary(currency_field='currency_id_dif', string='Débito $', store=True, 
                                  readonly=False, )
     credit_usd = fields.Monetary(currency_field='currency_id_dif', string='Crédito $', store=True,
-                                 compute="_credit_usd", readonly=False)
+                                  readonly=False)
     tax_today = fields.Float( store=True, string="Tasa del Asiento")
     currency_id_dif = fields.Many2one("res.currency",  store=True)
     price_unit_usd = fields.Monetary(currency_field='currency_id_dif', string='Precio $', store=True,
-                                     compute='_price_unit_usd', readonly=False)
+                                      readonly=False)
     price_subtotal_usd = fields.Monetary(currency_field='currency_id_dif', string='SubTotal $', store=True,
-                                         compute="_price_subtotal_usd")
+                                         )
     amount_residual_usd = fields.Monetary(string='Residual Amount USD',  store=True,
                                        help="The residual amount on a journal item expressed in the company currency.")
     balance_usd = fields.Monetary(string='Balance Ref.',
                                   currency_field='currency_id_dif', store=True, readonly=False,
-                                  compute='_compute_balance_usd',
+                                  
                                   default=lambda self: self._compute_balance_usd(),
                                   help="Technical field holding the debit_usd - credit_usd in order to open meaningful graph views from reports")
 

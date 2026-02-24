@@ -7,7 +7,7 @@ class AccountMoveLine(models.Model):
     ciu_id = fields.Many2one(
         "economic.activity", 
         string="CIU", 
-        compute="_compute_ciu_id", 
+         
         store=True, 
         readonly=False
     )
@@ -15,7 +15,7 @@ class AccountMoveLine(models.Model):
     # Nuevo campo para el parche de seguridad
     is_manually_modified = fields.Boolean(
         string="Modified Manually (Technical)",
-        compute="_compute_dummy_modified",
+        
         search="_search_dummy_modified",
         store=False,
         help="Technical field to prevent synchronization errors"
@@ -43,7 +43,7 @@ class AccountMoveLine(models.Model):
 #     _inherit = "account.move.line"
 
 #     ciu_id = fields.Many2one(
-#         "economic.activity", string="CIU", compute="_compute_ciu_id", store=True, readonly=False
+#         "economic.activity", string="CIU",  store=True, readonly=False
 #     )
 
 #     @api.depends("product_id.ciu_ids")

@@ -11,7 +11,7 @@ class ResCountryMunicipalityBinauralLocalizacion(models.Model):
     country_id = fields.Many2one("res.country", string="Country", required=True)
     state_id = fields.Many2many("res.country.state", string="State", required=True)
     name = fields.Char(string="Municipality", required=True)
-    active = fields.Boolean(default=True)
+    active = fields.Boolean(default=False)
 
 #     @api.onchange("name")
 #     def on_change_state(self):

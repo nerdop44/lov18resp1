@@ -13,14 +13,14 @@ class PurchaseOrder(models.Model):
                                       store=False, readonly=True)
 
     tasa_referencial = fields.Float(string="Tasa Referencial", digits=(16, 4),
-                                    compute='_compute_tasa_ref_po', store=False)
+                                     store=False)
 
     amount_total_dif = fields.Monetary(string='Total Ref.', store=False, readonly=True,
-                                       compute='_compute_amount_dif_po', currency_field='currency_id_dif')
+                                        currency_field='currency_id_dif')
     amount_untaxed_dif = fields.Monetary(string='Base Ref.', store=False, readonly=True,
-                                         compute='_compute_amount_dif_po', currency_field='currency_id_dif')
+                                          currency_field='currency_id_dif')
     amount_tax_dif = fields.Monetary(string='Impuesto Ref.', store=False, readonly=True,
-                                     compute='_compute_amount_dif_po', currency_field='currency_id_dif')
+                                      currency_field='currency_id_dif')
 
 #     @api.depends('company_id', 'currency_id_dif')
 #     def _compute_tasa_ref_po(self):

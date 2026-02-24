@@ -25,7 +25,7 @@ class AccountPayment(models.Model):
     )
 
     foreign_rate = fields.Float(
-        compute="_compute_rate",
+        
         digits="Tasa",
         default=0.0,
         store=True,
@@ -35,12 +35,12 @@ class AccountPayment(models.Model):
         string="Modified Manually",
         default=False,
         help="Technical field required by enterprise features",
-        compute='_compute_manually_modified',
+        
         store=False  # No almacenar en BD para evitar problemas
     )
     foreign_inverse_rate = fields.Float(
         help="Rate that will be used as factor to multiply of the foreign currency for this move.",
-        compute="_compute_rate",
+        
         digits=(16, 15),
         default=0.0,
         store=True,

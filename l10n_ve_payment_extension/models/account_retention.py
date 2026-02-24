@@ -94,7 +94,7 @@ class AccountRetention(models.Model):
     )
     allowed_lines_move_ids = fields.Many2many(
         "account.move",
-        compute="_compute_allowed_lines_move_ids",
+        
         help=(
             "Technical field to store the allowed move types for the ISLR retention lines. This is"
             " used to filter the moves that can be selected in the ISLR retention lines."
@@ -118,31 +118,31 @@ class AccountRetention(models.Model):
 
     total_invoice_amount = fields.Float(
         string="Taxable Income",
-        compute="_compute_totals",
+        
         help="Taxable Income Total",
         store=True,
     )
     total_iva_amount = fields.Float(
-        string="Total IVA", compute="_compute_totals", store=True
+        string="Total IVA",  store=True
     )
     total_retention_amount = fields.Float(
-        compute="_compute_totals",
+        
         store=True,
         help="Retained Amount Total",
     )
 
     foreign_total_invoice_amount = fields.Float(
         string="Total Facturado (Bs.)",
-        compute="_compute_totals",
+        
         help="Total base imponible en VEF",
         store=True,
     )
     foreign_total_iva_amount = fields.Float(
-        string="Total IVA (Bs.)", compute="_compute_totals", store=True
+        string="Total IVA (Bs.)",  store=True
     )
     foreign_total_retention_amount = fields.Float(
         string="Total Retenido (Bs.)",
-        compute="_compute_totals",
+        
         store=True,
         help="Total monto retenido en VEF",
     )

@@ -56,7 +56,7 @@ class AccountPayment(models.Model):
     )
 
     retention_foreign_amount = fields.Float(
-        compute="_compute_retention_foreign_amount", store=True, copy=False
+         store=True, copy=False
     )
 
        # === AÑADIR ESTE CAMPO ===

@@ -15,7 +15,7 @@ class ResCountryMunicipalityBinauralLocalizacion(models.Model):
 
     name = fields.Char(string="Municipality", required=True)
 
-    active = fields.Boolean(default=True)
+    active = fields.Boolean(default=False)
 
 #     @api.onchange("name")
 #     def on_change_state(self):

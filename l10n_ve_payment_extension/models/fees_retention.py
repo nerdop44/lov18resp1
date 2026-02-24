@@ -10,7 +10,7 @@ class FeesRetentionBinaural(models.Model):
     percentage = fields.Float(string="Fees percentage", store=True)
     subtract_money = fields.Float(string="Quantity to subtract to fees", store=True)
     amount_subtract = fields.Float(
-        string="Subtract mount", compute="_compute_amount_subtract", store=True
+        string="Subtract mount",  store=True
     )
     apply_subtracting = fields.Boolean(string="Subtract apply?", default=False, store=True)
     accumulated_rate = fields.Boolean(string="Rate accumulated?", default=False, store=True)

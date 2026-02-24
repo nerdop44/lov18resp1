@@ -76,7 +76,8 @@ class ResPartner(models.Model):
 #                         raise ValidationError(_("A partner with the same email already exists."))
 # 
     company_id = fields.Many2one(
-        default=_default_company_id,
+        "res.company",
+        default=lambda self: self.env.company,
     )
 
 #     @api.model_create_multi

@@ -12,7 +12,7 @@ class AccountRetentionLine(models.Model):
     check_company = True
 
     name = fields.Char(
-        string="Description", required=True, compute="_compute_name", store=True, readonly=False
+        string="Description", required=True,  store=True, readonly=False
     )
     company_id = fields.Many2one(
         "res.company",
@@ -44,12 +44,12 @@ class AccountRetentionLine(models.Model):
     # Simplemente elimina el parámetro 'digits'
     invoice_amount = fields.Float(
         string="Taxable income",
-        compute="_compute_amounts",
+        
         store=True,
         readonly=False,
     )
     retention_amount = fields.Float(
-        compute="_compute_retention_amount",
+        
         store=True,
         readonly=False,
     )
@@ -59,14 +59,14 @@ class AccountRetentionLine(models.Model):
     imp_ret = fields.Float(string="tax incurred", digits=(16, 2))
     retention_rate = fields.Float(store=True, digits="Tasa")
     move_id = fields.Many2one("account.move", "move", ondelete="cascade", store=True)
-    is_retention_client = fields.Boolean(default=True)
+    is_retention_client = fields.Boolean(default=False)
     display_invoice_number = fields.Char(
-        string="Invoice Number", compute="_compute_display_invoice_number", store=True
+        string="Invoice Number",  store=True
     )
 #    invoice_amount = fields.Float(
 #        string="Taxable income",
 #        digits="Tasa",
-#        compute="_compute_amounts",
+#        
 #        store=True,
 #        readonly=False,
 #    )
@@ -74,10 +74,10 @@ class AccountRetentionLine(models.Model):
     iva_amount = fields.Float(string="IVA", digits=(16, 2))
 
 #    retention_amount = fields.Float(
-#        digits="Tasa", compute="_compute_retention_amount", store=True, readonly=False
+#        digits="Tasa",  store=True, readonly=False
 #    )
     foreign_retention_amount = fields.Float(
-        digits="Tasa", compute="_compute_retention_amount", store=True, readonly=False
+        digits="Tasa",  store=True, readonly=False
     )
 
     payment_concept_id = fields.Many2one(
@@ -91,7 +91,7 @@ class AccountRetentionLine(models.Model):
     economic_activity_id = fields.Many2one(
         "economic.activity",
         ondelete="cascade",
-        compute="_compute_economic_activity_id",
+        
         readonly=False,
         store=True,
         index=True,
@@ -109,29 +109,29 @@ class AccountRetentionLine(models.Model):
 
     related_pay_from = fields.Float(
         string="Pays from",
-        compute="_compute_related_fields",
+        
         store=True,
     )
     related_percentage_tax_base = fields.Float(
         string="% tax base",
-        compute="_compute_related_fields",
+        
         store=True,
         readonly=False,
     )
     related_percentage_fees = fields.Float(
         string="% tariffs",
-        compute="_compute_related_fields",
+        
         store=True,
     )
     related_amount_subtract_fees = fields.Float(
         string="Amount subtract tariffs",
-        compute="_compute_related_fields",
+        
         store=True,
     )
 
     # Montos en VEF (Bs.) — Regla universal venezolana
     foreign_invoice_amount = fields.Float(
-        string="Base Imponible (Bs.)", compute="_compute_amounts", store=True, readonly=False
+        string="Base Imponible (Bs.)",  store=True, readonly=False
     )
     foreign_invoice_total = fields.Float(string="Total Factura (Bs.)")
     foreign_iva_amount = fields.Float(string="IVA (Bs.)")

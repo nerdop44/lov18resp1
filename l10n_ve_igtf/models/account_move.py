@@ -16,7 +16,7 @@ class AccountMove(models.Model):
         string="IGTF Paid",
         default=0.00,
         help="IGTF Paid",
-        compute="_compute_amount_to_pay_igtf",
+        
         store=True,
         copy=False,
     )
@@ -25,7 +25,7 @@ class AccountMove(models.Model):
         string="IGTF Residual",
         default=0.00,
         help="IGTF Residual",
-        compute="_compute_amount_residual_igtf",
+        
         copy=False,
     )
 
@@ -105,7 +105,7 @@ class AccountMove(models.Model):
 #     def default_is_igtf(self):
 #         return self.env.company.is_igtf or False
 # 
-    default_is_igtf_config = fields.Boolean(default=default_is_igtf)
+    default_is_igtf_config = fields.Boolean(default=False)
 
     payment_igtf_id = fields.Many2one(
         "account.payment",

@@ -11,7 +11,7 @@ class AccountBankStatementLine(models.Model):
     tasa_referencia_statement = fields.Float(string="Tasa Referencia", store=True, default=lambda self: self._get_default_tasa())
 
     amount_usd_statement = fields.Monetary(currency_field='currency_id_dif_statement', string='Total Ref. Extracto', store=True,
-                                           readonly=True, compute='_amount_usd')
+                                           readonly=True, )
 
 #     @api.onchange('date')
 #     def _onchange_date(self):

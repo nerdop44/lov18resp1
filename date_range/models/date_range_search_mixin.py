@@ -14,7 +14,7 @@ class DateRangeSearchMixin(models.AbstractModel):
     date_range_search_id = fields.Many2one(
         comodel_name="date.range",
         string="Filter by period (technical field)",
-        compute="_compute_date_range_search_id",
+        
         search="_search_date_range_search_id",
     )
 

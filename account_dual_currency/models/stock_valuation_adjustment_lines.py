@@ -12,7 +12,7 @@ class AdjustmentLines(models.Model):
     currency_id_dif = fields.Many2one()
     additional_landed_cost_usd = fields.Monetary(currency_field='currency_id_dif',string='Costo adicionales $')
     final_cost_usd = fields.Monetary(currency_field='currency_id_dif', string=
-    'Nevo Valor $', compute='_compute_final_cost_usd',
+    'Nevo Valor $', 
                                      store=True)
 
 #     @api.depends('former_cost_usd', 'additional_landed_cost_usd')

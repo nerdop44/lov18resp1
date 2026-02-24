@@ -13,31 +13,31 @@ class AccountPaymentIgtf(models.Model):
         string="IGTF on Foreign Exchange?",
         help="IGTF on Foreign Exchange?",
         readonly=False,
-        compute="_compute_is_igtf",
+        
         store=True,
     )
 
     igtf_percentage = fields.Float(
         string="IGTF Percentage",
-        compute="_compute_igtf_percentage",
+        
         help="IGTF Percentage",
         store=True,
     )
 
     igtf_amount = fields.Float(
         string="IGTF Amount",
-        compute="_compute_igtf_amount",
+        
         store=True,
         help="IGTF Amount",
     )
 
     amount_with_igtf = fields.Float(
-        string="Amount with IGTF", compute="_compute_amount_with_igtf", store=True
+        string="Amount with IGTF",  store=True
     )
 
     igtf_percentage_text = fields.Char(
         string="IGTF Percentage text",
-        compute="_compute_igtf_percentage_text",
+        
         help="IGTF Percentage Text",
         store=True,
     )

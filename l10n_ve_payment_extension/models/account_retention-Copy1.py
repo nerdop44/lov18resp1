@@ -24,7 +24,7 @@ class AccountRetention(models.Model):
         default=lambda self: self.env.company.currency_foreign_id.id,
     )
     base_currency_is_vef = fields.Boolean(
-        compute="_compute_currency_fields",
+        
     )
     company_id = fields.Many2one(
         "res.company",
@@ -103,7 +103,7 @@ class AccountRetention(models.Model):
     )
 #    allowed_lines_move_ids = fields.Many2many(
 #        "account.move",
-#       compute="_compute_allowed_lines_move_ids",
+#       
 #        help=(
 #            "Technical field to store the allowed move types for the ISLR retention lines. This is"
 #            " used to filter the moves that can be selected in the ISLR retention lines."
@@ -123,7 +123,7 @@ class AccountRetention(models.Model):
     )
     total_invoice_amount = fields.Float(
         string="Taxable Income",
-        compute="_compute_totals",
+        
         help="Taxable Income Total",
         store=True,
     )
@@ -133,24 +133,24 @@ class AccountRetention(models.Model):
         readonly=True,
     )
     total_iva_amount = fields.Float(
-        string="Total IVA", compute="_compute_totals", store=True
+        string="Total IVA",  store=True
     )
     total_retention_amount = fields.Float(
-        compute="_compute_totals",
+        
         store=True,
         help="Retained Amount Total",
     )
     foreign_total_invoice_amount = fields.Float(
         string="Foreign StateTaxable Income",
-        compute="_compute_totals",
+        
         help="Taxable Income Total",
         store=True,
     )
     foreign_total_iva_amount = fields.Float(
-        string="Foreign Total IVA", compute="_compute_totals", store=True
+        string="Foreign Total IVA",  store=True
     )
     foreign_total_retention_amount = fields.Float(
-        compute="_compute_totals",
+        
         store=True,
         help="Retained Amount Total",
     )

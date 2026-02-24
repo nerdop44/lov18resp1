@@ -40,29 +40,29 @@ class AccountMove(models.Model):
 
     name_rate = fields.Char(store=True, readonly=True)
     amount_untaxed_usd = fields.Monetary(currency_field='currency_id_dif', string="Base imponible Ref.", store=True,
-                                         compute="_amount_all_usd", copy=False)
+                                          copy=False)
     amount_tax_usd = fields.Monetary(currency_field='currency_id_dif', string="Impuestos Ref.", store=True,
-                                     readonly=True, compute="_amount_all_usd", copy=False)
+                                     readonly=True,  copy=False)
     amount_total_usd = fields.Monetary(currency_field='currency_id_dif', string='Total Ref.', store=True, readonly=True,
-                                       compute='_amount_all_usd',
+                                       
                                        tracking=True)
 
     amount_residual_usd = fields.Monetary(currency_field='currency_id_dif',  string='Adeudado Ref.',
                                           readonly=True, store=True, copy=False)
     invoice_payments_widget_usd = fields.Binary(groups="account.group_account_invoice,account.group_account_readonly",
-                                              compute='_compute_payments_widget_reconciled_info_USD')
+                                              )
 
     amount_untaxed_bs = fields.Monetary(currency_field='company_currency_id', string="Base imponible Bs.", store=True, copy=False,
-                                        compute="_amount_all_usd")
+                                        )
     amount_tax_bs = fields.Monetary(currency_field='company_currency_id', string="Impuestos Bs.", store=True, copy=False,
                                     readonly=True)
     amount_total_bs = fields.Monetary(currency_field='company_currency_id', string='Total Bs.', store=True,
                                       readonly=True,
-                                      compute='_amount_all_usd', copy=False)
+                                       copy=False)
 
     amount_total_signed_usd = fields.Monetary(
         string='Total Signed Ref.',
-        compute='_compute_amount', store=True, readonly=True,
+         store=True, readonly=True,
         currency_field='currency_id_dif', copy=False
     )
 
@@ -79,7 +79,7 @@ class AccountMove(models.Model):
 
     depreciation_value_ref = fields.Monetary(
         string="Depreciation Ref.",
-        compute="_compute_depreciation_value_ref", inverse="_inverse_depreciation_value_ref", store=True, copy=False
+         inverse="_inverse_depreciation_value_ref", store=True, copy=False
     )
 
 #     def _post(self, soft=True):
@@ -446,7 +446,7 @@ class AccountMove(models.Model):
 #                     'outstanding': False,
 #                     'content': reconciled_vals,
 #                 }
-#                 move.invoice_payments_widget_bs = json.dumps(info, default=date_utils.json_default)
+#                 move.invoice_payments_widget_bs = json.dumps(info, default=False.json_default)
 #             else:
 #                 move.invoice_payments_widget_bs = json.dumps(False)
 # 

@@ -9,7 +9,7 @@ class SignatureConfig(models.Model):
 
     email = fields.Char()
     signature = fields.Binary()
-    active = fields.Boolean(default=True)
+    active = fields.Boolean(default=False)
 
     company_id = fields.Many2one(
         "res.company",

@@ -16,7 +16,7 @@ class AccountRetentionIvaLine(models.Model):
 
     name = fields.Char(
         string="Descripción de Retención IVA",
-        compute="_compute_name",
+        
         store=True,
     )
 
@@ -50,7 +50,7 @@ class AccountRetentionIvaLine(models.Model):
     foreign_iva_amount = fields.Monetary(
         string="Monto IVA (ME)",
         currency_field='foreign_currency_id',
-        compute='_compute_foreign_iva_amount',
+        
         store=True,
         readonly=True,
     )
@@ -175,7 +175,7 @@ class AccountRetentionIslrLine(models.Model):
 
     name = fields.Char(
         string="Descripción de Retención ISLR",
-        compute="_compute_name",
+        
         store=True,
     )
 
@@ -216,7 +216,7 @@ class AccountRetentionIslrLine(models.Model):
     foreign_iva_amount = fields.Monetary(
         string="Monto IVA (ME)",
         currency_field='foreign_currency_id',
-        compute='_compute_foreign_iva_amount',
+        
         store=True,
         readonly=True,
     )
@@ -350,7 +350,7 @@ class AccountRetentionMunicipalLine(models.Model):
 
     name = fields.Char(
         string="Descripción de Retención Municipal",
-        compute="_compute_name",
+        
         store=True,
     )
 
@@ -384,7 +384,7 @@ class AccountRetentionMunicipalLine(models.Model):
     foreign_iva_amount = fields.Monetary(
         string="Monto IVA (ME)",
         currency_field='foreign_currency_id',
-        compute='_compute_foreign_iva_amount',
+        
         store=True,
         readonly=True,
     )

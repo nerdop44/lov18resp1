@@ -11,7 +11,7 @@ class AccountMoveRetention(models.Model):
     # Campo modificado para solucionar el error
 #    date = fields.Date(
 #        string="Fecha Contable",
-#        compute='_compute_date_field',
+#        
 #        inverse='_inverse_date_field',
 #        store=True,
 #        readonly=False,
@@ -19,7 +19,7 @@ class AccountMoveRetention(models.Model):
 #    )
 
     base_currency_is_vef = fields.Boolean(
-        compute="_compute_currency_fields",
+        
     )
 
     apply_islr_retention = fields.Boolean(

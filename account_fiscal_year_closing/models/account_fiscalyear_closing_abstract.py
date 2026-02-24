@@ -17,7 +17,7 @@ class AccountFiscalyearClosingAbstract(models.AbstractModel):
     )
     check_draft_moves = fields.Boolean(
         string="Check draft moves",
-        default=True,
+        default=False,
         help="Checks that there are no draft moves on the fiscal year "
         "that is being closed. Non-confirmed moves won't be taken in "
         "account on the closing operations.",

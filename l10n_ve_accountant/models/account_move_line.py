@@ -25,20 +25,20 @@ class AccountMoveLine(models.Model):
 
     foreign_price = fields.Float(
         help="Foreign Price of the line",
-        compute="_compute_foreign_price",
+        
         digits="Foreign Product Price",
         store=True,
         readonly=False,
     )
     foreign_subtotal = fields.Monetary(
         help="Foreign Subtotal of the line",
-        compute="_compute_foreign_subtotal",
+        
         currency_field="foreign_currency_id",
         store=True,
     )
     foreign_price_total = fields.Monetary(
         help="Foreign Total of the line",
-        compute="_compute_foreign_subtotal",
+        
         currency_field="foreign_currency_id",
         store=True,
     )
@@ -47,17 +47,17 @@ class AccountMoveLine(models.Model):
     # Report fields
     foreign_debit = fields.Monetary(
         currency_field="foreign_currency_id",
-        compute="_compute_foreign_debit_credit",
+        
         store=True,
     )
     foreign_credit = fields.Monetary(
         currency_field="foreign_currency_id",
-        compute="_compute_foreign_debit_credit",
+        
         store=True,
     )
     foreign_balance = fields.Monetary(
         currency_field="foreign_currency_id",
-        compute="_compute_foreign_balance",
+        
         inverse="_inverse_foreign_balance",
         store=True,
     )

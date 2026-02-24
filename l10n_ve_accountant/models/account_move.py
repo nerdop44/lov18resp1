@@ -36,7 +36,7 @@ class AccountMove(models.Model):
 # 
     foreign_currency_id = fields.Many2one(
         "res.currency",
-        default=default_alternate_currency,
+        default=False,
     )
 
 #     @api.onchange("move_type")
@@ -47,7 +47,7 @@ class AccountMove(models.Model):
 #             self.date = fields.Date.context_today(self)
 # 
     foreign_rate = fields.Float(
-        compute="_compute_rate",
+        
         digits="Tasa",
         default=0.0,
         store=True,
@@ -56,7 +56,7 @@ class AccountMove(models.Model):
     )
     foreign_inverse_rate = fields.Float(
         help="Rate that will be used as factor to multiply of the foreign currency for this move.",
-        compute="_compute_rate",
+        
         digits=(16, 15),
         default=0.0,
         store=True,
@@ -70,14 +70,14 @@ class AccountMove(models.Model):
     vat = fields.Char(
         string="VAT",
         help="VAT of the partner",
-        compute="_compute_vat",
+        
     )
 
     financial_document = fields.Boolean(default=False, copy=False)
 
     foreign_taxable_income = fields.Monetary(
         help="Foreign Taxable Income of the invoice",
-        compute="_compute_foreign_taxable_income",
+        
         currency_field="foreign_currency_id",
     )
     total_taxed = fields.Many2one(
@@ -86,7 +86,7 @@ class AccountMove(models.Model):
     )
     foreign_total_billed = fields.Monetary(
         help="Foreign Total Billed of the invoice",
-        compute="_compute_foreign_total_billed",
+        
         currency_field="foreign_currency_id",
         store=True,
     )
@@ -113,7 +113,7 @@ class AccountMove(models.Model):
     # FIN: De los campos a añadir
     # === INICIO DE LA MODIFICACIÓN PARA base_currency_is_vef ===
     base_currency_is_vef = fields.Boolean(
-        compute='_compute_base_currency_is_vef',
+        
         store=True, # Lo almacenamos para optimizar el rendimiento
         help="Indica si la moneda base de la compañía es el Bolívar Venezolano (VEF/VES)."
     )
@@ -162,13 +162,13 @@ class AccountMove(models.Model):
     detailed_amounts = fields.Binary()
 
     foreign_debit = fields.Monetary(
-        compute="_compute_total_debit_credit", currency_field="foreign_currency_id"
+         currency_field="foreign_currency_id"
     )
     foreign_credit = fields.Monetary(
-        compute="_compute_total_debit_credit", currency_field="foreign_currency_id"
+         currency_field="foreign_currency_id"
     )
     foreign_balance = fields.Monetary(
-        compute="_compute_total_debit_credit", currency_field="foreign_currency_id"
+         currency_field="foreign_currency_id"
     )
 
     is_reset_to_draft_for_price_change = fields.Boolean(copy=False)

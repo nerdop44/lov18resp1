@@ -7,6 +7,6 @@ class AccountJournalIgtf(models.Model):
 #     def default_is_igtf(self):
 #         return self.env.company.is_igtf or False
 #     
-    default_is_igtf_config = fields.Boolean(default=default_is_igtf)
+    default_is_igtf_config = fields.Boolean(default=False)
 
     is_igtf = fields.Boolean(string="Is a IGTF journal?", default=False, tracking=True)

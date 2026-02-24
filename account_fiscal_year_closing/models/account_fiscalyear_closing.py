@@ -385,7 +385,7 @@ class AccountFiscalyearClosingConfig(models.Model):
         string="Closing types",
     )
     date = fields.Date(string="Move date")
-    enabled = fields.Boolean(default=True)
+    enabled = fields.Boolean(default=False)
     journal_id = fields.Many2one(required=True)
     move_id = fields.Many2one(comodel_name="account.move", string="Move")
 

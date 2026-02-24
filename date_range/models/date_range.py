@@ -30,12 +30,12 @@ class DateRange(models.Model):
         comodel_name="res.company",
         string="Company",
         index=True,
-        default=_default_company,
+        default=False,
     )
     active = fields.Boolean(
         help="The active field allows you to hide the date range without "
         "removing it.",
-        compute="_compute_active",
+        
         readonly=False,
         store=True,
     )

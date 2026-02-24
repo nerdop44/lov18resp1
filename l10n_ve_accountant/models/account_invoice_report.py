@@ -25,7 +25,7 @@ class AccountInvoiceReport(models.Model):
 # 
     foreign_currency_id = fields.Many2one(
         "res.currency",
-        default=default_alternate_currency,
+        default=False,
     )
 
     foreign_rate = fields.Float(

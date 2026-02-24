@@ -11,7 +11,7 @@ class Product(models.Model):
         "product_template_id",
         "ciu_id",
         string="CIU",
-        compute="_compute_ciu_ids",
+        
         store=True,
         readonly=False,
     )
