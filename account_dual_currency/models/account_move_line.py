@@ -49,7 +49,6 @@ class AccountMoveLine(models.Model):
 
         for line in self:
             #print('pasando por _compute_currency_rate')
-            self.env.context = dict(self.env.context, tasa_factura=line.move_id.tax_today, calcular_dual_currency=True)
             # line.currency_rate = get_rate(
             #     from_currency=line.company_currency_id,
             #     to_currency=line.currency_id,
@@ -58,7 +57,6 @@ class AccountMoveLine(models.Model):
             # )
             line.currency_rate = 1 / line.move_id.tax_today if line.move_id.tax_today > 0 else 1
             #print('line.currency_rate', line.currency_rate)
-        self.env.context = dict(self.env.context, tasa_factura=None, calcular_dual_currency=False)
 
     @api.onchange('amount_currency')
     def _onchange_amount_currency(self):

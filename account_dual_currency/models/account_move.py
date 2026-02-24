@@ -323,8 +323,8 @@ class AccountMove(models.Model):
         'line_ids.full_reconcile_id','tax_today')
     def _compute_amount(self):
         for move in self:
-            self.env.context = dict(self.env.context, tasa_factura=move.tax_today, calcular_dual_currency=True)
-            super(AccountMove, self)._compute_amount()
+            move_with_context = move.with_context(tasa_factura=move.tax_today, calcular_dual_currency=True)
+            super(AccountMove, move_with_context)._compute_amount()
             total_residual = 0.0
             total = 0.0
             for line in move.line_ids:
@@ -339,7 +339,6 @@ class AccountMove(models.Model):
                         total_residual += line.amount_residual_usd
             move.amount_residual_usd = total_residual
             move.amount_total_signed_usd = abs(total) if move.move_type == 'entry' else -total
-        self.env.context = dict(self.env.context, tasa_factura=None, calcular_dual_currency=False)
 
     @api.depends(
         'tax_totals',

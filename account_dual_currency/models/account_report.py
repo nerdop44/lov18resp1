@@ -15,7 +15,7 @@ from babel.dates import get_quarter_names
 from dateutil.relativedelta import relativedelta
 
 from odoo.addons.web.controllers.utils import clean_action
-from odoo import models, fields, api, _, osv
+from odoo import models, fields, api, _
 from odoo.exceptions import RedirectWarning, UserError, ValidationError
 from odoo.tools import config, date_utils, get_lang, float_compare, float_is_zero
 from odoo.tools.float_utils import float_round
@@ -50,12 +50,10 @@ class AccountReport(models.AbstractModel):
             'base_url': base_url,
             'company': self.env.company,
         }
-        new_context = {
-            **self._context,
-            'currency_dif': options['currency_dif'],
-            'currency_id_company_name': options['currency_id_company_name'],
-        }
-        self.env.context = new_context
+        self = self.with_context(
+            currency_dif=options['currency_dif'],
+            currency_id_company_name=options['currency_id_company_name'],
+        )
         print_mode_self = self.with_context(print_mode=True)
 
         body_html = print_mode_self.get_html(options, print_mode_self._get_lines(options))
@@ -91,15 +89,8 @@ class AccountReport(models.AbstractModel):
 
 
     def _get_options(self, previous_options=None):
+        options = super()._get_options(previous_options)
         self.ensure_one()
-        # Create default options.
-        options = {'unfolded_lines': (previous_options or {}).get('unfolded_lines', [])}
-
-        for initializer in self._get_options_initializers_in_sequence():
-            initializer(options, previous_options=previous_options)
-
-        # Sort the buttons list by sequence, for rendering
-        options['buttons'] = sorted(options['buttons'], key=lambda x: x.get('sequence', 90))
 
         currency_id_company_name = 'Bs'
         currency_id_dif_name = 'USD'
@@ -116,12 +107,7 @@ class AccountReport(models.AbstractModel):
         options['currency_dif'] = currency_dif
         options['currency_id_company_name'] = currency_id_company_name
         options['currency_id_dif_name'] = currency_id_dif_name
-        new_context = {
-            **self._context,
-            'currency_dif': currency_dif,
-            'currency_id_company_name': currency_id_company_name,
-        }
-        self.env.context = new_context
+        
         return options
 
     @api.model
