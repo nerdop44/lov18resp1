@@ -14,10 +14,10 @@
         "l10n_ve_rate",
     ],
     # always loaded
-    "data": [
-        "views/account_fiscalyear_closing.xml",
-        "views/account_fiscalyear_closing_template.xml",
-    ],
+#    "data": [
+#        "views/account_fiscalyear_closing.xml",
+#        "views/account_fiscalyear_closing_template.xml",
+#    ],
     "images": ["static/description/icon.png"],
     "application": True,
     "binaural": True,
