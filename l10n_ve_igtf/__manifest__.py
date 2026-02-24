@@ -30,6 +30,6 @@
     "pre_init_hook": "pre_init_hook",
     "application": False,
     "binaural": True,
-    "installable": False,
+    "installable": True,
     "application": False,
 }

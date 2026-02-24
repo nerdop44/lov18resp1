@@ -28,8 +28,8 @@ class EconomicActivity(models.Model):
     minimum_monthly = fields.Float(string="Monthly Taxable Minimum", required=True)
     minimum_annual = fields.Float(string="Annual Taxable Minimum", required=True)
 
-    def _compute_display_name(self):
-        for activity in self:
-            activity.display_name = (activity.name or "") + " - " + (activity.branch_id.name or "")+ " - " + (activity.municipality_id.name or "")
-
-
+#     def _compute_display_name(self):
+#         for activity in self:
+#             activity.display_name = (activity.name or "") + " - " + (activity.branch_id.name or "")+ " - " + (activity.municipality_id.name or "")
+# 
+# 

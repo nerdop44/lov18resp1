@@ -12,71 +12,71 @@ from odoo.release import version
 from odoo.tools import DEFAULT_SERVER_DATE_FORMAT as DF
 from odoo.tools.misc import formatLang, format_date as odoo_format_date, get_lang
 
-def group_by_journal(vals_list):
-    res = defaultdict(list)
-    for vals in vals_list:
-        res[vals['journal_id']].append(vals)
-    return res
-
+# def group_by_journal(vals_list):
+#     res = defaultdict(list)
+#     for vals in vals_list:
+#         res[vals['journal_id']].append(vals)
+#     return res
+# 
 class account_journal(models.Model):
     _inherit = "account.journal"
 
-    def _fill_sale_purchase_dashboard_data(self, dashboard_data):
-        """Populate all sale and purchase journal's data dict with relevant information for the kanban card."""
-        super()._fill_sale_purchase_dashboard_data(dashboard_data)
-        sale_purchase_journals = self.filtered(lambda journal: journal.type in ('sale', 'purchase'))
-        if not sale_purchase_journals:
-            return
-
-        # DRAFTS USD
-        draft_results = self.env['account.move']._read_group(
-            domain=[
-                ('journal_id', 'in', sale_purchase_journals.ids),
-                ('state', '=', 'draft'),
-                ('move_type', 'in', self.env['account.move'].get_invoice_types(include_receipts=True)),
-            ],
-            groupby=['journal_id'],
-            aggregates=['amount_total_usd:sum'],
-        )
-        draft_usd_map = {journal.id: amount_sum for journal, amount_sum in draft_results}
-
-        # WAITING USD
-        waiting_results = self.env['account.move']._read_group(
-            domain=[
-                ('journal_id', 'in', sale_purchase_journals.ids),
-                ('payment_state', 'in', ('not_paid', 'partial')),
-                ('state', '=', 'posted'),
-            ],
-            groupby=['journal_id'],
-            aggregates=['amount_residual_usd:sum'],
-        )
-        waiting_usd_map = {journal.id: amount_sum for journal, amount_sum in waiting_results}
-
-        # LATE USD
-        today = fields.Date.context_today(self)
-        late_results = self.env['account.move']._read_group(
-            domain=[
-                ('journal_id', 'in', sale_purchase_journals.ids),
-                ('payment_state', 'in', ('not_paid', 'partial')),
-                ('state', '=', 'posted'),
-                ('invoice_date_due', '<', today),
-            ],
-            groupby=['journal_id'],
-            aggregates=['amount_residual_usd:sum'],
-        )
-        late_usd_map = {journal.id: amount_sum for journal, amount_sum in late_results}
-
-        for journal in sale_purchase_journals:
-            currency_id_dif = journal.company_id.currency_id_dif
-            if not currency_id_dif:
-                continue
-
-            dashboard_data[journal.id].update({
-                'sum_draft_usd': currency_id_dif.format(draft_usd_map.get(journal.id, 0.0)),
-                'sum_waiting_usd': currency_id_dif.format(waiting_usd_map.get(journal.id, 0.0)),
-                'sum_late_usd': currency_id_dif.format(late_usd_map.get(journal.id, 0.0)),
-            })
-
+#     def _fill_sale_purchase_dashboard_data(self, dashboard_data):
+#         """Populate all sale and purchase journal's data dict with relevant information for the kanban card."""
+#         super()._fill_sale_purchase_dashboard_data(dashboard_data)
+#         sale_purchase_journals = self.filtered(lambda journal: journal.type in ('sale', 'purchase'))
+#         if not sale_purchase_journals:
+#             return
+# 
+#         # DRAFTS USD
+#         draft_results = self.env['account.move']._read_group(
+#             domain=[
+#                 ('journal_id', 'in', sale_purchase_journals.ids),
+#                 ('state', '=', 'draft'),
+#                 ('move_type', 'in', self.env['account.move'].get_invoice_types(include_receipts=True)),
+#             ],
+#             groupby=['journal_id'],
+#             aggregates=['amount_total_usd:sum'],
+#         )
+#         draft_usd_map = {journal.id: amount_sum for journal, amount_sum in draft_results}
+# 
+#         # WAITING USD
+#         waiting_results = self.env['account.move']._read_group(
+#             domain=[
+#                 ('journal_id', 'in', sale_purchase_journals.ids),
+#                 ('payment_state', 'in', ('not_paid', 'partial')),
+#                 ('state', '=', 'posted'),
+#             ],
+#             groupby=['journal_id'],
+#             aggregates=['amount_residual_usd:sum'],
+#         )
+#         waiting_usd_map = {journal.id: amount_sum for journal, amount_sum in waiting_results}
+# 
+#         # LATE USD
+#         today = fields.Date.context_today(self)
+#         late_results = self.env['account.move']._read_group(
+#             domain=[
+#                 ('journal_id', 'in', sale_purchase_journals.ids),
+#                 ('payment_state', 'in', ('not_paid', 'partial')),
+#                 ('state', '=', 'posted'),
+#                 ('invoice_date_due', '<', today),
+#             ],
+#             groupby=['journal_id'],
+#             aggregates=['amount_residual_usd:sum'],
+#         )
+#         late_usd_map = {journal.id: amount_sum for journal, amount_sum in late_results}
+# 
+#         for journal in sale_purchase_journals:
+#             currency_id_dif = journal.company_id.currency_id_dif
+#             if not currency_id_dif:
+#                 continue
+# 
+#             dashboard_data[journal.id].update({
+#                 'sum_draft_usd': currency_id_dif.format(draft_usd_map.get(journal.id, 0.0)),
+#                 'sum_waiting_usd': currency_id_dif.format(waiting_usd_map.get(journal.id, 0.0)),
+#                 'sum_late_usd': currency_id_dif.format(late_usd_map.get(journal.id, 0.0)),
+#             })
+# 
     # def _fill_sale_purchase_dashboard_data(self, dashboard_data):
     #     """Populate all sale and purchase journal's data dict with relevant information for the kanban card."""
     #     sale_purchase_journals = self.filtered(lambda journal: journal.type in ('sale', 'purchase'))

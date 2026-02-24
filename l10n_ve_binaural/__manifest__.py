@@ -61,6 +61,6 @@ but you will need set manually account defaults for taxes.
 #        "views/l10n_ve_menuitems.xml",
 #    ],
     "license": "LGPL-3",
-    "installable": False,
+    "installable": True,
     "application": False,
 }

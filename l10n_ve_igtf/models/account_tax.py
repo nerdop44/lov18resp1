@@ -12,13 +12,13 @@ _logger = logging.getLogger(__name__)
 class AccountTax(models.Model):
     _inherit = "account.tax"
 
-    def _prepare_tax_totals(
-        self,
-        base_lines,
-        currency,
-        is_company_currency_requested=False,
-        tax_lines=None,
-        igtf_base_amount=False,
+#     def _prepare_tax_totals(
+#         self,
+#         base_lines,
+#         currency,
+#         is_company_currency_requested=False,
+#         tax_lines=None,
+#         igtf_base_amount=False,
     ):
         """
         This function add values and calculated of igtf on invoices

@@ -15,6 +15,6 @@
 #        "views/res_config_settings.xml",
 #    ],
     "binaural": True,
-    "installable": False,
+    "installable": True,
     "application": False,
 }

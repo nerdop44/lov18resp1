@@ -26,7 +26,7 @@
     'depends': [
                 'base', 'account',
                 ],
-    'data':[
+#     'data':[
 #        'security/ir.model.access.csv',
 #        'security/res_groups.xml',
 #        'views/res_currency.xml',
@@ -54,7 +54,7 @@
 #        'views/sale_order_view.xml',
 #        'views/purchase_order_view.xml',
         # 'views/crossovered_budget_lines.xml',  # Disabled: requires account_budget to be installed first
-    ],
+#     ],
 #    'assets': {
 #        'web.assets_backend': [
 #            'account_dual_currency/static/src/xml/**/*',

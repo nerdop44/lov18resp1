@@ -11,7 +11,7 @@
     "website": "https://github.com/OCA/account-closing",
     "author": "Tecnativa, Odoo Community Association (OCA)",
     "license": "AGPL-3",
-    "installable": False,
+    "installable": True,
     "depends": [
         "account",
         "date_range",

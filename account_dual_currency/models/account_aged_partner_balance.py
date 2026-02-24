@@ -7,13 +7,13 @@ from itertools import chain
 class AgedPartnerBalanceCustomHandler(models.AbstractModel):
     _inherit = 'account.aged.partner.balance.report.handler'
 
-    def _aged_partner_report_custom_engine_common(self, options, internal_type, current_groupby, next_groupby, offset=0, limit=None):
-        report = self.env['account.report'].browse(options['report_id'])
-        report._check_groupby_fields((next_groupby.split(',') if next_groupby else []) + ([current_groupby] if current_groupby else []))
-        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
-        def minus_days(date_obj, days):
-            return fields.Date.to_string(date_obj - relativedelta(days=days))
-
+#     def _aged_partner_report_custom_engine_common(self, options, internal_type, current_groupby, next_groupby, offset=0, limit=None):
+#         report = self.env['account.report'].browse(options['report_id'])
+#         report._check_groupby_fields((next_groupby.split(',') if next_groupby else []) + ([current_groupby] if current_groupby else []))
+#         currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
+#         def minus_days(date_obj, days):
+#             return fields.Date.to_string(date_obj - relativedelta(days=days))
+# 
         date_to = fields.Date.from_string(options['date']['date_to'])
         periods = [
             (False, fields.Date.to_string(date_to)),
@@ -24,39 +24,39 @@ class AgedPartnerBalanceCustomHandler(models.AbstractModel):
             (minus_days(date_to, 121), False),
         ]
 
-        def build_result_dict(report, query_res_lines):
-            rslt = {f'period{i}': 0 for i in range(len(periods))}
-
-            for query_res in query_res_lines:
-                for i in range(len(periods)):
-                    period_key = f'period{i}'
-                    rslt[period_key] += query_res[period_key]
-
-            if current_groupby == 'id':
-                query_res = query_res_lines[0] # We're grouping by id, so there is only 1 element in query_res_lines anyway
-                currency = self.env['res.currency'].browse(query_res['currency_id'][0]) if len(query_res['currency_id']) == 1 else None
-                rslt.update({
-                    'due_date': query_res['due_date'][0] if len(query_res['due_date']) == 1 else None,
-                    'amount_currency': report.format_value(query_res['amount_currency'] if currency_dif == self.env.company.currency_id.symbol else 0, currency=currency),
-                    'currency': currency.display_name if currency else None,
-                    'account_name': query_res['account_name'][0] if len(query_res['account_name']) == 1 else None,
-                    'expected_date': query_res['expected_date'][0] if len(query_res['expected_date']) == 1 else None,
-                    'total': None,
-                    'has_sublines': query_res['aml_count'] > 0,
-                })
-            else:
-                rslt.update({
-                    'due_date': None,
-                    'amount_currency': None,
-                    'currency': None,
-                    'account_name': None,
-                    'expected_date': None,
-                    'total': sum(rslt[f'period{i}'] for i in range(len(periods))),
-                    'has_sublines': False,
-                })
-
-            return rslt
-
+#         def build_result_dict(report, query_res_lines):
+#             rslt = {f'period{i}': 0 for i in range(len(periods))}
+# 
+#             for query_res in query_res_lines:
+#                 for i in range(len(periods)):
+#                     period_key = f'period{i}'
+#                     rslt[period_key] += query_res[period_key]
+# 
+#             if current_groupby == 'id':
+#                 query_res = query_res_lines[0] # We're grouping by id, so there is only 1 element in query_res_lines anyway
+#                 currency = self.env['res.currency'].browse(query_res['currency_id'][0]) if len(query_res['currency_id']) == 1 else None
+#                 rslt.update({
+#                     'due_date': query_res['due_date'][0] if len(query_res['due_date']) == 1 else None,
+#                     'amount_currency': report.format_value(query_res['amount_currency'] if currency_dif == self.env.company.currency_id.symbol else 0, currency=currency),
+#                     'currency': currency.display_name if currency else None,
+#                     'account_name': query_res['account_name'][0] if len(query_res['account_name']) == 1 else None,
+#                     'expected_date': query_res['expected_date'][0] if len(query_res['expected_date']) == 1 else None,
+#                     'total': None,
+#                     'has_sublines': query_res['aml_count'] > 0,
+#                 })
+#             else:
+#                 rslt.update({
+#                     'due_date': None,
+#                     'amount_currency': None,
+#                     'currency': None,
+#                     'account_name': None,
+#                     'expected_date': None,
+#                     'total': sum(rslt[f'period{i}'] for i in range(len(periods))),
+#                     'has_sublines': False,
+#                 })
+# 
+#             return rslt
+# 
         # Build period table
         period_table_format = ('(VALUES %s)' % ','.join("(%s, %s, %s)" for period in periods))
         params = list(chain.from_iterable(

@@ -34,6 +34,6 @@
 #     ],
     "images": ["static/description/icon.png"],
     "application": False,
-    "installable": False,
+    "installable": True,
     "application": False,
 }

@@ -14,6 +14,6 @@
     "auto_install": True,
 #    "data": ["views/res_config_settings_views.xml"],
     "binaural": True,
-    "installable": False,
+    "installable": True,
     "application": False,
 }

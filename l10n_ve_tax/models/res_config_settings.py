@@ -6,7 +6,7 @@ class ResConfigSettings(models.TransientModel):
 
     module_l10n_ve_igtf = fields.Boolean(readonly=False)
 
-    unique_tax = fields.Boolean(related="company_id.unique_tax", readonly=False)
+    unique_tax = fields.Boolean( readonly=False)
 
     show_discount_on_moves = fields.Boolean(
         related="company_id.show_discount_on_moves", readonly=False

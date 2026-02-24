@@ -22,30 +22,30 @@ class FeesRetentionBinaural(models.Model):
         comodel_name="accumulated.fees", inverse_name="fees_id", string="Accumulated fees"
     )
 
-    @api.constrains("accumulated_rate_ids", "percentage")
-    def _check_data_accumulated(self):
-        if self.accumulated_rate and not len(self.accumulated_rate_ids):
-            raise ValidationError(_("You must enter the accumulated fees.\n"))
-        if self.percentage < 0:
-            raise ValidationError(_("The rate percentage cannot be negative.\n"))
-
-    @api.depends("apply_subtracting", "percentage", "tax_unit_ids")
-    def _compute_amount_subtract(self):
-        for record in self:
-            if record.apply_subtracting:
-                record.amount_subtract = (
-                    record.tax_unit_ids.value * 83.3334 * record.percentage / 100
-                )
-            else:
-                record.amount_subtract = 0
-
-    @api.onchange("percentage")
-    def onchange_percentage(self):
-        if self.percentage > 100:
-            return {
-                "warning": {
-                    "title": _("Error in the fees percentage field"),
-                    "message": _("The percentage of fees cannot be greater than 100%.\n"),
-                },
-                "value": {"percentage": 0},
-            }
+#     @api.constrains("accumulated_rate_ids", "percentage")
+#     def _check_data_accumulated(self):
+#         if self.accumulated_rate and not len(self.accumulated_rate_ids):
+#             raise ValidationError(_("You must enter the accumulated fees.\n"))
+#         if self.percentage < 0:
+#             raise ValidationError(_("The rate percentage cannot be negative.\n"))
+# 
+#     @api.depends("apply_subtracting", "percentage", "tax_unit_ids")
+#     def _compute_amount_subtract(self):
+#         for record in self:
+#             if record.apply_subtracting:
+#                 record.amount_subtract = (
+#                     record.tax_unit_ids.value * 83.3334 * record.percentage / 100
+#                 )
+#             else:
+#                 record.amount_subtract = 0
+# 
+#     @api.onchange("percentage")
+#     def onchange_percentage(self):
+#         if self.percentage > 100:
+#             return {
+#                 "warning": {
+#                     "title": _("Error in the fees percentage field"),
+#                     "message": _("The percentage of fees cannot be greater than 100%.\n"),
+#                 },
+#                 "value": {"percentage": 0},
+#             }

@@ -17,21 +17,21 @@ class ResCountryMunicipalityBinauralLocalizacion(models.Model):
 
     active = fields.Boolean(default=True)
 
-    @api.onchange("name")
-    def on_change_state(self):
-        self.name = str(self.name or "").upper().strip()
-
-    @api.constrains("country_id", "state_id", "name")
-    def constraint_unique_municipality(self):
-        for record in self:
-            municipality = self.search(
-                [
-                    ("country_id", "=", record.country_id.id),
-                    ("state_id", "=", record.state_id.id),
-                    ("name", "=", record.name),
-                    ("id", "!=", record.id),
-                ]
-            )
-
-            if any(municipality):
-                raise ValidationError(_("The municipality is already registered"))
+#     @api.onchange("name")
+#     def on_change_state(self):
+#         self.name = str(self.name or "").upper().strip()
+# 
+#     @api.constrains("country_id", "state_id", "name")
+#     def constraint_unique_municipality(self):
+#         for record in self:
+#             municipality = self.search(
+#                 [
+#                     ("country_id", "=", record.country_id.id),
+#                     ("state_id", "=", record.state_id.id),
+#                     ("name", "=", record.name),
+#                     ("id", "!=", record.id),
+#                 ]
+#             )
+# 
+#             if any(municipality):
+#                 raise ValidationError(_("The municipality is already registered"))

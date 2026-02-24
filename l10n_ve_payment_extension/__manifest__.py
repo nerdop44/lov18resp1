@@ -66,6 +66,6 @@
     "images": ["static/description/icon.png"],
     "application": False,
     "binaural": True,
-    "installable": False,
+    "installable": True,
     "application": False,
 }

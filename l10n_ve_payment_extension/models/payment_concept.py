@@ -13,12 +13,12 @@ class PaymentConceptBinaural(models.Model):
     )
     status = fields.Boolean(default=True, string="Active?", store=True)
 
-    @api.constrains("line_payment_concept_ids")
-    def _constraint_line_payment_concept_ids(self):
-        for record in self:
-            type_person_id = []
-            for line in record.line_payment_concept_ids:
-                if line.type_person_id.id in type_person_id:
-                    raise UserError(_("The type of person cannot be repeated."))
-                else:
-                    type_person_id.append(line.type_person_id.id)
+#     @api.constrains("line_payment_concept_ids")
+#     def _constraint_line_payment_concept_ids(self):
+#         for record in self:
+#             type_person_id = []
+#             for line in record.line_payment_concept_ids:
+#                 if line.type_person_id.id in type_person_id:
+#                     raise UserError(_("The type of person cannot be repeated."))
+#                 else:
+#                     type_person_id.append(line.type_person_id.id)

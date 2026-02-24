@@ -29,82 +29,82 @@ class AccountMove(models.Model):
         copy=False,
     )
 
-    @api.depends("tax_totals")
-    def _compute_amount_to_pay_igtf(self):
-        """
-        Compute the amount to pay of the IGTF
-        """
-        
-
-        for move in self:
-            move.amount_to_pay_igtf = 0
-            if move.invoice_line_ids and move.is_invoice(include_receipts=True):
-                _logger.debug("Tax totals for move ID %s: %s", move.id, move.tax_totals)
-                if move.tax_totals:
-                    igtf_amount = 0.0
-                    # Odoo 18 structure: tax_totals['subtotals'] -> list of dicts -> 'tax_groups' -> list of dicts
-                    subtotals = move.tax_totals.get('subtotals', [])
-                    for subtotal in subtotals:
-                        for tax_group in subtotal.get('tax_groups', []):
-                            # Identificar IGTF por nombre (ajustar si hay un identificador mejor)
-                            if 'IGTF' in tax_group.get('group_name', '').upper(): 
-                                igtf_amount += tax_group.get('tax_amount_currency', 0.0)
-                    
-                    move.amount_to_pay_igtf = igtf_amount - move.amount_paid
-
-
-    @api.depends(
-        "amount_total", "amount_residual", "amount_residual_igtf", "amount_to_pay_igtf", "bi_igtf"
+#     @api.depends("tax_totals")
+#     def _compute_amount_to_pay_igtf(self):
+#         """
+#         Compute the amount to pay of the IGTF
+#         """
+#         
+# 
+#         for move in self:
+#             move.amount_to_pay_igtf = 0
+#             if move.invoice_line_ids and move.is_invoice(include_receipts=True):
+#                 _logger.debug("Tax totals for move ID %s: %s", move.id, move.tax_totals)
+#                 if move.tax_totals:
+#                     igtf_amount = 0.0
+#                     # Odoo 18 structure: tax_totals['subtotals'] -> list of dicts -> 'tax_groups' -> list of dicts
+#                     subtotals = move.tax_totals.get('subtotals', [])
+#                     for subtotal in subtotals:
+#                         for tax_group in subtotal.get('tax_groups', []):
+#                             # Identificar IGTF por nombre (ajustar si hay un identificador mejor)
+#                             if 'IGTF' in tax_group.get('group_name', '').upper(): 
+#                                 igtf_amount += tax_group.get('tax_amount_currency', 0.0)
+#                     
+#                     move.amount_to_pay_igtf = igtf_amount - move.amount_paid
+# 
+# 
+#     @api.depends(
+#         "amount_total", "amount_residual", "amount_residual_igtf", "amount_to_pay_igtf", "bi_igtf"
     )
-    def _compute_amount_residual_igtf(self):
-        for record in self:
-            record.amount_residual_igtf = record.amount_residual + record.amount_to_pay_igtf
-
-    @api.depends(
-        "bi_igtf",
+#     def _compute_amount_residual_igtf(self):
+#         for record in self:
+#             record.amount_residual_igtf = record.amount_residual + record.amount_to_pay_igtf
+# 
+#     @api.depends(
+#         "bi_igtf",
     )
-    def _compute_tax_totals(self):
-        return super()._compute_tax_totals()
-
-    def button_draft(self):
-        """
-        When the user click on the button draft, we need to delete the igtf
-        """
-        for record in self:
-            record.bi_igtf = 0
-            record.is_two_percentage = False
-        return super().button_draft()
-
-    def _auto_init(self):
-        if not column_exists(self.env.cr, "account_move", "amount_to_pay_igtf"):
-            create_column(self.env.cr, "account_move", "amount_to_pay_igtf", "numeric")
-            self.env.cr.execute(
-                """
-                UPDATE account_move
-                SET amount_to_pay_igtf = 0.0
-            """
-            )
-        if not column_exists(self.env.cr, "account_move", "amount_residual_igtf"):
-            create_column(self.env.cr, "account_move", "amount_residual_igtf", "numeric")
-            self.env.cr.execute(
-                """
-                UPDATE account_move
-                SET amount_residual_igtf = 0.0
-            """
-            )
-        if not column_exists(self.env.cr, "account_move", "default_is_igtf_config"):
-            create_column(self.env.cr, "account_move", "default_is_igtf_config", "boolean")
-            self.env.cr.execute(
-                """
-                UPDATE account_move
-                SET default_is_igtf_config = false
-            """
-            )
-        return super()._auto_init()
-
-    def default_is_igtf(self):
-        return self.env.company.is_igtf or False
-
+#     def _compute_tax_totals(self):
+#         return super()._compute_tax_totals()
+# 
+#     def button_draft(self):
+#         """
+#         When the user click on the button draft, we need to delete the igtf
+#         """
+#         for record in self:
+#             record.bi_igtf = 0
+#             record.is_two_percentage = False
+#         return super().button_draft()
+# 
+#     def _auto_init(self):
+#         if not column_exists(self.env.cr, "account_move", "amount_to_pay_igtf"):
+#             create_column(self.env.cr, "account_move", "amount_to_pay_igtf", "numeric")
+#             self.env.cr.execute(
+#                 """
+#                 UPDATE account_move
+#                 SET amount_to_pay_igtf = 0.0
+#             """
+#             )
+#         if not column_exists(self.env.cr, "account_move", "amount_residual_igtf"):
+#             create_column(self.env.cr, "account_move", "amount_residual_igtf", "numeric")
+#             self.env.cr.execute(
+#                 """
+#                 UPDATE account_move
+#                 SET amount_residual_igtf = 0.0
+#             """
+#             )
+#         if not column_exists(self.env.cr, "account_move", "default_is_igtf_config"):
+#             create_column(self.env.cr, "account_move", "default_is_igtf_config", "boolean")
+#             self.env.cr.execute(
+#                 """
+#                 UPDATE account_move
+#                 SET default_is_igtf_config = false
+#             """
+#             )
+#         return super()._auto_init()
+# 
+#     def default_is_igtf(self):
+#         return self.env.company.is_igtf or False
+# 
     default_is_igtf_config = fields.Boolean(default=default_is_igtf)
 
     payment_igtf_id = fields.Many2one(
@@ -115,27 +115,27 @@ class AccountMove(models.Model):
         copy=False,
     )
 
-    def recalculate_bi_igtf(self, line_id=None, initial_residual=0.0):
-        """This method can be used by ir.actions.server to update bi_igtf"""
-        for record in self:
-            if not record.invoice_payments_widget:
-                record.bi_igtf = 0
-                continue
-
-            payments = record.invoice_payments_widget.get("content", False)
-            amount = 0
-            if line_id:
-                line = self.env["account.move.line"].browse(line_id)
-                # Solución robusta para encontrar el pago asociado
-                payment = self._get_payment_from_line(line)
-            
-                if payment and payment.is_igtf_on_foreign_exchange:
-                    bi_igtf = payment.get_bi_igtf()
-                    if initial_residual < bi_igtf:
-                        record.bi_igtf = initial_residual
-                        continue
-                    record.bi_igtf += bi_igtf
-                    continue
+#     def recalculate_bi_igtf(self, line_id=None, initial_residual=0.0):
+#         """This method can be used by ir.actions.server to update bi_igtf"""
+#         for record in self:
+#             if not record.invoice_payments_widget:
+#                 record.bi_igtf = 0
+#                 continue
+# 
+#             payments = record.invoice_payments_widget.get("content", False)
+#             amount = 0
+#             if line_id:
+#                 line = self.env["account.move.line"].browse(line_id)
+#                 # Solución robusta para encontrar el pago asociado
+#                 payment = self._get_payment_from_line(line)
+#             
+#                 if payment and payment.is_igtf_on_foreign_exchange:
+#                     bi_igtf = payment.get_bi_igtf()
+#                     if initial_residual < bi_igtf:
+#                         record.bi_igtf = initial_residual
+#                         continue
+#                     record.bi_igtf += bi_igtf
+#                     continue
 #            if line_id:
 #                line = self.env["account.move.line"].browse([line_id])
 #                payment_id = line.move_id.payment_id
@@ -163,38 +163,38 @@ class AccountMove(models.Model):
 
             record.bi_igtf = amount
 
-    def _get_payment_from_line(self, line):
-        """Método seguro para obtener el pago desde una línea"""
-        # Primero intenta con payment_id directo en la línea
-        if hasattr(line, 'payment_id') and line.payment_id:
-            return line.payment_id
-    
-        # Si no existe, busca pagos vinculados al asiento
-        payment = self.env['account.payment'].search([
-            ('move_id', '=', line.move_id.id)
-        ], limit=1)
-    
-        # Si aún no hay pago, busca a través de conciliaciones
-        if not payment:
-            payment = line.matched_debit_ids.payment_id or line.matched_credit_ids.payment_id
-    
-        return payment
-
-    def remove_igtf_from_move(self, partial_id):
-        """Remove IGTF from move
-
-        this method is called when a partial reconciliation is removed from the reconciliation widget
-        search for the partial reconciliation and remove the IGTF from the move if it is a payment
-
-        :param partial_id: id of the partial reconciliation to remove
-        :type partial_id: int
-        """
-
-        partial = self.env["account.partial.reconcile"].browse(partial_id)
-
-        payment_credit = self._get_payment_from_line(partial.credit_move_id)
-        payment_debit = self._get_payment_from_line(partial.debit_move_id)
-
+#     def _get_payment_from_line(self, line):
+#         """Método seguro para obtener el pago desde una línea"""
+#         # Primero intenta con payment_id directo en la línea
+#         if hasattr(line, 'payment_id') and line.payment_id:
+#             return line.payment_id
+#     
+#         # Si no existe, busca pagos vinculados al asiento
+#         payment = self.env['account.payment'].search([
+#             ('move_id', '=', line.move_id.id)
+#         ], limit=1)
+#     
+#         # Si aún no hay pago, busca a través de conciliaciones
+#         if not payment:
+#             payment = line.matched_debit_ids.payment_id or line.matched_credit_ids.payment_id
+#     
+#         return payment
+# 
+#     def remove_igtf_from_move(self, partial_id):
+#         """Remove IGTF from move
+# 
+#         this method is called when a partial reconciliation is removed from the reconciliation widget
+#         search for the partial reconciliation and remove the IGTF from the move if it is a payment
+# 
+#         :param partial_id: id of the partial reconciliation to remove
+#         :type partial_id: int
+#         """
+# 
+#         partial = self.env["account.partial.reconcile"].browse(partial_id)
+# 
+#         payment_credit = self._get_payment_from_line(partial.credit_move_id)
+#         payment_debit = self._get_payment_from_line(partial.debit_move_id)
+# 
 #        payment_credit = partial.credit_move_id.payment_id
 #        payment_debit = partial.debit_move_id.payment_id
 
@@ -269,25 +269,25 @@ class AccountMove(models.Model):
                 if payment_debit.is_two_percentage:
                     reverse_debit.write({"is_two_percentage": True})
 
-    def js_remove_outstanding_partial(self, partial_id):
-        for move in self:
-            move.remove_igtf_from_move(partial_id)
-        res = super().js_remove_outstanding_partial(partial_id)
-        return res
-
-    def js_assign_outstanding_line(self, line_id):
-        amount_residual = self.amount_residual
-        res = super().js_assign_outstanding_line(line_id)
-        line = self.env["account.move.line"].browse(line_id)
-        payment = self._get_payment_from_line(line)
-    
-        if payment:
-            self.recalculate_bi_igtf(
-                line_id,
-                initial_residual=(
-                    amount_residual
-                    if not self.currency_id.is_zero(amount_residual)
-                    else self.amount_residual
-                ),
-            )
-        return res
+#     def js_remove_outstanding_partial(self, partial_id):
+#         for move in self:
+#             move.remove_igtf_from_move(partial_id)
+#         res = super().js_remove_outstanding_partial(partial_id)
+#         return res
+# 
+#     def js_assign_outstanding_line(self, line_id):
+#         amount_residual = self.amount_residual
+#         res = super().js_assign_outstanding_line(line_id)
+#         line = self.env["account.move.line"].browse(line_id)
+#         payment = self._get_payment_from_line(line)
+#     
+#         if payment:
+#             self.recalculate_bi_igtf(
+#                 line_id,
+#                 initial_residual=(
+#                     amount_residual
+#                     if not self.currency_id.is_zero(amount_residual)
+#                     else self.amount_residual
+#                 ),
+#             )
+#         return res

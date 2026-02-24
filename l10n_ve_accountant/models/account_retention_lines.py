@@ -6,9 +6,9 @@ class AccountRetentionIvaLine(models.Model):
     _name = "account.retention.iva.line"
     _description = "Account Retention IVA Line"
 
-    def _valid_field_parameter(self, field_name, parameter):
-        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
-
+#     def _valid_field_parameter(self, field_name, parameter):
+#         return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+# 
     state = fields.Selection([
         ('draft', 'Draft'),
         ('confirmed', 'Confirmed'),
@@ -136,38 +136,38 @@ class AccountRetentionIvaLine(models.Model):
         related="move_id.date", string="Fecha de Factura", store=True
     )
 
-    @api.depends("move_id")
-    def _compute_name(self):
-        for rec in self:
-            rec.name = f"{rec.move_id.name or _('Nuevo')} - {rec._description}"
-
-    @api.depends('iva_amount', 'foreign_currency_rate', 'foreign_currency_id', 'company_currency_id')
-    def _compute_foreign_iva_amount(self):
-        for rec in self:
-            if rec.foreign_currency_id and rec.foreign_currency_id != rec.company_currency_id and rec.foreign_currency_rate:
-                rec.foreign_iva_amount = rec.iva_amount / rec.foreign_currency_rate
-            else:
-                rec.foreign_iva_amount = rec.iva_amount
-
-    @api.constrains("aliquot")
-    def _check_aliquot(self):
-        for rec in self:
-            if rec.aliquot < 0 or rec.aliquot > 100:
-                raise ValidationError(_("The aliquot percentage must be between 0 and 100."))
-
-    @api.onchange("aliquot", "base_amount", "foreign_base_amount")
-    def _onchange_retention_amounts(self):
-        for rec in self:
-            rec.retention_amount = rec.base_amount * (rec.aliquot / 100)
-            rec.foreign_retention_amount = rec.foreign_base_amount * (rec.aliquot / 100)
-
+#     @api.depends("move_id")
+#     def _compute_name(self):
+#         for rec in self:
+#             rec.name = f"{rec.move_id.name or _('Nuevo')} - {rec._description}"
+# 
+#     @api.depends('iva_amount', 'foreign_currency_rate', 'foreign_currency_id', 'company_currency_id')
+#     def _compute_foreign_iva_amount(self):
+#         for rec in self:
+#             if rec.foreign_currency_id and rec.foreign_currency_id != rec.company_currency_id and rec.foreign_currency_rate:
+#                 rec.foreign_iva_amount = rec.iva_amount / rec.foreign_currency_rate
+#             else:
+#                 rec.foreign_iva_amount = rec.iva_amount
+# 
+#     @api.constrains("aliquot")
+#     def _check_aliquot(self):
+#         for rec in self:
+#             if rec.aliquot < 0 or rec.aliquot > 100:
+#                 raise ValidationError(_("The aliquot percentage must be between 0 and 100."))
+# 
+#     @api.onchange("aliquot", "base_amount", "foreign_base_amount")
+#     def _onchange_retention_amounts(self):
+#         for rec in self:
+#             rec.retention_amount = rec.base_amount * (rec.aliquot / 100)
+#             rec.foreign_retention_amount = rec.foreign_base_amount * (rec.aliquot / 100)
+# 
 class AccountRetentionIslrLine(models.Model):
     _name = "account.retention.islr.line"
     _description = "Account Retention ISLR Line"
 
-    def _valid_field_parameter(self, field_name, parameter):
-        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
-
+#     def _valid_field_parameter(self, field_name, parameter):
+#         return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+# 
     state = fields.Selection([
         ('draft', 'Draft'),
         ('confirmed', 'Confirmed'),
@@ -311,38 +311,38 @@ class AccountRetentionIslrLine(models.Model):
         related="move_id.date", string="Fecha de Factura", store=True
     )
 
-    @api.depends("move_id")
-    def _compute_name(self):
-        for rec in self:
-            rec.name = f"{rec.move_id.name or _('Nuevo')} - {rec._description}"
-
-    @api.depends('iva_amount', 'foreign_currency_rate', 'foreign_currency_id', 'company_currency_id')
-    def _compute_foreign_iva_amount(self):
-        for rec in self:
-            if rec.foreign_currency_id and rec.foreign_currency_id != rec.company_currency_id and rec.foreign_currency_rate:
-                rec.foreign_iva_amount = rec.iva_amount / rec.foreign_currency_rate
-            else:
-                rec.foreign_iva_amount = rec.iva_amount
-
-    @api.constrains("aliquot")
-    def _check_alicuot_percentage(self):
-        for rec in self:
-            if rec.aliquot < 0 or rec.aliquot > 100:
-                raise ValidationError(_("The aliquot percentage must be between 0 and 100."))
-
-    @api.onchange("aliquot", "base_amount", "foreign_base_amount")
-    def _onchange_retention_amounts(self):
-        for rec in self:
-            rec.retention_amount = rec.base_amount * (rec.aliquot / 100)
-            rec.foreign_retention_amount = rec.foreign_base_amount * (rec.aliquot / 100)
-
+#     @api.depends("move_id")
+#     def _compute_name(self):
+#         for rec in self:
+#             rec.name = f"{rec.move_id.name or _('Nuevo')} - {rec._description}"
+# 
+#     @api.depends('iva_amount', 'foreign_currency_rate', 'foreign_currency_id', 'company_currency_id')
+#     def _compute_foreign_iva_amount(self):
+#         for rec in self:
+#             if rec.foreign_currency_id and rec.foreign_currency_id != rec.company_currency_id and rec.foreign_currency_rate:
+#                 rec.foreign_iva_amount = rec.iva_amount / rec.foreign_currency_rate
+#             else:
+#                 rec.foreign_iva_amount = rec.iva_amount
+# 
+#     @api.constrains("aliquot")
+#     def _check_alicuot_percentage(self):
+#         for rec in self:
+#             if rec.aliquot < 0 or rec.aliquot > 100:
+#                 raise ValidationError(_("The aliquot percentage must be between 0 and 100."))
+# 
+#     @api.onchange("aliquot", "base_amount", "foreign_base_amount")
+#     def _onchange_retention_amounts(self):
+#         for rec in self:
+#             rec.retention_amount = rec.base_amount * (rec.aliquot / 100)
+#             rec.foreign_retention_amount = rec.foreign_base_amount * (rec.aliquot / 100)
+# 
 class AccountRetentionMunicipalLine(models.Model):
     _name = "account.retention.municipal.line"
     _description = "Account Retention Municipal Line"
 
-    def _valid_field_parameter(self, field_name, parameter):
-        return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
-
+#     def _valid_field_parameter(self, field_name, parameter):
+#         return parameter == 'digits' or super()._valid_field_parameter(field_name, parameter)
+# 
     state = fields.Selection([
         ('draft', 'Draft'),
         ('confirmed', 'Confirmed'),
@@ -475,27 +475,27 @@ class AccountRetentionMunicipalLine(models.Model):
         related="move_id.date", string="Fecha de Factura", store=True
     )
 
-    @api.depends("move_id")
-    def _compute_name(self):
-        for rec in self:
-            rec.name = f"{rec.move_id.name or _('Nuevo')} - {rec._description}"
-
-    @api.depends('iva_amount', 'foreign_currency_rate', 'foreign_currency_id', 'company_currency_id')
-    def _compute_foreign_iva_amount(self):
-        for rec in self:
-            if rec.foreign_currency_id and rec.foreign_currency_id != rec.company_currency_id and rec.foreign_currency_rate:
-                rec.foreign_iva_amount = rec.iva_amount / rec.foreign_currency_rate
-            else:
-                rec.foreign_iva_amount = rec.iva_amount
-
-    @api.constrains("aliquot")
-    def _check_alicuot_percentage(self):
-        for rec in self:
-            if rec.aliquot < 0 or rec.aliquot > 100:
-                raise ValidationError(_("The aliquot percentage must be between 0 and 100."))
-
-    @api.onchange("aliquot", "base_amount", "foreign_base_amount")
-    def _onchange_retention_amounts(self):
-        for rec in self:
-            rec.retention_amount = rec.base_amount * (rec.aliquot / 100)
-            rec.foreign_retention_amount = rec.foreign_base_amount * (rec.aliquot / 100)
+#     @api.depends("move_id")
+#     def _compute_name(self):
+#         for rec in self:
+#             rec.name = f"{rec.move_id.name or _('Nuevo')} - {rec._description}"
+# 
+#     @api.depends('iva_amount', 'foreign_currency_rate', 'foreign_currency_id', 'company_currency_id')
+#     def _compute_foreign_iva_amount(self):
+#         for rec in self:
+#             if rec.foreign_currency_id and rec.foreign_currency_id != rec.company_currency_id and rec.foreign_currency_rate:
+#                 rec.foreign_iva_amount = rec.iva_amount / rec.foreign_currency_rate
+#             else:
+#                 rec.foreign_iva_amount = rec.iva_amount
+# 
+#     @api.constrains("aliquot")
+#     def _check_alicuot_percentage(self):
+#         for rec in self:
+#             if rec.aliquot < 0 or rec.aliquot > 100:
+#                 raise ValidationError(_("The aliquot percentage must be between 0 and 100."))
+# 
+#     @api.onchange("aliquot", "base_amount", "foreign_base_amount")
+#     def _onchange_retention_amounts(self):
+#         for rec in self:
+#             rec.retention_amount = rec.base_amount * (rec.aliquot / 100)
+#             rec.foreign_retention_amount = rec.foreign_base_amount * (rec.aliquot / 100)
