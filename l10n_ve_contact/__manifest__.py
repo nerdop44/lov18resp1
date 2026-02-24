@@ -11,10 +11,10 @@
     'depends': ['base','contacts','l10n_ve_rate'],
 
     # always loaded
-    'data': [
-        'views/res_partner.xml',
-        "views/res_config_settings.xml"
-    ],
+#    'data': [
+#        'views/res_partner.xml',
+#        "views/res_config_settings.xml"
+#    ],
     "images": ["static/description/icon.png"],
     "application": True,
     "binaural": True,
