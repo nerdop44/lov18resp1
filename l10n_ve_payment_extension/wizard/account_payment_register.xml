@@ -12,6 +12,11 @@
 					<attribute name="readonly">not edit_retention_fields</attribute>
 				</xpath>
 				
+				<xpath expr="//field[@name='amount']" position="after">
+					<field name="foreign_rate" readonly="not edit_retention_fields" force_save="1" invisible="not base_currency_is_vef"/>
+					<field name="foreign_currency_id" invisible="1"/>
+				</xpath>
+				
 				<xpath expr="//field[@name='journal_id']" position="before">
 					<field name="is_retention" invisible="not is_out_invoice"/>
 				</xpath>

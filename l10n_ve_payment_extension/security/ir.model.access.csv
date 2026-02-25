@@ -27,3 +27,4 @@ access_municipal_retention_xlsx_report,municipal_retention_xlsx_report,model_mun
 access_municipal_retention_patent_report,municipal_retention_patent_report,model_municipal_retention_patent_report,base.group_user,1,1,1,1
 access_retention_line_report,retention_line_report,model_retention_line_report,base.group_user,1,1,1,1
 access_arcv_report,arcv_report,model_arcv_report,base.group_user,1,1,1,0
+access_wizard_accounting_reports,wizard_accounting_reports,model_wizard_accounting_reports,base.group_user,1,1,1,1
