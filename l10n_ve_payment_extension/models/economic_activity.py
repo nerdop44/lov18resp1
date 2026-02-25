@@ -15,7 +15,7 @@ class EconomicActivity(models.Model):
 
     name = fields.Char("Code", required=True, store=True)
     municipality_id = fields.Many2one(
-        "res.country.municipality", string="Municipality", required=True
+        "res.country.municipality", string="Municipality", required=True, ondelete="cascade"
     )
     branch_id = fields.Many2one(
         "economic.branch",

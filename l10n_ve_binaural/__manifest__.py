@@ -43,23 +43,26 @@ but you will need set manually account defaults for taxes.
 #    "demo": [
 #        "demo/demo_company.xml",
 #    ],
-#    "data": [
-#        #security
-#        "security/ir.model.access.csv",
-#        "security/res_groups.xml",
-#        "security/ir_rule.xml",
-#        #data
-#        "data/ir_sequence.xml",
-#        #views
+    "data": [
+        #security
+        "security/ir.model.access.csv",
+        "security/res_groups.xml",
+        "security/ir_rule.xml",
+        #data
+        "data/ir_sequence.xml",
+        "data/res_country_state.xml",
+        "data/res_country_municipality.xml",
+        "data/res_country_parish.xml",
+        #views
 #        "views/account_journal_views.xml",
 #        "views/account_move_views.xml",
 #        "views/res_country_municipality_views.xml",
 #        "views/res_country_parish_views.xml",
 #        "views/res_config_settings_views.xml",
 #        "views/res_partner_views.xml",
-#        #menuitems
+        #menuitems
 #        "views/l10n_ve_menuitems.xml",
-#    ],
+    ],
     "license": "LGPL-3",
     "installable": True,
     "application": False,

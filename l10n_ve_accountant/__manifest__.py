@@ -20,11 +20,11 @@
         ##"l10n_ve_invoice", # Dependencia de Binaural Facturación
     ],
     # always loaded
-#    "data": [
-#        "security/ir.model.access.csv",
-#        "data/account_data.xml",
-#        "data/ir_actions_server.xml",
-#        "data/paperformats.xml",
+    "data": [
+        "security/ir.model.access.csv",
+        "data/account_data.xml",
+        "data/ir_actions_server.xml",
+        "data/paperformats.xml",
 #        "views/account_invoice_report.xml",
 #    #    "views/account_move.xml",
 #        "views/account_move_line.xml",
@@ -38,7 +38,7 @@
 #        "wizard/account_payment_register.xml",
 #        "wizard/invoices_details.xml",
 #        "wizard/payment_report.xml",
-#    ],
+    ],
     "images": ["static/description/icon.png"],
     "application": False,
     "binaural": True,
