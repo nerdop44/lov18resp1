@@ -167,6 +167,15 @@ class AccountReport(models.AbstractModel):
 
         return formatted_amount
 
+    def _dual_currency_query_get(self, options, date_scope, domain=None):
+        """ Puente para compatibilidad con Odoo 18.
+            Reemplaza el antiguo _query_get que fue eliminado en Enterprise.
+        """
+        # En Odoo 18, usamos _get_report_query que devuelve un objeto context-manager de consulta
+        query_obj = self._get_report_query(options, date_scope, domain=domain)
+        from_clause, where_clause, where_params = query_obj.subselect()
+        return from_clause, where_clause, where_params
+
     def _compute_formula_batch_with_engine_domain(self, options, date_scope, formulas_dict, current_groupby, next_groupby, offset=0, limit=None, warnings=None, **kwargs):
         """ Report engine.
 
@@ -211,7 +220,7 @@ class AccountReport(models.AbstractModel):
 
         for formula, expressions in formulas_dict.items():
             line_domain = literal_eval(formula)
-            tables, where_clause, where_params = self._query_get(options, date_scope, domain=line_domain)
+            tables, where_clause, where_params = self._dual_currency_query_get(options, date_scope, domain=line_domain)
 
             tail_query, tail_params = self._get_engine_query_tail(offset, limit)
             rate_mode = options.get('rate_mode', 'historical')

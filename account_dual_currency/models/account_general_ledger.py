@@ -47,7 +47,7 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
             if options_group.get('include_current_year_in_unaff_earnings'):
                 query_domain += [('account_id.include_initial_balance', '=', True)]
 
-            tables, where_clause, where_params = report._query_get(options_group, sum_date_scope, domain=query_domain)
+            tables, where_clause, where_params = report._dual_currency_query_get(options_group, sum_date_scope, domain=query_domain)
             params.append(column_group_key)
             params += where_params
             if currency_dif == self.env.company.currency_id.symbol:
@@ -95,7 +95,7 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
                 # ]
 
                 new_options = self._get_options_unaffected_earnings(options_group)
-                tables, where_clause, where_params = report._query_get(new_options, 'strict_range', domain=unaff_earnings_domain)
+                tables, where_clause, where_params = report._dual_currency_query_get(new_options, 'strict_range', domain=unaff_earnings_domain)
                 params.append(column_group_key)
                 params += where_params
                 if currency_dif == self.env.company.currency_id.symbol:
@@ -172,7 +172,7 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         for column_group_key, group_options in report._split_options_per_column_group(options).items():
             # Get sums for the account move lines.
             # period: [('date' <= options['date_to']), ('date', '>=', options['date_from'])]
-            tables, where_clause, where_params = report._query_get(group_options, domain=additional_domain, date_scope='strict_range')
+            tables, where_clause, where_params = report._dual_currency_query_get(group_options, domain=additional_domain, date_scope='strict_range')
             ct_query = self.env['res.currency']._get_query_currency_table(group_options)
             if currency_dif == self.env.company.currency_id.symbol:
                 query = f'''
@@ -317,7 +317,7 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         for column_group_key, options_group in report._split_options_per_column_group(options).items():
             new_options = self._get_options_initial_balance(options_group)
             ct_query = self.env['res.currency']._get_simple_currency_table(new_options)
-            tables, where_clause, where_params = report._query_get(new_options, 'normal', domain=[
+            tables, where_clause, where_params = report._dual_currency_query_get(new_options, 'normal', domain=[
                 ('account_id', 'in', account_ids),
                 ('account_id.include_initial_balance', '=', True),
             ])

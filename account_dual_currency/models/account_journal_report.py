@@ -19,7 +19,7 @@ class JournalReportCustomHandler(models.AbstractModel):
         report = self.env.ref('account_reports.journal_report')
         for column_group_key, options_group in report._split_options_per_column_group(options).items():
             new_options = self.env['account.general.ledger.report.handler']._get_options_initial_balance(options_group)  # Same options as the general ledger
-            tables, where_clause, where_params = report._query_get(new_options, 'normal', domain=[('journal_id', '=', journal_id)])
+            tables, where_clause, where_params = report._dual_currency_query_get(new_options, 'normal', domain=[('journal_id', '=', journal_id)])
             params.append(column_group_key)
             params += where_params
             if currency_dif == self.env.company.currency_id.symbol:
@@ -68,7 +68,7 @@ class JournalReportCustomHandler(models.AbstractModel):
         for column_group_key, options_group in report._split_options_per_column_group(options).items():
             # Override any forced options: We want the ones given in the options
             options_group['date'] = options['date']
-            tables, where_clause, where_params = report._query_get(options_group, 'strict_range', domain=[('journal_id', '=', journal.id)])
+            tables, where_clause, where_params = report._dual_currency_query_get(options_group, 'strict_range', domain=[('journal_id', '=', journal.id)])
             sort_by_date = options_group.get('sort_by_date')
             params.append(column_group_key)
             params += where_params
@@ -231,7 +231,7 @@ class JournalReportCustomHandler(models.AbstractModel):
         # Use the same option as we use to get the tax details, but this time to generate the query used to fetch the
         # grid information
         tax_report_options = self._get_generic_tax_report_options(options, data)
-        tables, where_clause, where_params = report._query_get(tax_report_options, 'strict_range')
+        tables, where_clause, where_params = report._dual_currency_query_get(tax_report_options, 'strict_range')
         lang = self.env.user.lang or get_lang(self.env).code
         country_name = f"COALESCE(country.name->>'{lang}', country.name->>'en_US')"
         tag_name = f"COALESCE(tag.name->>'{lang}', tag.name->>'en_US')" if \
