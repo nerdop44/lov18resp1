@@ -46,6 +46,7 @@
         "views/product.xml",
         "views/product_category.xml",
         "views/res_company.xml",
+        "views/res_company_signatures_view.xml",
         "views/signature_config.xml",
         "views/type_withholding.xml",
         "views/account_retention_line.xml",

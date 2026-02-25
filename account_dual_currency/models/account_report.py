@@ -206,24 +206,28 @@ class AccountReport(models.AbstractModel):
         groupby_sql = f'account_move_line.{current_groupby}' if current_groupby else None
         
         # Odoo 18 Radical Defensive Fix:
-        # Ensure 'companies' in options is always a list of integer IDs for Odoo base browse.
+        # Ensure 'companies' in options is always a Recordset for Odoo base methods.
         report_options = options.copy()
         if report_options.get('companies'):
             c_opt = report_options['companies']
+            c_ids = []
             if isinstance(c_opt, list):
-                report_options['companies'] = [c['id'] if isinstance(c, dict) else (c.id if hasattr(c, 'id') else c) for c in c_opt]
+                c_ids = [c['id'] if isinstance(c, dict) else (c.id if hasattr(c, 'id') else c) for c in c_opt]
             elif isinstance(c_opt, dict):
                 if 'id' in c_opt:
-                    report_options['companies'] = [c_opt['id']]
+                    c_ids = [c_opt['id']]
                 else:
-                    report_options['companies'] = [int(k) for k, v in c_opt.items() if v and str(k).isdigit()]
+                    c_ids = [int(k) for k, v in c_opt.items() if v and str(k).isdigit()]
             elif hasattr(c_opt, 'ids'):
-                report_options['companies'] = c_opt.ids
+                c_ids = c_opt.ids
             else:
                 try:
-                    report_options['companies'] = [int(c_opt)]
+                    c_ids = [int(c_opt)]
                 except:
                     pass
+            
+            if c_ids:
+                report_options['companies'] = self.env['res.company'].browse(c_ids)
 
         ct_query = self.env['res.currency']._get_simple_currency_table(report_options)
 
