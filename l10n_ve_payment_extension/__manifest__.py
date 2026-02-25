@@ -6,7 +6,7 @@
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Accountant/Accountant",
-    "version": "18.0.1.0.38",
+    "version": "18.0.1.0.37",
     # any module necessary for this one to work correctly
     "depends": [
         "base",
@@ -50,6 +50,7 @@
         "views/type_withholding.xml",
         "views/account_retention_line.xml",
         "views/account_retention_iva.xml",
+        
         "views/account_retention_municipal.xml",
         "views/account_payment.xml",
         "views/res_partner.xml",
@@ -64,8 +65,6 @@
         "views/menu.xml",
     ],
     "images": ["static/description/icon.png"],
-    "application": False,
+    "application": True,
     "binaural": True,
-    "installable": True,
-    "application": False,
 }

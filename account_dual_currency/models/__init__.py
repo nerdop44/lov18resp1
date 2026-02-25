@@ -34,4 +34,4 @@ from . import product_pricelist
 from . import sale_order
 from . import sale_order_line
 from . import purchase_order_line
-# from . import bank_rec_widget
+from . import bank_rec_widget

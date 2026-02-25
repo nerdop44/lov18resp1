@@ -18,21 +18,21 @@ class ResCompany(models.Model):
         string='Validate user creation general',
     )
     
-#     @api.model_create_multi
-#     def create(self, vals_tree):
-#         for vals in vals_tree:
-#             partner = self.env["res.partner"].create(
-#                 {
-#                     "name": vals["name"],
-#                     "is_company": False,
-#                     "image_1920": vals.get("logo"),
-#                     "email": vals.get("email"),
-#                     "phone": vals.get("phone"),
-#                     "website": vals.get("website"),
-#                     "vat": vals.get("vat"),
-#                     "country_id": vals.get("country_id"),
-#                 }
-#             )
-#             partner.company_id = False
-#             vals["partner_id"] = partner.id
-#         return super().create(vals_tree)
+    @api.model_create_multi
+    def create(self, vals_tree):
+        for vals in vals_tree:
+            partner = self.env["res.partner"].create(
+                {
+                    "name": vals["name"],
+                    "is_company": False,
+                    "image_1920": vals.get("logo"),
+                    "email": vals.get("email"),
+                    "phone": vals.get("phone"),
+                    "website": vals.get("website"),
+                    "vat": vals.get("vat"),
+                    "country_id": vals.get("country_id"),
+                }
+            )
+            partner.company_id = False
+            vals["partner_id"] = partner.id
+        return super().create(vals_tree)

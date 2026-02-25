@@ -10,8 +10,7 @@ class PaymentConceptLine(models.Model):
 
     pay_from = fields.Float(string="Payments greater than:")
     type_person_id = fields.Many2one(
-        "type.person", string="Type person", store=True, required=True, domain=[("state", "=", True)],
-        ondelete="cascade"
+        "type.person", string="Type person",store=True, required=True, domain=[("state", "=", True)]
     )
     payment_concept_id = fields.Many2one(
         "payment.concept",
@@ -24,13 +23,13 @@ class PaymentConceptLine(models.Model):
     tariff_id = fields.Many2one("fees.retention", string="Tariff", domain=[("status", "=", True)])
     code = fields.Char(string="Concept code", required=True)
 
-#     @api.onchange("percentage_tax_base")
-#     def check_value_percentage(self):
-#         if self.percentage_tax_base > 100:
-#             return {
-#                 "warning": {
-#                     "title": _("Error in taxable base percentage field"),
-#                     "message": _("the percentage may not exceed 100% on the payment concept line"),
-#                 },
-#                 "value": {"percentage_tax_base": 0},
-#             }
+    @api.onchange("percentage_tax_base")
+    def check_value_percentage(self):
+        if self.percentage_tax_base > 100:
+            return {
+                "warning": {
+                    "title": _("Error in taxable base percentage field"),
+                    "message": _("the percentage may not exceed 100% on the payment concept line"),
+                },
+                "value": {"percentage_tax_base": 0},
+            }

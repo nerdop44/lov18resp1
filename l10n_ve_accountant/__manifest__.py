@@ -40,8 +40,6 @@
         "wizard/payment_report.xml",
     ],
     "images": ["static/description/icon.png"],
-    "application": False,
+    "application": True,
     "binaural": True,
-    "installable": True,
-    "application": False,
 }

@@ -8,7 +8,7 @@ _logger = logging.getLogger(__name__)
 class ResConfigSettings(models.TransientModel):
     _inherit = "res.config.settings"
 
-    max_product_invoice = fields.Integer( readonly=False)
+    max_product_invoice = fields.Integer(related="company_id.max_product_invoice", readonly=False)
     group_sales_invoicing_series = fields.Boolean(
         related="company_id.group_sales_invoicing_series",
         readonly=False,
@@ -31,16 +31,16 @@ class ResConfigSettings(models.TransientModel):
         string="Margen Superior Personalizado Forma Libre"
     )
 
-#     @api.onchange("activate_custom_margin")
-#     def _onchange_activate_custom_margin(self):
-#         if not self.activate_custom_margin:
-#             self.forma_libre_top_margin = 0.0
-# 
-#     @api.onchange("group_sales_invoicing_series")
-#     def onchange_group_sales_invoicing_series(self):
-#         ir_sequence = self.env["ir.sequence"].sudo()
-# 
-#         series_sequence = ir_sequence.search(
-#             ["|", ("code", "=", "series.invoice.correlative"), ("active", "=", False)]
-#         )
-#         series_sequence.active = self.group_sales_invoicing_series
+    @api.onchange("activate_custom_margin")
+    def _onchange_activate_custom_margin(self):
+        if not self.activate_custom_margin:
+            self.forma_libre_top_margin = 0.0
+
+    @api.onchange("group_sales_invoicing_series")
+    def onchange_group_sales_invoicing_series(self):
+        ir_sequence = self.env["ir.sequence"].sudo()
+
+        series_sequence = ir_sequence.search(
+            ["|", ("code", "=", "series.invoice.correlative"), ("active", "=", False)]
+        )
+        series_sequence.active = self.group_sales_invoicing_series

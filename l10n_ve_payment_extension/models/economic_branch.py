@@ -21,14 +21,14 @@ class EconomicBranch(models.Model):
         store=True
     )
 
-#     @api.onchange("name")
-#     def on_change_name(self):
-#         self.name = str(self.name or "").upper().strip()
-# 
-#     @api.constrains("name")
-#     def _constraint_name_economic_branch(self):
-#         for record in self:
-#             exist = self.search([("name", "=", record.name), ("id", "!=", record.id)])
-# 
-#             if any(exist):
-#                 raise ValidationError(_("The economic branch is already registered"))
+    @api.onchange("name")
+    def on_change_name(self):
+        self.name = str(self.name or "").upper().strip()
+
+    @api.constrains("name")
+    def _constraint_name_economic_branch(self):
+        for record in self:
+            exist = self.search([("name", "=", record.name), ("id", "!=", record.id)])
+
+            if any(exist):
+                raise ValidationError(_("The economic branch is already registered"))

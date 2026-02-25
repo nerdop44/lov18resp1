@@ -228,10 +228,13 @@ class AccountPaymentRegister(models.TransientModel):
 
 
     def _create_payments(self):
-        payments = super(AccountPaymentRegister, self.with_context(tasa_factura=self.tax_today, calcular_dual_currency=True))._create_payments()
+        self.env.context = dict(self.env.context, tasa_factura=self.tax_today, calcular_dual_currency=True)
+
+        payments = super()._create_payments()
         payments.move_id._verificar_pagos()
         if payments.move_id_dif:
             payments.move_id_dif._verificar_pagos()
+        self.env.context = dict(self.env.context, tasa_factura=None, calcular_dual_currency=False)
         pay_term_line_ids = payments.move_id.line_ids.filtered(
             lambda line: line.account_id.account_type in ('asset_receivable', 'liability_payable'))
         partials = pay_term_line_ids.mapped('matched_debit_ids') + pay_term_line_ids.mapped(
@@ -317,6 +320,7 @@ class AccountPaymentRegister(models.TransientModel):
                 'credit_move_id': l_cliente.id,
             }])
 
+            self.env.context = dict(self.env.context, tasa_factura=None)
             (self.line_ids[0] + l_cliente).reconcile()
 
         else:
@@ -362,6 +366,7 @@ class AccountPaymentRegister(models.TransientModel):
                 payments.move_id_dif = move_new
                 payments.move_id_dif._post(soft=False)
                 #print('entra por diferencia 1')
+                self.env.context = dict(self.env.context, tasa_factura=None)
                 to_reconcile = payments.move_id.line_ids.filtered_domain(
                     [('account_id', '=', self.line_ids[0].account_id.id)])
                 payment_lines = move_new.line_ids.filtered_domain(
@@ -412,6 +417,7 @@ class AccountPaymentRegister(models.TransientModel):
                 #print('entra por diferencia 2')
                 ##print('estatus del asiento del pago ', payments.move_id.state)
                 ##print('estatus del asiento de la diferencia ', payments.move_id_dif.state)
+                self.env.context = dict(self.env.context, tasa_factura=None)
                 if self.payment_difference_bs < 0:
                     to_reconcile = payments.move_id.line_ids.filtered_domain(
                         [('account_id', '=', self.line_ids[0].account_id.id)])
@@ -475,6 +481,7 @@ class AccountPaymentRegister(models.TransientModel):
 
                 #print('entra por diferencia 3')
                 ##print('aqui llega y crea el asiento de diferencia', payments.move_id_dif)
+                self.env.context = dict(self.env.context, tasa_factura=None)
                 to_reconcile = payments.move_id.line_ids.filtered_domain(
                     [('account_id', '=', self.line_ids[0].account_id.id)])
                 payment_lines = move_new.line_ids.filtered_domain(
@@ -524,6 +531,7 @@ class AccountPaymentRegister(models.TransientModel):
                 payments.move_id_dif._post(soft=False)
 
                 #print('entra por diferencia 4')
+                self.env.context = dict(self.env.context, tasa_factura=None)
                 to_reconcile = self.line_ids[0]
                 payment_lines = move_new.line_ids.filtered_domain(
                     [('account_id', '=', self.line_ids[0].account_id.id)])
@@ -568,6 +576,7 @@ class AccountPaymentRegister(models.TransientModel):
                 payments.move_id_dif._post(soft=False)
 
                 #print('entra por diferencia 5')
+                self.env.context = dict(self.env.context, tasa_factura=None)
                 to_reconcile = payments.move_id.line_ids.filtered_domain(
                     [('account_id', '=', self.line_ids[0].account_id.id)])
                 payment_lines = move_new.line_ids.filtered_domain(
@@ -611,6 +620,7 @@ class AccountPaymentRegister(models.TransientModel):
                 move_new = self.env['account.move'].create(move)
                 payments.move_id_dif = move_new
                 payments.move_id_dif._post(soft=False)
+                self.env.context = dict(self.env.context, tasa_factura=None)
                 to_reconcile = payments.move_id.line_ids.filtered_domain(
                     [('account_id', '=', self.line_ids[0].account_id.id)])
                 payment_lines = move_new.line_ids.filtered_domain(

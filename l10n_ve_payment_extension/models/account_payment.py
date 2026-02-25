@@ -56,7 +56,7 @@ class AccountPayment(models.Model):
     )
 
     retention_foreign_amount = fields.Float(
-         store=True, copy=False
+        compute="_compute_retention_foreign_amount", store=True, copy=False
     )
 
        # === AÑADIR ESTE CAMPO ===
@@ -71,13 +71,13 @@ class AccountPayment(models.Model):
     retention_id = fields.Many2one("account.retention", ondelete="cascade")
 
 
-#     @api.depends("date")
-#     def _compute_rate(self):
-#         for payment in self:
-#             if payment.is_retention and payment.foreign_rate:
-#                 continue
-#             return super()._compute_rate()
-# 
+    @api.depends("date")
+    def _compute_rate(self):
+        for payment in self:
+            if payment.is_retention and payment.foreign_rate:
+                continue
+            return super()._compute_rate()
+
     def _synchronize_to_moves(self, changed_fields):
         """
         Override the original method to:
@@ -143,7 +143,7 @@ class AccountPayment(models.Model):
                         })
     
         return res
-# 
+
     # def _synchronize_to_moves(self, changed_fields):
     #     """
     #     Override the original method to change the name of the move based on the retention type
@@ -174,12 +174,12 @@ class AccountPayment(models.Model):
     #         move.line_ids.write(vals_to_change)
     #     return res
 
-#     def unlink(self):
-#         for payment in self:
-#             if payment.retention_line_ids:
-#                 payment.retention_line_ids.write({'payment_id': False})
-#         return super().unlink()
-# 
+    def unlink(self):
+        for payment in self:
+            if payment.retention_line_ids:
+                payment.retention_line_ids.write({'payment_id': False})
+        return super().unlink()
+
     def compute_retention_amount_from_retention_lines(self):
         """
         Compute the amount from the retention lines.
@@ -200,14 +200,13 @@ class AccountPayment(models.Model):
                     )
                 )
             )
-
     @api.onchange("retention_id")
     def onchange_retention_id(self):
         if self.retention_id:
             self.partner_id = self.retention_id.partner_id
             self.partner_type = "supplier" if self.retention_id.type in ("in_invoice", "in_refund") else "customer"
             self.amount = self.retention_id.foreign_total_retention_amount
-            # self.currency_id = self.retention_id.foreign_currency_id
+            self.currency_id = self.retention_id.foreign_currency_id
             self.is_retention = True
             self.payment_type_retention = self.retention_id.type_retention
             

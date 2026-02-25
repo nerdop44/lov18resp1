@@ -4,7 +4,7 @@ from odoo import fields, models
 class ResConfigSettings(models.TransientModel):
     _inherit = "res.config.settings"
 
-    is_igtf = fields.Boolean( readonly=False)
+    is_igtf = fields.Boolean(related="company_id.is_igtf", readonly=False)
 
     customer_account_igtf_id = fields.Many2one(
         "account.account",

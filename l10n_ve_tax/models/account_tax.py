@@ -15,16 +15,48 @@ class AccountTax(models.Model):
     def _prepare_tax_totals(
         self, base_lines, currency, tax_lines=None, is_company_currency_requested=False
     ):
-        _logger.debug("Preparing tax totals with base_lines: %s, currency: %s", base_lines, currency)
+        _logger.criltical("¡¡¡MI METODO _prepare_tax_totals SE ESTÁ EJECUTANDO!!!") # Línea agregada
 
+        """
+        This function adds the alternate currency tax amounts to tax_totals.
+        In it, the parent function is executed 2 times, once for the original
+        currency and once for the alternate currency.
+
+        The data that is brought is not recalculated, that is, it comes from the lines of the entry
+        ------
+        Parameters: (Parameters inherited)
+            base_lines: tree of dict
+            currency: res.currency
+        ------
+        Returns: (Return inherited)
+            dict: Now returns additionally:
+            "subtotal": float
+            "formatted_subtotal": str
+            "discount_amount": float
+            "foreign_subtotal": float
+            "foreign_formatted_subtotal": str
+            "formatted_discount_amount": str
+            "groups_by_foreign_subtotal": dict
+            "foreign_discount_amount": float
+            "foreign_formatted_discount_amount": str
+            "foreign_subtotals": tree of dict
+            "foreign_amount_untaxed": float
+            "foreign_amount_total": float
+            "foreign_formatted_amount_untaxed": str
+            "foreign_formatted_amount_total": str
+        """
+        # Verifica que base_lines no esté vacío
+        _logger.debug("Preparing tax totals with base_lines: %s, currency: %s", base_lines, currency)
+        
         if not base_lines:
             return {
                 "subtotals": [],
                 "foreign_subtotals": [],
                 "amount_untaxed": 0.0,
                 "formatted_amount_untaxed": "",
+                # Agrega otros campos necesarios con valores por defecto
             }
-
+        
         foreign_currency = self.env.company.currency_foreign_id or False
         if not foreign_currency:
             _logger.error("No foreign currency configured in the company")
@@ -39,7 +71,7 @@ class AccountTax(models.Model):
         )
         # Registro de depuración para los totales en moneda base
         _logger.debug("Base Tax Totals: %s", res)
-
+        
         res_without_discount = res.copy()
         has_discount = not currency.is_zero(sum([line["discount"] for line in base_lines]))
 
@@ -67,7 +99,9 @@ class AccountTax(models.Model):
             is_company_currency_requested=is_company_currency_requested,
         )
         _logger.debug("Foreign Tax Totals: %s", foreign_taxes)
-
+        
+        # Registro de depuración para los totales en moneda extranjera
+       
 
         foreign_taxes_without_discount = foreign_taxes.copy()
         if has_discount:
@@ -120,9 +154,10 @@ class AccountTax(models.Model):
             # Asigna los grupos de impuestos en moneda extranjera usando el nombre del subtotal 'foreign_subtotals'
             res["groups"]["foreign_subtotals"] = foreign_taxes["groups_by_subtotal"].get("foreign_subtotals", [])
 
+        
         # Registro de depuración final antes de retornar
         _logger.debug("Final Tax Totals: %s", res)
-
+        
         return res
 
     @api.model
