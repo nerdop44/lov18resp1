@@ -10,7 +10,7 @@ from . import account_aged_partner_balance
 from . import account_general_ledger
 from . import account_journal_report
 from . import account_generic_tax_report
-from . import account_cash_flow_report
+# from . import account_cash_flow_report
 from . import account_payment
 from . import product_template
 from . import product_product
@@ -23,9 +23,9 @@ from . import account_journal_dashboard
 from . import stock_picking
 from . import product_template_attribute_value
 # from . import reconciliation_widget
-from . import crossovered_budget_lines  # Disabled for Odoo 18 initial install
-from . import account_asset
-from . import account_assets_report
+# from . import crossovered_budget_lines  # Disabled for Odoo 18 initial install
+# from . import account_asset
+# from . import account_assets_report
 from . import account_bank_statement
 from . import account_bank_statement_line
 from . import account_analytic_account
@@ -34,4 +34,4 @@ from . import product_pricelist
 from . import sale_order
 from . import sale_order_line
 from . import purchase_order_line
-from . import bank_rec_widget
+# from . import bank_rec_widget
