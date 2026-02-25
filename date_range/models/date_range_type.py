@@ -28,7 +28,7 @@ class DateRangeType(models.Model):
         default=False,
     )
     company_id = fields.Many2one(
-        comodel_name="res.company", string="Company", index=1, default=_default_company
+        comodel_name="res.company", string="Company", index=1, # default=_default_company
     )
     date_range_ids = fields.One2many("date.range", "type_id", string="Ranges")
     date_ranges_exist = fields.Boolean()
