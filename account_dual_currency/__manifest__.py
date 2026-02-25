@@ -24,7 +24,7 @@
 
     """,
     'depends': [
-                'base', 'account',
+                'base', 'account', 'account_reports',
                 ],
      'data':[
         'security/ir.model.access.csv',
