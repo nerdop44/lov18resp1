@@ -66,26 +66,10 @@ class AgedPartnerBalanceCustomHandler(models.AbstractModel):
         period_table = self.env.cr.mogrify(period_table_format, params).decode(self.env.cr.connection.encoding)
 
         # Build query
-        # Odoo 18 Radical Defensive Fix:
-        report_options = options.copy()
-        if report_options.get('companies'):
-            c_opt = report_options['companies']
-            c_ids = []
-            if isinstance(c_opt, list):
-                c_ids = [c['id'] if isinstance(c, dict) else (c.id if hasattr(c, 'id') else c) for c in c_opt]
-            elif isinstance(c_opt, dict):
-                if 'id' in c_opt:
-                    c_ids = [c_opt['id']]
-                else:
-                    c_ids = [int(k) for k, v in c_opt.items() if v and str(k).isdigit()]
+        tables, where_clause, where_params = report._query_get(options, 'strict_range', domain=[('account_id.account_type', '=', internal_type)])
 
-            if c_ids:
-                report_options['companies'] = self.env['res.company'].browse(c_ids)
-
-        tables, where_clause, where_params = report._query_get(report_options, 'strict_range', domain=[('account_id.account_type', '=', internal_type)])
-
-        currency_table = self.env['res.currency']._get_simple_currency_table(report_options)
-        rate_mode = report_options.get('rate_mode', 'historical')
+        currency_table = self.env['res.currency']._get_simple_currency_table(options)
+        rate_mode = options.get('rate_mode', 'historical')
         always_present_groupby = "period_table.period_index, currency_table.rate, currency_table.precision"
         if current_groupby:
             select_from_groupby = f"account_move_line.{current_groupby} AS grouping_key,"

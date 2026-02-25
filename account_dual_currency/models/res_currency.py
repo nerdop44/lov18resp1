@@ -11,6 +11,44 @@ urllib3.disable_warnings()
 class ResCurrency(models.Model):
     _inherit = 'res.currency'
 
+    @api.model
+    def _get_simple_currency_table(self, options):
+        # Odoo 18 Global Defensive Fix:
+        # Normalizes 'companies' in options to a Recordset to prevent AttributeErrors in base methods.
+        if options and options.get('companies'):
+            c_opt = options['companies']
+            # If it's already a Recordset with currency_id, we're good
+            if hasattr(c_opt, 'currency_id'):
+                return super()._get_simple_currency_table(options)
+            
+            # Otherwise, extract IDs and browse
+            c_ids = []
+            if isinstance(c_opt, list):
+                c_ids = [c['id'] if isinstance(c, dict) else (c.id if hasattr(c, 'id') else c) for c in c_opt]
+            elif isinstance(c_opt, dict):
+                if 'id' in c_opt:
+                    c_ids = [c_opt['id']]
+                else:
+                    c_ids = [int(k) for k, v in c_opt.items() if v and str(k).isdigit()]
+            elif isinstance(c_opt, int):
+                c_ids = [c_opt]
+            
+            if c_ids:
+                # Copy options to avoid side effects if preferred, 
+                # but here we need the base method to see the Recordset.
+                options['companies'] = self.env['res.company'].browse(c_ids)
+        
+        return super()._get_simple_currency_table(options)
+
+    @api.model
+    def _check_currency_table_monocurrency(self, companies):
+        # Extra safety: if 'companies' is still not a Recordset, fallback gracefully
+        if not hasattr(companies, 'currency_id'):
+            if isinstance(companies, dict) or isinstance(companies, list):
+                return True # Assume monocurrency to avoid crash
+        return super()._check_currency_table_monocurrency(companies)
+
+
     facturas_por_actualizar = fields.Boolean(compute="_facturas_por_actualizar")
 
     # habilitar sincronización automatica

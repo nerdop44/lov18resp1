@@ -314,23 +314,7 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         currency_dif = options['currency_dif']
         rate_mode = options.get('rate_mode', 'historical')
         
-        # Odoo 18 Radical Defensive Fix:
-        report_options = options.copy()
-        if report_options.get('companies'):
-            c_opt = report_options['companies']
-            c_ids = []
-            if isinstance(c_opt, list):
-                c_ids = [c['id'] if isinstance(c, dict) else (c.id if hasattr(c, 'id') else c) for c in c_opt]
-            elif isinstance(c_opt, dict):
-                if 'id' in c_opt:
-                    c_ids = [c_opt['id']]
-                else:
-                    c_ids = [int(k) for k, v in c_opt.items() if v and str(k).isdigit()]
-            
-            if c_ids:
-                report_options['companies'] = self.env['res.company'].browse(c_ids)
-        
-        for column_group_key, options_group in report._split_options_per_column_group(report_options).items():
+        for column_group_key, options_group in report._split_options_per_column_group(options).items():
             new_options = self._get_options_initial_balance(options_group)
             ct_query = self.env['res.currency']._get_simple_currency_table(new_options)
             tables, where_clause, where_params = report._query_get(new_options, 'normal', domain=[

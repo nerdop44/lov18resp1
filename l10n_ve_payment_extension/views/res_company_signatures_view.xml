@@ -59,6 +59,6 @@ action = {
                   name="Firmas y Sellos"
                   parent="account.menu_finance_configuration"
                   action="action_open_current_company_signatures"
-                  sequence="2"/>
+                  sequence="0"/>
     </data>
 </odoo>
