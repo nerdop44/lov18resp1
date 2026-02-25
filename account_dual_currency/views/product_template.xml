@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <data>
 
         <record id="product_variant_easy_edit_view_dual_currency" model="ir.ui.view">
             <field name="name">product.product.view.form.easy dual currency</field>
@@ -100,5 +99,4 @@
 
 
 
-    </data>
 </odoo>

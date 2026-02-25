@@ -1,6 +1,5 @@
 
 <odoo>
-	<data>
 
 		<record id="view_retention_islr_form_binaural_payment_extension" model="ir.ui.view">
 			<field name="name">Retention ISLR client form</field>
@@ -91,5 +90,4 @@
 			<field name="domain">[('type_retention', '=', 'islr'), ('type', '=', 'in_invoice')]</field>
 		</record>
 	
-    </data>
 </odoo>

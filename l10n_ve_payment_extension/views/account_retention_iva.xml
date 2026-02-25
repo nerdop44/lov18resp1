@@ -1,7 +1,6 @@
 
 
 <odoo>
-	<data>
 
 		<record id="view_retention_iva_form_binaural_payment_extension" model="ir.ui.view">
 			<field name="name">Retention IVA client form</field>
@@ -136,5 +135,4 @@
 			<field name="domain">[('type_retention', '=', 'iva'), ('type', '=', 'in_invoice')]</field>
 		</record>
 	
-	</data>
 </odoo>
