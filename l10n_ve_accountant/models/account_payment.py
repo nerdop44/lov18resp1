@@ -21,7 +21,7 @@ class AccountPayment(models.Model):
 #         return self.env.company.currency_foreign_id.id or False
 # 
     foreign_currency_id = fields.Many2one(
-        "res.currency", default=default_alternate_currency
+        "res.currency", # default=default_alternate_currency
     )
 
     foreign_rate = fields.Float(
