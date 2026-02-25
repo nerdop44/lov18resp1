@@ -30,6 +30,7 @@
 
         </template>
 
+<!--
         <template id="search_template_generic_currency_dif" inherit_id="account_reports.search_template" primary="True">
             <xpath expr="//div[@id='extra_options_dropdown']" position="after">
                 <div id="currency_dif_choose" class="btn-group dropdown o_account_reports_filter_bool">
@@ -37,6 +38,7 @@
                 </div>
             </xpath>
         </template>
+-->
 
 
 </odoo>
