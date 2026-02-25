@@ -28,7 +28,7 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
 
         # Create the currency table.
         # As the currency table is the same whatever the comparisons, create it only once.
-        ct_query = self.env['res.currency']._get_query_currency_table(options)
+        ct_query = self.env['res.currency']._get_simple_currency_table(options)
         currency_dif = options['currency_dif']
         # ============================================
         # 1) Get sums for all accounts.
