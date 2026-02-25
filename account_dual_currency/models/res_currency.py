@@ -12,39 +12,38 @@ class ResCurrency(models.Model):
     _inherit = 'res.currency'
 
     @api.model
-    def _get_simple_currency_table(self, options):
+    def _get_simple_currency_table(self, companies_or_options):
         # Odoo 18 Global Defensive Fix:
-        # Normalizes 'companies' in options to a Recordset to prevent AttributeErrors in base methods.
-        if options and options.get('companies'):
-            c_opt = options['companies']
-            # If it's already a Recordset with currency_id, we're good
-            if hasattr(c_opt, 'env') and hasattr(c_opt, 'currency_id'):
-                return super()._get_simple_currency_table(options)
-            
-            # Otherwise, extract IDs and browse
+        # Detects if it's called with 'options' (Enterprise) or 'companies' (Community)
+        companies = companies_or_options
+        if isinstance(companies_or_options, dict):
+            companies = companies_or_options.get('companies') or self.env.company
+        
+        # Normalize companies to Recordset to satisfy Odoo Community base method
+        if not hasattr(companies, 'currency_id'):
             c_ids = []
-            if isinstance(c_opt, list):
-                c_ids = [c['id'] if isinstance(c, dict) else (c.id if hasattr(c, 'id') else c) for c in c_opt]
-            elif isinstance(c_opt, dict):
-                if 'id' in c_opt:
-                    c_ids = [c_opt['id']]
+            if isinstance(companies, list):
+                c_ids = [c['id'] if isinstance(c, dict) else (c.id if hasattr(c, 'id') else c) for c in companies]
+            elif isinstance(companies, dict):
+                if 'id' in companies:
+                    c_ids = [companies['id']]
                 else:
-                    c_ids = [int(k) for k, v in c_opt.items() if v and str(k).isdigit()]
-            elif isinstance(c_opt, (int, str)):
+                    c_ids = [int(k) for k, v in companies.items() if v and str(k).isdigit()]
+            elif isinstance(companies, (int, str)):
                 try:
-                    c_ids = [int(c_opt)]
+                    c_ids = [int(companies)]
                 except:
                     pass
-            elif hasattr(c_opt, 'ids'):
-                c_ids = c_opt.ids
+            elif hasattr(companies, 'ids'):
+                c_ids = companies.ids
             
             if c_ids:
-                options['companies'] = self.env['res.company'].browse(c_ids)
+                companies = self.env['res.company'].browse(c_ids)
             else:
-                # Fallback to current company
-                options['companies'] = self.env.company
+                companies = self.env.company
         
-        return super()._get_simple_currency_table(options)
+        # Crucial: pass the Recordset to Community base, NOT the dict/str
+        return super()._get_simple_currency_table(companies)
 
     @api.model
     def _check_currency_table_monocurrency(self, companies):

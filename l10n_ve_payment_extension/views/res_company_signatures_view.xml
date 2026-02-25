@@ -59,6 +59,6 @@ action = {
                   name="Firmas y Sellos"
                   parent="l10n_ve_payment_extension.retention_configuration"
                   action="action_open_current_company_signatures"
-                  sequence="10"/>
+                  sequence="15"/>
     </data>
 </odoo>
