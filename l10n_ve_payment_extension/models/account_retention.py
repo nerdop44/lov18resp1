@@ -155,6 +155,12 @@ class AccountRetention(models.Model):
         )
     )
 
+    print_with_signatures = fields.Boolean(
+        string="Imprimir con Firmas y Sellos",
+        default=True,
+        help="Si se marca, el comprobante PDF incluirá la firma y el sello de la empresa.",
+    )
+
     @api.depends("type", "partner_id")
     def _compute_allowed_lines_move_ids(self):
         """
@@ -1660,11 +1666,13 @@ class AccountRetention(models.Model):
 
 
     def get_signature(self):
-        config = self.env["signature.config"].search(
-            [("active", "=", True), ("company_id", "=", self.company_id.id)],
-            limit=1,
-        )
-        if config and config.signature:
-            return config.signature.decode()
-        else:
-            return False
+        self.ensure_one()
+        if self.print_with_signatures and self.company_id.signature_image:
+            return self.company_id.signature_image
+        return False
+
+    def get_stamp(self):
+        self.ensure_one()
+        if self.print_with_signatures and self.company_id.stamp_image:
+            return self.company_id.stamp_image
+        return False

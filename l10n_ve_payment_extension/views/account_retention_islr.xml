@@ -28,6 +28,7 @@
 						<field name="number" force_save="1" readonly="type == 'in_invoice' or state in ['emitted', 'cancel']" required="type == 'out_invoice'" />
 						<field name="correlative" force_save="1" invisible="1" readonly="type == 'in_invoice'"/>
 						<field name="date" readonly="state in ['emitted', 'cancel']"/>
+						<field name="print_with_signatures" readonly="state in ['emitted', 'cancel']"/>
 					</group>
 					<notebook colspan="4">
 						<page name="retention_lines" string="Líneas de Retención">

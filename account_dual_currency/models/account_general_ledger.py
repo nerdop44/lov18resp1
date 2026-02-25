@@ -30,6 +30,7 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         # As the currency table is the same whatever the comparisons, create it only once.
         ct_query = self.env['res.currency']._get_simple_currency_table(options)
         currency_dif = options['currency_dif']
+        rate_mode = options.get('rate_mode', 'historical')
         # ============================================
         # 1) Get sums for all accounts.
         # ============================================
@@ -114,21 +115,38 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
                         GROUP BY account_move_line.company_id
                     """)
                 else:
-                    queries.append(f"""
-                                            SELECT
-                                                account_move_line.company_id                            AS groupby,
-                                                'unaffected_earnings'                                   AS key,
-                                                NULL                                                    AS max_date,
-                                                %s                                                      AS column_group_key,
-                                                COALESCE(SUM(0), 0.0)   AS amount_currency,
-                                                SUM(ROUND(account_move_line.debit_usd, currency_table.precision))   AS debit,
-                                                SUM(ROUND(account_move_line.credit_usd, currency_table.precision))  AS credit,
-                                                SUM(ROUND(account_move_line.balance_usd, currency_table.precision)) AS balance
-                                            FROM {tables}
-                                            LEFT JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
-                                            WHERE {where_clause}
-                                            GROUP BY account_move_line.company_id
-                                        """)
+                    if rate_mode == 'current':
+                        queries.append(f"""
+                            SELECT
+                                account_move_line.company_id                            AS groupby,
+                                'unaffected_earnings'                                   AS key,
+                                NULL                                                    AS max_date,
+                                %s                                                      AS column_group_key,
+                                COALESCE(SUM(0), 0.0)                                   AS amount_currency,
+                                SUM(ROUND(account_move_line.debit * currency_table.rate, currency_table.precision))   AS debit,
+                                SUM(ROUND(account_move_line.credit * currency_table.rate, currency_table.precision))  AS credit,
+                                SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)) AS balance
+                            FROM {tables}
+                            LEFT JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
+                            WHERE {where_clause}
+                            GROUP BY account_move_line.company_id
+                        """)
+                    else:
+                        queries.append(f"""
+                            SELECT
+                                account_move_line.company_id                            AS groupby,
+                                'unaffected_earnings'                                   AS key,
+                                NULL                                                    AS max_date,
+                                %s                                                      AS column_group_key,
+                                COALESCE(SUM(0), 0.0)   AS amount_currency,
+                                SUM(ROUND(account_move_line.debit_usd, currency_table.precision))   AS debit,
+                                SUM(ROUND(account_move_line.credit_usd, currency_table.precision))  AS credit,
+                                SUM(ROUND(account_move_line.balance_usd, currency_table.precision)) AS balance
+                            FROM {tables}
+                            LEFT JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
+                            WHERE {where_clause}
+                            GROUP BY account_move_line.company_id
+                        """)
 
         return ' UNION ALL '.join(queries), params
 
@@ -145,6 +163,7 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         queries = []
         all_params = []
         currency_dif = options['currency_dif']
+        rate_mode = options.get('rate_mode', 'historical')
         lang = self.env.user.lang or get_lang(self.env).code
         journal_name = f"COALESCE(journal.name->>'{lang}', journal.name->>'en_US')" if \
             self.pool['account.journal'].name.translate else 'journal.name'
@@ -169,9 +188,9 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
                         account_move_line.partner_id,
                         account_move_line.currency_id,
                         account_move_line.amount_currency,
-                        ROUND(account_move_line.debit * currency_table.rate, currency_table.precision)   AS debit,
-                        ROUND(account_move_line.credit * currency_table.rate, currency_table.precision)  AS credit,
-                        ROUND(account_move_line.balance * currency_table.rate, currency_table.precision) AS balance,
+                        account_move_line.debit,
+                        account_move_line.credit,
+                        account_move_line.balance,
                         move.name                               AS move_name,
                         company.currency_id                     AS company_currency_id,
                         partner.name                            AS partner_name,
@@ -194,43 +213,82 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
                     ORDER BY account_move_line.date, account_move_line.id)
                 '''
             else:
-                query = f'''
-                                    (SELECT
-                                        account_move_line.id,
-                                        account_move_line.date,
-                                        account_move_line.date_maturity,
-                                        account_move_line.name,
-                                        account_move_line.ref,
-                                        account_move_line.company_id,
-                                        account_move_line.account_id,
-                                        account_move_line.payment_id,
-                                        account_move_line.partner_id,
-                                        account_move_line.currency_id,
-                                        account_move_line.amount_currency,
-                                        ROUND(account_move_line.debit_usd, currency_table.precision)   AS debit,
-                                        ROUND(account_move_line.credit_usd, currency_table.precision)  AS credit,
-                                        ROUND(account_move_line.balance_usd, currency_table.precision) AS balance,
-                                        move.name                               AS move_name,
-                                        company.currency_id                     AS company_currency_id,
-                                        partner.name                            AS partner_name,
-                                        move.move_type                          AS move_type,
-                                        account.code                            AS account_code,
-                                        {account_name}                          AS account_name,
-                                        journal.code                            AS journal_code,
-                                        {journal_name}                          AS journal_name,
-                                        full_rec.name                           AS full_rec_name,
-                                        %s                                      AS column_group_key
-                                    FROM {tables}
-                                    JOIN account_move move                      ON move.id = account_move_line.move_id
-                                    LEFT JOIN {ct_query}                        ON currency_table.company_id = account_move_line.company_id
-                                    LEFT JOIN res_company company               ON company.id = account_move_line.company_id
-                                    LEFT JOIN res_partner partner               ON partner.id = account_move_line.partner_id
-                                    LEFT JOIN account_account account           ON account.id = account_move_line.account_id
-                                    LEFT JOIN account_journal journal           ON journal.id = account_move_line.journal_id
-                                    LEFT JOIN account_full_reconcile full_rec   ON full_rec.id = account_move_line.full_reconcile_id
-                                    WHERE {where_clause}
-                                    ORDER BY account_move_line.date, account_move_line.id)
-                                '''
+                if rate_mode == 'current':
+                    query = f'''
+                            (SELECT
+                                account_move_line.id,
+                                account_move_line.date,
+                                account_move_line.date_maturity,
+                                account_move_line.name,
+                                account_move_line.ref,
+                                account_move_line.company_id,
+                                account_move_line.account_id,
+                                account_move_line.payment_id,
+                                account_move_line.partner_id,
+                                account_move_line.currency_id,
+                                account_move_line.amount_currency,
+                                ROUND(account_move_line.debit * currency_table.rate, currency_table.precision)   AS debit,
+                                ROUND(account_move_line.credit * currency_table.rate, currency_table.precision)  AS credit,
+                                ROUND(account_move_line.balance * currency_table.rate, currency_table.precision) AS balance,
+                                move.name                               AS move_name,
+                                company.currency_id                     AS company_currency_id,
+                                partner.name                            AS partner_name,
+                                move.move_type                          AS move_type,
+                                account.code                            AS account_code,
+                                {account_name}                          AS account_name,
+                                journal.code                            AS journal_code,
+                                {journal_name}                          AS journal_name,
+                                full_rec.name                           AS full_rec_name,
+                                %s                                      AS column_group_key
+                            FROM {tables}
+                            JOIN account_move move                      ON move.id = account_move_line.move_id
+                            LEFT JOIN {ct_query}                        ON currency_table.company_id = account_move_line.company_id
+                            LEFT JOIN res_company company               ON company.id = account_move_line.company_id
+                            LEFT JOIN res_partner partner               ON partner.id = account_move_line.partner_id
+                            LEFT JOIN account_account account           ON account.id = account_move_line.account_id
+                            LEFT JOIN account_journal journal           ON journal.id = account_move_line.journal_id
+                            LEFT JOIN account_full_reconcile full_rec   ON full_rec.id = account_move_line.full_reconcile_id
+                            WHERE {where_clause}
+                            ORDER BY account_move_line.date, account_move_line.id)
+                        '''
+                else:
+                    query = f'''
+                            (SELECT
+                                account_move_line.id,
+                                account_move_line.date,
+                                account_move_line.date_maturity,
+                                account_move_line.name,
+                                account_move_line.ref,
+                                account_move_line.company_id,
+                                account_move_line.account_id,
+                                account_move_line.payment_id,
+                                account_move_line.partner_id,
+                                account_move_line.currency_id,
+                                account_move_line.amount_currency,
+                                ROUND(account_move_line.debit_usd, currency_table.precision)   AS debit,
+                                ROUND(account_move_line.credit_usd, currency_table.precision)  AS credit,
+                                ROUND(account_move_line.balance_usd, currency_table.precision) AS balance,
+                                move.name                               AS move_name,
+                                company.currency_id                     AS company_currency_id,
+                                partner.name                            AS partner_name,
+                                move.move_type                          AS move_type,
+                                account.code                            AS account_code,
+                                {account_name}                          AS account_name,
+                                journal.code                            AS journal_code,
+                                {journal_name}                          AS journal_name,
+                                full_rec.name                           AS full_rec_name,
+                                %s                                      AS column_group_key
+                            FROM {tables}
+                            JOIN account_move move                      ON move.id = account_move_line.move_id
+                            LEFT JOIN {ct_query}                        ON currency_table.company_id = account_move_line.company_id
+                            LEFT JOIN res_company company               ON company.id = account_move_line.company_id
+                            LEFT JOIN res_partner partner               ON partner.id = account_move_line.partner_id
+                            LEFT JOIN account_account account           ON account.id = account_move_line.account_id
+                            LEFT JOIN account_journal journal           ON journal.id = account_move_line.journal_id
+                            LEFT JOIN account_full_reconcile full_rec   ON full_rec.id = account_move_line.full_reconcile_id
+                            WHERE {where_clause}
+                            ORDER BY account_move_line.date, account_move_line.id)
+                        '''
 
             queries.append(query)
             all_params.append(column_group_key)
@@ -254,9 +312,10 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         queries = []
         params = []
         currency_dif = options['currency_dif']
+        rate_mode = options.get('rate_mode', 'historical')
         for column_group_key, options_group in report._split_options_per_column_group(options).items():
             new_options = self._get_options_initial_balance(options_group)
-            ct_query = self.env['res.currency']._get_query_currency_table(new_options)
+            ct_query = self.env['res.currency']._get_simple_currency_table(new_options)
             tables, where_clause, where_params = report._query_get(new_options, 'normal', domain=[
                 ('account_id', 'in', account_ids),
                 ('account_id.include_initial_balance', '=', True),
@@ -271,30 +330,47 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
                         NULL                                                                                  AS max_date,
                         %s                                                                                    AS column_group_key,
                         COALESCE(SUM(account_move_line.amount_currency), 0.0)                                 AS amount_currency,
-                        SUM(ROUND(account_move_line.debit * currency_table.rate, currency_table.precision))   AS debit,
-                        SUM(ROUND(account_move_line.credit * currency_table.rate, currency_table.precision))  AS credit,
-                        SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)) AS balance
+                        SUM(account_move_line.debit)   AS debit,
+                        SUM(account_move_line.credit)  AS credit,
+                        SUM(account_move_line.balance) AS balance
                     FROM {tables}
                     LEFT JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
                     WHERE {where_clause}
                     GROUP BY account_move_line.account_id
                 """)
             else:
-                queries.append(f"""
-                                    SELECT
-                                        account_move_line.account_id                                                          AS groupby,
-                                        'initial_balance'                                                                     AS key,
-                                        NULL                                                                                  AS max_date,
-                                        %s                                                                                    AS column_group_key,
-                                        COALESCE(SUM(0), 0.0)                                 AS amount_currency,
-                                        SUM(ROUND(account_move_line.debit_usd, currency_table.precision))   AS debit,
-                                        SUM(ROUND(account_move_line.credit_usd, currency_table.precision))  AS credit,
-                                        SUM(ROUND(account_move_line.balance_usd, currency_table.precision)) AS balance
-                                    FROM {tables}
-                                    LEFT JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
-                                    WHERE {where_clause}
-                                    GROUP BY account_move_line.account_id
-                                """)
+                if rate_mode == 'current':
+                    queries.append(f"""
+                        SELECT
+                            account_move_line.account_id                                                          AS groupby,
+                            'initial_balance'                                                                     AS key,
+                            NULL                                                                                  AS max_date,
+                            %s                                                                                    AS column_group_key,
+                            COALESCE(SUM(0), 0.0)                                                                 AS amount_currency,
+                            SUM(ROUND(account_move_line.debit * currency_table.rate, currency_table.precision))   AS debit,
+                            SUM(ROUND(account_move_line.credit * currency_table.rate, currency_table.precision))  AS credit,
+                            SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)) AS balance
+                        FROM {tables}
+                        LEFT JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
+                        WHERE {where_clause}
+                        GROUP BY account_move_line.account_id
+                    """)
+                else:
+                    queries.append(f"""
+                        SELECT
+                            account_move_line.account_id                                                          AS groupby,
+                            'initial_balance'                                                                     AS key,
+                            NULL                                                                                  AS max_date,
+                            %s                                                                                    AS column_group_key,
+                            COALESCE(SUM(0), 0.0)                                                                 AS amount_currency,
+                            SUM(ROUND(account_move_line.debit_usd, currency_table.precision))   AS debit,
+                            SUM(ROUND(account_move_line.credit_usd, currency_table.precision))  AS credit,
+                            SUM(ROUND(account_move_line.balance_usd, currency_table.precision)) AS balance
+                        FROM {tables}
+                        LEFT JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
+                        WHERE {where_clause}
+                        GROUP BY account_move_line.account_id
+                    """)
 
         self._cr.execute(" UNION ALL ".join(queries), params)
 
