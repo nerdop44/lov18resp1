@@ -1,46 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Vista de Formulario Simplificada para Firmas -->
-    <record id="view_company_signatures_form" model="ir.ui.view">
-        <field name="name">res.company.signatures.form</field>
-        <field name="model">res.company</field>
-        <field name="priority">200</field>
-        <field name="arch" type="xml">
-            <form string="Configuración de Firmas y Sellos" create="0" delete="0">
-                <sheet>
-                    <div class="oe_title">
-                        <h1>
-                            <field name="name" readonly="1"/>
-                        </h1>
-                    </div>
-                    <group>
-                        <group string="Firma Digital" name="signature_grp">
-                            <field name="signature_image" widget="image" options="{'size': [200, 200]}" nolabel="1"/>
-                        </group>
-                        <group string="Sello de la Empresa" name="stamp_grp">
-                            <field name="stamp_image" widget="image" options="{'size': [200, 200]}" nolabel="1"/>
-                        </group>
-                    </group>
-                    <group string="Información Adicional">
+    <data>
+        <!-- Vista de Formulario Simplificada para Firmas -->
+        <record id="view_company_signatures_form" model="ir.ui.view">
+            <field name="name">res.company.signatures.form</field>
+            <field name="model">res.company</field>
+            <field name="priority">200</field>
+            <field name="arch" type="xml">
+                <form string="Configuración de Firmas y Sellos" create="0" delete="0">
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1"/>
+                            </h1>
+                        </div>
                         <group>
-                            <field name="tax_authorities_name"/>
-                            <field name="economic_activity_number"/>
+                            <group string="Firma Digital" name="signature_grp">
+                                <field name="signature_image" widget="image" options="{'size': [200, 200]}" nolabel="1"/>
+                            </group>
+                            <group string="Sello de la Empresa" name="stamp_grp">
+                                <field name="stamp_image" widget="image" options="{'size': [200, 200]}" nolabel="1"/>
+                            </group>
                         </group>
-                        <group>
-                            <field name="tax_authorities_logo" widget="image" class="oe_avatar"/>
+                        <group string="Información Adicional">
+                            <group>
+                                <field name="tax_authorities_name"/>
+                                <field name="economic_activity_number"/>
+                            </group>
+                            <group>
+                                <field name="tax_authorities_logo" widget="image" class="oe_avatar"/>
+                            </group>
                         </group>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
+                    </sheet>
+                </form>
+            </field>
+        </record>
 
-    <!-- Acción de Servidor para abrir la Compañía Actual -->
-    <record id="action_open_current_company_signatures" model="ir.actions.server">
-        <field name="name">Firmas y Sellos</field>
-        <field name="model_id" ref="base.model_res_company"/>
-        <field name="state">code</field>
-        <field name="code">
+        <record id="action_open_current_company_signatures" model="ir.actions.server">
+            <field name="name">Firmas y Sellos</field>
+            <field name="model_id" ref="base.model_res_company"/>
+            <field name="state">code</field>
+            <field name="code">
 action = {
     'type': 'ir.actions.act_window',
     'name': 'Configuración de Firmas y Sellos',
@@ -50,13 +50,13 @@ action = {
     'view_id': env.ref('l10n_ve_payment_extension.view_company_signatures_form').id,
     'target': 'current',
 }
-        </field>
-    </record>
+            </field>
+        </record>
 
-    <!-- Menú en Configuración de Contabilidad > Retenciones -->
-    <menuitem id="menu_company_signatures"
-              name="Firmas y Sellos"
-              parent="l10n_ve_payment_extension.retention_configuration"
-              action="action_open_current_company_signatures"
-              sequence="15"/>
+        <menuitem id="menu_company_signatures"
+                  name="Firmas y Sellos"
+                  parent="l10n_ve_payment_extension.retention_configuration"
+                  action="action_open_current_company_signatures"
+                  sequence="15"/>
+    </data>
 </odoo>

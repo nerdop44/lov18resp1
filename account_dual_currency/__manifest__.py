@@ -35,7 +35,7 @@
         'views/res_config_settings.xml',
         'views/account_move_view.xml',
         'views/account_move_line.xml',
-        'views/search_template_view.xml',
+        # 'views/search_template_view.xml',
         'wizard/account_payment_register.xml',
         'views/account_payment.xml',
         'views/product_template.xml',
