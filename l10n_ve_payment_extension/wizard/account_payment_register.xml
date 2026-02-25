@@ -8,23 +8,23 @@
 			<field name="inherit_id" ref="account.view_account_payment_register_form"/>
 			<field name="arch" type="xml">
 
-				<field name="journal_id" position="attributes">
+				<xpath expr="//field[@name='journal_id']" position="attributes">
 					<attribute name="readonly">not edit_retention_fields</attribute>
-				</field>
+				</xpath>
 				
-				<field name="foreign_rate" position="attributes">
+				<xpath expr="//field[@name='foreign_rate']" position="attributes">
 					<attribute name="readonly">not edit_retention_fields</attribute>
-				</field>
+				</xpath>
 				
 				<field name="journal_id" position="before">
 					<field name="is_retention" invisible="not is_out_invoice"/></field>
-				<field name="amount" position="attributes">
+				<xpath expr="//field[@name='amount']" position="attributes">
 					<attribute name="readonly">is_retention</attribute>
-				</field>
+				</xpath>
 				
-				<field name="currency_id" position="attributes">
+				<xpath expr="//field[@name='currency_id']" position="attributes">
 					<attribute name="readonly">is_retention</attribute>
-				</field>
+				</xpath>
 				
 				<group name="group2" position="after">
 					<!-- Invisible fields -->
