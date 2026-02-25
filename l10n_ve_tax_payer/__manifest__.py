@@ -8,9 +8,9 @@
     "category": "Accounting/Accounting",
     "version": "18.0.1.0.0",
     "depends": ["base", "l10n_ve_rate", "l10n_ve_tax"],
-#    "data": [
-#        "views/res_partner.xml",
-#    ],
+    "data": [
+        "views/res_partner.xml",
+    ],
     "images": ["static/description/icon.png"],
     "application": False,
     "binaural": True,

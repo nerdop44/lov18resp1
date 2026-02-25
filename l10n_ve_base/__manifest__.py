@@ -12,7 +12,7 @@
     "depends": ["base", "base_setup"],
     # always loaded
     "auto_install": True,
-#    "data": ["views/res_config_settings_views.xml"],
+    "data": ["views/res_config_settings_views.xml"],
     "binaural": True,
     "installable": True,
     "application": False,

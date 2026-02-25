@@ -10,10 +10,10 @@
     # any module necessary for this one to work correctly
     "depends": ["l10n_ve_invoice"],
     # always loaded
-#    "data": [
-#        "views/account_journal.xml",
-#        "views/res_config_settings.xml",
-#    ],
+    "data": [
+        "views/account_journal.xml",
+        "views/res_config_settings.xml",
+    ],
     "images": ["static/description/icon.png"],
     "application": False,
     "installable": True,
