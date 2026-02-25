@@ -16,8 +16,9 @@
 					<attribute name="readonly">not edit_retention_fields</attribute>
 				</xpath>
 				
-				<field name="journal_id" position="before">
-					<field name="is_retention" invisible="not is_out_invoice"/></field>
+				<xpath expr="//field[@name='journal_id']" position="before">
+					<field name="is_retention" invisible="not is_out_invoice"/>
+				</xpath>
 				<xpath expr="//field[@name='amount']" position="attributes">
 					<attribute name="readonly">is_retention</attribute>
 				</xpath>
@@ -26,7 +27,7 @@
 					<attribute name="readonly">is_retention</attribute>
 				</xpath>
 				
-				<group name="group2" position="after">
+				<xpath expr="//group[@name='group2']" position="after">
 					<!-- Invisible fields -->
 					<field name="edit_retention_fields" invisible="1"/>
 					<field name="base_currency_is_vef" invisible="1"/>
@@ -65,7 +66,7 @@
 							</field>
 						</page>
 					</notebook>
-				</group>
+				</xpath>
 				
 				<!--<group name="group3" position="attributes">
 					<attribute name="invisible">not edit_retention_fields or payment_difference == 0.0 or not can_edit_wizard or can_group_payments and not group_payment</attribute>
