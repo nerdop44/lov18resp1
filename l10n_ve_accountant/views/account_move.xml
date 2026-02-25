@@ -16,24 +16,19 @@
 					<field name="company_currency_id" invisible="1"/>
 					<field name="foreign_currency_id" invisible="1"/>
 				</xpath>-->
-				<xpath expr="//notebook" position="inside">
+<!--				<xpath expr="//notebook" position="inside">
 					<page name="iva_retention" string="Retenciones de IVA ">
 						<field name="retention_iva_line_ids" nolabel="1" readonly="1" widget="one2many_list">
 							<list editable='bottom'>
-								<!-- Invisible Fields -->
-								<!--<field name="invoice_type" column_invisible="True"/>-->
 								<field name="company_currency_id" column_invisible="True"/>
 								<field name="foreign_currency_id" column_invisible="True"/>
 								<field name="name"/>
-								<!--<field name="move_id"/>-->
 								<field name="aliquot"/>
 								<field name="related_percentage_tax_base" optional="hide"/>
-								<!-- Amounts -->
 								<field name="invoice_total" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
 								<field name="invoice_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
 								<field name="iva_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
 								<field name="retention_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
-								<!-- Foreign Amounts -->
 								<field name="foreign_invoice_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef" />
 								<field name="foreign_iva_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef" />
 								<field name="foreign_invoice_total" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef" />
@@ -46,8 +41,6 @@
 					<page name="islr_retention" string="Retenciones de ISLR">
 						<field name="retention_islr_line_ids" nolabel="1" readonly="move_type not in ('in_invoice', 'in_refund') or state != 'draft'">
 							<list editable='bottom'>
-								<!-- Invisible Fields -->
-								<!--<field name="invoice_type" column_invisible="True"/>-->
 								<field name="company_currency_id" column_invisible="True"/>
 								<field name="foreign_currency_id" column_invisible="True"/>
 								<field name="name"/>
@@ -84,7 +77,7 @@
 							</list>
 						</field>
 					</page>
-				</xpath>
+				</xpath>-->
 			</field>
 		</record>
 	

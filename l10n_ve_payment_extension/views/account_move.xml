@@ -32,8 +32,8 @@
 
 
                 
-				<!-- <xpath expr="//notebook" position="inside">
-					<page name="iva_retention" string="IVA Retentions">
+				<xpath expr="//notebook" position="inside">
+					<page name="iva_retention" string="Retenciones de IVA ">
 						<field name="retention_iva_line_ids" nolabel="1" readonly="1">
 							<list editable='bottom'>
 
@@ -62,7 +62,7 @@
 							</list>
 						</field>
 					</page>
-					<page name="islr_retention" string="ISLR Retentions">
+					<page name="islr_retention" string="Retenciones de ISLR">
 						<field name="retention_islr_line_ids" nolabel="1" readonly="move_type not in ('in_invoice', 'in_refund') or state != 'draft'">
 							<list editable='bottom'>
 								
