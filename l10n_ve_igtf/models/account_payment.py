@@ -86,29 +86,29 @@ class AccountPaymentIgtf(models.Model):
 # 
 #     def _prepare_move_line_default_vals(
 #         self, write_off_line_vals=None, force_balance=None
-    ):
-        """Prepare values to create a new account.move.line for a payment.
-        this method adds the igtf in the move line values to be created depending on the payment type
-
-        Args:
-            write_off_line_vals (dict, optional): Values to create the write-off account.move.line. Defaults to None.
-
-        Returns:
-            dict: Values to create the account.move.line.
-        """
-
-        vals = super(AccountPaymentIgtf, self)._prepare_move_line_default_vals(
-            write_off_line_vals
-        )
-
-        if self.igtf_percentage == self.env.company.igtf_percentage:
-            self._create_igtf_moves_in_payments(vals)
-
-        if self.igtf_percentage == 2:
-            self._create_igtf_move_supplier_two_percentage()
-
-        return vals
-
+#     ):
+#         """Prepare values to create a new account.move.line for a payment.
+#         this method adds the igtf in the move line values to be created depending on the payment type
+# 
+#         Args:
+#             write_off_line_vals (dict, optional): Values to create the write-off account.move.line. Defaults to None.
+# 
+#         Returns:
+#             dict: Values to create the account.move.line.
+#         """
+# 
+#         vals = super(AccountPaymentIgtf, self)._prepare_move_line_default_vals(
+#             write_off_line_vals
+#         )
+# 
+#         if self.igtf_percentage == self.env.company.igtf_percentage:
+#             self._create_igtf_moves_in_payments(vals)
+# 
+#         if self.igtf_percentage == 2:
+#             self._create_igtf_move_supplier_two_percentage()
+# 
+#         return vals
+# 
 #     def _create_igtf_move_supplier_two_percentage(self):
 #         igtf_journal = self.env.company.journal_igtf_expense.id
 #         supplier_account = self.env.company.igtf_two_percentage_account.id
@@ -327,39 +327,39 @@ class AccountPaymentIgtf(models.Model):
 #                             return abs(payment["amount"])
 #             return payment.amount #return self.amount
 # 
-        for payment in self:
-            if (
-                payment.reconciled_invoice_ids or payment.reconciled_bill_ids
-            ) and payment.is_igtf_on_foreign_exchange:
-                for invoice in payment.reconciled_invoice_ids:
-                    if self.env.company.currency_id.id == self.env.ref("base.VEF").id:
-                        invoice.bi_igtf = invoice.bi_igtf - (
-                            get_payment_amount_invoice(payment, invoice)
-                            * self.foreign_rate
-                        )
-                    else:
-                        invoice.bi_igtf = invoice.bi_igtf - get_payment_amount_invoice(
-                            payment, invoice
-                        )
-
-                for bill in payment.reconciled_bill_ids:
-                    if self.env.company.currency_id.id == self.env.ref("base.VEF").id:
-                        bill.bi_igtf = bill.bi_igtf - (
-                            get_payment_amount_invoice(payment, bill)
-                            * self.foreign_rate
-                        )
-                    else:
-                        bill.bi_igtf = bill.bi_igtf - get_payment_amount_invoice(
-                            payment, bill
-                        )
-
-                move = self.env["account.move"].search(
-                    [("payment_igtf_id", "=", payment.id)]
-                )
-                if move:
-                    move.button_draft()
-
-        return super(AccountPaymentIgtf, self).action_draft()
+#         for payment in self:
+#             if (
+#                 payment.reconciled_invoice_ids or payment.reconciled_bill_ids
+#             ) and payment.is_igtf_on_foreign_exchange:
+#                 for invoice in payment.reconciled_invoice_ids:
+#                     if self.env.company.currency_id.id == self.env.ref("base.VEF").id:
+#                         invoice.bi_igtf = invoice.bi_igtf - (
+#                             get_payment_amount_invoice(payment, invoice)
+#                             * self.foreign_rate
+#                         )
+#                     else:
+#                         invoice.bi_igtf = invoice.bi_igtf - get_payment_amount_invoice(
+#                             payment, invoice
+#                         )
+# 
+#                 for bill in payment.reconciled_bill_ids:
+#                     if self.env.company.currency_id.id == self.env.ref("base.VEF").id:
+#                         bill.bi_igtf = bill.bi_igtf - (
+#                             get_payment_amount_invoice(payment, bill)
+#                             * self.foreign_rate
+#                         )
+#                     else:
+#                         bill.bi_igtf = bill.bi_igtf - get_payment_amount_invoice(
+#                             payment, bill
+#                         )
+# 
+#                 move = self.env["account.move"].search(
+#                     [("payment_igtf_id", "=", payment.id)]
+#                 )
+#                 if move:
+#                     move.button_draft()
+# 
+#         return super(AccountPaymentIgtf, self).action_draft()
 
 #     def get_bi_igtf(self):
 #         self.ensure_one()

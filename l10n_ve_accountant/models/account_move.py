@@ -512,11 +512,12 @@ class AccountMove(models.Model):
 #                 ):
 #                     line_foreign_id = line_foreign_currency_id[0]
 #                     if (
-#                         line_foreign_id.foreign_debit_adjustment
-#                         + line_foreign_id.foreign_credit_adjustment
-#                     ) != 0:
-#                         line.foreign_debit = abs(line.foreign_debit_adjustment)
-#                         line.foreign_credit = abs(line.foreign_credit_adjustment)
+#                     # if (
+#                     #     line_foreign_id.foreign_debit_adjustment
+#                     #     + line_foreign_id.foreign_credit_adjustment
+#                     # ) != 0:
+#                     #     line.foreign_debit = abs(line.foreign_debit_adjustment)
+#                     #     line.foreign_credit = abs(line.foreign_credit_adjustment)
 #                     else:
 #                         line.foreign_debit = (
 #                             abs(line_foreign_id.amount_currency)
@@ -604,42 +605,42 @@ class AccountMove(models.Model):
 #                                 tax_amount,
 #                                 precision_rounding=line.foreign_currency_id.rounding,
 #                             )
-#                     return amount
+# #                     return amount
+# # 
+#                 line.foreign_debit = amount_by_line(lines_with_same_tax, "debit")
+#                 line.foreign_credit = amount_by_line(lines_with_same_tax, "credit")
 # 
-                line.foreign_debit = amount_by_line(lines_with_same_tax, "debit")
-                line.foreign_credit = amount_by_line(lines_with_same_tax, "credit")
-
-        account_payable_or_receivable_line = self.line_ids.filtered(
-            lambda l: l.account_id.account_type in receivable_and_payable_account_types
-        )
+#         account_payable_or_receivable_line = self.line_ids.filtered(
+#             lambda l: l.account_id.account_type in receivable_and_payable_account_types
+#         )
 
         # We need to do this because the POS moves can have more than 1 journal entries with a
         # payable or receivable account, and in those cases is necessary that the foreign
         # debit/credit of that entry is computed using the rate, the same applies to the moves that
-        # are not invoices.
-        if (
-            len(account_payable_or_receivable_line) > 1
-            or (
-                payment
-                and "is_igtf_on_foreign_exchange" in self.env["account.payment"]._fields
-                and payment.is_igtf_on_foreign_exchange
-            )
-            or not self.is_invoice(include_receipts=True)
-        ):
-            return
-
-        if (
-            account_payable_or_receivable_line.currency_id
-            != self.env.company.currency_foreign_id
-        ):
-            if account_payable_or_receivable_line.debit > 0:
-                account_payable_or_receivable_line.foreign_debit = sum(
-                    self.line_ids.mapped("foreign_credit")
-                )
-            if account_payable_or_receivable_line.credit > 0:
-                account_payable_or_receivable_line.foreign_credit = sum(
-                    self.line_ids.mapped("foreign_debit")
-                )
+#         # are not invoices.
+#         if (
+#             len(account_payable_or_receivable_line) > 1
+#             or (
+#                 payment
+#                 and "is_igtf_on_foreign_exchange" in self.env["account.payment"]._fields
+#                 and payment.is_igtf_on_foreign_exchange
+#             )
+#             or not self.is_invoice(include_receipts=True)
+#         ):
+#             return
+# 
+#         if (
+#             account_payable_or_receivable_line.currency_id
+#             != self.env.company.currency_foreign_id
+#         ):
+#             if account_payable_or_receivable_line.debit > 0:
+#                 account_payable_or_receivable_line.foreign_debit = sum(
+#                     self.line_ids.mapped("foreign_credit")
+#                 )
+#             if account_payable_or_receivable_line.credit > 0:
+#                 account_payable_or_receivable_line.foreign_credit = sum(
+#                     self.line_ids.mapped("foreign_debit")
+#                 )
 
 #     def get_invoice_line_ids_subtotals_by_name(self):
 #         """
@@ -753,8 +754,8 @@ class AccountMove(models.Model):
 #         "invoice_payment_term_id",
 #         "partner_id",
 #         "currency_id",
-#         "foreign_rate",
-    )
+# #         "foreign_rate",
+#     )
 #     def _compute_tax_totals(self):
 #         """ Computed field used for custom widget's rendering.
 #             Only set on invoices.
@@ -968,8 +969,8 @@ class AccountMove(models.Model):
 #         "invoice_line_ids.price_subtotal",
 #         "foreign_inverse_rate",
 #         "foreign_currency_id",
-#         "foreign_rate",
-    )
+# # #         "foreign_rate",
+#     )
 #     def _compute_needed_terms(self):
 #         res = super()._compute_needed_terms()
 # 

@@ -190,7 +190,7 @@ class AccountRetention(models.Model):
 #         "retention_line_ids.foreign_invoice_amount",
 #         "retention_line_ids.foreign_iva_amount",
 #         "retention_line_ids.foreign_retention_amount",
-    )
+#     )
 #     def _compute_totals(self):
 #         for retention in self:
 #             retention.total_invoice_amount = 0
@@ -675,118 +675,118 @@ class AccountRetention(models.Model):
 
 #     def _create_payments_for_iva_supplier(
 #         self, payment_vals, account_retention_line_empty_recordset
-    ):
-        Payment = self.env["account.payment"]
-        Rate = self.env["res.currency.rate"]
-        payment_vals["partner_type"] = "supplier"
-        payment_vals[
-            "journal_id"
-        ] = self.env.company.iva_supplier_retention_journal_id.id
-        in_refund_lines = self.retention_line_ids.filtered(
-            lambda l: l.move_id.move_type == "in_refund"
-        )
-        in_invoice_lines = self.retention_line_ids.filtered(
-            lambda l: l.move_id.move_type == "in_invoice"
-        )
-
-        in_refunds_dict = defaultdict(account_retention_line_empty_recordset)
-        in_invoices_dict = defaultdict(account_retention_line_empty_recordset)
-
-        for line in in_refund_lines:
-            in_refunds_dict[line.move_id] += line
-        for line in in_invoice_lines:
-            in_invoices_dict[line.move_id] += line
-
-        for lines in in_refunds_dict.values():
-            payment_vals["payment_method_id"] = (
-                self.env.ref("account.account_payment_method_manual_in").id,
-            )
-            payment_vals["payment_type"] = "inbound"
-            payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
-            payment = Payment.create(payment_vals)
-            payment.update(
-                {
-                    "foreign_inverse_rate": Rate.compute_inverse_rate(
-                        payment.foreign_rate
-                    )
-                }
-            )
-            lines.write({"payment_id": payment.id})
-            payment.compute_retention_amount_from_retention_lines()
-        for lines in in_invoices_dict.values():
-            payment_vals["payment_method_id"] = (
-                self.env.ref("account.account_payment_method_manual_out").id,
-            )
-            payment_vals["payment_type"] = "outbound"
-            payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
-            payment = Payment.create(payment_vals)
-            payment.update(
-                {
-                    "foreign_inverse_rate": Rate.compute_inverse_rate(
-                        payment.foreign_rate
-                    )
-                }
-            )
-            lines.write({"payment_id": payment.id})
-            payment.compute_retention_amount_from_retention_lines()
-
+#     ):
+#         Payment = self.env["account.payment"]
+#         Rate = self.env["res.currency.rate"]
+#         payment_vals["partner_type"] = "supplier"
+#         payment_vals[
+#             "journal_id"
+#         ] = self.env.company.iva_supplier_retention_journal_id.id
+#         in_refund_lines = self.retention_line_ids.filtered(
+#             lambda l: l.move_id.move_type == "in_refund"
+#         )
+#         in_invoice_lines = self.retention_line_ids.filtered(
+#             lambda l: l.move_id.move_type == "in_invoice"
+#         )
+# 
+#         in_refunds_dict = defaultdict(account_retention_line_empty_recordset)
+#         in_invoices_dict = defaultdict(account_retention_line_empty_recordset)
+# 
+#         for line in in_refund_lines:
+#             in_refunds_dict[line.move_id] += line
+#         for line in in_invoice_lines:
+#             in_invoices_dict[line.move_id] += line
+# 
+#         for lines in in_refunds_dict.values():
+#             payment_vals["payment_method_id"] = (
+#                 self.env.ref("account.account_payment_method_manual_in").id,
+#             )
+#             payment_vals["payment_type"] = "inbound"
+#             payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
+#             payment = Payment.create(payment_vals)
+#             payment.update(
+#                 {
+#                     "foreign_inverse_rate": Rate.compute_inverse_rate(
+#                         payment.foreign_rate
+#                     )
+#                 }
+#             )
+#             lines.write({"payment_id": payment.id})
+#             payment.compute_retention_amount_from_retention_lines()
+#         for lines in in_invoices_dict.values():
+#             payment_vals["payment_method_id"] = (
+#                 self.env.ref("account.account_payment_method_manual_out").id,
+#             )
+#             payment_vals["payment_type"] = "outbound"
+#             payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
+#             payment = Payment.create(payment_vals)
+#             payment.update(
+#                 {
+#                     "foreign_inverse_rate": Rate.compute_inverse_rate(
+#                         payment.foreign_rate
+#                     )
+#                 }
+#             )
+#             lines.write({"payment_id": payment.id})
+#             payment.compute_retention_amount_from_retention_lines()
+# 
 #     def _create_payments_for_iva_customer(
 #         self, payment_vals, account_retention_line_empty_recordset
-    ):
-        Payment = self.env["account.payment"]
-        Rate = self.env["res.currency.rate"]
-        payment_vals["partner_type"] = "customer"
-        payment_vals[
-            "journal_id"
-        ] = self.env.company.iva_customer_retention_journal_id.id
-        out_refund_lines = self.retention_line_ids.filtered(
-            lambda l: l.move_id.move_type == "out_refund"
-        )
-        out_invoice_lines = self.retention_line_ids.filtered(
-            lambda l: l.move_id.move_type == "out_invoice"
-        )
-
-        out_refunds_dict = defaultdict(account_retention_line_empty_recordset)
-        out_invoices_dict = defaultdict(account_retention_line_empty_recordset)
-
-        for line in out_refund_lines:
-            out_refunds_dict[line.move_id] += line
-        for line in out_invoice_lines:
-            out_invoices_dict[line.move_id] += line
-
-        for lines in out_refunds_dict.values():
-            payment_vals["payment_method_id"] = (
-                self.env.ref("account.account_payment_method_manual_out").id,
-            )
-            payment_vals["payment_type"] = "outbound"
-            payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
-            payment = Payment.create(payment_vals)
-            payment.update(
-                {
-                    "foreign_inverse_rate": Rate.compute_inverse_rate(
-                        payment.foreign_rate
-                    )
-                }
-            )
-            lines.write({"payment_id": payment.id})
-            payment.compute_retention_amount_from_retention_lines()
-        for lines in out_invoices_dict.values():
-            payment_vals["payment_method_id"] = (
-                self.env.ref("account.account_payment_method_manual_in").id,
-            )
-            payment_vals["payment_type"] = "inbound"
-            payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
-            payment = Payment.create(payment_vals)
-            payment.update(
-                {
-                    "foreign_inverse_rate": Rate.compute_inverse_rate(
-                        payment.foreign_rate
-                    )
-                }
-            )
-            lines.write({"payment_id": payment.id})
-            payment.compute_retention_amount_from_retention_lines()
-
+#     ):
+#         Payment = self.env["account.payment"]
+#         Rate = self.env["res.currency.rate"]
+#         payment_vals["partner_type"] = "customer"
+#         payment_vals[
+#             "journal_id"
+#         ] = self.env.company.iva_customer_retention_journal_id.id
+#         out_refund_lines = self.retention_line_ids.filtered(
+#             lambda l: l.move_id.move_type == "out_refund"
+#         )
+#         out_invoice_lines = self.retention_line_ids.filtered(
+#             lambda l: l.move_id.move_type == "out_invoice"
+#         )
+# 
+#         out_refunds_dict = defaultdict(account_retention_line_empty_recordset)
+#         out_invoices_dict = defaultdict(account_retention_line_empty_recordset)
+# 
+#         for line in out_refund_lines:
+#             out_refunds_dict[line.move_id] += line
+#         for line in out_invoice_lines:
+#             out_invoices_dict[line.move_id] += line
+# 
+#         for lines in out_refunds_dict.values():
+#             payment_vals["payment_method_id"] = (
+#                 self.env.ref("account.account_payment_method_manual_out").id,
+#             )
+#             payment_vals["payment_type"] = "outbound"
+#             payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
+#             payment = Payment.create(payment_vals)
+#             payment.update(
+#                 {
+#                     "foreign_inverse_rate": Rate.compute_inverse_rate(
+#                         payment.foreign_rate
+#                     )
+#                 }
+#             )
+#             lines.write({"payment_id": payment.id})
+#             payment.compute_retention_amount_from_retention_lines()
+#         for lines in out_invoices_dict.values():
+#             payment_vals["payment_method_id"] = (
+#                 self.env.ref("account.account_payment_method_manual_in").id,
+#             )
+#             payment_vals["payment_type"] = "inbound"
+#             payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
+#             payment = Payment.create(payment_vals)
+#             payment.update(
+#                 {
+#                     "foreign_inverse_rate": Rate.compute_inverse_rate(
+#                         payment.foreign_rate
+#                     )
+#                 }
+#             )
+#             lines.write({"payment_id": payment.id})
+#             payment.compute_retention_amount_from_retention_lines()
+# 
 #     def action_draft(self):
 #         self.write({"state": "draft"})
 # 
@@ -1008,44 +1008,44 @@ class AccountRetention(models.Model):
 #                    else:
 #                        retention._create_payments_from_retention_lines()  # Método existente para IVA/municipal
 
-                # Procesar cada pago con contexto seguro (se mantiene igual)
-                for payment in retention.payment_ids.with_context(skip_manually_modified_check=True):
-                    # FORZAR SINCRONIZACIÓN DEL CORRELATIVO AL PAGO AHORA QUE HAY NÚMERO
-                    payment._synchronize_to_moves(set())
-                    
-                    _logger.info(f"Procesando pago {payment.id}")
-                    if not payment.move_id:
-                        if hasattr(payment, 'action_create'):
-                            _logger.info("Creando asiento contable para el pago")
-                            payment.action_create()
-                        else:
-                            _logger.info("Publicando pago (versión moderna)")
-                        payment.with_context(skip_manually_modified_check=True).action_post()
-                    elif payment.state != 'posted':
-                        _logger.info("Publicando pago pendiente")
-                        payment.with_context(skip_manually_modified_check=True).action_post()
-
-                # Asignar número de comprobante a facturas (se mantiene igual)
-                move_ids = retention.mapped("retention_line_ids.move_id")
-                if move_ids:
-                    _logger.info(f"Asignando número de comprobante a {len(move_ids)} facturas")
-                    retention.set_voucher_number_in_invoice(move_ids, retention)
-
-
-                # Actualizar estado de la retención (se mantiene igual)
-                retention.write({'state': 'emitted'})
-                _logger.info(f"Retención {retention.id} marcada como emitida")
-            except Exception as e:
-                _logger.error("Error al publicar retención %s: %s", retention.id, str(e), exc_info=True)
-                raise UserError(_("Error al publicar la retención: %s") % str(e))
-
-#     def _create_islr_payments(self):
-#         """
-#         Nuevo método para crear pagos de ISLR agrupados por concepto
-#         """
-#         Payment = self.env['account.payment']
-#         journal_id = (
-#             self.env.company.islr_supplier_retention_journal_id.id 
+#                 # Procesar cada pago con contexto seguro (se mantiene igual)
+#                 for payment in retention.payment_ids.with_context(skip_manually_modified_check=True):
+#                     # FORZAR SINCRONIZACIÓN DEL CORRELATIVO AL PAGO AHORA QUE HAY NÚMERO
+#                     payment._synchronize_to_moves(set())
+#                     
+#                     _logger.info(f"Procesando pago {payment.id}")
+#                     if not payment.move_id:
+#                         if hasattr(payment, 'action_create'):
+#                             _logger.info("Creando asiento contable para el pago")
+#                             payment.action_create()
+#                         else:
+#                             _logger.info("Publicando pago (versión moderna)")
+#                         payment.with_context(skip_manually_modified_check=True).action_post()
+#                     elif payment.state != 'posted':
+#                         _logger.info("Publicando pago pendiente")
+#                         payment.with_context(skip_manually_modified_check=True).action_post()
+# 
+#                 # Asignar número de comprobante a facturas (se mantiene igual)
+#                 move_ids = retention.mapped("retention_line_ids.move_id")
+#                 if move_ids:
+#                     _logger.info(f"Asignando número de comprobante a {len(move_ids)} facturas")
+#                     retention.set_voucher_number_in_invoice(move_ids, retention)
+# 
+# 
+#                 # Actualizar estado de la retención (se mantiene igual)
+#                 retention.write({'state': 'emitted'})
+#                 _logger.info(f"Retención {retention.id} marcada como emitida")
+#             except Exception as e:
+#                 _logger.error("Error al publicar retención %s: %s", retention.id, str(e), exc_info=True)
+#                 raise UserError(_("Error al publicar la retención: %s") % str(e))
+# 
+# #     def _create_islr_payments(self):
+# #         """
+# #         Nuevo método para crear pagos de ISLR agrupados por concepto
+# #         """
+# #         Payment = self.env['account.payment']
+# #         journal_id = (
+# #             self.env.company.islr_supplier_retention_journal_id.id 
 #             if self.type == 'in_invoice' 
 #             else self.env.company.islr_customer_retention_journal_id.id
 #         )

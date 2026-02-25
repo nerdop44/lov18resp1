@@ -98,45 +98,45 @@ class AccountMove(models.Model):
 #             move.last_payment_date = False
 #             move.first_payment_date = False
 # 
-        for move in self:
-            if not move.is_invoice(include_receipts=True) and move.state != "posted":
-                clear_dates(move)
-                continue
-
-            is_invoice_payment_widget = bool(move.invoice_payments_widget)
-            if not is_invoice_payment_widget:
-                clear_dates(move)
-                continue
-
-            payments = move.invoice_payments_widget
-            if not payments or not payments.get("content", False):
-                clear_dates(move)
-                continue
-
-            last_date = False
-            first_date = False
-
-            dates = list()
-
-            for payment in payments.get("content"):
-                if not self.validate_payment(payment):
-                    continue
-
-                dates.append(payment.get("date", False))
-
-            if len(dates) > 0:
-                last_date = fields.Date.from_string(max(dates))
-                first_date = fields.Date.from_string(min(dates))
-
-            move.last_payment_date = last_date
-            move.first_payment_date = first_date
-
-#     @api.model
-#     def validate_payment(self, payment):
-#         """This function was created to validate payments through external modules"""
-#         return True
+#         for move in self:
+#             if not move.is_invoice(include_receipts=True) and move.state != "posted":
+#                 clear_dates(move)
+#                 continue
 # 
-#     @api.onchange("invoice_line_ids")
+#             is_invoice_payment_widget = bool(move.invoice_payments_widget)
+#             if not is_invoice_payment_widget:
+#                 clear_dates(move)
+#                 continue
+# 
+#             payments = move.invoice_payments_widget
+#             if not payments or not payments.get("content", False):
+#                 clear_dates(move)
+#                 continue
+# 
+#             last_date = False
+#             first_date = False
+# 
+#             dates = list()
+# 
+#             for payment in payments.get("content"):
+#                 if not self.validate_payment(payment):
+#                     continue
+# 
+#                 dates.append(payment.get("date", False))
+# 
+#             if len(dates) > 0:
+#                 last_date = fields.Date.from_string(max(dates))
+#                 first_date = fields.Date.from_string(min(dates))
+# 
+#             move.last_payment_date = last_date
+#             move.first_payment_date = first_date
+# 
+# #     @api.model
+# #     def validate_payment(self, payment):
+# #         """This function was created to validate payments through external modules"""
+# #         return True
+# # 
+# #     @api.onchange("invoice_line_ids")
 #     def _onchange_invoice_line_ids(self):
 #         """
 #         Limit the number of products that can be added to the invoice

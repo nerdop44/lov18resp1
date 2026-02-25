@@ -339,7 +339,7 @@ class AccountRetentionLine(models.Model):
 #         "payment_concept_id",
 #         "economic_activity_id",
 #         "aliquot"
-    )
+#     )
 #     def _compute_retention_amount(self):
 #         """
 #         Calcula el monto de retención ISLR para líneas de proveedor.
@@ -440,7 +440,7 @@ class AccountRetentionLine(models.Model):
 #         "retention_amount",
 #         "foreign_retention_amount",
 #         "move_id"
-    )
+#     )
 #     def _constraint_amounts(self):
 #         for record in self:
 #             if record.retention_id and record.retention_id.state == 'draft':

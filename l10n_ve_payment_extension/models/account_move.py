@@ -183,61 +183,61 @@ class AccountMoveRetention(models.Model):
 #         """
 #         self.ensure_one()
 ##########
-        if not self.env.context.get('force_single', False):
-            raise UserError(_("This method should be called in a single record context."))
-######
-        if not self.env.company.islr_supplier_retention_journal_id:
-            raise UserError(_("The company must have a journal for ISLR supplier retention."))
-        islr_retention = self.retention_islr_line_ids
-        sum_invoice_amount = sum(
-            islr_retention.filtered(lambda rl: rl.state != "cancel").mapped("invoice_amount")
-        )
-        if sum_invoice_amount > self.tax_totals["amount_untaxed"]:
-            raise UserError(
-                _("The amount of the retention is greater than the total amount of the invoice.")
-            )
-        if not self.partner_id.type_person_id:
-            raise UserError(_("The partner must have a type of person"))
-        if sum_invoice_amount <= 0:
-            raise UserError(_("The amount of the retention must be greater than zero."))
-
-#     def _validate_iva_retention(self):
-#         """
-#         Validate that the company has a journal for IVA supplier retention and that the invoice has
-#         at least one tax, in order for the IVA retention to be created.
-#         """
-#         self.ensure_one()
-##########
-        if not self.env.context.get('force_single', False):
-            raise UserError(_("This method should be called in a single record context."))
-############
-
-        if not self.env.company.iva_supplier_retention_journal_id:
-            raise UserError(_("The company must have a journal for IVA supplier retention."))
-        if not any(self.invoice_line_ids.mapped("tax_ids").filtered(lambda x: x.amount > 0)):
-            raise UserError(_("The invoice has no tax."))
-
-#     def _validate_municipal_retention(self):
-#         """
-#         Validate that the company has a journal for municipal supplier retention in order for the
-#         municipal retention to be created.
-#         """
-#         self.ensure_one()
-###########
-        if not self.env.context.get('force_single', False):
-            raise UserError(_("This method should be called in a single record context."))
-#######
-        if not self.env.company.municipal_supplier_retention_journal_id:
-            raise UserError(_("The company must have a journal for municipal supplier retention."))
-
-#     @api.model
-#     def _create_supplier_retention(self, type_retention):
-#         """
-#         Calls the method to create the payment for the retention of the type specified in the
-#         type_retention parameter.
+#         if not self.env.context.get('force_single', False):
+# #             raise UserError(_("This method should be called in a single record context."))
+# # ######
+# #         if not self.env.company.islr_supplier_retention_journal_id:
+# #             raise UserError(_("The company must have a journal for ISLR supplier retention."))
+# #         islr_retention = self.retention_islr_line_ids
+# #         sum_invoice_amount = sum(
+# #             islr_retention.filtered(lambda rl: rl.state != "cancel").mapped("invoice_amount")
+# #         )
+# #         if sum_invoice_amount > self.tax_totals["amount_untaxed"]:
+# #             raise UserError(
+# #                 _("The amount of the retention is greater than the total amount of the invoice.")
+# #             )
+# #         if not self.partner_id.type_person_id:
+# #             raise UserError(_("The partner must have a type of person"))
+#         if sum_invoice_amount <= 0:
+#             raise UserError(_("The amount of the retention must be greater than zero."))
 # 
-#         Params
-#         ------
+# #     def _validate_iva_retention(self):
+# #         """
+# #         Validate that the company has a journal for IVA supplier retention and that the invoice has
+# #         at least one tax, in order for the IVA retention to be created.
+# #         """
+# #         self.ensure_one()
+# ##########
+#         if not self.env.context.get('force_single', False):
+#             raise UserError(_("This method should be called in a single record context."))
+# ############
+# 
+#         if not self.env.company.iva_supplier_retention_journal_id:
+#             raise UserError(_("The company must have a journal for IVA supplier retention."))
+#         if not any(self.invoice_line_ids.mapped("tax_ids").filtered(lambda x: x.amount > 0)):
+#             raise UserError(_("The invoice has no tax."))
+# 
+# #     def _validate_municipal_retention(self):
+# #         """
+# #         Validate that the company has a journal for municipal supplier retention in order for the
+# #         municipal retention to be created.
+# #         """
+# #         self.ensure_one()
+# ###########
+#         if not self.env.context.get('force_single', False):
+#             raise UserError(_("This method should be called in a single record context."))
+# #######
+#         if not self.env.company.municipal_supplier_retention_journal_id:
+#             raise UserError(_("The company must have a journal for municipal supplier retention."))
+# 
+# #     @api.model
+# #     def _create_supplier_retention(self, type_retention):
+# #         """
+# #         Calls the method to create the payment for the retention of the type specified in the
+# #         type_retention parameter.
+# # 
+# #         Params
+# #         ------
 #         invoice_id: account.move
 #             The invoice to which the retention will be applied.
 #         type_retention: tuple[str, str]
