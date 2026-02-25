@@ -11,7 +11,7 @@ urllib3.disable_warnings()
 class ResCurrency(models.Model):
     _inherit = 'res.currency'
 
-    facturas_por_actualizar = fields.Boolean()
+    facturas_por_actualizar = fields.Boolean(compute="_facturas_por_actualizar")
 
     # habilitar sincronización automatica
     sincronizar = fields.Boolean(string="Sincronizar", default=False)
