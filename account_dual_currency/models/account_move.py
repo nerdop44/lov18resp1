@@ -82,10 +82,11 @@ class AccountMove(models.Model):
          inverse="_inverse_depreciation_value_ref", store=True, copy=False
     )
 
-#     def _post(self, soft=True):
-#         res = super(AccountMove, self)._post(soft=soft)
-#         for move in self:
-#             move._verificar_pagos()
+    def _post(self, soft=True):
+        res = super(AccountMove, self)._post(soft=soft)
+        for move in self:
+            move._verificar_pagos()
+        return res
 # 
 #     @api.depends('asset_id', 'depreciation_value', 'asset_id.total_depreciable_value', 'asset_id.already_depreciated_amount_import')
 #     def _compute_depreciation_cumulative_value(self):
@@ -140,24 +141,24 @@ class AccountMove(models.Model):
 #                 for line in move.line_ids
 #             ]})
 # 
-#     def _verificar_pagos(self):
-#         for rec in self:
-#             for line in rec.line_ids:
-#                 if line.balance_usd == 0:
-#                     line._compute_balance_usd()
-#                 line._compute_amount_residual_usd()
-#             rec.verificar_pagos = True
-# 
-#     @api.depends('invoice_date', 'company_id')
-#     def _compute_date(self):
-#         res = super(AccountMove, self)._compute_date()
-#         for rec in self:
-#             if rec.invoice_date and rec.company_id.currency_id_dif and not rec.tax_today_edited:
-#                 new_rate_ids = self.env.company.currency_id_dif._get_rates(self.env.company, rec.invoice_date)
-#                 if new_rate_ids:
-#                     new_rate = 1 / new_rate_ids[self.env.company.currency_id_dif.id]
-#                     #print('new_rate', new_rate)
-#                     rec.tax_today = new_rate
+    def _verificar_pagos(self):
+        for rec in self:
+            for line in rec.line_ids:
+                if line.balance_usd == 0:
+                    line._compute_balance_usd()
+                line._compute_amount_residual_usd()
+            rec.verificar_pagos = True
+
+    @api.depends('invoice_date', 'company_id')
+    def _compute_date(self):
+        res = super(AccountMove, self)._compute_date()
+        for rec in self:
+            if rec.invoice_date and rec.company_id.currency_id_dif and not rec.tax_today_edited:
+                new_rate_ids = self.env.company.currency_id_dif._get_rates(self.env.company, rec.invoice_date)
+                if new_rate_ids:
+                    new_rate = 1 / new_rate_ids[self.env.company.currency_id_dif.id]
+                    #print('new_rate', new_rate)
+                    rec.tax_today = new_rate
 #         # if self.invoice_date and self.company_id.currency_id_dif and not self.tax_today_edited:
 #         #     new_rate_ids = self.env.company.currency_id_dif._get_rates(self.env.company, self.invoice_date)
 #         #     if new_rate_ids:
@@ -314,75 +315,75 @@ class AccountMove(models.Model):
 #             # ##print(edit_trm)
 #             rec.edit_trm = edit_trm
 # 
-#     @api.depends(
-#         'line_ids.matched_debit_ids.debit_move_id.move_id.origin_payment_id.is_matched',
-#         'line_ids.matched_debit_ids.debit_move_id.move_id.line_ids.amount_residual',
-#         'line_ids.matched_debit_ids.debit_move_id.move_id.line_ids.amount_residual_currency',
-#         'line_ids.matched_credit_ids.credit_move_id.move_id.origin_payment_id.is_matched',
-#         'line_ids.matched_credit_ids.credit_move_id.move_id.line_ids.amount_residual',
-#         'line_ids.matched_credit_ids.credit_move_id.move_id.line_ids.amount_residual_currency',
-#         'line_ids.balance',
-#         'line_ids.currency_id',
-#         'line_ids.amount_currency',
-#         'line_ids.amount_residual',
-#         'line_ids.amount_residual_currency',
-#         'line_ids.payment_id.state',
-#         'line_ids.full_reconcile_id','tax_today')
-#     def _compute_amount(self):
-#         for move in self:
-#             move_with_context = move.with_context(tasa_factura=move.tax_today, calcular_dual_currency=True)
-#             super(AccountMove, move_with_context)._compute_amount()
-#             total_residual = 0.0
-#             total = 0.0
-#             for line in move.line_ids:
-#                 if move.is_invoice(True):
-#                     if line.display_type == 'tax' or (line.display_type == 'rounding' and line.tax_repartition_line_id):
-#                         # Tax amount.
-#                         total += line.balance_usd
-#                     elif line.display_type in ('product', 'rounding'):
-#                         total += line.balance_usd
-#                     elif line.display_type == 'payment_term':
-#                         # Residual amount.
-#                         total_residual += line.amount_residual_usd
-#             move.amount_residual_usd = total_residual
-#             move.amount_total_signed_usd = abs(total) if move.move_type == 'entry' else -total
+    @api.depends(
+        'line_ids.matched_debit_ids.debit_move_id.move_id.origin_payment_id.is_matched',
+        'line_ids.matched_debit_ids.debit_move_id.move_id.line_ids.amount_residual',
+        'line_ids.matched_debit_ids.debit_move_id.move_id.line_ids.amount_residual_currency',
+        'line_ids.matched_credit_ids.credit_move_id.move_id.origin_payment_id.is_matched',
+        'line_ids.matched_credit_ids.credit_move_id.move_id.line_ids.amount_residual',
+        'line_ids.matched_credit_ids.credit_move_id.move_id.line_ids.amount_residual_currency',
+        'line_ids.balance',
+        'line_ids.currency_id',
+        'line_ids.amount_currency',
+        'line_ids.amount_residual',
+        'line_ids.amount_residual_currency',
+        'line_ids.payment_id.state',
+        'line_ids.full_reconcile_id', 'tax_today')
+    def _compute_amount(self):
+        for move in self:
+            move_with_context = move.with_context(tasa_factura=move.tax_today, calcular_dual_currency=True)
+            super(AccountMove, move_with_context)._compute_amount()
+            total_residual = 0.0
+            total = 0.0
+            for line in move.line_ids:
+                if move.is_invoice(True):
+                    if line.display_type == 'tax' or (line.display_type == 'rounding' and line.tax_repartition_line_id):
+                        # Tax amount.
+                        total += line.balance_usd
+                    elif line.display_type in ('product', 'rounding'):
+                        total += line.balance_usd
+                    elif line.display_type == 'payment_term':
+                        # Residual amount.
+                        total_residual += line.amount_residual_usd
+            move.amount_residual_usd = total_residual
+            move.amount_total_signed_usd = abs(total) if move.move_type == 'entry' else -total
 # 
-#     @api.depends(
-#         'tax_totals',
-#         'currency_id_dif',
-#         'currency_id','tax_today')
-#     def _amount_all_usd(self):
-#         for rec in self:
-#             if rec.is_invoice(include_receipts=True) and rec.tax_totals:
-#                 amount_untaxed = rec.tax_totals.get('amount_untaxed', 0)
-#                 amount_tax = 0
-#                 for product, income in rec.tax_totals.get('groups_by_subtotal', {}).items():
-#                     ###print(product, income)
-#                     for l in income:
-#                         amount_tax += l.get('tax_group_amount', 0)
-# 
-#                 amount_total = rec.tax_totals.get('amount_total', 0)
-#                 if rec.currency_id != self.env.company.currency_id:
-#                     rec.amount_untaxed_usd = rec.amount_untaxed
-#                     rec.amount_tax_usd = rec.amount_tax
-#                     rec.amount_total_usd = rec.amount_total
-#                     rec.amount_untaxed_bs = rec.amount_untaxed_usd * rec.tax_today
-#                     rec.amount_tax_bs = rec.amount_tax_usd * rec.tax_today
-#                     rec.amount_total_bs = rec.amount_total_usd * rec.tax_today
-#                 else:
-#                     rec.amount_untaxed_usd = (amount_untaxed / rec.tax_today) if rec.tax_today > 0 else 0
-#                     rec.amount_tax_usd = (amount_tax / rec.tax_today) if rec.tax_today > 0 else 0
-#                     rec.amount_total_usd = (amount_total / rec.tax_today) if rec.tax_today > 0 else 0
-#                     rec.amount_untaxed_bs = rec.amount_untaxed
-#                     rec.amount_tax_bs = rec.amount_tax
-#                     rec.amount_total_bs = rec.amount_total
-#             else:
-#                 rec.amount_untaxed_usd = 0
-#                 rec.amount_tax_usd = 0
-#                 rec.amount_total_usd = 0
-#                 rec.amount_untaxed_bs = 0
-#                 rec.amount_tax_bs = 0
-#                 rec.amount_total_bs = 0
+    @api.depends(
+        'tax_totals',
+        'currency_id_dif',
+        'currency_id', 'tax_today')
+    def _amount_all_usd(self):
+        for rec in self:
+            if rec.is_invoice(include_receipts=True) and rec.tax_totals:
+                amount_untaxed = rec.tax_totals.get('amount_untaxed', 0)
+                amount_tax = 0
+                for product, income in rec.tax_totals.get('groups_by_subtotal', {}).items():
+                    ###print(product, income)
+                    for l in income:
+                        amount_tax += l.get('tax_group_amount', 0)
+
+                amount_total = rec.tax_totals.get('amount_total', 0)
+                if rec.currency_id != self.env.company.currency_id:
+                    rec.amount_untaxed_usd = rec.amount_untaxed
+                    rec.amount_tax_usd = rec.amount_tax
+                    rec.amount_total_usd = rec.amount_total
+                    rec.amount_untaxed_bs = rec.amount_untaxed_usd * rec.tax_today
+                    rec.amount_tax_bs = rec.amount_tax_usd * rec.tax_today
+                    rec.amount_total_bs = rec.amount_total_usd * rec.tax_today
+                else:
+                    rec.amount_untaxed_usd = (amount_untaxed / rec.tax_today) if rec.tax_today > 0 else 0
+                    rec.amount_tax_usd = (amount_tax / rec.tax_today) if rec.tax_today > 0 else 0
+                    rec.amount_total_usd = (amount_total / rec.tax_today) if rec.tax_today > 0 else 0
+                    rec.amount_untaxed_bs = amount_untaxed
+                    rec.amount_tax_bs = amount_tax
+                    rec.amount_total_bs = amount_total
+            else:
+                rec.amount_untaxed_usd = 0
+                rec.amount_tax_usd = 0
+                rec.amount_total_usd = 0
+                rec.amount_untaxed_bs = 0
+                rec.amount_tax_bs = 0
+                rec.amount_total_bs = 0
 # 
 #     @api.depends('move_type', 'line_ids.amount_residual_usd')
 #     def _compute_payments_widget_reconciled_info_USD(self):

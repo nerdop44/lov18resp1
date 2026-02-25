@@ -33,30 +33,30 @@ class AccountMoveLine(models.Model):
                                   # default=lambda self: self._compute_balance_usd(),
                                   help="Technical field holding the debit_usd - credit_usd in order to open meaningful graph views from reports")
 
-#     @api.depends('currency_id', 'company_id', 'move_id.date','move_id.tax_today')
-#     def _compute_currency_rate(self):
-# 
-#         @lru_cache()
-#         def get_rate(from_currency, to_currency, company, date):
-#             rate = self.env['res.currency']._get_conversion_rate(
-#                 from_currency=from_currency,
-#                 to_currency=to_currency,
-#                 company=company,
-#                 date=date,
-#             )
-#             #print('pasando por get_rate', rate)
-#             return rate
-# 
-#         for line in self:
-#             #print('pasando por _compute_currency_rate')
-#             # line.currency_rate = get_rate(
-#             #     from_currency=line.company_currency_id,
-#             #     to_currency=line.currency_id,
-#             #     company=line.company_id,
-#             #     date=line.move_id.invoice_date or line.move_id.date or fields.Date.context_today(line),
-#             # )
-#             line.currency_rate = 1 / line.move_id.tax_today if line.move_id.tax_today > 0 else 1
-#             #print('line.currency_rate', line.currency_rate)
+    @api.depends('currency_id', 'company_id', 'move_id.date', 'move_id.tax_today')
+    def _compute_currency_rate(self):
+
+        @lru_cache()
+        def get_rate(from_currency, to_currency, company, date):
+            rate = self.env['res.currency']._get_conversion_rate(
+                from_currency=from_currency,
+                to_currency=to_currency,
+                company=company,
+                date=date,
+            )
+            # print('pasando por get_rate', rate)
+            return rate
+
+        for line in self:
+            # print('pasando por _compute_currency_rate')
+            # line.currency_rate = get_rate(
+            #     from_currency=line.company_currency_id,
+            #     to_currency=line.currency_id,
+            #     company=line.company_id,
+            #     date=line.move_id.invoice_date or line.move_id.date or fields.Date.context_today(line),
+            # )
+            line.currency_rate = 1 / line.move_id.tax_today if line.move_id.tax_today > 0 else 1
+            # print('line.currency_rate', line.currency_rate)
 
 #     @api.onchange('amount_currency')
 #     def _onchange_amount_currency(self):
@@ -77,10 +77,10 @@ class AccountMoveLine(models.Model):
 #         #super()._onchange_product_id()
 #         self._price_unit_usd()
 # 
-#     @api.depends('debit_usd', 'credit_usd')
-#     def _compute_balance_usd(self):
-#         for line in self:
-#             line.balance_usd = line.debit_usd - line.credit_usd
+    @api.depends('debit_usd', 'credit_usd')
+    def _compute_balance_usd(self):
+        for line in self:
+            line.balance_usd = line.debit_usd - line.credit_usd
 # 
 # 
 #     @api.depends('price_unit', 'product_id')
@@ -134,75 +134,75 @@ class AccountMoveLine(models.Model):
 #                 group['tax_today'] = 0
 #         return res
 # 
-#     @api.depends('amount_currency', 'tax_today','debit')
-#     def _debit_usd(self):
-#         for rec in self:
-#             if not rec.debit == 0:
-#                 if rec.move_id.currency_id == self.env.company.currency_id:
-#                     amount_currency = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
-#                     rec.debit_usd = (amount_currency / rec.tax_today) if rec.tax_today > 0 else 0
-#                     #rec.debit = amount_currency
-#                 else:
-#                     rec.debit_usd = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
+    @api.depends('amount_currency', 'tax_today', 'debit')
+    def _debit_usd(self):
+        for rec in self:
+            if not rec.debit == 0:
+                if rec.move_id.currency_id == self.env.company.currency_id:
+                    amount_currency = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
+                    rec.debit_usd = (amount_currency / rec.tax_today) if rec.tax_today > 0 else 0
+                    # rec.debit = amount_currency
+                else:
+                    rec.debit_usd = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
+
+                    # if not 'calcular_dual_currency' in self.env.context:
+                    #     if not rec.move_id.stock_move_id:
+                    #         module_dual_currency = self.env['ir.module.module'].sudo().search(
+                    #             [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
+                    #         if module_dual_currency:
+                    #             # rec.debit = ((rec.amount_currency * rec.tax_today) if rec.amount_currency > 0 else (
+                    #             #         (rec.amount_currency * -1) * rec.tax_today))
+                    #             rec.with_context(check_move_validity=False).debit = (rec.debit_usd * rec.tax_today)
+
+            else:
+                rec.debit_usd = 0
+
+    @api.depends('amount_currency', 'tax_today', 'credit')
+    def _credit_usd(self):
+        for rec in self:
+            # tmp = rec.credit_usd if rec.credit_usd > 0 else 0
+            if not rec.credit == 0:
+                if rec.move_id.currency_id == self.env.company.currency_id:
+                    amount_currency = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
+                    rec.credit_usd = (amount_currency / rec.tax_today) if rec.tax_today > 0 else 0
+                    # rec.credit = amount_currency
+                else:
+                    rec.credit_usd = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
+                    model = self.env.context.get('active_model')
+                    # print('contexto--->', self._context)
+                    # print('contexto', self.env.context)
+                    # if not 'calcular_dual_currency' in self.env.context:
+                    #     if not rec.move_id.stock_move_id:
+                    #         module_dual_currency = self.env['ir.module.module'].sudo().search(
+                    #             [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
+                    #         if module_dual_currency:
+                    #             #rec.credit = ((rec.amount_currency * rec.tax_today) if rec.amount_currency > 0 else (
+                    #             #        (rec.amount_currency * -1) * rec.tax_today))
+                    #             rec.with_context(check_move_validity=False).credit = rec.credit_usd * rec.tax_today
+
+            else:
+                rec.credit_usd = 0
 # 
-#                     # if not 'calcular_dual_currency' in self.env.context:
-#                     #     if not rec.move_id.stock_move_id:
-#                     #         module_dual_currency = self.env['ir.module.module'].sudo().search(
-#                     #             [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
-#                     #         if module_dual_currency:
-#                     #             # rec.debit = ((rec.amount_currency * rec.tax_today) if rec.amount_currency > 0 else (
-#                     #             #         (rec.amount_currency * -1) * rec.tax_today))
-#                     #             rec.with_context(check_move_validity=False).debit = (rec.debit_usd * rec.tax_today)
-# 
-#             else:
-#                 rec.debit_usd = 0
-# 
-#     @api.depends('amount_currency', 'tax_today','credit')
-#     def _credit_usd(self):
-#         for rec in self:
-#             # tmp = rec.credit_usd if rec.credit_usd > 0 else 0
-#             if not rec.credit == 0:
-#                 if rec.move_id.currency_id == self.env.company.currency_id:
-#                     amount_currency = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
-#                     rec.credit_usd = (amount_currency / rec.tax_today) if rec.tax_today > 0 else 0
-#                     #rec.credit = amount_currency
-#                 else:
-#                     rec.credit_usd = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
-#                     model = self.env.context.get('active_model')
-#                     #print('contexto--->', self._context)
-#                     #print('contexto', self.env.context)
-#                     # if not 'calcular_dual_currency' in self.env.context:
-#                     #     if not rec.move_id.stock_move_id:
-#                     #         module_dual_currency = self.env['ir.module.module'].sudo().search(
-#                     #             [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
-#                     #         if module_dual_currency:
-#                     #             #rec.credit = ((rec.amount_currency * rec.tax_today) if rec.amount_currency > 0 else (
-#                     #             #        (rec.amount_currency * -1) * rec.tax_today))
-#                     #             rec.with_context(check_move_validity=False).credit = rec.credit_usd * rec.tax_today
-# 
-#             else:
-#                 rec.credit_usd = 0
-# 
-#     @api.depends('debit','credit','debit_usd', 'credit_usd', 'amount_currency', 'account_id', 'currency_id', 'move_id.state',
-#                  'company_id',
-#                  'matched_debit_ids', 'matched_credit_ids')
-#     def _compute_amount_residual_usd(self):
-#         """ Computes the residual amount of a move line from a reconcilable account in the company currency and the line's currency.
-#             This amount will be 0 for fully reconciled lines or lines from a non-reconcilable account, the original line amount
-#             for unreconciled lines, and something in-between for partially reconciled lines.
-#         """
-#         for line in self:
-#             if line.id and (line.account_id.reconcile or line.account_id.account_type in ('asset_cash', 'liability_credit_card')):
-#                 reconciled_balance = sum(line.matched_credit_ids.mapped('amount_usd')) \
-#                                      - sum(line.matched_debit_ids.mapped('amount_usd'))
-# 
-#                 line.amount_residual_usd = (line.debit_usd - line.credit_usd) - reconciled_balance
-# 
-#                 line.reconciled = (line.amount_residual_usd == 0)
-#             else:
-#                 # Must not have any reconciliation since the line is not eligible for that.
-#                 line.amount_residual_usd = 0.0
-#                 line.reconciled = False
+    @api.depends('debit', 'credit', 'debit_usd', 'credit_usd', 'amount_currency', 'account_id', 'currency_id', 'move_id.state',
+                 'company_id',
+                 'matched_debit_ids', 'matched_credit_ids')
+    def _compute_amount_residual_usd(self):
+        """ Computes the residual amount of a move line from a reconcilable account in the company currency and the line's currency.
+            This amount will be 0 for fully reconciled lines or lines from a non-reconcilable account, the original line amount
+            for unreconciled lines, and something in-between for partially reconciled lines.
+        """
+        for line in self:
+            if line.id and (line.account_id.reconcile or line.account_id.account_type in ('asset_cash', 'liability_credit_card')):
+                reconciled_balance = sum(line.matched_credit_ids.mapped('amount_usd')) \
+                                     - sum(line.matched_debit_ids.mapped('amount_usd'))
+
+                line.amount_residual_usd = (line.debit_usd - line.credit_usd) - reconciled_balance
+
+                line.reconciled = (line.amount_residual_usd == 0)
+            else:
+                # Must not have any reconciliation since the line is not eligible for that.
+                line.amount_residual_usd = 0.0
+                line.reconciled = False
 # 
 #     def reconcile(self):
 #         ''' Reconcile the current move lines all together.
