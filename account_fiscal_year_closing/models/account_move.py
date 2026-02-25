@@ -13,18 +13,6 @@ class AccountMove(models.Model):
 #             return True  # Permite el uso del parámetro 'states'
 #         return super()._valid_field_parameter(field_name, parameter)
 # 
-    # Asegúrate de que el campo closing_type esté definido correctamente
-    closing_type = fields.Selection(
-        selection=[
-            ("draft", "Draft"),
-            ("calculated", "Processed"),
-            ("posted", "Posted"),
-            ("cancelled", "Cancelled"),
-        ],
-        readonly=True,
-        default="draft",
-        states={"draft": [("readonly", False)]},  # Asegúrate de que states esté definido aquí
-    )
 
 #     def _selection_closing_type(self):
 #         """Use selection values from move_type field in closing config

@@ -20,7 +20,12 @@ class AccountRetentionLine(models.Model):
         required=True,
         default=lambda self: self.env.company,
     )
-    state = fields.Selection()
+    state = fields.Selection(
+        [("draft", "Draft"), ("emitted", "Emitted"), ("cancel", "Cancelled")],
+        string="State",
+        related="retention_id.state",
+        store=True,
+    )
     company_currency_id = fields.Many2one()
     foreign_currency_id = fields.Many2one()
     retention_id = fields.Many2one("account.retention", string="Retention", ondelete="cascade")

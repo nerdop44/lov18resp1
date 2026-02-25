@@ -39,24 +39,16 @@ class AccountFiscalyearClosing(models.Model):
 #         return self.env.company
 # 
     name = fields.Char(
-        readonly=True,
-        states={"draft": [("readonly", False)]},
     )
     check_draft_moves = fields.Boolean(
-        readonly=True,
-        states={"draft": [("readonly", False)]},
     )
     year = fields.Integer(
         help="Introduce here the year to close. If the fiscal year is between "
         "several natural years, you have to put here the last one.",
         default=lambda self: self._default_year(),
-        readonly=True,
-        states={"draft": [("readonly", False)]},
     )
     company_id = fields.Many2one(
         default=lambda self: self._default_company_id(),
-        readonly=True,
-        states={"draft": [("readonly", False)]},
     )
     # chart_template_id = fields.Many2one( Ya no existe
     #     comodel_name="account.chart.template",
@@ -87,15 +79,11 @@ class AccountFiscalyearClosing(models.Model):
         comodel_name="account.fiscalyear.closing.template",
         string="Closing template",
         # domain="[('chart_template_ids', '=', chart_template_id)]",
-        readonly=True,
-        states={"draft": [("readonly", False)]},
     )
     move_config_ids = fields.One2many(
         comodel_name="account.fiscalyear.closing.config",
         inverse_name="fyc_id",
         string="Moves configuration",
-        readonly=True,
-        states={"draft": [("readonly", False)]},
     )
     move_ids = fields.One2many(
         comodel_name="account.move",
