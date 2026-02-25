@@ -4,8 +4,8 @@ from odoo import models, fields
 from dateutil.relativedelta import relativedelta
 from itertools import chain
 
-class AgedPartnerBalanceCustomHandler(models.AbstractModel):
-    _inherit = 'account.aged.partner.balance.report.handler'
+# class AgedPartnerBalanceCustomHandler(models.AbstractModel):
+#     _inherit = 'account.aged.partner.balance.report.handler'
 
 #     def _aged_partner_report_custom_engine_common(self, options, internal_type, current_groupby, next_groupby, offset=0, limit=None):
 #         report = self.env['account.report'].browse(options['report_id'])
