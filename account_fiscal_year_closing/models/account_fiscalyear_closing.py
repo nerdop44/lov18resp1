@@ -50,6 +50,9 @@ class AccountFiscalyearClosing(models.Model):
     company_id = fields.Many2one(
         default=lambda self: self._default_company_id(),
     )
+    date_start = fields.Date(string="Start Date")
+    date_end = fields.Date(string="End Date")
+    date_opening = fields.Date(string="Opening Date")
     # chart_template_id = fields.Many2one( Ya no existe
     #     comodel_name="account.chart.template",
     #     string="Chart template",
