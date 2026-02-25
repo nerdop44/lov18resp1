@@ -30,7 +30,7 @@ class AccountMoveLine(models.Model):
     balance_usd = fields.Monetary(string='Balance Ref.',
                                   currency_field='currency_id_dif', store=True, readonly=False,
                                   
-                                  default=lambda self: self._compute_balance_usd(),
+                                  # default=lambda self: self._compute_balance_usd(),
                                   help="Technical field holding the debit_usd - credit_usd in order to open meaningful graph views from reports")
 
 #     @api.depends('currency_id', 'company_id', 'move_id.date','move_id.tax_today')
