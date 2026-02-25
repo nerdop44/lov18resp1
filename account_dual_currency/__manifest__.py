@@ -25,8 +25,8 @@
     """,
     'depends': [
                 'base','l10n_ve_base','account','account_reports','account_followup','web',
-                'stock_account','account_accountant','analytic','stock_landed_costs','account_debit_note','mail',
-                'account_reports_cash_basis', 'account_asset','product','account_budget'
+                'stock_account','account_accountant','analytic','stock_landed_costs','mail',
+                'account_asset','product','account_budget'
                 ],
     'data':[
         'security/ir.model.access.csv',

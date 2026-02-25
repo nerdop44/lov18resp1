@@ -58,6 +58,9 @@ class AccountFiscalyearClosing(models.Model):
         readonly=True,
         states={"draft": [("readonly", False)]},
     )
+    date_start = fields.Date(string="Start Date", readonly=True)
+    date_end = fields.Date(string="End Date", readonly=True)
+    date_opening = fields.Date(string="Opening Date", readonly=True)
     # chart_template_id = fields.Many2one( Ya no existe
     #     comodel_name="account.chart.template",
     #     string="Chart template",
