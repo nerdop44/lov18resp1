@@ -18,7 +18,7 @@ class ResCurrency(models.Model):
         if options and options.get('companies'):
             c_opt = options['companies']
             # If it's already a Recordset with currency_id, we're good
-            if hasattr(c_opt, 'currency_id'):
+            if hasattr(c_opt, 'env') and hasattr(c_opt, 'currency_id'):
                 return super()._get_simple_currency_table(options)
             
             # Otherwise, extract IDs and browse
@@ -30,13 +30,19 @@ class ResCurrency(models.Model):
                     c_ids = [c_opt['id']]
                 else:
                     c_ids = [int(k) for k, v in c_opt.items() if v and str(k).isdigit()]
-            elif isinstance(c_opt, int):
-                c_ids = [c_opt]
+            elif isinstance(c_opt, (int, str)):
+                try:
+                    c_ids = [int(c_opt)]
+                except:
+                    pass
+            elif hasattr(c_opt, 'ids'):
+                c_ids = c_opt.ids
             
             if c_ids:
-                # Copy options to avoid side effects if preferred, 
-                # but here we need the base method to see the Recordset.
                 options['companies'] = self.env['res.company'].browse(c_ids)
+            else:
+                # Fallback to current company
+                options['companies'] = self.env.company
         
         return super()._get_simple_currency_table(options)
 
@@ -44,8 +50,7 @@ class ResCurrency(models.Model):
     def _check_currency_table_monocurrency(self, companies):
         # Extra safety: if 'companies' is still not a Recordset, fallback gracefully
         if not hasattr(companies, 'currency_id'):
-            if isinstance(companies, dict) or isinstance(companies, list):
-                return True # Assume monocurrency to avoid crash
+            return True # Assume monocurrency to avoid crash
         return super()._check_currency_table_monocurrency(companies)
 
 

@@ -28,7 +28,7 @@
                 parent="l10n_ve_payment_extension.retention_configuration" action="action_payment_concept_binaural_payment_extension" />
 
 		<menuitem id="menu_retention_signature_config" name="signature" 
-                parent="l10n_ve_payment_extension.retention_configuration" action="action_configurate_signature" />
+                parent="l10n_ve_payment_extension.retention_configuration" action="action_configurate_signature" sequence="20" />
 
 		<menuitem name="Tax unit" id="menu_retention_tax_unit" parent="l10n_ve_payment_extension.retention_configuration" 
                 action="action_tax_unit_binaural_payment_extension" />

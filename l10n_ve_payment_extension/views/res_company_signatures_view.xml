@@ -54,11 +54,11 @@ action = {
             </field>
         </record>
 
-        <!-- Menú en Configuración de Contabilidad -->
+        <!-- Menú en Configuración de Contabilidad > Retenciones -->
         <menuitem id="menu_company_signatures"
                   name="Firmas y Sellos"
-                  parent="account.menu_finance_configuration"
+                  parent="l10n_ve_payment_extension.retention_configuration"
                   action="action_open_current_company_signatures"
-                  sequence="0"/>
+                  sequence="10"/>
     </data>
 </odoo>
