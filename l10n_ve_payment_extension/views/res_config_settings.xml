@@ -24,6 +24,15 @@
 							</group>
 						</div>
 					</div>
+					<h2>Firmas y Sellos Digitales</h2>
+					<div class="row mt16 o_settings_container" name="digital_signatures_settings">
+						<div class="o_setting_right_pane">
+							<group colspan="4" col="4">
+								<field name="signature_image" widget="image" class="oe_avatar"/>
+								<field name="stamp_image" widget="image" class="oe_avatar"/>
+							</group>
+						</div>
+					</div>
 					<h2>Other withholding settings</h2>
 					<div class="row mt16 o_settings_container" name="binaural_withholding_settings">
 						<div class="o_setting_right_pane">

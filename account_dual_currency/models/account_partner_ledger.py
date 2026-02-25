@@ -128,10 +128,22 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
         queries = []
         report = self.env.ref('account_reports.partner_ledger_report')
 
-        ct_query = self.env['res.currency']._get_simple_currency_table(options)
-        currency_dif = options['currency_dif']
-        rate_mode = options.get('rate_mode', 'historical')
-        for column_group_key, column_group_options in report._split_options_per_column_group(options).items():
+        # Odoo 18 Radical Defensive Fix:
+        report_options = options.copy()
+        if report_options.get('companies'):
+            c_opt = report_options['companies']
+            if isinstance(c_opt, list):
+                report_options['companies'] = [c['id'] if isinstance(c, dict) else (c.id if hasattr(c, 'id') else c) for c in c_opt]
+            elif isinstance(c_opt, dict):
+                if 'id' in c_opt:
+                    report_options['companies'] = [c_opt['id']]
+                else:
+                    report_options['companies'] = [int(k) for k, v in c_opt.items() if v and str(k).isdigit()]
+
+        ct_query = self.env['res.currency']._get_simple_currency_table(report_options)
+        currency_dif = report_options['currency_dif']
+        rate_mode = report_options.get('rate_mode', 'historical')
+        for column_group_key, column_group_options in report._split_options_per_column_group(report_options).items():
             tables, where_clause, where_params = report._query_get(column_group_options, 'normal')
             params.append(column_group_key)
             params += where_params
