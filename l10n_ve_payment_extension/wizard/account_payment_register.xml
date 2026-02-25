@@ -5,7 +5,7 @@
 		<record id="account_payment_register_form_binaural_payment_extension" model="ir.ui.view">
 			<field name="name">account.payment.register.form</field>
 			<field name="model">account.payment.register</field>
-			<field name="inherit_id" ref="account.view_account_payment_register_form"/>
+			<field name="inherit_id" ref="l10n_ve_accountant.view_account_payment_register_form_binaural_invoice"/>
 			<field name="arch" type="xml">
 
 				<xpath expr="//field[@name='journal_id']" position="attributes">
