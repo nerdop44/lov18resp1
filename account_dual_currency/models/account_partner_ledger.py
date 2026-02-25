@@ -9,8 +9,8 @@ from odoo.tools.misc import format_date, get_lang
 from datetime import timedelta
 from collections import defaultdict
 
-class PartnerLedgerCustomHandler(models.AbstractModel):
-    _inherit = 'account.partner.ledger.report.handler'
+# class PartnerLedgerCustomHandler(models.AbstractModel):
+#     _inherit = 'account.partner.ledger.report.handler'
 
 #     def _get_initial_balance_values(self, partner_ids, options):
 #         queries = []
