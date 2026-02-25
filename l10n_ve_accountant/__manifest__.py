@@ -16,8 +16,8 @@
         "l10n_ve_contact",
         "l10n_ve_rate",
         #####
-        ##"l10n_ve_payment_extension", # Dependencia de Binaural Retenciones
-        ##"l10n_ve_invoice", # Dependencia de Binaural Facturación
+        "l10n_ve_payment_extension", # Dependencia de Binaural Retenciones
+        "l10n_ve_invoice", # Dependencia de Binaural Facturación
     ],
     # always loaded
     "data": [
@@ -26,7 +26,7 @@
         "data/ir_actions_server.xml",
         "data/paperformats.xml",
         "views/account_invoice_report.xml",
-    #    "views/account_move.xml",
+        "views/account_move.xml",
         "views/account_move_line.xml",
         "views/account_payment.xml",
         "views/ir_property.xml",
