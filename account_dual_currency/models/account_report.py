@@ -136,11 +136,9 @@ class AccountReport(models.AbstractModel):
         if value is None:
             return ''
 
-        # V6.9 Robust Normalization: extract numeric value if a dict is passed as 'value'
-        # Enterprise sometimes passes {'value': 123, 'style': ...} 
-        actual_value = value.get('value', 0.0) if isinstance(value, dict) else (value or 0.0)
-
+        # V7.2: Single clean if/elif chain, currency resolved before numeric normalization
         currency = kwargs.get('currency_obj')
+
         if figure_type == 'monetary':
             if not currency:
                 currency = self.env.company.currency_id
@@ -149,20 +147,20 @@ class AccountReport(models.AbstractModel):
                         currency = self.env.company.currency_id
                     else:
                         currency = self.env.company.currency_id_dif
-            digits = None
-        if figure_type == 'integer':
+            digits = None  # formatLang uses currency.decimal_places
+        elif figure_type == 'integer':
             currency = None
             digits = 0
         elif figure_type in ('date', 'datetime'):
-             # V7.0 Defensive Date Normalization: Don't force numeric-normalize for dates
-             actual_date_value = value.get('value') if isinstance(value, dict) else value
-             if not actual_date_value:
-                 return ''
-             return format_date(self.env, actual_date_value)
+            actual_date_value = value.get('value') if isinstance(value, dict) else value
+            if not actual_date_value:
+                return ''
+            return format_date(self.env, actual_date_value)
         else:
             currency = None
+            # digits stays as passed by caller
 
-        # V7.0 Enterprise Normalization for numeric values
+        # Normalize numeric value (Enterprise may pass dicts with metadata)
         actual_value = value.get('value', 0.0) if isinstance(value, dict) else (value or 0.0)
 
         is_zero_val = False
@@ -174,13 +172,16 @@ class AccountReport(models.AbstractModel):
         if is_zero_val:
             if blank_if_zero:
                 return ''
-            # don't print -0.0 in reports
             actual_value = abs(actual_value)
 
         if self._context.get('no_format'):
             return actual_value
 
-        formatted_amount = formatLang(self.env, actual_value, currency_obj=currency, digits=digits)
+        # V7.2: Separate formatLang calls to avoid AssertionError (digits=None + no currency)
+        if currency:
+            formatted_amount = formatLang(self.env, actual_value, currency_obj=currency)
+        else:
+            formatted_amount = formatLang(self.env, actual_value, digits=digits or 2)
 
         if figure_type == 'percentage':
             return f"{formatted_amount}%"
