@@ -1,7 +1,4 @@
-
 <odoo>
-	<data>
-
         <record model="ir.actions.server" id="set_rate_payments_zero">
             <field name="name">Set rate in payments with amount 0</field>
             <field name="model_id" ref="model_account_payment"/>
@@ -35,6 +32,4 @@ for record in records:
     record.abs_amount_lines_ids_adjust()
             </field>
         </record>
-
-	</data>
 </odoo>

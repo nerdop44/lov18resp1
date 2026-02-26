@@ -1,8 +1,4 @@
-
 <odoo>
-
-  <data>
-
     <record id="action_account_related_report" model="ir.actions.report">
       <field name="name">Asientos Contables Relacionados</field>
       <field name="model">account.move</field>
@@ -26,7 +22,4 @@
       <field name="binding_type">report</field>
       <field name="paperformat_id" ref="l10n_ve_accountant.paperformat_account"/> 
     </record>
-
-  </data>
-    
 </odoo>
