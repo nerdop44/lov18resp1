@@ -24,9 +24,9 @@
         "wizard/account_payment_register.xml",
     ],
     "images": ["static/description/icon.png"],
-    "assets": {
-        "web.assets_backend": ["l10n_ve_igtf/static/src/components/**/*"],
-    },
+    # "assets": {
+    #     "web.assets_backend": ["l10n_ve_igtf/static/src/components/**/*"],
+    # },
     "pre_init_hook": "pre_init_hook",
     "application": True,
     "binaural": True,
