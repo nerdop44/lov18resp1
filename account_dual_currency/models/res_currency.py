@@ -40,47 +40,49 @@ class ResCurrency(models.Model):
         return self.env.company
 
     @api.model
-    def _get_simple_currency_table(self, companies_or_options):
-        # Odoo 18 Global Defensive Fix V6.4.1:
-        # We must ensure that companies inside options are recordsets
-        # AND we must pass the correct type to super()
-        
-        if isinstance(companies_or_options, dict):
-            options = companies_or_options
-            companies_data = options.get('companies')
-            if companies_data is not None:
-                # Force companies in options to be Recordset
-                options['companies'] = self._normalize_to_company_recordset(companies_data)
-            return super()._get_simple_currency_table(options)
-        
-        # If not a dict, it must be the 'companies' recordset (Community/Internal)
-        companies = self._normalize_to_company_recordset(companies_or_options)
-        return super()._get_simple_currency_table(companies)
-
-    @api.model
     def _get_query_currency_table(self, options):
-        """ Enterprise compatibility bridge. 
-        Returns the currency table with the 'currency_table' alias.
+        """ Enterprise compatibility bridge V6.5.
+        Calls the correct parent method based on the input type (dict vs recordset)
+        and returns the result wrapped in the 'currency_table' alias.
         """
-        ct_sql_base = self._get_simple_currency_table(options)
+        if isinstance(options, dict):
+            # Enterprise Mode: options is a dict containing 'companies' data
+            # First, check if super has the Enterprise version (which accepts dict)
+            # or if it's the Community version (which accepts recordset)
+            
+            # We DONT override _get_simple_currency_table anymore to avoid MRO crashes.
+            # We just call it and handle the response.
+            try:
+                # If Enterprise is installed, this call handles the dict correctly
+                ct_sql_base = super()._get_simple_currency_table(options)
+            except AttributeError:
+                # Fallback for Community/Incomplete installs
+                companies = self._normalize_to_company_recordset(options.get('companies'))
+                ct_sql_base = super()._get_simple_currency_table(companies)
+            except Exception:
+                # Defensive fallback
+                companies = self._normalize_to_company_recordset(options.get('companies'))
+                ct_sql_base = super()._get_simple_currency_table(companies)
+        else:
+            # Community/Internal Mode: options is already a recordset
+            companies = self._normalize_to_company_recordset(options)
+            ct_sql_base = super()._get_simple_currency_table(companies)
+
+        # Always return with the alias needed by account_reports Odoo 18
         return SQL("(%(subquery)s) AS currency_table", subquery=ct_sql_base)
 
     @api.model
     def _check_currency_table_monocurrency(self, companies):
-        # Extra safety V6.4.1
+        # Extra safety V6.5
         companies_rs = self._normalize_to_company_recordset(companies)
         return super()._check_currency_table_monocurrency(companies_rs)
 
+    # --- Business Logic (Restored) ---
 
     facturas_por_actualizar = fields.Boolean(compute="_facturas_por_actualizar")
-
-    # habilitar sincronización automatica
     sincronizar = fields.Boolean(string="Sincronizar", default=False)
-
-    # campo listado de servidores, bcv o dolar today
     server = fields.Selection([('bcv', 'BCV'), ('dolar_today', 'Dolar Today Promedio')], string='Servidor',
                               default='bcv')
-
     act_productos = fields.Boolean(string="Actualizar Productos", default=False)
 
     def _convert(self, from_amount, to_currency, company, date, round=True, custom_rate=0.0):
