@@ -8,56 +8,85 @@
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
                 <!-- Header: moneda dual, tasa, moneda de referencia -->
+                <!-- Header: moneda dual, tasa, moneda de referencia reorganizados -->
                 <xpath expr="//field[@name='partner_id']" position="after">
-                    <field name="acuerdo_moneda"
-                           invisible="[('move_type', 'not in',  ('out_invoice', 'out_refund', 'out_receipt','in_invoice', 'in_refund', 'in_receipt'))]"/>
-                    <field name="currency_id_dif" readonly="1"/>
-                    <field name="name_rate" string="Moneda de Referencia"/>
-                    <field name="edit_trm" invisible="1"/>
-                    <field name="tax_today_edited" />
-                    <field name="tax_today" string="Tasa de Factura" readonly="[('edit_trm', '=', False)]"/>
-                    <field name="same_currency" invisible="1"/>
                     <field name="verificar_pagos" invisible="1"/>
+                    <field name="same_currency" invisible="1"/>
+                    <field name="edit_trm" invisible="1"/>
+                    <group string="Información Cambiaria" colspan="2" class="mt-0 mb-0">
+                        <field name="currency_id_dif" readonly="1" string="Moneda de Referencia"/>
+                        <field name="tax_today" string="Tasa de Factura" readonly="[('edit_trm', '=', False)]"/>
+                        <field name="acuerdo_moneda" string="Factura en Bs. Fijo"
+                               invisible="[('move_type', 'not in',  ('out_invoice', 'out_refund', 'out_receipt','in_invoice', 'in_refund', 'in_receipt'))]"/>
+                        <field name="tax_today_edited" invisible="1"/>
+                    </group>
                 </xpath>
 
                 <!-- Líneas: precio unitario y subtotal en moneda ref -->
                 <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='price_unit']" position="after">
-                    <field name="price_unit_usd" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
-                    <field name="currency_id_dif" readonly="1" invisible="1"/>
+                    <field name="price_unit_usd" string="Precio $" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
                 </xpath>
 
                 <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='price_subtotal']" position="after">
-                     <field name="price_subtotal_usd" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                     <field name="price_subtotal_usd" string="Subtotal $" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
                 </xpath>
 
                 <!-- Apuntes contables: débito/crédito USD -->
                 <xpath expr="//field[@name='line_ids']/list/field[@name='credit']" position="after">
-                    <field name="tax_today" string="Tasa de Factura" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
+                    <field name="tax_today" string="Tasa" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
                     <field name="currency_id_dif" readonly="1" invisible="1"/>
-                    <field name="debit_usd" sum="Débito Total $"  widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
-                    <field name="credit_usd" sum="Crédito Total $"  widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
+                    <field name="debit_usd" sum="Total $"  widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
+                    <field name="credit_usd" sum="Total $"  widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
                     <field name="balance_usd" invisible="1"/>
-                    <field name="amount_residual_usd" optional="hide" readonly="1" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
                 </xpath>
 
                 <xpath expr="//field[@name='narration']/.." position="attributes">
                     <attribute name="colspan">3</attribute>
                 </xpath>
 
-                <!-- Panel de totales en moneda de referencia: Ancla directmente al widget tax_totals -->
+                <!-- Panel de totales en moneda de referencia y Bs: FIJO -->
                 <xpath expr="//field[@name='tax_totals']" position="before">
+                    <field name="company_currency_id" invisible="1"/>
                     <field name="currency_id_dif" invisible="1"/>
                     <group class="oe_subtotal_footer"
                            invisible="[('move_type', 'not in', ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt'))]">
-                        <field name="amount_untaxed_usd" string="Base Ref." widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
-                        <field name="amount_tax_usd" string="Impuesto Ref." widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
-                        <field name="amount_total_usd" string="Total Ref." class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
-                        <field name="amount_residual_usd" string="Saldo Ref." class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('state', '=', 'draft')]"/>
                         
-                        <!-- Campos en Bolívares (Bs.) -->
-                        <field name="amount_untaxed_bs" string="Base Bs." widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
-                        <field name="amount_tax_bs" string="Impuesto Bs." widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
-                        <field name="amount_total_bs" string="Total Bs." class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
+                        <!-- Sección USD -->
+                        <div class="o_td_label">
+                            <label for="amount_untaxed_usd" string="Base Ref. ($)"/>
+                        </div>
+                        <field name="amount_untaxed_usd" nolabel="1" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                        
+                        <div class="o_td_label">
+                            <label for="amount_tax_usd" string="IVA Ref. ($)"/>
+                        </div>
+                        <field name="amount_tax_usd" nolabel="1" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                        
+                        <div class="o_td_label o_total_label">
+                            <label for="amount_total_usd" string="Total Ref. ($)"/>
+                        </div>
+                        <field name="amount_total_usd" nolabel="1" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                        
+                        <field name="amount_residual_usd" string="Saldo Ref. ($)" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('state', '=', 'draft')]"/>
+                        
+                        <!-- Separador visual -->
+                        <div colspan="2" style="border-top: 1px solid #ccc; margin: 10px 0;"/>
+
+                        <!-- Sección Bolívares (Bs.) -->
+                        <div class="o_td_label">
+                            <label for="amount_untaxed_bs" string="Base Bs."/>
+                        </div>
+                        <field name="amount_untaxed_bs" nolabel="1" widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
+                        
+                        <div class="o_td_label">
+                            <label for="amount_tax_bs" string="IVA Bs."/>
+                        </div>
+                        <field name="amount_tax_bs" nolabel="1" widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
+                        
+                        <div class="o_td_label o_total_label">
+                            <label for="amount_total_bs" string="Total Bs."/>
+                        </div>
+                        <field name="amount_total_bs" nolabel="1" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
                     </group>
                 </xpath>
 
