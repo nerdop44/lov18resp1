@@ -236,7 +236,7 @@ class AccountReport(models.AbstractModel):
                         COUNT(DISTINCT account_move_line.{next_groupby.split(',')[0] if next_groupby else 'id'}) AS count_rows
                         {f', {groupby_sql} AS grouping_key' if groupby_sql else ''}
                     FROM {tables}
-                    JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
+                    JOIN ({ct_query}) AS currency_table ON currency_table.company_id = account_move_line.company_id
                     WHERE {where_clause}
                     {f' GROUP BY {groupby_sql}' if groupby_sql else ''}
                     {tail_query}
@@ -250,7 +250,7 @@ class AccountReport(models.AbstractModel):
                             COUNT(DISTINCT account_move_line.{next_groupby.split(',')[0] if next_groupby else 'id'}) AS count_rows
                             {f', {groupby_sql} AS grouping_key' if groupby_sql else ''}
                         FROM {tables}
-                        JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
+                        JOIN ({ct_query}) AS currency_table ON currency_table.company_id = account_move_line.company_id
                         WHERE {where_clause}
                         {f' GROUP BY {groupby_sql}' if groupby_sql else ''}
                         {tail_query}
@@ -263,7 +263,7 @@ class AccountReport(models.AbstractModel):
                             COUNT(DISTINCT account_move_line.{next_groupby.split(',')[0] if next_groupby else 'id'}) AS count_rows
                             {f', {groupby_sql} AS grouping_key' if groupby_sql else ''}
                         FROM {tables}
-                        JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
+                        JOIN ({ct_query}) AS currency_table ON currency_table.company_id = account_move_line.company_id
                         WHERE {where_clause}
                         {f' GROUP BY {groupby_sql}' if groupby_sql else ''}
                         {tail_query}
