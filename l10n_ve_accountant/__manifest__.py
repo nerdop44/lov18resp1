@@ -23,7 +23,10 @@
 #        "data/ir_actions_server.xml",
         "data/paperformats.xml",
         "views/account_invoice_report.xml",
-        "views/account_move.xml",
+        # COLISIÓN: account_move.xml usa el mismo XML ID que l10n_ve_payment_extension
+        # y su contenido está vacío (comentado), lo que sobreescribe la vista activa.
+        # NO descomentar hasta renombrar el XML ID interno.
+#        "views/account_move.xml",
         "views/account_move_line.xml",
         "views/account_payment.xml",
 #        "views/ir_property.xml",
