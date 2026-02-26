@@ -22,7 +22,7 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
             # Get sums for the initial balance.
             # period: [('date' <= options['date_from'] - 1)]
             new_options = self._get_options_initial_balance(column_group_options)
-            tables, where_clause, where_params = report._query_get(new_options, 'normal', domain=[('partner_id', 'in', partner_ids)])
+            tables, where_clause, where_params = report._dual_currency_query_get(new_options, 'normal', domain=[('partner_id', 'in', partner_ids)])
             params.append(column_group_key)
             params += where_params
             if currency_dif == self.env.company.currency_id.symbol:
@@ -72,7 +72,7 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
         report = self.env.ref('account_reports.partner_ledger_report')
         currency_dif = options['currency_dif']
         for column_group_key, column_group_options in report._split_options_per_column_group(options).items():
-            tables, where_clause, where_params = report._query_get(column_group_options, 'normal')
+            tables, where_clause, where_params = report._dual_currency_query_get(column_group_options, 'normal')
             params += [
                 column_group_key,
                 column_group_options['date']['date_to'],
@@ -128,11 +128,11 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
         queries = []
         report = self.env.ref('account_reports.partner_ledger_report')
 
-        # Create the currency table.
-        ct_query = self.env['res.currency']._get_query_currency_table(options)
+        ct_query = self.env['res.currency']._get_simple_currency_table(options)
         currency_dif = options['currency_dif']
+        rate_mode = options.get('rate_mode', 'historical')
         for column_group_key, column_group_options in report._split_options_per_column_group(options).items():
-            tables, where_clause, where_params = report._query_get(column_group_options, 'normal')
+            tables, where_clause, where_params = report._dual_currency_query_get(column_group_options, 'normal')
             params.append(column_group_key)
             params += where_params
 
@@ -150,18 +150,32 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
                     GROUP BY account_move_line.partner_id
                 """)
             else:
-                queries.append(f"""
-                                    SELECT
-                                        account_move_line.partner_id                                                          AS groupby,
-                                        %s                                                                                    AS column_group_key,
-                                        SUM(ROUND(account_move_line.debit_usd, currency_table.precision))   AS debit,
-                                        SUM(ROUND(account_move_line.credit_usd, currency_table.precision))  AS credit,
-                                        SUM(ROUND(account_move_line.balance_usd, currency_table.precision)) AS balance
-                                    FROM {tables}
-                                    LEFT JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
-                                    WHERE {where_clause}
-                                    GROUP BY account_move_line.partner_id
-                                """)
+                if rate_mode == 'current':
+                    queries.append(f"""
+                        SELECT
+                            account_move_line.partner_id                                                          AS groupby,
+                            %s                                                                                    AS column_group_key,
+                            SUM(ROUND(account_move_line.debit * currency_table.rate, currency_table.precision))   AS debit,
+                            SUM(ROUND(account_move_line.credit * currency_table.rate, currency_table.precision))  AS credit,
+                            SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)) AS balance
+                        FROM {tables}
+                        LEFT JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
+                        WHERE {where_clause}
+                        GROUP BY account_move_line.partner_id
+                    """)
+                else:
+                    queries.append(f"""
+                        SELECT
+                            account_move_line.partner_id                                                          AS groupby,
+                            %s                                                                                    AS column_group_key,
+                            SUM(ROUND(account_move_line.debit_usd, currency_table.precision))   AS debit,
+                            SUM(ROUND(account_move_line.credit_usd, currency_table.precision))  AS credit,
+                            SUM(ROUND(account_move_line.balance_usd, currency_table.precision)) AS balance
+                        FROM {tables}
+                        LEFT JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
+                        WHERE {where_clause}
+                        GROUP BY account_move_line.partner_id
+                    """)
 
         return ' UNION ALL '.join(queries), params
 
@@ -194,7 +208,7 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
         report = self.env.ref('account_reports.partner_ledger_report')
         currency_dif = options['currency_dif']
         for column_group_key, group_options in report._split_options_per_column_group(options).items():
-            tables, where_clause, where_params = report._query_get(group_options, 'strict_range')
+            tables, where_clause, where_params = report._dual_currency_query_get(group_options, 'strict_range')
 
             all_params += [
                 column_group_key,

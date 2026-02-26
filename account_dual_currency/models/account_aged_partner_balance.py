@@ -66,9 +66,10 @@ class AgedPartnerBalanceCustomHandler(models.AbstractModel):
         period_table = self.env.cr.mogrify(period_table_format, params).decode(self.env.cr.connection.encoding)
 
         # Build query
-        tables, where_clause, where_params = report._query_get(options, 'strict_range', domain=[('account_id.account_type', '=', internal_type)])
+        tables, where_clause, where_params = report._dual_currency_query_get(options, 'strict_range', domain=[('account_id.account_type', '=', internal_type)])
 
-        currency_table = self.env['res.currency']._get_query_currency_table(options)
+        currency_table = self.env['res.currency']._get_simple_currency_table(options)
+        rate_mode = options.get('rate_mode', 'historical')
         always_present_groupby = "period_table.period_index, currency_table.rate, currency_table.precision"
         if current_groupby:
             select_from_groupby = f"account_move_line.{current_groupby} AS grouping_key,"
@@ -90,18 +91,32 @@ class AgedPartnerBalanceCustomHandler(models.AbstractModel):
                 for i in range(len(periods))
             )
         else:
-            select_period_query = ','.join(
-                f"""
-                                CASE WHEN period_table.period_index = {i}
-                                THEN %s * (
-                                    SUM(ROUND(account_move_line.balance_usd, currency_table.precision))
-                                    - COALESCE(SUM(ROUND(part_debit.amount, currency_table.precision)), 0)
-                                    + COALESCE(SUM(ROUND(part_credit.amount, currency_table.precision)), 0)
-                                )
-                                ELSE 0 END AS period{i}
-                            """
-                for i in range(len(periods))
-            )
+            if rate_mode == 'current':
+                select_period_query = ','.join(
+                    f"""
+                        CASE WHEN period_table.period_index = {i}
+                        THEN %s * (
+                            SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision))
+                            - COALESCE(SUM(ROUND(part_debit.amount * currency_table.rate, currency_table.precision)), 0)
+                            + COALESCE(SUM(ROUND(part_credit.amount * currency_table.rate, currency_table.precision)), 0)
+                        )
+                        ELSE 0 END AS period{i}
+                    """
+                    for i in range(len(periods))
+                )
+            else:
+                select_period_query = ','.join(
+                    f"""
+                        CASE WHEN period_table.period_index = {i}
+                        THEN %s * (
+                            SUM(ROUND(account_move_line.balance_usd, currency_table.precision))
+                            - COALESCE(SUM(ROUND(part_debit.amount_usd, currency_table.precision)), 0)
+                            + COALESCE(SUM(ROUND(part_credit.amount_usd, currency_table.precision)), 0)
+                        )
+                        ELSE 0 END AS period{i}
+                    """
+                    for i in range(len(periods))
+                )
 
         tail_query, tail_params = report._get_engine_query_tail(offset, limit)
         if currency_dif == self.env.company.currency_id.symbol:
@@ -129,14 +144,20 @@ class AgedPartnerBalanceCustomHandler(models.AbstractModel):
                 JOIN {currency_table} ON currency_table.company_id = account_move_line.company_id
     
                 LEFT JOIN LATERAL (
-                    SELECT SUM(part.amount) AS amount, part.debit_move_id
+                    SELECT 
+                        SUM(part.amount) AS amount, 
+                        SUM(part.amount_usd) AS amount_usd,
+                        part.debit_move_id
                     FROM account_partial_reconcile part
                     WHERE part.max_date <= %s
                     GROUP BY part.debit_move_id
                 ) part_debit ON part_debit.debit_move_id = account_move_line.id
     
                 LEFT JOIN LATERAL (
-                    SELECT SUM(part.amount) AS amount, part.credit_move_id
+                    SELECT 
+                        SUM(part.amount) AS amount, 
+                        SUM(part.amount_usd) AS amount_usd,
+                        part.credit_move_id
                     FROM account_partial_reconcile part
                     WHERE part.max_date <= %s
                     GROUP BY part.credit_move_id

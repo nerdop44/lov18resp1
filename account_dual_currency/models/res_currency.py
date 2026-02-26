@@ -11,6 +11,48 @@ urllib3.disable_warnings()
 class ResCurrency(models.Model):
     _inherit = 'res.currency'
 
+    @api.model
+    def _get_simple_currency_table(self, companies_or_options):
+        # Odoo 18 Global Defensive Fix:
+        # Detects if it's called with 'options' (Enterprise) or 'companies' (Community)
+        companies = companies_or_options
+        if isinstance(companies_or_options, dict):
+            companies = companies_or_options.get('companies') or self.env.company
+        
+        # Normalize companies to Recordset to satisfy Odoo Community base method
+        if not hasattr(companies, 'currency_id'):
+            c_ids = []
+            if isinstance(companies, list):
+                c_ids = [c['id'] if isinstance(c, dict) else (c.id if hasattr(c, 'id') else c) for c in companies]
+            elif isinstance(companies, dict):
+                if 'id' in companies:
+                    c_ids = [companies['id']]
+                else:
+                    c_ids = [int(k) for k, v in companies.items() if v and str(k).isdigit()]
+            elif isinstance(companies, (int, str)):
+                try:
+                    c_ids = [int(companies)]
+                except:
+                    pass
+            elif hasattr(companies, 'ids'):
+                c_ids = companies.ids
+            
+            if c_ids:
+                companies = self.env['res.company'].browse(c_ids)
+            else:
+                companies = self.env.company
+        
+        # Crucial: pass the Recordset to Community base, NOT the dict/str
+        return super()._get_simple_currency_table(companies)
+
+    @api.model
+    def _check_currency_table_monocurrency(self, companies):
+        # Extra safety: if 'companies' is still not a Recordset, fallback gracefully
+        if not hasattr(companies, 'currency_id'):
+            return True # Assume monocurrency to avoid crash
+        return super()._check_currency_table_monocurrency(companies)
+
+
     facturas_por_actualizar = fields.Boolean(compute="_facturas_por_actualizar")
 
     # habilitar sincronización automatica

@@ -1,6 +1,5 @@
 
 <odoo>
-    <data>
         <record id="ir_sequence_form_iva" model="ir.actions.act_window">
             <field name="name">Sequences_iva</field>
             <field name="type">ir.actions.act_window</field>
@@ -27,5 +26,4 @@
             <field name="res_id" eval="False"/>
             <field name="domain">[('code', '=','retention.municipal.control.number')]</field>
         </record>
-    </data>
 </odoo>
