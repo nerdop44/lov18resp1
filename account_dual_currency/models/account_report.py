@@ -113,10 +113,69 @@ class AccountReport(models.AbstractModel):
         if previous_options:
             if "currency_dif" in previous_options:
                 currency_dif = previous_options['currency_dif']
+        rate_mode = (previous_options or {}).get('rate_mode', 'historical')
+
         options['currency_dif'] = currency_dif
         options['currency_id_company_name'] = currency_id_company_name
         options['currency_id_dif_name'] = currency_id_dif_name
-        options['rate_mode'] = (previous_options or {}).get('rate_mode', 'historical')
+        options['rate_mode'] = rate_mode
+
+        # =================================================================
+        # V7.3: Botones de Moneda y Tasa para la barra del reporte (Odoo 18)
+        # Estos botones llaman a _get_options con el nuevo valor seleccionado
+        # =================================================================
+        currency_label = currency_dif
+        rate_label = 'Histórica' if rate_mode == 'historical' else 'Actualizada'
+
+        # Botón selector de Moneda
+        options['buttons'].append({
+            'name': f'En {currency_label}',
+            'sequence': 80,
+            'action': 'export_file',
+            'action_param': 'toggle_currency_dif',
+            'dropdown': {
+                'title': 'Moneda del Reporte',
+                'sequence': 80,
+                'items': [
+                    {
+                        'name': f'{currency_id_company_name} (Local)',
+                        'action': 'set_currency_dif',
+                        'action_param': currency_id_company_name,
+                    },
+                    {
+                        'name': f'{currency_id_dif_name} (Divisa)',
+                        'action': 'set_currency_dif',
+                        'action_param': currency_id_dif_name,
+                    },
+                ],
+            },
+        })
+
+        # Botón selector de Tasa (solo visible en modo divisa)
+        if currency_dif == currency_id_dif_name:
+            options['buttons'].append({
+                'name': f'Tasa: {rate_label}',
+                'sequence': 81,
+                'action': 'export_file',
+                'action_param': 'toggle_rate_mode',
+                'dropdown': {
+                    'title': 'Tasa a Utilizar',
+                    'sequence': 81,
+                    'items': [
+                        {
+                            'name': 'Histórica (Registro)',
+                            'action': 'set_rate_mode',
+                            'action_param': 'historical',
+                        },
+                        {
+                            'name': 'Actualizada (BCV/Hoy)',
+                            'action': 'set_rate_mode',
+                            'action_param': 'current',
+                        },
+                    ],
+                },
+            })
+
         new_context = {
             **self._context,
             'currency_dif': currency_dif,
