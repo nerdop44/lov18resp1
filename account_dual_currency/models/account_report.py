@@ -176,7 +176,8 @@ class AccountReport(models.AbstractModel):
         # Odoo 18: El objeto Query usa objetos SQL para sus cláusulas
         from_sql = query_obj.from_clause
         where_sql = query_obj.where_clause
-        return from_sql.code, where_sql.code, from_sql.params + where_sql.params
+        # Devolver código y parámetros por separado para inserciones de JOINs
+        return from_sql.code, where_sql.code, from_sql.params, where_sql.params
 
     def _compute_formula_batch_with_engine_domain(self, options, date_scope, formulas_dict, current_groupby, next_groupby, offset=0, limit=None, warnings=None, **kwargs):
         """ Report engine.
@@ -216,13 +217,14 @@ class AccountReport(models.AbstractModel):
 
         groupby_sql = f'account_move_line.{current_groupby}' if current_groupby else None
         
-        ct_query = self.env['res.currency']._get_simple_currency_table(options)
+        ct_sql = self.env['res.currency']._get_simple_currency_table(options)
+        ct_query = ct_sql.code if hasattr(ct_sql, 'code') else ct_sql
+        ct_params = ct_sql.params if hasattr(ct_sql, 'params') else []
 
         rslt = {}
 
         for formula, expressions in formulas_dict.items():
-            line_domain = literal_eval(formula)
-            tables, where_clause, where_params = self._dual_currency_query_get(options, date_scope, domain=line_domain)
+            tables, where_clause, from_params, where_params = self._dual_currency_query_get(options, date_scope, domain=line_domain)
 
             tail_query, tail_params = self._get_engine_query_tail(offset, limit)
             rate_mode = options.get('rate_mode', 'historical')
@@ -268,7 +270,9 @@ class AccountReport(models.AbstractModel):
 
             # Fetch the results.
             formula_rslt = []
-            self._cr.execute(query, where_params + tail_params)
+            # Orden de parámetros: FROM -> JOIN (currency_table) -> WHERE -> TAIL
+            total_params = from_params + ct_params + where_params + tail_params
+            self._cr.execute(query, total_params)
             all_query_res = self._cr.dictfetchall()
 
             total_sum = 0
