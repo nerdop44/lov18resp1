@@ -227,6 +227,17 @@ class AccountMove(models.Model):
         self.same_currency = self.currency_id == self.env.company.currency_id
 
 
+    @api.onchange('invoice_date', 'date')
+    def _onchange_invoice_date_rate(self):
+        for rec in self:
+            if not rec.tax_today_edited:
+                usd_currency = rec.currency_id_dif or self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+                if usd_currency:
+                    rec.tax_today = usd_currency._get_conversion_rate(
+                        usd_currency, rec.company_id.currency_id, rec.company_id, rec.invoice_date or rec.date or fields.Date.today()
+                    )
+                rec._onchange_tax_today()
+
     @api.onchange('tax_today')
     def _onchange_tax_today(self):
         self = self.with_context(check_move_validity=False)
@@ -266,27 +277,36 @@ class AccountMove(models.Model):
     @api.onchange('currency_id')
     def _onchange_currency(self):
         for rec in self:
-            if rec.currency_id == self.env.company.currency_id:
-                for l in rec.invoice_line_ids:
-                    # pass
-                    l.currency_id = rec.currency_id
-                    l.price_unit = (l.price_unit_usd * (rec.tax_today if rec.tax_today > 0 else l.price_unit))
+            # Sincronizamos la tasa al cambiar de moneda si no ha sido editada manualmente
+            if not rec.tax_today_edited:
+                usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+                if usd_currency:
+                    # En este módulo, tax_today representa el valor de 1 USD en Bs.
+                    # _get_conversion_rate(USD, VEF) retorna cuántos Bs son 1 USD.
+                    rec.tax_today = usd_currency._get_conversion_rate(
+                        usd_currency, rec.company_id.currency_id, rec.company_id, rec.invoice_date or fields.Date.today()
+                    )
 
-            else:
-                for l in rec.invoice_line_ids:
-                    # pass
-                    l.currency_id = rec.currency_id
+            # Actualizamos las líneas basándonos en la tasa (tax_today)
+            for l in rec.invoice_line_ids:
+                l.currency_id = rec.currency_id
+                if rec.currency_id == rec.company_id.currency_id:
+                    # Si pasamos a Bs: Precio = Precio USD * Tasa
+                    l.price_unit = (l.price_unit_usd * rec.tax_today) if rec.tax_today > 0 else l.price_unit
+                else:
+                    # Si pasamos a USD (o cualquier otra moneda extranjera): Precio = Precio USD
                     l.price_unit = l.price_unit_usd
 
-            #rec.invoice_line_ids._onchange_price_subtotal()
-
-            #rec._recompute_dynamic_lines(recompute_all_taxes=True)
+            # Sincronizar también los apuntes contables
             for aml in rec.line_ids:
                 aml.currency_id = rec.currency_id
                 aml._compute_currency_rate()
 
 
             #rec._onchange_tax_today()
+
+            # Forzar actualización de totales y líneas
+            rec._onchange_tax_today()
 
     @api.depends('state', 'move_type')
     def _edit_trm(self):
