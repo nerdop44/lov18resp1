@@ -7,14 +7,22 @@
 		<field name="arch" type="xml">
 
 			<notebook position="inside">
-				<page string="Tax Authorities Data" name="tax_authorities_data">
+				<page string="Retenciones y Firmas" name="tax_authorities_data">
 					<group>
-						<group>
+						<group string="Datos de Autoridad Fiscal">
 							<field name="tax_authorities_name"/>
 							<field name="economic_activity_number"/>
 						</group>
-						<group>
+						<group string="Logo de Autoridad">
 							<field name="tax_authorities_logo" widget="image" class="oe_avatar"/>
+						</group>
+					</group>
+					<group string="Firmas y Sellos Digitales">
+						<group>
+							<field name="signature_image" widget="image" options="{'size': [180, 180]}"/>
+						</group>
+						<group>
+							<field name="stamp_image" widget="image" options="{'size': [180, 180]}"/>
 						</group>
 					</group>
 				</page>

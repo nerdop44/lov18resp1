@@ -1,6 +1,5 @@
 
 <odoo>
-	<data>
 
 		<record id="view_retention_islr_form_binaural_payment_extension" model="ir.ui.view">
 			<field name="name">Retention ISLR client form</field>
@@ -28,6 +27,7 @@
 						<field name="number" force_save="1" readonly="type == 'in_invoice' or state in ['emitted', 'cancel']" required="type == 'out_invoice'" />
 						<field name="correlative" force_save="1" invisible="1" readonly="type == 'in_invoice'"/>
 						<field name="date" readonly="state in ['emitted', 'cancel']"/>
+						<field name="print_with_signatures" readonly="state in ['emitted', 'cancel']"/>
 					</group>
 					<notebook colspan="4">
 						<page name="retention_lines" string="Líneas de Retención">
@@ -90,5 +90,4 @@
 			<field name="domain">[('type_retention', '=', 'islr'), ('type', '=', 'in_invoice')]</field>
 		</record>
 	
-    </data>
 </odoo>
