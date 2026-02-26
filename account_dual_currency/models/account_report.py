@@ -224,6 +224,7 @@ class AccountReport(models.AbstractModel):
         rslt = {}
 
         for formula, expressions in formulas_dict.items():
+            line_domain = literal_eval(formula)
             tables, where_clause, from_params, where_params = self._dual_currency_query_get(options, date_scope, domain=line_domain)
 
             tail_query, tail_params = self._get_engine_query_tail(offset, limit)
