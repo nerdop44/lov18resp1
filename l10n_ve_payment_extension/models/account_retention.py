@@ -161,6 +161,20 @@ class AccountRetention(models.Model):
         help="Si se marca, el comprobante PDF incluirá la firma y el sello de la empresa.",
     )
 
+    def get_signature(self):
+        """Retorna la imagen de firma del representante legal si print_with_signatures=True."""
+        self.ensure_one()
+        if self.print_with_signatures:
+            return self.company_id.signature_image
+        return False
+
+    def get_stamp(self):
+        """Retorna la imagen del sello húmedo de la empresa si print_with_signatures=True."""
+        self.ensure_one()
+        if self.print_with_signatures:
+            return self.company_id.stamp_image
+        return False
+
     @api.depends("type", "partner_id")
     def _compute_allowed_lines_move_ids(self):
         """
