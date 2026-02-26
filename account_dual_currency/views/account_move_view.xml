@@ -53,6 +53,11 @@
                         <field name="amount_tax_usd" string="Impuesto Ref." widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
                         <field name="amount_total_usd" string="Total Ref." class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
                         <field name="amount_residual_usd" string="Saldo Ref." class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('state', '=', 'draft')]"/>
+                        
+                        <!-- Campos en Bolívares (Bs.) -->
+                        <field name="amount_untaxed_bs" string="Base Bs." widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
+                        <field name="amount_tax_bs" string="Impuesto Bs." widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
+                        <field name="amount_total_bs" string="Total Bs." class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
                     </group>
                 </xpath>
 
