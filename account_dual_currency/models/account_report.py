@@ -126,8 +126,9 @@ class AccountReport(models.AbstractModel):
         return options
 
     @api.model
-    def format_value(self, value, currency=False, blank_if_zero=True, figure_type=None, digits=1, **kwargs):
-        """ Formats a value for display in a report (not especially numerical). figure_type provides the type of formatting we want.
+    def format_value(self, options, value, figure_type=None, digits=1, blank_if_zero=True, **kwargs):
+        """ Formats a value for display in a report.
+        Odoo 18 Enterprise signature: (self, options, value, figure_type=None, digits=1, blank_if_zero=True, **kwargs)
         """
         if figure_type == 'none':
             return value
@@ -135,24 +136,27 @@ class AccountReport(models.AbstractModel):
         if value is None:
             return ''
 
+        # V6.9 Robust Normalization: extract numeric value if a dict is passed as 'value'
+        # Enterprise sometimes passes {'value': 123, 'style': ...} 
+        actual_value = value.get('value', 0.0) if isinstance(value, dict) else (value or 0.0)
+
+        currency = kwargs.get('currency_obj')
         if figure_type == 'monetary':
-            currency = currency or self.env.company.currency_id
-            if self._context.get('currency_dif'):
-                if self._context.get('currency_dif') == self._context.get('currency_id_company_name'):
-                    currency = self.env.company.currency_id
-                else:
-                    currency = self.env.company.currency_id_dif
+            if not currency:
+                currency = self.env.company.currency_id
+                if self._context.get('currency_dif'):
+                    if self._context.get('currency_dif') == self._context.get('currency_id_company_name'):
+                        currency = self.env.company.currency_id
+                    else:
+                        currency = self.env.company.currency_id_dif
             digits = None
         elif figure_type == 'integer':
             currency = None
             digits = 0
-        if figure_type in ('date', 'datetime'):
-            return format_date(self.env, value)
+        elif figure_type in ('date', 'datetime'):
+            return format_date(self.env, actual_value)
         else:
             currency = None
-
-        # V6.8 Enterprise Normalization: extract numeric value if a dict is passed
-        actual_value = value.get('value', 0.0) if isinstance(value, dict) else (value or 0.0)
 
         is_zero_val = False
         if figure_type == 'monetary' and currency:
