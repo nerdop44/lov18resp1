@@ -15,7 +15,7 @@ class GenericTaxReportCustomHandler(models.AbstractModel):
     def _read_generic_tax_report_amounts_no_tax_details(self, report, options, options_by_column_group):
         # Fetch the group of taxes.
         # If all child taxes have a 'none' type_tax_use, all amounts are aggregated and only the group appears on the report.
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         self._cr.execute(
             '''
                 SELECT
@@ -252,7 +252,7 @@ class GenericTaxReportCustomHandler(models.AbstractModel):
         a dictionnary that will help balance the different accounts set per tax group.
         """
         self = self.with_company(company)  # Needed to handle access to property fields correctly
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         # first, for each tax group, gather the tax entries per tax and account
         self.env['account.tax'].flush_model(['name', 'tax_group_id'])
         self.env['account.tax.repartition.line'].flush_model(['use_in_tax_closing'])
@@ -395,7 +395,7 @@ class GenericTaxReportCustomHandler(models.AbstractModel):
 
         Used to balance the tax group accounts for the creation of the vat closing entry.
         """
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         def _add_line(account, name, company_currency):
             self.env.cr.execute(sql_account, (account, end_date))
             result = self.env.cr.dictfetchone()

@@ -7,12 +7,11 @@ from odoo.tools.misc import get_lang
 class CashFlowReportCustomHandler(models.AbstractModel):
     _inherit = 'account.cash.flow.report.handler'
 
-    def _compute_liquidity_balance(self, report, options, currency_table_query, payment_account_ids, date_scope):
-        ''' Compute the balance of all liquidity accounts to populate the following sections:
-            'Cash and cash equivalents, beginning of period' and 'Cash and cash equivalents, closing balance'.
-        '''
+    def _compute_liquidity_balance(self, report, options, payment_account_ids, date_scope):
+        ''' Compute the balance of all liquidity accounts. '''
         queries = []
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
+        currency_table_query = self.env['res.currency']._get_query_currency_table(options)
         if self.pool['account.account'].name.translate:
             lang = self.env.user.lang or get_lang(self.env).code
             account_name_str = f"COALESCE(account_account.name->>'{lang}', account_account.name->>'en_US')"
@@ -76,7 +75,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
 
         reconciled_aml_groupby_account = {}
         queries = []
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         if self.pool['account.account'].name.translate:
             lang = self.env.user.lang or get_lang(self.env).code
             account_name_str = f"COALESCE(account_account.name->>'{lang}', account_account.name->>'en_US')"
@@ -286,7 +285,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
         reconciled_account_ids = {column_group_key: set() for column_group_key in options['column_groups']}
         reconciled_percentage_per_move = {column_group_key: {} for column_group_key in options['column_groups']}
         queries = []
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif', self.env.company.currency_id.symbol)
         
         for column_group_key, column_group_options in report._split_options_per_column_group(options).items():
             move_ids_subquery = self._get_move_ids_query(report, payment_account_ids, column_group_options)
