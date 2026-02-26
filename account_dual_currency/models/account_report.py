@@ -17,7 +17,7 @@ from dateutil.relativedelta import relativedelta
 from odoo.addons.web.controllers.utils import clean_action
 from odoo import models, fields, api, _, osv
 from odoo.exceptions import RedirectWarning, UserError, ValidationError
-from odoo.tools import config, date_utils, get_lang, float_compare, float_is_zero
+from odoo.tools import config, date_utils, get_lang, float_compare, float_is_zero, SQL
 from odoo.tools.float_utils import float_round
 from odoo.tools.misc import formatLang, format_date, xlsxwriter
 from odoo.tools.safe_eval import expr_eval, safe_eval
@@ -225,55 +225,80 @@ class AccountReport(models.AbstractModel):
 
         for formula, expressions in formulas_dict.items():
             line_domain = literal_eval(formula)
-            tables, where_clause, from_params, where_params = self._dual_currency_query_get(options, date_scope, domain=line_domain)
+            query_obj = self._get_report_query(options, date_scope, domain=line_domain)
 
             tail_query, tail_params = self._get_engine_query_tail(offset, limit)
+            # Convert tail_query string to SQL object if possible (Enterprise uses strings for tail often)
+            sql_tail = SQL(tail_query, *tail_params) if tail_query else SQL()
+
             rate_mode = options.get('rate_mode', 'historical')
+            
             if currency_dif == self.env.company.currency_id.symbol:
-                query = f"""
+                query = SQL("""
                     SELECT
                         COALESCE(SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)), 0.0) AS sum,
-                        COUNT(DISTINCT account_move_line.{next_groupby.split(',')[0] if next_groupby else 'id'}) AS count_rows
-                        {f', {groupby_sql} AS grouping_key' if groupby_sql else ''}
-                    FROM {tables}
-                    JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
-                    WHERE {where_clause}
-                    {f' GROUP BY {groupby_sql}' if groupby_sql else ''}
-                    {tail_query}
-                """
+                        COUNT(DISTINCT account_move_line.%(next_groupby)s) AS count_rows
+                        %(groupby_select)s
+                    FROM %(tables)s
+                    JOIN %(ct_query)s ON currency_table.company_id = account_move_line.company_id
+                    WHERE %(where_clause)s
+                    %(groupby_clause)s
+                    %(tail)s
+                """,
+                    next_groupby=SQL(next_groupby.split(',')[0] if next_groupby else 'id'),
+                    groupby_select=SQL(f', {groupby_sql} AS grouping_key') if groupby_sql else SQL(),
+                    tables=query_obj.from_clause,
+                    ct_query=ct_sql,
+                    where_clause=query_obj.where_clause,
+                    groupby_clause=SQL(f'GROUP BY {groupby_sql}') if groupby_sql else SQL(),
+                    tail=sql_tail
+                )
             else:
                 if rate_mode == 'current':
-                    # Tasa Actualizada: balance en Bs * tasa del reporte
-                    query = f"""
+                    query = SQL("""
                         SELECT
                             COALESCE(SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)), 0.0) AS sum,
-                            COUNT(DISTINCT account_move_line.{next_groupby.split(',')[0] if next_groupby else 'id'}) AS count_rows
-                            {f', {groupby_sql} AS grouping_key' if groupby_sql else ''}
-                        FROM {tables}
-                        JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
-                        WHERE {where_clause}
-                        {f' GROUP BY {groupby_sql}' if groupby_sql else ''}
-                        {tail_query}
-                    """
+                            COUNT(DISTINCT account_move_line.%(next_groupby)s) AS count_rows
+                            %(groupby_select)s
+                        FROM %(tables)s
+                        JOIN %(ct_query)s ON currency_table.company_id = account_move_line.company_id
+                        WHERE %(where_clause)s
+                        %(groupby_clause)s
+                        %(tail)s
+                    """,
+                        next_groupby=SQL(next_groupby.split(',')[0] if next_groupby else 'id'),
+                        groupby_select=SQL(f', {groupby_sql} AS grouping_key') if groupby_sql else SQL(),
+                        tables=query_obj.from_clause,
+                        ct_query=ct_sql,
+                        where_clause=query_obj.where_clause,
+                        groupby_clause=SQL(f'GROUP BY {groupby_sql}') if groupby_sql else SQL(),
+                        tail=sql_tail
+                    )
                 else:
-                    # Tasa Histórica: balance_usd registrado en la línea
-                    query = f"""
+                    query = SQL("""
                         SELECT
                             COALESCE(SUM(ROUND(account_move_line.balance_usd, currency_table.precision)), 0.0) AS sum,
-                            COUNT(DISTINCT account_move_line.{next_groupby.split(',')[0] if next_groupby else 'id'}) AS count_rows
-                            {f', {groupby_sql} AS grouping_key' if groupby_sql else ''}
-                        FROM {tables}
-                        JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
-                        WHERE {where_clause}
-                        {f' GROUP BY {groupby_sql}' if groupby_sql else ''}
-                        {tail_query}
-                    """
+                            COUNT(DISTINCT account_move_line.%(next_groupby)s) AS count_rows
+                            %(groupby_select)s
+                        FROM %(tables)s
+                        JOIN %(ct_query)s ON currency_table.company_id = account_move_line.company_id
+                        WHERE %(where_clause)s
+                        %(groupby_clause)s
+                        %(tail)s
+                    """,
+                        next_groupby=SQL(next_groupby.split(',')[0] if next_groupby else 'id'),
+                        groupby_select=SQL(f', {groupby_sql} AS grouping_key') if groupby_sql else SQL(),
+                        tables=query_obj.from_clause,
+                        ct_query=ct_sql,
+                        where_clause=query_obj.where_clause,
+                        groupby_clause=SQL(f'GROUP BY {groupby_sql}') if groupby_sql else SQL(),
+                        tail=sql_tail
+                    )
 
             # Fetch the results.
             formula_rslt = []
             # Orden de parámetros: FROM -> JOIN (currency_table) -> WHERE -> TAIL
-            total_params = from_params + ct_params + where_params + tail_params
-            self._cr.execute(query, total_params)
+            self._cr.execute(query)
             all_query_res = self._cr.dictfetchall()
 
             total_sum = 0
