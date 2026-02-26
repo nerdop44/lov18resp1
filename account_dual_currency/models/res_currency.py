@@ -41,39 +41,35 @@ class ResCurrency(models.Model):
 
     @api.model
     def _get_query_currency_table(self, options):
-        """ Enterprise compatibility bridge V6.5.
-        Calls the correct parent method based on the input type (dict vs recordset)
-        and returns the result wrapped in the 'currency_table' alias.
+        """ Final Resolution V6.6: Manual 'VALUES' Table Construction.
+        This ignores Odoo's internal methods which have inconsistent signatures
+        and return partial SQL fragments. We build a full, valid PostgreSQL 
+        VALUES table with all required columns: company_id, rate, and precision.
         """
-        if isinstance(options, dict):
-            # Enterprise Mode: options is a dict containing 'companies' data
-            # First, check if super has the Enterprise version (which accepts dict)
-            # or if it's the Community version (which accepts recordset)
-            
-            # We DONT override _get_simple_currency_table anymore to avoid MRO crashes.
-            # We just call it and handle the response.
-            try:
-                # If Enterprise is installed, this call handles the dict correctly
-                ct_sql_base = super()._get_simple_currency_table(options)
-            except AttributeError:
-                # Fallback for Community/Incomplete installs
-                companies = self._normalize_to_company_recordset(options.get('companies'))
-                ct_sql_base = super()._get_simple_currency_table(companies)
-            except Exception:
-                # Defensive fallback
-                companies = self._normalize_to_company_recordset(options.get('companies'))
-                ct_sql_base = super()._get_simple_currency_table(companies)
-        else:
-            # Community/Internal Mode: options is already a recordset
-            companies = self._normalize_to_company_recordset(options)
-            ct_sql_base = super()._get_simple_currency_table(companies)
+        companies = self._normalize_to_company_recordset(options.get('companies') if isinstance(options, dict) else options)
+        
+        rows = []
+        for company in companies:
+            # We use 1.0 as the rate for the dual currency engine's internal table
+            # because the dual currency amounts (balance_usd) are already calculated.
+            # Precision is taken from the company's main currency.
+            rows.append(SQL("(%(company_id)s, 1.0, %(precision)s)", 
+                company_id=company.id, 
+                precision=company.currency_id.decimal_places or 2
+            ))
+        
+        if not rows:
+            # Defensive fallback if no companies found
+            rows = [SQL("(%(company_id)s, 1.0, 2)", company_id=self.env.company.id)]
 
-        # Always return with the alias needed by account_reports Odoo 18
-        return SQL("(%(subquery)s) AS currency_table", subquery=ct_sql_base)
+        # Construct the final SQL: (VALUES (c1, r1, p1), (c2, r2, p2)) AS currency_table(company_id, rate, precision)
+        return SQL("(VALUES %(rows)s) AS currency_table(company_id, rate, precision)", 
+            rows=SQL(', ').join(rows)
+        )
 
     @api.model
     def _check_currency_table_monocurrency(self, companies):
-        # Extra safety V6.5
+        # Override to ensure it uses our normalized recordsets
         companies_rs = self._normalize_to_company_recordset(companies)
         return super()._check_currency_table_monocurrency(companies_rs)
 
@@ -88,9 +84,11 @@ class ResCurrency(models.Model):
     def _convert(self, from_amount, to_currency, company, date, round=True, custom_rate=0.0):
         self, to_currency = self or to_currency, to_currency or self
         assert self, "convert amount from unknown currency"
-        assert to_currency, "convert amount to unknown currency"
-        assert company, "convert amount from unknown company"
-        assert date, "convert amount from unknown date"
+        to_currency = to_currency or self
+        if not company:
+            company = self.env.company
+        if not date:
+            date = fields.Date.context_today(self)
         
         if self == to_currency:
             to_amount = from_amount
