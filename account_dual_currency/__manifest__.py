@@ -24,9 +24,11 @@
 
     """,
     'depends': [
-                'base','l10n_ve_base','account','account_reports','account_followup','web',
+                'base','l10n_ve_base','l10n_ve_rate','account','account_reports','account_followup','web',
                 'stock_account','account_accountant','analytic','stock_landed_costs','mail',
-                'account_asset','product','account_budget'
+                'account_asset','product',
+                'sale','purchase',
+                # 'account_budget',  # DESHABILITADO: no disponible en todos los entornos Enterprise
                 ],
     'data':[
         'security/ir.model.access.csv',

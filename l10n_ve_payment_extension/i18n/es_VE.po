@@ -1916,8 +1916,8 @@ msgstr "Tasa"
 
 #. module: binaural_payment_extension
 #: model:ir.actions.report,name:l10n_ve_payment_extension.retention_voucher_action
-msgid "Retention Voucher"
-msgstr "Comprobante de Retención"
+msgid "Imprimir Comprobante (CON Sello y Firma)"
+msgstr "Imprimir Comprobante (CON Sello y Firma)"
 
 #. module: binaural_payment_extension
 #: model_terms:ir.ui.view,arch_db:l10n_ve_payment_extension.account_payment_register_form_binaural_payment_extension
