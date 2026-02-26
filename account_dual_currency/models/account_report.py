@@ -217,9 +217,7 @@ class AccountReport(models.AbstractModel):
 
         groupby_sql = f'account_move_line.{current_groupby}' if current_groupby else None
         
-        ct_sql = self.env['res.currency']._get_simple_currency_table(options)
-        ct_query = ct_sql.code if hasattr(ct_sql, 'code') else ct_sql
-        ct_params = ct_sql.params if hasattr(ct_sql, 'params') else []
+        ct_sql = self.env['res.currency']._get_query_currency_table(options)
 
         rslt = {}
 
