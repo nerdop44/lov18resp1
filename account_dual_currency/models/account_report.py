@@ -150,13 +150,20 @@ class AccountReport(models.AbstractModel):
                     else:
                         currency = self.env.company.currency_id_dif
             digits = None
-        elif figure_type == 'integer':
+        if figure_type == 'integer':
             currency = None
             digits = 0
         elif figure_type in ('date', 'datetime'):
-            return format_date(self.env, actual_value)
+             # V7.0 Defensive Date Normalization: Don't force numeric-normalize for dates
+             actual_date_value = value.get('value') if isinstance(value, dict) else value
+             if not actual_date_value:
+                 return ''
+             return format_date(self.env, actual_date_value)
         else:
             currency = None
+
+        # V7.0 Enterprise Normalization for numeric values
+        actual_value = value.get('value', 0.0) if isinstance(value, dict) else (value or 0.0)
 
         is_zero_val = False
         if figure_type == 'monetary' and currency:

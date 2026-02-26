@@ -41,29 +41,25 @@ class ResCurrency(models.Model):
 
     @api.model
     def _get_query_currency_table(self, options):
-        """ Final Resolution V6.6: Manual 'VALUES' Table Construction.
-        This ignores Odoo's internal methods which have inconsistent signatures
-        and return partial SQL fragments. We build a full, valid PostgreSQL 
-        VALUES table with all required columns: company_id, rate, and precision.
+        """ Final Resolution V7.0: Universal Enterprise Compatibility.
+        Provides all 6 standard Enterprise columns + custom 'precision' column.
+        Columns: company_id, period_key, date_from, date_next, rate_type, rate, precision
         """
         companies = self._normalize_to_company_recordset(options.get('companies') if isinstance(options, dict) else options)
         
         rows = []
         for company in companies:
-            # We use 1.0 as the rate for the dual currency engine's internal table
-            # because the dual currency amounts (balance_usd) are already calculated.
-            # Precision is taken from the company's main currency.
-            rows.append(SQL("(%(company_id)s, 1.0, %(precision)s)", 
+            # Standard Odoo 18 columns: company_id, period_key, date_from, date_next, rate_type, rate
+            # Our custom addition: precision
+            rows.append(SQL("(%(company_id)s, NULL, NULL, NULL, NULL, 1.0, %(precision)s)", 
                 company_id=company.id, 
                 precision=company.currency_id.decimal_places or 2
             ))
         
         if not rows:
-            # Defensive fallback if no companies found
-            rows = [SQL("(%(company_id)s, 1.0, 2)", company_id=self.env.company.id)]
+            rows = [SQL("(%(company_id)s, NULL, NULL, NULL, NULL, 1.0, 2)", company_id=self.env.company.id)]
 
-        # Construct the final SQL: (VALUES (c1, r1, p1), (c2, r2, p2)) AS currency_table(company_id, rate, precision)
-        return SQL("(VALUES %(rows)s) AS currency_table(company_id, rate, precision)", 
+        return SQL("(VALUES %(rows)s) AS currency_table(company_id, period_key, date_from, date_next, rate_type, rate, precision)", 
             rows=SQL(', ').join(rows)
         )
 
