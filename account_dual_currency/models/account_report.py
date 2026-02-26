@@ -171,10 +171,10 @@ class AccountReport(models.AbstractModel):
         """ Puente para compatibilidad con Odoo 18.
             Reemplaza el antiguo _query_get que fue eliminado en Enterprise.
         """
-        # En Odoo 18, usamos _get_report_query que devuelve un objeto context-manager de consulta
+        # En Odoo 18, usamos _get_report_query que devuelve un objeto de consulta
         query_obj = self._get_report_query(options, date_scope, domain=domain)
-        from_clause, where_clause, where_params = query_obj.subselect()
-        return from_clause, where_clause, where_params
+        # Odoo 18: Acceso directo a las cláusulas.
+        return query_obj.from_clause, query_obj.where_clause, query_obj.where_params
 
     def _compute_formula_batch_with_engine_domain(self, options, date_scope, formulas_dict, current_groupby, next_groupby, offset=0, limit=None, warnings=None, **kwargs):
         """ Report engine.
