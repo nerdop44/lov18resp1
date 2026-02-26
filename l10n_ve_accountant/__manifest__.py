@@ -23,7 +23,7 @@
 #        "data/ir_actions_server.xml",
         "data/paperformats.xml",
         "views/account_invoice_report.xml",
-#        "views/account_move.xml",
+        "views/account_move.xml",
         "views/account_move_line.xml",
         "views/account_payment.xml",
 #        "views/ir_property.xml",
