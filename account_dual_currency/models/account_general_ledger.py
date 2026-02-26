@@ -2,8 +2,9 @@
 import json
 
 from odoo import models, fields, api, _
+from odoo.tools import SQL
 from odoo.tools.misc import format_date
-from odoo.tools import get_lang, SQL
+from odoo.tools import get_lang
 from odoo.exceptions import UserError
 
 from datetime import timedelta

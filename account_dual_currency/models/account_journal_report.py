@@ -1,7 +1,7 @@
 # Journal Report
 
-from odoo import models, SQL, _
-from odoo.tools import format_date, date_utils, get_lang
+from odoo import models, _
+from odoo.tools import format_date, date_utils, get_lang, SQL
 from collections import defaultdict
 from odoo.exceptions import UserError
 
