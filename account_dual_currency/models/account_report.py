@@ -146,27 +146,30 @@ class AccountReport(models.AbstractModel):
         elif figure_type == 'integer':
             currency = None
             digits = 0
-        elif figure_type in ('date', 'datetime'):
+        if figure_type in ('date', 'datetime'):
             return format_date(self.env, value)
         else:
             currency = None
 
+        # V6.8 Enterprise Normalization: extract numeric value if a dict is passed
+        actual_value = value.get('value', 0.0) if isinstance(value, dict) else (value or 0.0)
+
         is_zero_val = False
         if figure_type == 'monetary' and currency:
-            is_zero_val = currency.is_zero(value)
+            is_zero_val = currency.is_zero(actual_value)
         else:
-            is_zero_val = float_is_zero(value, precision_digits=digits or 2)
+            is_zero_val = float_is_zero(actual_value, precision_digits=digits or 2)
 
         if is_zero_val:
             if blank_if_zero:
                 return ''
             # don't print -0.0 in reports
-            value = abs(value)
+            actual_value = abs(actual_value)
 
         if self._context.get('no_format'):
-            return value
+            return actual_value
 
-        formatted_amount = formatLang(self.env, value, currency_obj=currency, digits=digits)
+        formatted_amount = formatLang(self.env, actual_value, currency_obj=currency, digits=digits)
 
         if figure_type == 'percentage':
             return f"{formatted_amount}%"
