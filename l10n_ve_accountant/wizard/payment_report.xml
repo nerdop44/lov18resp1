@@ -1,5 +1,6 @@
 <odoo>
 
+
     <record id="form_wizard_all_payments" model="ir.ui.view">
         <field name="name">Payment report</field>
         <field name="model">payment.report</field>

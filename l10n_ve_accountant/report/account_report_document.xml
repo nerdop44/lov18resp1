@@ -1,4 +1,5 @@
 <odoo>
+
     <template id="account_report_document">
 
         <style>

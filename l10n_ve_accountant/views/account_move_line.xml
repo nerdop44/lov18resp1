@@ -1,4 +1,5 @@
 <odoo>
+
     <record id="view_account_move_line_form_binaural_invoice" model="ir.ui.view">
         <field name="name">view.account.move.line.form.binaural.invoice</field>
         <field name="model">account.move.line</field>

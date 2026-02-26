@@ -1,4 +1,5 @@
 <odoo>
+
     <record id="view_account_invoice_report_pivot_binaural_invoice" model="ir.ui.view">
         <field name="name">view.account.invoice.report.pivot.binaural.invoice</field>
         <field name="model">account.invoice.report</field>

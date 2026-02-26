@@ -1,5 +1,6 @@
 <odoo>
 
+
     <data noupdate="1">
 
         <record forcecreate="True" id="alternative_discounts" model="decimal.precision">

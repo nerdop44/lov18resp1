@@ -1,4 +1,5 @@
 <odoo>
+
     <record id="action_account_related_report" model="ir.actions.report">
       <field name="name">Asientos Contables Relacionados</field>
       <field name="model">account.move</field>
