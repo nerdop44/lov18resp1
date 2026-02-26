@@ -173,8 +173,10 @@ class AccountReport(models.AbstractModel):
         """
         # En Odoo 18, usamos _get_report_query que devuelve un objeto de consulta (tools.query.Query)
         query_obj = self._get_report_query(options, date_scope, domain=domain)
-        # Odoo 18: El objeto Query no tiene get_sql(), se usan propiedades
-        return query_obj.from_clause, query_obj.where_clause, query_obj.where_params
+        # Odoo 18: El objeto Query usa objetos SQL para sus cláusulas
+        from_sql = query_obj.from_clause
+        where_sql = query_obj.where_clause
+        return from_sql.code, where_sql.code, from_sql.params + where_sql.params
 
     def _compute_formula_batch_with_engine_domain(self, options, date_scope, formulas_dict, current_groupby, next_groupby, offset=0, limit=None, warnings=None, **kwargs):
         """ Report engine.
