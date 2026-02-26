@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <template id="binaural_accountant_inherit_report_payment_receipt_document" inherit_id="account.report_payment_receipt_document">
         <xpath expr="//table" position="before">
