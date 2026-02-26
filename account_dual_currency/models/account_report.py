@@ -151,7 +151,13 @@ class AccountReport(models.AbstractModel):
         else:
             currency = None
 
-        if self.is_zero(value, currency=currency, figure_type=figure_type, digits=digits):
+        is_zero_val = False
+        if figure_type == 'monetary' and currency:
+            is_zero_val = currency.is_zero(value)
+        else:
+            is_zero_val = float_is_zero(value, precision_digits=digits or 2)
+
+        if is_zero_val:
             if blank_if_zero:
                 return ''
             # don't print -0.0 in reports
