@@ -42,7 +42,10 @@ class ResCurrency(models.Model):
             else:
                 companies = self.env.company
         
-        # Crucial: pass the Recordset to Community base, NOT the dict/str
+        # Crucial: pass the original 'options' dict to Enterprise super() if available,
+        # otherwise pass the Recordset to Community base.
+        if isinstance(companies_or_options, dict):
+            return super()._get_simple_currency_table(companies_or_options)
         return super()._get_simple_currency_table(companies)
 
     @api.model

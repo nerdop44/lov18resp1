@@ -214,8 +214,7 @@ class AccountReport(models.AbstractModel):
 
         groupby_sql = f'account_move_line.{current_groupby}' if current_groupby else None
         
-        ct_sql_base = self.env['res.currency']._get_simple_currency_table(options)
-        ct_sql = SQL("(%(subquery)s) AS currency_table", subquery=ct_sql_base)
+        ct_sql = self.env['res.currency']._get_query_currency_table(options)
 
         rslt = {}
 
