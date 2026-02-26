@@ -2,8 +2,9 @@
 import json
 
 from odoo import models, fields, api, _
+from odoo.tools import SQL
 from odoo.tools.misc import format_date
-from odoo.tools import get_lang, SQL
+from odoo.tools import get_lang
 from odoo.exceptions import UserError
 
 from datetime import timedelta
@@ -28,7 +29,8 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
 
         # Create the currency table.
         # As the currency table is the same whatever the comparisons, create it only once.
-        ct_sql = self.env['res.currency']._get_simple_currency_table(options)
+        ct_sql_base = self.env['res.currency']._get_simple_currency_table(options)
+        ct_sql = SQL("(%(subquery)s) AS currency_table", subquery=ct_sql_base)
         currency_dif = options['currency_dif']
         rate_mode = options.get('rate_mode', 'historical')
         # ============================================

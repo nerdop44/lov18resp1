@@ -46,6 +46,14 @@ class ResCurrency(models.Model):
         return super()._get_simple_currency_table(companies)
 
     @api.model
+    def _get_query_currency_table(self, options):
+        """ Enterprise compatibility bridge. 
+        Returns the currency table with the 'currency_table' alias.
+        """
+        ct_sql_base = self._get_simple_currency_table(options)
+        return SQL("(%(subquery)s) AS currency_table", subquery=ct_sql_base)
+
+    @api.model
     def _check_currency_table_monocurrency(self, companies):
         # Extra safety: if 'companies' is still not a Recordset, fallback gracefully
         if not hasattr(companies, 'currency_id'):

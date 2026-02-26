@@ -174,10 +174,7 @@ class AccountReport(models.AbstractModel):
         # En Odoo 18, usamos _get_report_query que devuelve un objeto de consulta (tools.query.Query)
         query_obj = self._get_report_query(options, date_scope, domain=domain)
         # Odoo 18: El objeto Query usa objetos SQL para sus cláusulas
-        from_sql = query_obj.from_clause
-        where_sql = query_obj.where_clause
-        # Devolver código y parámetros por separado para inserciones de JOINs
-        return from_sql.code, where_sql.code, from_sql.params, where_sql.params
+        return query_obj.from_clause, query_obj.where_clause
 
     def _compute_formula_batch_with_engine_domain(self, options, date_scope, formulas_dict, current_groupby, next_groupby, offset=0, limit=None, warnings=None, **kwargs):
         """ Report engine.
@@ -217,9 +214,8 @@ class AccountReport(models.AbstractModel):
 
         groupby_sql = f'account_move_line.{current_groupby}' if current_groupby else None
         
-        ct_sql = self.env['res.currency']._get_simple_currency_table(options)
-        ct_query = ct_sql.code if hasattr(ct_sql, 'code') else ct_sql
-        ct_params = ct_sql.params if hasattr(ct_sql, 'params') else []
+        ct_sql_base = self.env['res.currency']._get_simple_currency_table(options)
+        ct_sql = SQL("(%(subquery)s) AS currency_table", subquery=ct_sql_base)
 
         rslt = {}
 
