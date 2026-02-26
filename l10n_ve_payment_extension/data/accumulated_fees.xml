@@ -1,7 +1,5 @@
-
 <odoo>
 
-    <data>
 
         <record id="accumulated_fees_binaural_payment_extension" model="accumulated.fees">
             <field name="name">0.15</field>
@@ -27,7 +25,5 @@
             <field name="subtract_ut">500.00</field>
         </record>        
     
-    </data>
-    
-
 </odoo>
+
