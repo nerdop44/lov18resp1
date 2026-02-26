@@ -28,7 +28,9 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
 
         # Create the currency table.
         # As the currency table is the same whatever the comparisons, create it only once.
-        ct_query = self.env['res.currency']._get_simple_currency_table(options)
+        ct_sql = self.env['res.currency']._get_simple_currency_table(options)
+        ct_query = ct_sql.code if hasattr(ct_sql, 'code') else ct_sql
+        ct_params = ct_sql.params if hasattr(ct_sql, 'params') else []
         currency_dif = options['currency_dif']
         rate_mode = options.get('rate_mode', 'historical')
         # ============================================
@@ -47,8 +49,10 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
             if options_group.get('include_current_year_in_unaff_earnings'):
                 query_domain += [('account_id.include_initial_balance', '=', True)]
 
-            tables, where_clause, where_params = report._dual_currency_query_get(options_group, sum_date_scope, domain=query_domain)
+            tables, where_clause, from_params, where_params = report._dual_currency_query_get(options_group, sum_date_scope, domain=query_domain)
             params.append(column_group_key)
+            params += from_params
+            params += ct_params
             params += where_params
             if currency_dif == self.env.company.currency_id.symbol:
                 queries.append(f"""
@@ -95,8 +99,10 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
                 # ]
 
                 new_options = self._get_options_unaffected_earnings(options_group)
-                tables, where_clause, where_params = report._dual_currency_query_get(new_options, 'strict_range', domain=unaff_earnings_domain)
+                tables, where_clause, from_params, where_params = report._dual_currency_query_get(new_options, 'strict_range', domain=unaff_earnings_domain)
                 params.append(column_group_key)
+                params += from_params
+                params += ct_params
                 params += where_params
                 if currency_dif == self.env.company.currency_id.symbol:
                     queries.append(f"""
@@ -172,8 +178,10 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         for column_group_key, group_options in report._split_options_per_column_group(options).items():
             # Get sums for the account move lines.
             # period: [('date' <= options['date_to']), ('date', '>=', options['date_from'])]
-            tables, where_clause, where_params = report._dual_currency_query_get(group_options, domain=additional_domain, date_scope='strict_range')
-            ct_query = self.env['res.currency']._get_query_currency_table(group_options)
+            tables, where_clause, from_params, where_params = report._dual_currency_query_get(group_options, domain=additional_domain, date_scope='strict_range')
+            ct_sql = self.env['res.currency']._get_query_currency_table(group_options)
+            ct_query = ct_sql.code if hasattr(ct_sql, 'code') else ct_sql
+            ct_params = ct_sql.params if hasattr(ct_sql, 'params') else []
             if currency_dif == self.env.company.currency_id.symbol:
                 query = f'''
                     (SELECT
@@ -292,6 +300,8 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
 
             queries.append(query)
             all_params.append(column_group_key)
+            all_params += from_params
+            all_params += ct_params
             all_params += where_params
 
         full_query = " UNION ALL ".join(queries)
@@ -316,12 +326,16 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         
         for column_group_key, options_group in report._split_options_per_column_group(options).items():
             new_options = self._get_options_initial_balance(options_group)
-            ct_query = self.env['res.currency']._get_simple_currency_table(new_options)
-            tables, where_clause, where_params = report._dual_currency_query_get(new_options, 'normal', domain=[
+            ct_sql = self.env['res.currency']._get_simple_currency_table(new_options)
+            ct_query = ct_sql.code if hasattr(ct_sql, 'code') else ct_sql
+            ct_params = ct_sql.params if hasattr(ct_sql, 'params') else []
+            tables, where_clause, from_params, where_params = report._dual_currency_query_get(new_options, 'normal', domain=[
                 ('account_id', 'in', account_ids),
                 ('account_id.include_initial_balance', '=', True),
             ])
             params.append(column_group_key)
+            params += from_params
+            params += ct_params
             params += where_params
             if currency_dif == self.env.company.currency_id.symbol:
                 queries.append(f"""

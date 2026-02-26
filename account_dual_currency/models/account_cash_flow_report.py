@@ -25,7 +25,9 @@ class CashFlowReportCustomHandler(models.AbstractModel):
             account_name = 'account_account.name'
 
         for column_group_key, column_group_options in report._split_options_per_column_group(options).items():
-            tables, where_clause, where_params = report._dual_currency_query_get(column_group_options, date_scope, domain=[('account_id', 'in', payment_account_ids)])
+            tables, where_clause, from_params, where_params = report._dual_currency_query_get(column_group_options, date_scope, domain=[('account_id', 'in', payment_account_ids)])
+            ct_query = currency_table_query.code if hasattr(currency_table_query, 'code') else currency_table_query
+            ct_params = currency_table_query.params if hasattr(currency_table_query, 'params') else []
             if currency_dif == self.env.company.currency_id.symbol:
                 queries.append(f'''
                     SELECT
@@ -37,7 +39,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                     FROM {tables}
                     JOIN account_account
                         ON account_account.id = account_move_line.account_id
-                    LEFT JOIN {currency_table_query}
+                    LEFT JOIN {ct_query}
                         ON currency_table.company_id = account_move_line.company_id
                     WHERE {where_clause}
                     GROUP BY account_move_line.account_id, account_account.code, account_name
@@ -53,13 +55,13 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                                     FROM {tables}
                                     JOIN account_account
                                         ON account_account.id = account_move_line.account_id
-                                    LEFT JOIN {currency_table_query}
+                                    LEFT JOIN {ct_query}
                                         ON currency_table.company_id = account_move_line.company_id
                                     WHERE {where_clause}
                                     GROUP BY account_move_line.account_id, account_account.code, account_name
                                 ''')
 
-            params += [column_group_key, *where_params]
+            params += [column_group_key, *from_params, *ct_params, *where_params]
 
         self._cr.execute(' UNION ALL '.join(queries), params)
 
@@ -105,7 +107,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                         account_account_account_tag.account_account_tag_id AS account_tag_id,
                         SUM(ROUND(account_partial_reconcile.amount * currency_table.rate, currency_table.precision)) AS balance
                     FROM account_move_line
-                    LEFT JOIN {currency_table_query}
+                    LEFT JOIN {ct_query}
                         ON currency_table.company_id = account_move_line.company_id
                     LEFT JOIN account_partial_reconcile
                         ON account_partial_reconcile.credit_move_id = account_move_line.id
@@ -131,7 +133,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                         account_account_account_tag.account_account_tag_id AS account_tag_id,
                         -SUM(ROUND(account_partial_reconcile.amount * currency_table.rate, currency_table.precision)) AS balance
                     FROM account_move_line
-                    LEFT JOIN {currency_table_query}
+                    LEFT JOIN {ct_query}
                         ON currency_table.company_id = account_move_line.company_id
                     LEFT JOIN account_partial_reconcile
                         ON account_partial_reconcile.debit_move_id = account_move_line.id
@@ -157,7 +159,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                         account_account_account_tag.account_account_tag_id AS account_tag_id,
                         SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)) AS balance
                     FROM account_move_line
-                    LEFT JOIN {currency_table_query}
+                    LEFT JOIN {ct_query}
                         ON currency_table.company_id = account_move_line.company_id
                     JOIN account_account
                         ON account_account.id = account_move_line.account_id
@@ -181,7 +183,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                                        account_account_account_tag.account_account_tag_id AS account_tag_id,
                                        SUM(ROUND(account_partial_reconcile.amount_usd, currency_table.precision)) AS balance
                                    FROM account_move_line
-                                   LEFT JOIN {currency_table_query}
+                                   LEFT JOIN {ct_query}
                                        ON currency_table.company_id = account_move_line.company_id
                                    LEFT JOIN account_partial_reconcile
                                        ON account_partial_reconcile.credit_move_id = account_move_line.id
@@ -207,7 +209,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                                        account_account_account_tag.account_account_tag_id AS account_tag_id,
                                        -SUM(ROUND(account_partial_reconcile.amount_usd, currency_table.precision)) AS balance
                                    FROM account_move_line
-                                   LEFT JOIN {currency_table_query}
+                                   LEFT JOIN {ct_query}
                                        ON currency_table.company_id = account_move_line.company_id
                                    LEFT JOIN account_partial_reconcile
                                        ON account_partial_reconcile.debit_move_id = account_move_line.id
@@ -233,7 +235,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                                        account_account_account_tag.account_account_tag_id AS account_tag_id,
                                        SUM(ROUND(account_move_line.balance_usd, currency_table.precision)) AS balance
                                    FROM account_move_line
-                                   LEFT JOIN {currency_table_query}
+                                   LEFT JOIN {ct_query}
                                        ON currency_table.company_id = account_move_line.company_id
                                    JOIN account_account
                                        ON account_account.id = account_move_line.account_id
@@ -405,7 +407,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                         account_move_line.account_id,
                         SUM(account_move_line.balance) AS balance
                     FROM account_move_line
-                    JOIN {currency_table_query}
+                    JOIN {ct_query}
                         ON currency_table.company_id = account_move_line.company_id
                     WHERE account_move_line.move_id IN %s
                         AND account_move_line.account_id IN %s
@@ -426,7 +428,9 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                                     GROUP BY account_move_line.move_id, account_move_line.account_id
                                 ''')
 
-            params += [column['column_group_key'], tuple(reconciled_percentage_per_move[column['column_group_key']].keys()) or (None,), tuple(reconciled_account_ids[column['column_group_key']]) or (None,)]
+            ct_query = currency_table_query.code if hasattr(currency_table_query, 'code') else currency_table_query
+            ct_params = currency_table_query.params if hasattr(currency_table_query, 'params') else []
+            params += [column['column_group_key'], *ct_params, tuple(reconciled_percentage_per_move[column['column_group_key']].keys()) or (None,), tuple(reconciled_account_ids[column['column_group_key']]) or (None,)]
 
         self._cr.execute(' UNION ALL '.join(queries), params)
 
@@ -457,7 +461,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                         account_account_account_tag.account_account_tag_id AS account_tag_id,
                         SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)) AS balance
                     FROM account_move_line
-                    LEFT JOIN {currency_table_query}
+                    LEFT JOIN {ct_query}
                         ON currency_table.company_id = account_move_line.company_id
                     JOIN account_account
                         ON account_account.id = account_move_line.account_id
@@ -479,7 +483,7 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                                         account_account_account_tag.account_account_tag_id AS account_tag_id,
                                         SUM(ROUND(account_move_line.balance_usd, currency_table.precision)) AS balance
                                     FROM account_move_line
-                                    LEFT JOIN {currency_table_query}
+                                    LEFT JOIN {ct_query}
                                         ON currency_table.company_id = account_move_line.company_id
                                     JOIN account_account
                                         ON account_account.id = account_move_line.account_id
@@ -490,7 +494,9 @@ class CashFlowReportCustomHandler(models.AbstractModel):
                                     GROUP BY account_move_line.move_id, account_move_line.account_id, account_account.code, account_name, account_account.account_type, account_account_account_tag.account_account_tag_id
                                 ''')
 
-            params += [column['column_group_key'], tuple(cash_flow_tag_ids), tuple(reconciled_percentage_per_move[column['column_group_key']].keys()) or (None,)]
+            ct_query = currency_table_query.code if hasattr(currency_table_query, 'code') else currency_table_query
+            ct_params = currency_table_query.params if hasattr(currency_table_query, 'params') else []
+            params += [column['column_group_key'], tuple(cash_flow_tag_ids), *ct_params, tuple(reconciled_percentage_per_move[column['column_group_key']].keys()) or (None,)]
 
         self._cr.execute(' UNION ALL '.join(queries), params)
 
