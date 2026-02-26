@@ -1,5 +1,6 @@
 # vencida por cobrar y pagar
 from odoo import models, fields
+from odoo.tools import SQL
 
 from dateutil.relativedelta import relativedelta
 from itertools import chain
@@ -66,196 +67,140 @@ class AgedPartnerBalanceCustomHandler(models.AbstractModel):
         period_table = self.env.cr.mogrify(period_table_format, params).decode(self.env.cr.connection.encoding)
 
         # Build query
-        tables, where_clause, where_params = report._dual_currency_query_get(options, 'strict_range', domain=[('account_id.account_type', '=', internal_type)])
+        tables_sql, where_sql = report._dual_currency_query_get(options, 'strict_range', domain=[('account_id.account_type', '=', internal_type)])
 
-        currency_table = self.env['res.currency']._get_simple_currency_table(options)
+        ct_sql_base = self.env['res.currency']._get_simple_currency_table(options)
+        ct_sql = SQL("(%(subquery)s) AS currency_table", subquery=ct_sql_base)
         rate_mode = options.get('rate_mode', 'historical')
-        always_present_groupby = "period_table.period_index, currency_table.rate, currency_table.precision"
+        
         if current_groupby:
-            select_from_groupby = f"account_move_line.{current_groupby} AS grouping_key,"
-            groupby_clause = f"account_move_line.{current_groupby}, {always_present_groupby}"
+            select_from_groupby = SQL("account_move_line.%(field)s AS grouping_key,", field=SQL(current_groupby))
+            groupby_clause = SQL("account_move_line.%(field)s, period_table.period_index, currency_table.rate, currency_table.precision", field=SQL(current_groupby))
         else:
-            select_from_groupby = ''
-            groupby_clause = always_present_groupby
-        if currency_dif == self.env.company.currency_id.symbol:
-            select_period_query = ','.join(
-                f"""
-                    CASE WHEN period_table.period_index = {i}
-                    THEN %s * (
+            select_from_groupby = SQL("")
+            groupby_clause = SQL("period_table.period_index, currency_table.rate, currency_table.precision")
+
+        select_period_queries = []
+        for i in range(len(periods)):
+            if currency_dif == self.env.company.currency_id.symbol:
+                select_period_queries.append(SQL("""
+                    CASE WHEN period_table.period_index = %(i)s
+                    THEN %(multiplicator)s * (
                         SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision))
                         - COALESCE(SUM(ROUND(part_debit.amount * currency_table.rate, currency_table.precision)), 0)
                         + COALESCE(SUM(ROUND(part_credit.amount * currency_table.rate, currency_table.precision)), 0)
                     )
-                    ELSE 0 END AS period{i}
-                """
-                for i in range(len(periods))
-            )
-        else:
-            if rate_mode == 'current':
-                select_period_query = ','.join(
-                    f"""
-                        CASE WHEN period_table.period_index = {i}
-                        THEN %s * (
+                    ELSE 0 END AS period%(i)s
+                """, i=i, multiplicator=-1 if internal_type == 'liability_payable' else 1))
+            else:
+                if rate_mode == 'current':
+                    select_period_queries.append(SQL("""
+                        CASE WHEN period_table.period_index = %(i)s
+                        THEN %(multiplicator)s * (
                             SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision))
                             - COALESCE(SUM(ROUND(part_debit.amount * currency_table.rate, currency_table.precision)), 0)
                             + COALESCE(SUM(ROUND(part_credit.amount * currency_table.rate, currency_table.precision)), 0)
                         )
-                        ELSE 0 END AS period{i}
-                    """
-                    for i in range(len(periods))
-                )
-            else:
-                select_period_query = ','.join(
-                    f"""
-                        CASE WHEN period_table.period_index = {i}
-                        THEN %s * (
+                        ELSE 0 END AS period%(i)s
+                    """, i=i, multiplicator=-1 if internal_type == 'liability_payable' else 1))
+                else:
+                    select_period_queries.append(SQL("""
+                        CASE WHEN period_table.period_index = %(i)s
+                        THEN %(multiplicator)s * (
                             SUM(ROUND(account_move_line.balance_usd, currency_table.precision))
                             - COALESCE(SUM(ROUND(part_debit.amount_usd, currency_table.precision)), 0)
                             + COALESCE(SUM(ROUND(part_credit.amount_usd, currency_table.precision)), 0)
                         )
-                        ELSE 0 END AS period{i}
-                    """
-                    for i in range(len(periods))
-                )
+                        ELSE 0 END AS period%(i)s
+                    """, i=i, multiplicator=-1 if internal_type == 'liability_payable' else 1))
 
         tail_query, tail_params = report._get_engine_query_tail(offset, limit)
-        if currency_dif == self.env.company.currency_id.symbol:
-            query = f"""
-                WITH period_table(date_start, date_stop, period_index) AS ({period_table})
-    
-                SELECT
-                    {select_from_groupby}
-                    %s * SUM(account_move_line.amount_currency) AS amount_currency,
-                    ARRAY_AGG(DISTINCT account_move_line.partner_id) AS partner_id,
-                    ARRAY_AGG(account_move_line.payment_id) AS payment_id,
-                    ARRAY_AGG(DISTINCT COALESCE(account_move_line.date_maturity, account_move_line.date)) AS report_date,
-                    ARRAY_AGG(DISTINCT account_move_line.expected_pay_date) AS expected_date,
-                    ARRAY_AGG(DISTINCT account.code) AS account_name,
-                    ARRAY_AGG(DISTINCT COALESCE(account_move_line.date_maturity, account_move_line.date)) AS due_date,
-                    ARRAY_AGG(DISTINCT account_move_line.currency_id) AS currency_id,
-                    COUNT(account_move_line.id) AS aml_count,
-                    ARRAY_AGG(account.code) AS account_code,
-                    {select_period_query}
-    
-                FROM {tables}
-    
-                JOIN account_journal journal ON journal.id = account_move_line.journal_id
-                JOIN account_account account ON account.id = account_move_line.account_id
-                JOIN {currency_table} ON currency_table.company_id = account_move_line.company_id
-    
-                LEFT JOIN LATERAL (
-                    SELECT 
-                        SUM(part.amount) AS amount, 
-                        SUM(part.amount_usd) AS amount_usd,
-                        part.debit_move_id
-                    FROM account_partial_reconcile part
-                    WHERE part.max_date <= %s
-                    GROUP BY part.debit_move_id
-                ) part_debit ON part_debit.debit_move_id = account_move_line.id
-    
-                LEFT JOIN LATERAL (
-                    SELECT 
-                        SUM(part.amount) AS amount, 
-                        SUM(part.amount_usd) AS amount_usd,
-                        part.credit_move_id
-                    FROM account_partial_reconcile part
-                    WHERE part.max_date <= %s
-                    GROUP BY part.credit_move_id
-                ) part_credit ON part_credit.credit_move_id = account_move_line.id
-    
-                JOIN period_table ON
-                    (
-                        period_table.date_start IS NULL
-                        OR COALESCE(account_move_line.date_maturity, account_move_line.date) <= DATE(period_table.date_start)
-                    )
-                    AND
-                    (
-                        period_table.date_stop IS NULL
-                        OR COALESCE(account_move_line.date_maturity, account_move_line.date) >= DATE(period_table.date_stop)
-                    )
-    
-                WHERE {where_clause}
-    
-                GROUP BY {groupby_clause}
-    
-                HAVING (
-                    SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision))
-                    - COALESCE(SUM(ROUND(part_debit.amount * currency_table.rate, currency_table.precision)), 0)
-                    + COALESCE(SUM(ROUND(part_credit.amount * currency_table.rate, currency_table.precision)), 0)
-                ) != 0
-                {tail_query}
-            """
-        else:
-            query = f"""
-                            WITH period_table(date_start, date_stop, period_index) AS ({period_table})
+        
+        query = SQL("""
+            WITH period_table(date_start, date_stop, period_index) AS (%(period_table)s)
 
-                            SELECT
-                                {select_from_groupby}
-                                %s * SUM(account_move_line.amount_currency) AS amount_currency,
-                                ARRAY_AGG(DISTINCT account_move_line.partner_id) AS partner_id,
-                                ARRAY_AGG(account_move_line.payment_id) AS payment_id,
-                                ARRAY_AGG(DISTINCT COALESCE(account_move_line.date_maturity, account_move_line.date)) AS report_date,
-                                ARRAY_AGG(DISTINCT account_move_line.expected_pay_date) AS expected_date,
-                                ARRAY_AGG(DISTINCT account.code) AS account_name,
-                                ARRAY_AGG(DISTINCT COALESCE(account_move_line.date_maturity, account_move_line.date)) AS due_date,
-                                ARRAY_AGG(DISTINCT account_move_line.currency_id) AS currency_id,
-                                COUNT(account_move_line.id) AS aml_count,
-                                ARRAY_AGG(account.code) AS account_code,
-                                {select_period_query}
+            SELECT
+                %(select_from_groupby)s
+                %(multiplicator)s * SUM(account_move_line.amount_currency) AS amount_currency,
+                ARRAY_AGG(DISTINCT account_move_line.partner_id) AS partner_id,
+                ARRAY_AGG(account_move_line.payment_id) AS payment_id,
+                ARRAY_AGG(DISTINCT COALESCE(account_move_line.date_maturity, account_move_line.date)) AS report_date,
+                ARRAY_AGG(DISTINCT account_move_line.expected_pay_date) AS expected_date,
+                ARRAY_AGG(DISTINCT account.code) AS account_name,
+                ARRAY_AGG(DISTINCT COALESCE(account_move_line.date_maturity, account_move_line.date)) AS due_date,
+                ARRAY_AGG(DISTINCT account_move_line.currency_id) AS currency_id,
+                COUNT(account_move_line.id) AS aml_count,
+                ARRAY_AGG(account.code) AS account_code,
+                %(select_period_queries)s
 
-                            FROM {tables}
+            FROM %(tables)s
 
-                            JOIN account_journal journal ON journal.id = account_move_line.journal_id
-                            JOIN account_account account ON account.id = account_move_line.account_id
-                            JOIN {currency_table} ON currency_table.company_id = account_move_line.company_id
+            JOIN account_journal journal ON journal.id = account_move_line.journal_id
+            JOIN account_account account ON account.id = account_move_line.account_id
+            JOIN %(ct_query)s ON currency_table.company_id = account_move_line.company_id
 
-                            LEFT JOIN LATERAL (
-                                SELECT SUM(part.amount_usd) AS amount, part.debit_move_id
-                                FROM account_partial_reconcile part
-                                WHERE part.max_date <= %s
-                                GROUP BY part.debit_move_id
-                            ) part_debit ON part_debit.debit_move_id = account_move_line.id
+            LEFT JOIN LATERAL (
+                SELECT 
+                    SUM(part.amount) AS amount, 
+                    SUM(part.amount_usd) AS amount_usd,
+                    part.debit_move_id
+                FROM account_partial_reconcile part
+                WHERE part.max_date <= %(date_to)s
+                GROUP BY part.debit_move_id
+            ) part_debit ON part_debit.debit_move_id = account_move_line.id
 
-                            LEFT JOIN LATERAL (
-                                SELECT SUM(part.amount_usd) AS amount, part.credit_move_id
-                                FROM account_partial_reconcile part
-                                WHERE part.max_date <= %s
-                                GROUP BY part.credit_move_id
-                            ) part_credit ON part_credit.credit_move_id = account_move_line.id
+            LEFT JOIN LATERAL (
+                SELECT 
+                    SUM(part.amount) AS amount, 
+                    SUM(part.amount_usd) AS amount_usd,
+                    part.credit_move_id
+                FROM account_partial_reconcile part
+                WHERE part.max_date <= %(date_to)s
+                GROUP BY part.credit_move_id
+            ) part_credit ON part_credit.credit_move_id = account_move_line.id
 
-                            JOIN period_table ON
-                                (
-                                    period_table.date_start IS NULL
-                                    OR COALESCE(account_move_line.date_maturity, account_move_line.date) <= DATE(period_table.date_start)
-                                )
-                                AND
-                                (
-                                    period_table.date_stop IS NULL
-                                    OR COALESCE(account_move_line.date_maturity, account_move_line.date) >= DATE(period_table.date_stop)
-                                )
+            JOIN period_table ON
+                (
+                    period_table.date_start IS NULL
+                    OR COALESCE(account_move_line.date_maturity, account_move_line.date) <= DATE(period_table.date_start)
+                )
+                AND
+                (
+                    period_table.date_stop IS NULL
+                    OR COALESCE(account_move_line.date_maturity, account_move_line.date) >= DATE(period_table.date_stop)
+                )
 
-                            WHERE {where_clause}
+            WHERE %(where_clause)s
 
-                            GROUP BY {groupby_clause}
+            GROUP BY %(groupby_clause)s
 
-                            HAVING (
-                                SUM(ROUND(account_move_line.balance_usd, currency_table.precision))
-                                - COALESCE(SUM(ROUND(part_debit.amount, currency_table.precision)), 0)
-                                + COALESCE(SUM(ROUND(part_credit.amount, currency_table.precision)), 0)
-                            ) != 0
-                            {tail_query}
-                        """
+            HAVING (
+                %(having_balance_clause)s
+            ) != 0
+            %(tail_query)s
+        """,
+            period_table=SQL(period_table),
+            select_from_groupby=select_from_groupby,
+            multiplicator=-1 if internal_type == 'liability_payable' else 1,
+            select_period_queries=SQL(", ").join(select_period_queries),
+            tables=tables_sql,
+            ct_query=ct_sql,
+            date_to=date_to,
+            where_clause=where_sql,
+            groupby_clause=groupby_clause,
+            having_balance_clause=SQL("""
+                SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision))
+                - COALESCE(SUM(ROUND(part_debit.amount * currency_table.rate, currency_table.precision)), 0)
+                + COALESCE(SUM(ROUND(part_credit.amount * currency_table.rate, currency_table.precision)), 0)
+            """) if currency_dif == self.env.company.currency_id.symbol or rate_mode == 'current' else SQL("""
+                SUM(ROUND(account_move_line.balance_usd, currency_table.precision))
+                - COALESCE(SUM(ROUND(part_debit.amount_usd, currency_table.precision)), 0)
+                + COALESCE(SUM(ROUND(part_credit.amount_usd, currency_table.precision)), 0)
+            """),
+            tail_query=SQL(tail_query, *tail_params)
+        )
 
-        multiplicator = -1 if internal_type == 'liability_payable' else 1
-        params = [
-            multiplicator,
-            *([multiplicator] * len(periods)),
-            date_to,
-            date_to,
-            *where_params,
-            *tail_params,
-        ]
-        self._cr.execute(query, params)
+        self._cr.execute(query)
         query_res_lines = self._cr.dictfetchall()
 
         if not current_groupby:

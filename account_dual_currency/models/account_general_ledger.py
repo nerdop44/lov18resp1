@@ -29,7 +29,8 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
 
         # Create the currency table.
         # As the currency table is the same whatever the comparisons, create it only once.
-        ct_sql = self.env['res.currency']._get_query_currency_table(options)
+        ct_sql_base = self.env['res.currency']._get_simple_currency_table(options)
+        ct_sql = SQL("(%(subquery)s) AS currency_table", subquery=ct_sql_base)
         currency_dif = options['currency_dif']
         rate_mode = options.get('rate_mode', 'historical')
         # ============================================
