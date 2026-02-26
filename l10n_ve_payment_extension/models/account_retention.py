@@ -1043,7 +1043,6 @@ class AccountRetention(models.Model):
                             _logger.info("Publicando pago (versión moderna)")
                         payment.with_context(skip_manually_modified_check=True).action_post()
                     elif payment.state != 'posted':
-                        _logger.info("Publicando pago pendiente")
                         payment.with_context(skip_manually_modified_check=True).action_post()
 
                 # Asignar número de comprobante a facturas (se mantiene igual)
@@ -1052,6 +1051,9 @@ class AccountRetention(models.Model):
                     _logger.info(f"Asignando número de comprobante a {len(move_ids)} facturas")
                     retention.set_voucher_number_in_invoice(move_ids, retention)
 
+                # Reconciliar pagos con facturas (NUEVO)
+                _logger.info("Iniciando reconciliación de pagos con facturas")
+                retention._reconcile_all_payments()
 
                 # Actualizar estado de la retención (se mantiene igual)
                 retention.write({'state': 'emitted'})

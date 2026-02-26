@@ -16,7 +16,7 @@
                 </xpath>
 
                 <!-- Bloque Derecho: Información Cambiaria (para ahorrar espacio) -->
-                <xpath expr="//field[@name='invoice_date']" position="after">
+                <xpath expr="//field[@name='journal_id']" position="after">
                     <field name="tax_today" string="Tasa BCV (Bs/$)" readonly="[('edit_trm', '=', False)]" 
                            invisible="[('move_type', 'not in', ('out_invoice', 'out_refund', 'in_invoice', 'in_refund'))]"/>
                     <field name="currency_id_dif" readonly="1" string="Divisa Ref. ($)" 
