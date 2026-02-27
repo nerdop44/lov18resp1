@@ -55,7 +55,7 @@ class AccountMove(models.Model):
     amount_untaxed_bs = fields.Monetary(currency_field='company_currency_id', string="Base imponible Bs.", store=True, copy=False,
                                         compute="_amount_all_usd")
     amount_tax_bs = fields.Monetary(currency_field='company_currency_id', string="Impuestos Bs.", store=True, copy=False,
-                                    readonly=True)
+                                    readonly=True, compute="_amount_all_usd")
     amount_total_bs = fields.Monetary(currency_field='company_currency_id', string='Total Bs.', store=True,
                                       readonly=True,
                                       compute='_amount_all_usd', copy=False)
@@ -392,35 +392,36 @@ class AccountMove(models.Model):
         'tax_today')
     def _amount_all_usd(self):
         for rec in self:
-            if rec.is_invoice(include_receipts=True) and rec.tax_today > 0:
+            if rec.is_invoice(include_receipts=True):
                 # Detección explícita: ¿Es la factura en Bolívares?
                 is_vef = rec.currency_id.name in ('VEF', 'VES', 'Bs')
+                tasa = rec.tax_today or 0.0
                 
                 if is_vef:
                     # Factura en VEF → Referencia USD = Monto / Tasa
-                    rec.amount_untaxed_usd = rec.amount_untaxed / rec.tax_today
-                    rec.amount_tax_usd = rec.amount_tax / rec.tax_today
-                    rec.amount_total_usd = rec.amount_total / rec.tax_today
+                    rec.amount_untaxed_usd = rec.amount_untaxed / tasa if tasa > 0 else 0.0
+                    rec.amount_tax_usd = rec.amount_tax / tasa if tasa > 0 else 0.0
+                    rec.amount_total_usd = rec.amount_total / tasa if tasa > 0 else 0.0
                     # Bs. = Monto directo
                     rec.amount_untaxed_bs = rec.amount_untaxed
                     rec.amount_tax_bs = rec.amount_tax
                     rec.amount_total_bs = rec.amount_total
                 else:
-                    # Factura en moneda no-Bs (asumimos USD) → Bs = Monto * Tasa
+                    # Factura en moneda no-Bs (asumimos USD) → Ref = Monto directo
                     rec.amount_untaxed_usd = rec.amount_untaxed
                     rec.amount_tax_usd = rec.amount_tax
                     rec.amount_total_usd = rec.amount_total
                     # Bs. = Monto * Tasa
-                    rec.amount_untaxed_bs = rec.amount_untaxed * rec.tax_today
-                    rec.amount_tax_bs = rec.amount_tax * rec.tax_today
-                    rec.amount_total_bs = rec.amount_total * rec.tax_today
+                    rec.amount_untaxed_bs = rec.amount_untaxed * tasa
+                    rec.amount_tax_bs = rec.amount_tax * tasa
+                    rec.amount_total_bs = rec.amount_total * tasa
             else:
-                rec.amount_untaxed_usd = 0
-                rec.amount_tax_usd = 0
-                rec.amount_total_usd = 0
-                rec.amount_untaxed_bs = 0
-                rec.amount_tax_bs = 0
-                rec.amount_total_bs = 0
+                rec.amount_untaxed_usd = 0.0
+                rec.amount_tax_usd = 0.0
+                rec.amount_total_usd = 0.0
+                rec.amount_untaxed_bs = 0.0
+                rec.amount_tax_bs = 0.0
+                rec.amount_total_bs = 0.0
 
     @api.onchange('invoice_line_ids', 'tax_today', 'currency_id', 'line_ids')
     def _onchange_recompute_dual_totals(self):

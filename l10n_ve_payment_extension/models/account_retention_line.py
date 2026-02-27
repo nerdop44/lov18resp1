@@ -498,3 +498,21 @@ class AccountRetentionLine(models.Model):
 
 
         return invoice_paid_amount
+
+
+class AccountRetentionIslrLine(models.Model):
+    _name = "account.retention.islr.line"
+    _inherit = "account.retention.line"
+    _description = "Bridge Model for ISLR Retention Line"
+
+
+class AccountRetentionIvaLine(models.Model):
+    _name = "account.retention.iva.line"
+    _inherit = "account.retention.line"
+    _description = "Bridge Model for IVA Retention Line"
+
+
+class AccountRetentionMunicipalLine(models.Model):
+    _name = "account.retention.municipal.line"
+    _inherit = "account.retention.line"
+    _description = "Bridge Model for Municipal Retention Line"
