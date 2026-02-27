@@ -254,13 +254,14 @@ class AccountMove(models.Model):
         self = self.with_context(check_move_validity=False)
         for rec in self:
             if not rec.move_type == 'entry':
+                is_vef = rec.currency_id.name in ('VEF', 'VES', 'Bs')
                 for l in rec.invoice_line_ids:
-                    l.price_unit = (l.price_unit_usd * rec.tax_today) if rec.currency_id == rec.company_id.currency_id else l.price_unit_usd
+                    # Si la factura es en Bs, el precio unitario base (en Bs) = Precio USD * Tasa
+                    # Si es en USD, el precio unitario base = Precio USD
+                    l.price_unit = (l.price_unit_usd * rec.tax_today) if is_vef else l.price_unit_usd
                 rec._onchange_quick_edit_total_amount()
                 rec._onchange_quick_edit_line_ids()
                 rec._compute_tax_totals()
-                #rec.line_ids._compute_currency_rate()
-                #rec.line_ids._compute_amount_currency()
                 rec.invoice_line_ids._compute_totals()
 
             else:
@@ -297,23 +298,15 @@ class AccountMove(models.Model):
                         usd_currency, vef_currency, rec.company_id, rec.invoice_date or fields.Date.today()
                     )
 
-            # Actualizamos las líneas basándonos en la tasa (tax_today)
+            is_vef = rec.currency_id.name in ('VEF', 'VES', 'Bs')
             for l in rec.invoice_line_ids:
                 l.currency_id = rec.currency_id
-                if rec.currency_id == rec.company_id.currency_id:
-                    # Si pasamos a Bs: Precio = Precio USD * Tasa
-                    l.price_unit = (l.price_unit_usd * rec.tax_today) if rec.tax_today > 0 else l.price_unit
-                else:
-                    # Si pasamos a USD (o cualquier otra moneda extranjera): Precio = Precio USD
-                    l.price_unit = l.price_unit_usd
+                l.price_unit = (l.price_unit_usd * rec.tax_today) if is_vef else l.price_unit_usd
 
             # Sincronizar también los apuntes contables
             for aml in rec.line_ids:
                 aml.currency_id = rec.currency_id
                 aml._compute_currency_rate()
-
-
-            #rec._onchange_tax_today()
 
             # Forzar actualización de totales y líneas
             rec._onchange_tax_today()
@@ -371,6 +364,24 @@ class AccountMove(models.Model):
             move.amount_total_signed_usd = abs(total) if move.move_type == 'entry' else -total
         self.env.context = dict(self.env.context, tasa_factura=None, calcular_dual_currency=False)
 
+    currency_vef_id = fields.Many2one("res.currency", string="Moneda Bs.", compute="_compute_currency_vef_id")
+
+    @api.depends('company_id')
+    def _compute_currency_vef_id(self):
+        vef = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs'))], limit=1)
+        for rec in self:
+            rec.currency_vef_id = vef
+
+    def _default_tax_today(self):
+        """Calcular la tasa BCV (cuántos Bs equivalen a 1 USD)."""
+        usd = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+        vef = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs'))], limit=1)
+        if usd and vef and usd.id != vef.id:
+            return usd._get_conversion_rate(
+                usd, vef, self.env.company, fields.Date.today()
+            )
+        return 1.0
+
     @api.depends(
         'tax_totals',
         'currency_id_dif',
@@ -378,20 +389,24 @@ class AccountMove(models.Model):
     def _amount_all_usd(self):
         for rec in self:
             if rec.is_invoice(include_receipts=True) and rec.tax_today > 0:
-                if rec.currency_id != rec.currency_id_dif:
-                    # Factura en VEF, referencia en USD → dividir por tasa
+                # Detección explícita: ¿Es la factura en Bolívares?
+                is_vef = rec.currency_id.name in ('VEF', 'VES', 'Bs')
+                
+                if is_vef:
+                    # Factura en VEF → Referencia USD = Monto / Tasa
                     rec.amount_untaxed_usd = rec.amount_untaxed / rec.tax_today
                     rec.amount_tax_usd = rec.amount_tax / rec.tax_today
                     rec.amount_total_usd = rec.amount_total / rec.tax_today
-                    # Bs. = monto directo de la factura (ya está en VEF)
+                    # Bs. = Monto directo
                     rec.amount_untaxed_bs = rec.amount_untaxed
                     rec.amount_tax_bs = rec.amount_tax
                     rec.amount_total_bs = rec.amount_total
                 else:
-                    # Factura en USD, referencia en USD → Bs = monto × tasa
+                    # Factura en moneda no-Bs (asumimos USD) → Bs = Monto * Tasa
                     rec.amount_untaxed_usd = rec.amount_untaxed
                     rec.amount_tax_usd = rec.amount_tax
                     rec.amount_total_usd = rec.amount_total
+                    # Bs. = Monto * Tasa
                     rec.amount_untaxed_bs = rec.amount_untaxed * rec.tax_today
                     rec.amount_tax_bs = rec.amount_tax * rec.tax_today
                     rec.amount_total_bs = rec.amount_total * rec.tax_today
