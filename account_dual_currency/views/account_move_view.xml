@@ -1,7 +1,6 @@
 <odoo>
-    <!-- V8.22 - Restauración Estética Final (Diseño Limpio) -->
-    <record id="account_move_form_inherit_v22" model="ir.ui.view">
-        <field name="name">account.move.form.inherit.v22</field>
+    <record id="account_move_form_inherit_v23" model="ir.ui.view">
+        <field name="name">account.move.form.inherit.v23</field>
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="priority">999</field>
@@ -76,8 +75,8 @@
     </record>
 
     <!-- Vista Lista de Facturas -->
-    <record id="account_move_tree_inherit_v22" model="ir.ui.view">
-        <field name="name">account.move.tree.inherit.v22</field>
+    <record id="account_move_tree_inherit_v23" model="ir.ui.view">
+        <field name="name">account.move.tree.inherit.v23</field>
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_invoice_tree"/>
         <field name="arch" type="xml">
@@ -93,8 +92,8 @@
     </record>
 
     <!-- Asiento Retención IGTF -->
-    <record id="account_move_form_inherit_igtf_v22" model="ir.ui.view">
-        <field name="name">account.move.form.inherit.igtf.v22</field>
+    <record id="account_move_form_inherit_igtf_v23" model="ir.ui.view">
+        <field name="name">account.move.form.inherit.igtf.v23</field>
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
