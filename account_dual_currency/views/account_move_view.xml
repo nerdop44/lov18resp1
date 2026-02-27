@@ -11,11 +11,11 @@
                 <field name="tax_today_edited" invisible="1"/>
             </xpath>
 
+            <!-- Reemplazo para asegurar que no haya duplicados visibles en la cabecera -->
             <xpath expr="//field[@name='partner_id']" position="after">
                 <field name="verificar_pagos" invisible="1"/>
                 <field name="same_currency" invisible="1"/>
                 <field name="edit_trm" invisible="1"/>
-                <field name="tax_today_edited" invisible="1"/>
                 <field name="currency_id_dif" invisible="1"/>
                 <field name="company_currency_id" invisible="1"/>
                 <field name="currency_vef_id" invisible="1"/>
@@ -23,8 +23,10 @@
 
             <!-- Bloque Derecho: Info Cambiaria (Única ubicación permitida) -->
             <xpath expr="//field[@name='journal_id']" position="after">
-                <field name="tax_today" string="Tasa BCV (Bs/$)" 
-                       readonly="not edit_trm" 
+                <field name="tax_today_edited" string="Cambio Manual"
+                       invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
+                <field name="tax_today" string="Tasa de creación de factura" 
+                       readonly="not tax_today_edited" 
                        force_save="1"
                        invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
                 <field name="acuerdo_moneda" string="Factura en Bs. Fijo"
