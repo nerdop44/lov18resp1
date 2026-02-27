@@ -6,8 +6,8 @@
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="priority">99</field>
         <field name="arch" type="xml">
-            <!-- Header: Ocultación Masiva de campos de Tasa en la cabecera (oe_title y sheet inicio) -->
-            <xpath expr="//div[hasclass('oe_title')]" position="inside">
+            <!-- Header: Ocultación de campos técnicos -->
+            <xpath expr="//sheet" position="after">
                 <field name="tax_today" invisible="1"/>
                 <field name="tax_today_edited" invisible="1"/>
             </xpath>
@@ -22,16 +22,12 @@
                 <field name="currency_vef_id" invisible="1"/>
             </xpath>
 
-            <!-- Bloque Derecho: Info Cambiaria (Única ubicación permitida) -->
+            <!-- Bloque Derecho: Info Cambiaria bajo el Diario -->
             <xpath expr="//field[@name='journal_id']" position="after">
-                <label for="tax_today" string="Tasa de creación de factura (V15)"
+                <field name="tax_today_edited" widget="boolean_toggle" string="Ajuste manual de tasa"/>
+                <field name="tax_today" string="Tasa de creación (V18)" 
+                       readonly="not tax_today_edited" force_save="1"
                        invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
-                <div class="d-flex align-items-center gap-2"
-                     invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')">
-                    <field name="tax_today" nolabel="1" readonly="not tax_today_edited" force_save="1"/>
-                    <span class="text-muted small">Cambio manual</span>
-                    <field name="tax_today_edited" nolabel="1" widget="boolean_toggle"/>
-                </div>
                 <field name="acuerdo_moneda" string="Factura en Bs. Fijo"
                        invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
             </xpath>
@@ -59,47 +55,25 @@
                 <attribute name="invisible">move_type in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')</attribute>
             </xpath>
 
-            <!-- Panel de totales: USD y Bs. LADO A LADO -->
+            <!-- Panel de totales: USD y Bs. REJILLA ALINEADA -->
             <xpath expr="//field[@name='tax_totals']" position="before">
-                <div class="d-flex gap-4 justify-content-end mb-3"
-                     invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')">
-                    
-                    <!-- Columna USD (Referencia) -->
-                    <group class="oe_subtotal_footer">
-                        <div class="o_td_label">
-                            <label for="amount_untaxed_usd" string="Base Ref. ($)"/>
-                        </div>
-                        <field name="amount_untaxed_usd" nolabel="1" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                <div class="mb-3" invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')">
+                    <group col="4" class="oe_subtotal_footer">
+                        <!-- Fila 1 -->
+                        <field name="amount_untaxed_usd" string="Base Ref. ($)" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="amount_untaxed_bs" string="Base Bs." widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
                         
-                        <div class="o_td_label">
-                            <label for="amount_tax_usd" string="IVA Ref. ($)"/>
-                        </div>
-                        <field name="amount_tax_usd" nolabel="1" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                        <!-- Fila 2 -->
+                        <field name="amount_tax_usd" string="IVA Ref. ($)" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="amount_tax_bs" string="IVA Bs." widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
                         
-                        <div class="o_td_label o_total_label">
-                            <label for="amount_total_usd" string="Total Ref. ($)"/>
-                        </div>
-                        <field name="amount_total_usd" nolabel="1" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
-                        
-                        <field name="amount_residual_usd" string="Saldo Ref. ($)" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="state == 'draft'"/>
-                    </group>
+                        <!-- Fila 3: Separador de Totales -->
+                        <field name="amount_total_usd" string="Total Ref. ($)" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="amount_total_bs" string="Total Bs." class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
 
-                    <!-- Columna Bolívares (Bs.) -->
-                    <group class="oe_subtotal_footer">
-                        <div class="o_td_label">
-                            <label for="amount_untaxed_bs" string="Base Bs."/>
-                        </div>
-                        <field name="amount_untaxed_bs" nolabel="1" widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
-                        
-                        <div class="o_td_label">
-                            <label for="amount_tax_bs" string="IVA Bs."/>
-                        </div>
-                        <field name="amount_tax_bs" nolabel="1" widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
-                        
-                        <div class="o_td_label o_total_label">
-                            <label for="amount_total_bs" string="Total Bs."/>
-                        </div>
-                        <field name="amount_total_bs" nolabel="1" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
+                        <!-- Fila 4: Saldo -->
+                        <field name="amount_residual_usd" string="Saldo Ref. ($)" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="state == 'draft'"/>
+                        <div colspan="2" invisible="state == 'draft'"/> <!-- Espaciador para mantener alineación -->
                     </group>
                 </div>
             </xpath>

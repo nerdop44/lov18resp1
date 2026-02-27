@@ -168,6 +168,8 @@ class AccountMove(models.Model):
                     new_rate = 1 / new_rate_ids[self.env.company.currency_id_dif.id]
                     #print('new_rate', new_rate)
                     rec.tax_today = new_rate
+                    # Calcular totales al cambiar tasa
+                    rec._amount_all_usd()
         # if self.invoice_date and self.company_id.currency_id_dif and not self.tax_today_edited:
         #     new_rate_ids = self.env.company.currency_id_dif._get_rates(self.env.company, self.invoice_date)
         #     if new_rate_ids:
@@ -394,7 +396,7 @@ class AccountMove(models.Model):
         for rec in self:
             if rec.is_invoice(include_receipts=True):
                 # Detección explícita: ¿Es la factura en Bolívares?
-                is_vef = rec.currency_id.name in ('VEF', 'VES', 'Bs')
+                is_vef = rec.currency_id.name in ('VEF', 'VES', 'Bs', 'VED')
                 tasa = rec.tax_today or 0.0
                 
                 if is_vef:
