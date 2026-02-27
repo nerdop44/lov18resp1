@@ -44,3 +44,20 @@ def migrate(cr, version):
                 _logger.error("V8.6 Migration: No se pudo actualizar reporte: %s", e2)
     else:
         _logger.warning("V8.6 Migration: No se encontró retention_voucher_action en ir_model_data")
+
+    # FIX: Desambiguar etiquetas de Studio que causan build amarillo
+    _logger.info("V8.6 Migration: Buscando colisión de etiquetas en campos de Studio...")
+    # Buscamos campos de product.template con la etiqueta "Nuevo Selección"
+    cr.execute("""
+        SELECT id, name FROM ir_model_fields 
+        WHERE model = 'product.template' 
+          AND field_description = 'Nuevo Selección'
+          AND name LIKE 'x_studio_%%'
+    """)
+    studio_fields = cr.fetchall()
+    if len(studio_fields) > 1:
+        _logger.info("V8.6 Migration: Se encontraron %d campos con etiqueta duplicada. Renombrando...", len(studio_fields))
+        for i, (f_id, f_name) in enumerate(studio_fields):
+            new_label = f"Nuevo Selección ({f_name})"
+            cr.execute("UPDATE ir_model_fields SET field_description = %s WHERE id = %s", (new_label, f_id))
+            _logger.info("V8.6 Migration: Campo %s renombrado a '%s'", f_name, new_label)
