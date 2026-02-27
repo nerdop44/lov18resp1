@@ -422,6 +422,13 @@ class AccountMove(models.Model):
                 rec.amount_tax_bs = 0
                 rec.amount_total_bs = 0
 
+    @api.onchange('invoice_line_ids', 'tax_today', 'currency_id', 'line_ids')
+    def _onchange_recompute_dual_totals(self):
+        """Forzar recálculo dinámico en el cliente web antes de guardar."""
+        for rec in self:
+            if rec.is_invoice(include_receipts=True):
+                rec._amount_all_usd()
+
 
     @api.depends('move_type', 'line_ids.amount_residual_usd')
     def _compute_payments_widget_reconciled_info_USD(self):
