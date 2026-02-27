@@ -814,7 +814,7 @@
     <!-- Sub-template IVA SIN firma/sello: idéntico a report_iva_customer pero sin la sección Firmas -->
     <template id="report_iva_customer_clean" inherit_id="l10n_ve_payment_extension.report_iva_customer" primary="True">
         <!-- Eliminar la sección de firma/sello reemplazándola con espacio en blanco -->
-        <xpath expr="//div[@class='container'][last()]" position="replace">
+        <xpath expr="//div[hasclass('container')][last()]" position="replace">
             <div class="container" style="font-size:12px !important;">
                 <div class="row text-center">
                     <div class="col-5" style="width:35%; margin-top:10px;">
@@ -840,7 +840,7 @@
 
     <!-- Sub-template ISLR SIN firma/sello: idéntico a report_islr_customer pero sin la sección Firmas -->
     <template id="report_islr_customer_clean" inherit_id="l10n_ve_payment_extension.report_islr_customer" primary="True">
-        <xpath expr="//div[@class='container'][last()]" position="replace">
+        <xpath expr="//div[hasclass('container')][last()]" position="replace">
             <div class="container" style="font-size:12px !important;">
                 <div class="row text-center">
                     <div class="col-5" style="width:35%;margin-top:10px;">
