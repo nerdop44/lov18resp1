@@ -48,10 +48,13 @@ def migrate(cr, version):
     # FIX: Desambiguar etiquetas de Studio que causan build amarillo
     _logger.info("V8.6 Migration: Buscando colisión de etiquetas en campos de Studio...")
     # Buscamos campos de product.template con la etiqueta "Nuevo Selección"
+    # En Odoo 18, field_description es JSONB. Comparamos contra es_VE y en_US.
     cr.execute("""
         SELECT id, name FROM ir_model_fields 
         WHERE model = 'product.template' 
-          AND field_description = 'Nuevo Selección'
+          AND (field_description->>'es_VE' = 'Nuevo Selección' 
+               OR field_description->>'en_US' = 'Nuevo Selección'
+               OR field_description->>'es_ES' = 'Nuevo Selección')
           AND name LIKE 'x_studio_%%'
     """)
     studio_fields = cr.fetchall()
@@ -59,5 +62,8 @@ def migrate(cr, version):
         _logger.info("V8.6 Migration: Se encontraron %d campos con etiqueta duplicada. Renombrando...", len(studio_fields))
         for i, (f_id, f_name) in enumerate(studio_fields):
             new_label = f"Nuevo Selección ({f_name})"
-            cr.execute("UPDATE ir_model_fields SET field_description = %s WHERE id = %s", (new_label, f_id))
+            # Actualizar como JSONB para mantener consistencia
+            new_label_json = {'en_US': new_label, 'es_VE': new_label, 'es_ES': new_label}
+            import json
+            cr.execute("UPDATE ir_model_fields SET field_description = %s WHERE id = %s", (json.dumps(new_label_json), f_id))
             _logger.info("V8.6 Migration: Campo %s renombrado a '%s'", f_name, new_label)
