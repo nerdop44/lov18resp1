@@ -367,29 +367,24 @@ class AccountMove(models.Model):
         'currency_id','tax_today')
     def _amount_all_usd(self):
         for rec in self:
-            if rec.is_invoice(include_receipts=True) and rec.tax_totals:
-                amount_untaxed = rec.tax_totals.get('amount_untaxed', 0)
-                amount_tax = 0
-                for product, income in rec.tax_totals.get('groups_by_subtotal', {}).items():
-                    ###print(product, income)
-                    for l in income:
-                        amount_tax += l.get('tax_group_amount', 0)
-
-                amount_total = rec.tax_totals.get('amount_total', 0)
-                if rec.currency_id != self.env.company.currency_id:
-                    rec.amount_untaxed_usd = rec.amount_untaxed
-                    rec.amount_tax_usd = rec.amount_tax
-                    rec.amount_total_usd = rec.amount_total
-                    rec.amount_untaxed_bs = rec.amount_untaxed_usd * rec.tax_today
-                    rec.amount_tax_bs = rec.amount_tax_usd * rec.tax_today
-                    rec.amount_total_bs = rec.amount_total_usd * rec.tax_today
-                else:
-                    rec.amount_untaxed_usd = (amount_untaxed / rec.tax_today) if rec.tax_today > 0 else 0
-                    rec.amount_tax_usd = (amount_tax / rec.tax_today) if rec.tax_today > 0 else 0
-                    rec.amount_total_usd = (amount_total / rec.tax_today) if rec.tax_today > 0 else 0
+            if rec.is_invoice(include_receipts=True) and rec.tax_today > 0:
+                if rec.currency_id != rec.currency_id_dif:
+                    # Factura en VEF, referencia en USD → dividir por tasa
+                    rec.amount_untaxed_usd = rec.amount_untaxed / rec.tax_today
+                    rec.amount_tax_usd = rec.amount_tax / rec.tax_today
+                    rec.amount_total_usd = rec.amount_total / rec.tax_today
+                    # Bs. = monto directo de la factura (ya está en VEF)
                     rec.amount_untaxed_bs = rec.amount_untaxed
                     rec.amount_tax_bs = rec.amount_tax
                     rec.amount_total_bs = rec.amount_total
+                else:
+                    # Factura en USD, referencia en USD → Bs = monto × tasa
+                    rec.amount_untaxed_usd = rec.amount_untaxed
+                    rec.amount_tax_usd = rec.amount_tax
+                    rec.amount_total_usd = rec.amount_total
+                    rec.amount_untaxed_bs = rec.amount_untaxed * rec.tax_today
+                    rec.amount_tax_bs = rec.amount_tax * rec.tax_today
+                    rec.amount_total_bs = rec.amount_total * rec.tax_today
             else:
                 rec.amount_untaxed_usd = 0
                 rec.amount_tax_usd = 0
@@ -397,6 +392,7 @@ class AccountMove(models.Model):
                 rec.amount_untaxed_bs = 0
                 rec.amount_tax_bs = 0
                 rec.amount_total_bs = 0
+
 
     @api.depends('move_type', 'line_ids.amount_residual_usd')
     def _compute_payments_widget_reconciled_info_USD(self):

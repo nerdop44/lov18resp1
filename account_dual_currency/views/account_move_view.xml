@@ -6,7 +6,7 @@
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
-                <!-- Header: Campos técnicos invisibles -->
+                <!-- Header: Campos técnicos invisibles TODOS -->
                 <xpath expr="//field[@name='partner_id']" position="after">
                     <field name="verificar_pagos" invisible="1"/>
                     <field name="same_currency" invisible="1"/>
@@ -16,7 +16,7 @@
                     <field name="company_currency_id" invisible="1"/>
                 </xpath>
 
-                <!-- Bloque Derecho: Información Cambiaria -->
+                <!-- Bloque Derecho: Info Cambiaria -->
                 <xpath expr="//field[@name='journal_id']" position="after">
                     <field name="tax_today" string="Tasa BCV (Bs/$)" readonly="not edit_trm" 
                            invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
@@ -24,7 +24,7 @@
                            invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
                 </xpath>
 
-                <!-- Líneas: precio unitario y subtotal en moneda ref -->
+                <!-- Líneas: precio y subtotal en moneda ref -->
                 <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='price_unit']" position="after">
                     <field name="price_unit_usd" string="Precio $" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
                 </xpath>
@@ -37,13 +37,18 @@
                 <xpath expr="//field[@name='line_ids']/list/field[@name='credit']" position="after">
                     <field name="tax_today" string="Tasa" invisible="display_type in ('line_section', 'line_note')"/>
                     <field name="currency_id_dif" readonly="1" invisible="1"/>
-                    <field name="debit_usd" sum="Total $"  widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="display_type in ('line_section', 'line_note')"/>
-                    <field name="credit_usd" sum="Total $"  widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="display_type in ('line_section', 'line_note')"/>
+                    <field name="debit_usd" sum="Total $" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="display_type in ('line_section', 'line_note')"/>
+                    <field name="credit_usd" sum="Total $" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="display_type in ('line_section', 'line_note')"/>
                     <field name="balance_usd" invisible="1"/>
                 </xpath>
 
                 <xpath expr="//field[@name='narration']/.." position="attributes">
                     <attribute name="colspan">3</attribute>
+                </xpath>
+
+                <!-- Ocultar widget estándar tax_totals (ya tenemos nuestro panel) -->
+                <xpath expr="//field[@name='tax_totals']" position="attributes">
+                    <attribute name="invisible">move_type in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')</attribute>
                 </xpath>
 
                 <!-- Panel de totales: USD y Bs. LADO A LADO -->
@@ -71,22 +76,22 @@
                             <field name="amount_residual_usd" string="Saldo Ref. ($)" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="state == 'draft'"/>
                         </group>
 
-                        <!-- Columna Bolívares (Bs.) -->
+                        <!-- Columna Bolívares (Bs.) — usa currency_id (moneda factura = VEF) -->
                         <group class="oe_subtotal_footer">
                             <div class="o_td_label">
                                 <label for="amount_untaxed_bs" string="Base Bs."/>
                             </div>
-                            <field name="amount_untaxed_bs" nolabel="1" widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
+                            <field name="amount_untaxed_bs" nolabel="1" widget='monetary' options="{'currency_field': 'currency_id'}"/>
                             
                             <div class="o_td_label">
                                 <label for="amount_tax_bs" string="IVA Bs."/>
                             </div>
-                            <field name="amount_tax_bs" nolabel="1" widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
+                            <field name="amount_tax_bs" nolabel="1" widget='monetary' options="{'currency_field': 'currency_id'}"/>
                             
                             <div class="o_td_label o_total_label">
                                 <label for="amount_total_bs" string="Total Bs."/>
                             </div>
-                            <field name="amount_total_bs" nolabel="1" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
+                            <field name="amount_total_bs" nolabel="1" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id'}"/>
                         </group>
                     </div>
                 </xpath>
@@ -118,7 +123,7 @@
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
-                <!-- Botón IGTF después de Fecha Contable -->
+                <!-- Botón IGTF -->
                 <xpath expr="//field[@name='date']" position="after">
                     <field name="move_igtf_id" readonly="1" force_save="1" invisible="not move_igtf_id"/>
                     <button name="generar_retencion_igtf" type="object" string="Generar IGTF" 
