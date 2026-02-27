@@ -31,7 +31,7 @@ class AccountMove(models.Model):
     acuerdo_moneda = fields.Boolean(string="Acuerdo de Factura Bs.", default=False)
 
     tax_today = fields.Float(string="Tasa de Factura", store=True,
-                             default=lambda self: self.env.company.currency_id_dif.inverse_rate,
+                             default=lambda self: self._default_tax_today(),
                              tracking=True)
 
     tax_today_edited = fields.Boolean(string="Tasa Manual", default=False)
@@ -81,6 +81,16 @@ class AccountMove(models.Model):
         string="Depreciation Ref.",
         compute="_compute_depreciation_value_ref", inverse="_inverse_depreciation_value_ref", store=True, copy=False
     )
+
+    def _default_tax_today(self):
+        """Calcular la tasa BCV (cuántos Bs equivalen a 1 USD)."""
+        usd = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+        vef = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs'))], limit=1)
+        if usd and vef and usd.id != vef.id:
+            return usd._get_conversion_rate(
+                usd, vef, self.env.company, fields.Date.today()
+            )
+        return 1.0
 
     def _post(self, soft=True):
         res = super(AccountMove, self)._post(soft=soft)
@@ -231,10 +241,11 @@ class AccountMove(models.Model):
     def _onchange_invoice_date_rate(self):
         for rec in self:
             if not rec.tax_today_edited:
-                usd_currency = rec.currency_id_dif or self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
-                if usd_currency:
+                usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+                vef_currency = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs'))], limit=1)
+                if usd_currency and vef_currency and usd_currency.id != vef_currency.id:
                     rec.tax_today = usd_currency._get_conversion_rate(
-                        usd_currency, rec.company_id.currency_id, rec.company_id, rec.invoice_date or rec.date or fields.Date.today()
+                        usd_currency, vef_currency, rec.company_id, rec.invoice_date or rec.date or fields.Date.today()
                     )
                 rec._onchange_tax_today()
 
@@ -280,11 +291,10 @@ class AccountMove(models.Model):
             # Sincronizamos la tasa al cambiar de moneda si no ha sido editada manualmente
             if not rec.tax_today_edited:
                 usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
-                if usd_currency:
-                    # En este módulo, tax_today representa el valor de 1 USD en Bs.
-                    # _get_conversion_rate(USD, VEF) retorna cuántos Bs son 1 USD.
+                vef_currency = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs'))], limit=1)
+                if usd_currency and vef_currency and usd_currency.id != vef_currency.id:
                     rec.tax_today = usd_currency._get_conversion_rate(
-                        usd_currency, rec.company_id.currency_id, rec.company_id, rec.invoice_date or fields.Date.today()
+                        usd_currency, vef_currency, rec.company_id, rec.invoice_date or fields.Date.today()
                     )
 
             # Actualizamos las líneas basándonos en la tasa (tax_today)
