@@ -4,23 +4,31 @@
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
-            <!-- Header: Campos técnicos invisibles (MOVEMOS tax_today AQUÍ PARA OCULTARLO DEL TÍTULO) -->
+            <!-- OCULTAR TODA INSTANCIA PREVIA DE TASA Y CHECKBOX (LIMPIEZA AGRESIVA) -->
+            <xpath expr="//field[@name='tax_today']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='tax_today_edited']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Header: Campos técnicos invisibles -->
             <xpath expr="//field[@name='partner_id']" position="after">
                 <field name="verificar_pagos" invisible="1"/>
                 <field name="same_currency" invisible="1"/>
                 <field name="edit_trm" invisible="1"/>
-                <field name="tax_today_edited" invisible="1"/>
                 <field name="currency_id_dif" invisible="1"/>
                 <field name="company_currency_id" invisible="1"/>
                 <field name="currency_vef_id" invisible="1"/>
             </xpath>
 
-            <!-- Bloque Derecho: Info Cambiaria (REUBICADO PARA EVITAR ESQUINA SUPERIOR) -->
+            <!-- Bloque Derecho: Info Cambiaria (CONTROLADA Y SIN NÚMEROS FLOTANTES) -->
             <xpath expr="//field[@name='journal_id']" position="after">
                 <field name="tax_today" string="Tasa BCV (Bs/$)" 
                        readonly="not edit_trm" 
                        force_save="1"
-                       invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
+                       invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"
+                       options="{'no_label': False}"/>
                 <field name="acuerdo_moneda" string="Factura en Bs. Fijo"
                        invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
             </xpath>
@@ -50,7 +58,7 @@
 
             <!-- Panel de totales: USD y Bs. LADO A LADO -->
             <xpath expr="//field[@name='tax_totals']" position="before">
-                <div class="d-flex gap-4 justify-content-end"
+                <div class="d-flex gap-4 justify-content-end mb-3"
                      invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')">
                     
                     <!-- Columna USD (Referencia) -->
@@ -73,7 +81,7 @@
                         <field name="amount_residual_usd" string="Saldo Ref. ($)" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="state == 'draft'"/>
                     </group>
 
-                    <!-- Columna Bolívares (Bs.) — USA currency_vef_id !!! -->
+                    <!-- Columna Bolívares (Bs.) -->
                     <group class="oe_subtotal_footer">
                         <div class="o_td_label">
                             <label for="amount_untaxed_bs" string="Base Bs."/>

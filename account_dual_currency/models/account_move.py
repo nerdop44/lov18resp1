@@ -383,9 +383,13 @@ class AccountMove(models.Model):
         return 1.0
 
     @api.depends(
-        'tax_totals',
+        'invoice_line_ids.price_subtotal',
+        'invoice_line_ids.tax_ids',
+        'amount_untaxed',
+        'amount_total',
         'currency_id_dif',
-        'currency_id','tax_today')
+        'currency_id',
+        'tax_today')
     def _amount_all_usd(self):
         for rec in self:
             if rec.is_invoice(include_receipts=True) and rec.tax_today > 0:
