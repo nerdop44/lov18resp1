@@ -1,12 +1,12 @@
 <odoo>
-    <!-- V8.21 - Limpieza y Ajuste Estético Final -->
-    <record id="account_move_form_inherit_v21" model="ir.ui.view">
-        <field name="name">account.move.form.inherit.v21</field>
+    <!-- V8.22 - Restauración Estética Final (Diseño Limpio) -->
+    <record id="account_move_form_inherit_v22" model="ir.ui.view">
+        <field name="name">account.move.form.inherit.v22</field>
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="priority">999</field>
         <field name="arch" type="xml">
-            <!-- Campos Técnicos Invisibles al final -->
+            <!-- Campos Técnicos Invisibles - Agregados al final del sheet para evitar desplazamientos -->
             <xpath expr="//sheet" position="inside">
                 <field name="verificar_pagos" invisible="1"/>
                 <field name="same_currency" invisible="1"/>
@@ -16,18 +16,21 @@
                 <field name="currency_vef_id" invisible="1"/>
             </xpath>
 
-            <!-- Bloque Derecho: Info Cambiaria bajo el Diario (Diseño estándar para evitar desvíos) -->
+            <!-- Bloque de Tasa: Bajo el Diario -->
             <xpath expr="//field[@name='journal_id']" position="after">
-                <field name="tax_today" string="Tasa de creación [V21]" 
-                       readonly="not tax_today_edited" force_save="1"
+                <label for="tax_today" string="Tasa de creación"
                        invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
-                <field name="tax_today_edited" string="Cambio manual [V21]" widget="boolean_toggle"
-                       invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
-                <field name="acuerdo_moneda" string="Factura en Bs. Fijo [V21]"
+                <div class="d-flex align-items-center gap-2"
+                     invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')">
+                    <field name="tax_today" nolabel="1" readonly="not tax_today_edited" force_save="1"/>
+                    <span class="text-muted small">Cambio manual</span>
+                    <field name="tax_today_edited" nolabel="1" widget="boolean_toggle"/>
+                </div>
+                <field name="acuerdo_moneda" string="Factura en Bs. Fijo"
                        invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
             </xpath>
 
-            <!-- Líneas: precio y subtotal en moneda ref -->
+            <!-- Líneas de Factura: Precio y Subtotal en USD -->
             <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='price_unit']" position="after">
                 <field name="price_unit_usd" string="Precio $" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
             </xpath>
@@ -36,45 +39,45 @@
                  <field name="price_subtotal_usd" string="Subtotal $" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
             </xpath>
 
-            <!-- Apuntes contables: débito/crédito USD -->
+            <!-- Apuntes Contables: Débito/Crédito USD -->
             <xpath expr="//field[@name='line_ids']/list/field[@name='credit']" position="after">
                 <field name="tax_today" invisible="1"/>
                 <field name="debit_usd" sum="Total $" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="display_type in ('line_section', 'line_note')"/>
                 <field name="credit_usd" sum="Total $" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="display_type in ('line_section', 'line_note')"/>
             </xpath>
 
-            <!-- Ocultar widget estándar tax_totals -->
+            <!-- Ocultar Totales Estándar -->
             <xpath expr="//field[@name='tax_totals']" position="attributes">
                 <attribute name="invisible">move_type in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')</attribute>
             </xpath>
 
-            <!-- Panel de totales: USD y Bs. REJILLA ESTABLE DE 4 COLUMNAS [V21] -->
+            <!-- Panel de Totales: Diseño Side-by-Side (USD a la izquierda, Bs. a la derecha) -->
             <xpath expr="//field[@name='tax_totals']" position="before">
-                <div class="mb-3" invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')">
-                    <group col="4" class="oe_subtotal_footer">
-                        <!-- Fila 1 -->
-                        <field name="amount_untaxed_usd" string="Base Ref. ($) [V21]" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
-                        <field name="amount_untaxed_bs" string="Base Bs. [V21]" widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
-                        
-                        <!-- Fila 2 -->
-                        <field name="amount_tax_usd" string="IVA Ref. ($) [V21]" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
-                        <field name="amount_tax_bs" string="IVA Bs. [V21]" widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
-                        
-                        <!-- Fila 3: Totales Principales -->
-                        <field name="amount_total_usd" string="Total Ref. ($) [V21]" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
-                        <field name="amount_total_bs" string="Total Bs. [V21]" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
+                <div class="d-flex gap-4 justify-content-end mb-3"
+                     invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')">
+                    
+                    <!-- Columna USD (Referencia) -->
+                    <group class="oe_subtotal_footer">
+                        <field name="amount_untaxed_usd" string="Base Ref. ($)" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="amount_tax_usd" string="IVA Ref. ($)" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="amount_total_usd" string="Total Ref. ($)" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="amount_residual_usd" string="Saldo Ref. ($)" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="state == 'draft'"/>
+                    </group>
 
-                        <!-- Fila 4: Saldo Residual -->
-                        <field name="amount_residual_usd" string="Saldo Ref. ($) [V21]" widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="state == 'draft'"/>
-                        <div colspan="2" invisible="state == 'draft'"/> 
+                    <!-- Columna Bolívares (Bs.) -->
+                    <group class="oe_subtotal_footer">
+                        <field name="amount_untaxed_bs" string="Base Bs." widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
+                        <field name="amount_tax_bs" string="IVA Bs." widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
+                        <field name="amount_total_bs" string="Total Bs." class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_vef_id'}"/>
                     </group>
                 </div>
             </xpath>
         </field>
     </record>
 
-    <record id="account_move_tree_inherit_v21" model="ir.ui.view">
-        <field name="name">account.move.tree.inherit.v21</field>
+    <!-- Vista Lista de Facturas -->
+    <record id="account_move_tree_inherit_v22" model="ir.ui.view">
+        <field name="name">account.move.tree.inherit.v22</field>
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_invoice_tree"/>
         <field name="arch" type="xml">
@@ -89,8 +92,9 @@
         </field>
     </record>
 
-    <record id="account_move_form_inherit_igtf_v21" model="ir.ui.view">
-        <field name="name">account_move_form_inherit_igtf_v21</field>
+    <!-- Asiento Retención IGTF -->
+    <record id="account_move_form_inherit_igtf_v22" model="ir.ui.view">
+        <field name="name">account.move.form.inherit.igtf.v22</field>
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
