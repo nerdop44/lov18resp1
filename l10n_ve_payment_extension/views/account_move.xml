@@ -32,7 +32,7 @@
                             <field name="name"/>
                             <field name="move_id"/>
                             <field name="aliquot"/>
-                            <field name="related_percentage_tax_base" optional="hide"/>
+                            <field name="islr_tax_base" optional="hide"/>
                             
                             <field name="invoice_total" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
                             <field name="invoice_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
@@ -60,10 +60,10 @@
                             <field name="foreign_invoice_total" force_save="1" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="1" column_invisible="parent.base_currency_is_vef"/>
                             <field name="invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef"/>
                             <field name="foreign_invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
-                            <field name="related_pay_from" force_save="1" readonly="1" />
-                            <field name="related_percentage_tax_base" force_save="1" readonly="1" />
-                            <field name="related_percentage_fees" force_save="1" readonly="1" />
-                            <field name="related_amount_subtract_fees" force_save="1" readonly="1" />
+                            <field name="islr_pay_from" force_save="1" readonly="1" />
+                            <field name="islr_tax_base" force_save="1" readonly="1" />
+                            <field name="islr_percentage_perc" force_save="1" readonly="1" />
+                            <field name="islr_subtract_amount" force_save="1" readonly="1" />
                             <field name="foreign_currency_rate" force_save="1" readonly="1" optional="hide" />
                             <field name="retention_amount" force_save="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" readonly="1" column_invisible="not parent.base_currency_is_vef"/>
                             <field name="foreign_retention_amount" widget="monetary" force_save="1" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>

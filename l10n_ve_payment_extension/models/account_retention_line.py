@@ -107,23 +107,23 @@ class AccountRetentionLine(models.Model):
         related="payment_id.journal_id",
     )
 
-    related_pay_from = fields.Float(
+    islr_pay_from = fields.Float(
         string="Pays from",
         compute="_compute_related_fields",
         store=True,
     )
-    related_percentage_tax_base = fields.Float(
+    islr_tax_base = fields.Float(
         string="% tax base",
         compute="_compute_related_fields",
         store=True,
         readonly=False,
     )
-    related_percentage_fees = fields.Float(
+    islr_percentage_perc = fields.Float(
         string="% tariffs",
         compute="_compute_related_fields",
         store=True,
     )
-    related_amount_subtract_fees = fields.Float(
+    islr_subtract_amount = fields.Float(
         string="Amount subtract tariffs",
         compute="_compute_related_fields",
         store=True,
@@ -264,18 +264,18 @@ class AccountRetentionLine(models.Model):
             found = False
             for line in payment_concept_lines:
                 if partner_person_type_id == line.type_person_id.id:
-                    record.related_pay_from = line.pay_from or 0.0
-                    record.related_percentage_tax_base = line.percentage_tax_base or 0.0
-                    record.related_percentage_fees = line.tariff_id.percentage if line.tariff_id else 0.0
-                    record.related_amount_subtract_fees = line.tariff_id.amount_subtract if line.tariff_id else 0.0
+                    record.islr_pay_from = line.pay_from or 0.0
+                    record.islr_tax_base = line.percentage_tax_base or 0.0
+                    record.islr_percentage_perc = line.tariff_id.percentage if line.tariff_id else 0.0
+                    record.islr_subtract_amount = line.tariff_id.amount_subtract if line.tariff_id else 0.0
                     found = True
                     break
             
             if not found:
-                record.related_pay_from = 0.0
-                record.related_percentage_tax_base = 0.0
-                record.related_percentage_fees = 0.0
-                record.related_amount_subtract_fees = 0.0
+                record.islr_pay_from = 0.0
+                record.islr_tax_base = 0.0
+                record.islr_percentage_perc = 0.0
+                record.islr_subtract_amount = 0.0
                 
     @api.onchange('payment_concept_id')
     def _onchange_payment_concept_id(self):
@@ -358,16 +358,16 @@ class AccountRetentionLine(models.Model):
 
             # Retención en moneda empresa (USD)
             record.retention_amount = (
-                (record.invoice_amount * (record.related_percentage_tax_base / 100))
-                * (record.related_percentage_fees / 100)
-            ) - (record.related_amount_subtract_fees / foreign_rate if foreign_rate else 0.0)
+                (record.invoice_amount * (record.islr_tax_base / 100))
+                * (record.islr_percentage_perc / 100)
+            ) - (record.islr_subtract_amount / foreign_rate if foreign_rate else 0.0)
 
             # Retención en VEF (Bolívares)
             # Regla universal: foreign_retention_amount = (Base Bs * %Base * %Tarifa) - Sustraendo Bs
             record.foreign_retention_amount = (
-                (record.foreign_invoice_amount * (record.related_percentage_tax_base / 100))
-                * (record.related_percentage_fees / 100)
-            ) - record.related_amount_subtract_fees
+                (record.foreign_invoice_amount * (record.islr_tax_base / 100))
+                * (record.islr_percentage_perc / 100)
+            ) - record.islr_subtract_amount
 
 
     @api.onchange("economic_activity_id", "move_id")
