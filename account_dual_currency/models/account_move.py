@@ -85,7 +85,7 @@ class AccountMove(models.Model):
     def _default_tax_today(self):
         """Calcular la tasa BCV (cuántos Bs equivalen a 1 USD)."""
         usd = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
-        vef = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs'))], limit=1)
+        vef = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs', 'VED'))], limit=1)
         if usd and vef and usd.id != vef.id:
             return usd._get_conversion_rate(
                 usd, vef, self.env.company, fields.Date.today()
@@ -370,19 +370,9 @@ class AccountMove(models.Model):
 
     @api.depends('company_id')
     def _compute_currency_vef_id(self):
-        vef = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs'))], limit=1)
+        vef = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs', 'VED'))], limit=1)
         for rec in self:
             rec.currency_vef_id = vef
-
-    def _default_tax_today(self):
-        """Calcular la tasa BCV (cuántos Bs equivalen a 1 USD)."""
-        usd = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
-        vef = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs'))], limit=1)
-        if usd and vef and usd.id != vef.id:
-            return usd._get_conversion_rate(
-                usd, vef, self.env.company, fields.Date.today()
-            )
-        return 1.0
 
     @api.depends(
         'invoice_line_ids.price_subtotal',
