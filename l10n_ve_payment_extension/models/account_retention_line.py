@@ -54,10 +54,10 @@ class AccountRetentionLine(models.Model):
         readonly=False,
     )
 #    aliquot = fields.Float(digits=(16, 2))
-    amount_tax_ret = fields.Float(string="Retained tax", digits=(16, 2))
-    base_ret = fields.Float("Retained base", digits=(16, 2))
-    imp_ret = fields.Float(string="tax incurred", digits=(16, 2))
-    retention_rate = fields.Float(store=True, digits="Tasa")
+    amount_tax_ret = fields.Float(string="Retained tax")
+    base_ret = fields.Float("Retained base")
+    imp_ret = fields.Float(string="tax incurred")
+    retention_rate = fields.Float(store=True)
     move_id = fields.Many2one("account.move", "move", ondelete="cascade", store=True)
     is_retention_client = fields.Boolean(default=True)
     display_invoice_number = fields.Char(
@@ -70,14 +70,14 @@ class AccountRetentionLine(models.Model):
 #        store=True,
 #        readonly=False,
 #    )
-    invoice_total = fields.Float(string="Total invoiced", digits="Tasa", store=True)
-    iva_amount = fields.Float(string="IVA", digits=(16, 2))
+    invoice_total = fields.Float(string="Total invoiced", store=True)
+    iva_amount = fields.Float(string="IVA")
 
 #    retention_amount = fields.Float(
 #        digits="Tasa", compute="_compute_retention_amount", store=True, readonly=False
 #    )
     foreign_retention_amount = fields.Float(
-        digits="Tasa", compute="_compute_retention_amount", store=True, readonly=False
+        compute="_compute_retention_amount", store=True, readonly=False
     )
 
     payment_concept_id = fields.Many2one(

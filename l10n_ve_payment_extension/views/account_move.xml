@@ -20,7 +20,7 @@
             </xpath>
 
             <!-- Si 'date' ya está en otra parte, ocultarlo para evitar duplicados -->
-            <xpath expr="//field[@name='date'][position()>1]" position="replace"/>
+            <!-- <xpath expr="//field[@name='date'][position()>1]" position="replace"/> -->
 
             <xpath expr="//notebook" position="inside">
                 <page name="iva_retention" string="Retenciones de IVA ">
