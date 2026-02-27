@@ -4,19 +4,12 @@
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
-            <!-- OCULTAR TODA INSTANCIA PREVIA DE TASA Y CHECKBOX (LIMPIEZA AGRESIVA) -->
-            <xpath expr="//field[@name='tax_today']" position="attributes">
-                <attribute name="invisible">1</attribute>
-            </xpath>
-            <xpath expr="//field[@name='tax_today_edited']" position="attributes">
-                <attribute name="invisible">1</attribute>
-            </xpath>
-
-            <!-- Header: Campos técnicos invisibles -->
+            <!-- Header: Campos técnicos invisibles (MOVEMOS tax_today AQUÍ PARA OCULTARLO DEL TÍTULO) -->
             <xpath expr="//field[@name='partner_id']" position="after">
                 <field name="verificar_pagos" invisible="1"/>
                 <field name="same_currency" invisible="1"/>
                 <field name="edit_trm" invisible="1"/>
+                <field name="tax_today_edited" invisible="1"/>
                 <field name="currency_id_dif" invisible="1"/>
                 <field name="company_currency_id" invisible="1"/>
                 <field name="currency_vef_id" invisible="1"/>
@@ -27,8 +20,7 @@
                 <field name="tax_today" string="Tasa BCV (Bs/$)" 
                        readonly="not edit_trm" 
                        force_save="1"
-                       invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"
-                       options="{'no_label': False}"/>
+                       invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
                 <field name="acuerdo_moneda" string="Factura en Bs. Fijo"
                        invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
             </xpath>
