@@ -18,7 +18,7 @@ class AccountMove(models.Model):
         tracking=True,
     )
     correlative = fields.Char("Control Number", copy=False, help="Sequence control number")
-    is_contingency = fields.Boolean(related="journal_id.is_contingency")
+    is_contingency = fields.Boolean(related="journal_id.is_contingency", store=True)
 
     @api.constrains("correlative", "is_contingency")
     def _check_correlative(self):
