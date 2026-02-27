@@ -1630,7 +1630,7 @@ class AccountRetention(models.Model):
                         # Tasa
                         "foreign_currency_rate": foreign_rate,
                         "foreign_currency_inverse_rate": foreign_inverse_rate,
-                        "related_percentage_tax_base": withholding_amount,
+                        "islr_tax_base": withholding_amount,
                     }
                     # Evitar líneas con monto cero
                     if line_data.get("retention_amount") != 0.0 or line_data.get("foreign_retention_amount") != 0.0:

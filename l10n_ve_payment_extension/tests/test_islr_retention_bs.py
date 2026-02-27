@@ -48,8 +48,8 @@ class TestIslrRetentionBs(AccountRetentionTestCommon):
         )
         for ret_line in invoice.retention_islr_line_ids:
             # Check that the retention line data is computed correctly.
-            self.assertEqual(ret_line.related_percentage_tax_base, 100)
-            self.assertEqual(ret_line.related_percentage_fees, 5)
+            self.assertEqual(ret_line.islr_tax_base, 100)
+            self.assertEqual(ret_line.islr_percentage_perc, 5)
             
         invoice.action_post()
         self.assertEqual(invoice.state, "posted")
@@ -77,8 +77,8 @@ class TestIslrRetentionBs(AccountRetentionTestCommon):
         )
         for ret_line in retention.retention_line_ids:
             # Check that the retention line data is computed correctly.
-            self.assertEqual(ret_line.related_percentage_tax_base, 100)
-            self.assertEqual(ret_line.related_percentage_fees, 5)
+            self.assertEqual(ret_line.islr_tax_base, 100)
+            self.assertEqual(ret_line.islr_percentage_perc, 5)
 
         retention.action_post()
         self.assertEqual(retention.state, "emitted")

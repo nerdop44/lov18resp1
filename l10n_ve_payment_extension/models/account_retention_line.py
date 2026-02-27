@@ -247,10 +247,10 @@ class AccountRetentionLine(models.Model):
         """
         for record in self:
             if not record.payment_concept_id or not record.move_id:
-                record.related_pay_from = 0.0
-                record.related_percentage_tax_base = 0.0
-                record.related_percentage_fees = 0.0
-                record.related_amount_subtract_fees = 0.0
+                record.islr_pay_from = 0.0
+                record.islr_tax_base = 0.0
+                record.islr_percentage_perc = 0.0
+                record.islr_subtract_amount = 0.0
                 continue
 
             if not record.move_id.partner_id.type_person_id:
@@ -331,9 +331,9 @@ class AccountRetentionLine(models.Model):
     @api.depends(
         "invoice_amount",
         "foreign_invoice_amount",
-        "related_percentage_tax_base",
-        "related_percentage_fees",
-        "related_amount_subtract_fees",
+        "islr_tax_base",
+        "islr_percentage_perc",
+        "islr_subtract_amount",
         "foreign_currency_rate",
         "move_id",
         "payment_concept_id",

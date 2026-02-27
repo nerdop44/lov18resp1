@@ -170,7 +170,7 @@
                 <t t-set="invoice_amount" t-options='{"widget": "float", "precision": get_digits}' t-value='0'/>
                 <t t-set="total_amount_tax" t-options='{"widget": "float", "precision": get_digits}' t-value='0'/>
                 <!--retenido-->
-                <t t-set="related_percentage_tax_base" t-options='{"widget": "float", "precision": get_digits}'/>
+                <t t-set="islr_tax_base" t-options='{"widget": "float", "precision": get_digits}'/>
                 <t t-set="total_amount_to_pay" t-options='{"widget": "float", "precision": get_digits}' t-value='0'/>
 
                 <t t-set="excent" t-options='{"widget": "float", "precision": get_digits}' t-value='0'></t>
@@ -296,7 +296,7 @@
                         </div>
                         <!-- % Ret -->
                         <div class="" style="width:7%">
-                            <span t-esc="line.related_percentage_tax_base"/>
+                            <span t-esc="line.islr_tax_base"/>
                         </div>
 
                         <!-- Impuesto IVA -->
@@ -662,12 +662,12 @@
                         </div>
                         <!-- Tarifa de Retención -->
                         <div style="width:5%">
-                            <span t-field="line.related_percentage_fees"/>
+                            <span t-field="line.islr_percentage_perc"/>
                             <span>%</span>
                         </div>
                         <!-- Sustraendo -->
                         <div style="width:15%">
-			    <span t-field="line.related_amount_subtract_fees"
+			    <span t-field="line.islr_subtract_amount"
 				  t-options='{"widget": "float", "precision": 2}'/>
                         </div>
                         <!-- imp Retenido -->
