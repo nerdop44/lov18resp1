@@ -6,7 +6,7 @@
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Accountant/Accountant",
-    "version": "18.0.1.0.61",
+    "version": "18.0.1.0.62",
     # any module necessary for this one to work correctly
     "depends": [
         "base",
@@ -35,8 +35,7 @@
         "report/retention_line_report_views.xml",
         "report/retention_voucher_templates.xml",
         "report/retention_voucher_reports.xml",
-        "report/arcv_report.xml",
-        "views/menu.xml",
+        "views/menus_parents.xml",
         "views/ir_sequence.xml",
         "views/res_config_settings.xml",
         "views/tax_unit.xml",
@@ -63,6 +62,7 @@
         "wizard/municipal_retention_patent_report.xml",
         "wizard/wizard_retention_islr.xml",
         "wizard/wizard_retention_iva.xml",
+        "views/menu.xml",
     ],
     "images": ["static/description/icon.png"],
     "application": True,

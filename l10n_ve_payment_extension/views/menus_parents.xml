@@ -1,0 +1,4 @@
+<odoo>
+    <menuitem id="retention_configuration" name="Retention" parent="account.menu_finance_configuration" />
+    <menuitem id="master_configuration" name="Masters" parent="account.menu_finance_configuration" />
+</odoo>
