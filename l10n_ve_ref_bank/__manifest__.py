@@ -6,7 +6,7 @@
     "author": "Remake Ing Nerdo Pulido",
     "website": "https://binauraldev.com/",
     "category": "LocVe [Localization]",
-    "version": "18.0.1.0.2",
+    "version": "18.0.1.0.3",
     # any module necessary for this one to work correctly
     "depends": ["l10n_ve_invoice"],
     # always loaded

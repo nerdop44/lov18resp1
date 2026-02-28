@@ -2,7 +2,7 @@
     "name": "[LOCVE] Binaural Facturación",
     "summary": """
        Modulo para contabilidad Venezolana """,
-    "version": "18.0.1.0.17",
+    "version": "18.0.1.0.18",
     "license": "LGPL-3",
     "author": "Binauraldev",
     "website": "https://l10n_vedev.com/",

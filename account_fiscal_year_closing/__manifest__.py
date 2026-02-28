@@ -6,7 +6,7 @@
 {
     "name": "[LOCVE] Fiscal year closing",
     "summary": "Generic fiscal year closing wizard",
-    "version": "18.0.1.0.5",
+    "version": "18.0.1.0.6",
     "category": "Accounting & Finance",
     "website": "https://github.com/OCA/account-closing",
     "author": "Tecnativa, Odoo Community Association (OCA)",
