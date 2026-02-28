@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <data>
+        <record id="pos_order_salesman" model="ir.ui.view">
+            <field name="name">Salesman for Pos Order</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="salesman_id"/>
+                </xpath>
+            </field>
+        </record>
+        <record id="view_pos_order_filter_inherit_salesman" model="ir.ui.view">
+            <field name="name">view.pos.order.filter.inherit.salesman</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_order_filter"/>
+            <field name="arch" type="xml">
+                <xpath expr="//group" position="inside">
+                        <filter string="Vendedor" name="salesman" domain="[]" context="{'group_by':'salesman_id'}"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

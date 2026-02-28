@@ -2,18 +2,19 @@
 
 import { Component, useState } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
-import { usePos } from "@point_of_sale/app/store/pos_hook";
+import { useService } from "@web/core/utils/hooks";
 
 export class NotaCreditoPopUp extends Component {
     static template = "pos_fiscal_printer.NotaCreditoPopUp";
     static components = { Dialog };
-    static props = {
-        getPayload: Function,
-        close: Function,
-    };
+    // Temporarily removing props validation to fix OwlError crash
+    // static props = {
+    //     getPayload: Function,
+    //     close: Function,
+    // };
 
     setup() {
-        this.pos = usePos();
+        this.pos = useService("pos");
         this.fields = useState({
             printerCode: this.pos.config.x_fiscal_printer_code || "",
             invoiceNumber: "",

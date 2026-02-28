@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_salesman.SalesManPos">
+        <div class="popup SalesManPos modal-dialog">
+            <div class="modal-content">
+                <header class="modal-header">
+                    <h4 class="modal-title"><t t-esc="props.title" /></h4>
+                </header>
+                <main class="modal-body overflow-auto" style="max-height: 400px;">
+                    <div class="row g-2">
+                        <t t-foreach="props.salesmen" t-as="salesman" t-key="salesman.id">
+                            <div class="col-6">
+                                <div class="salesman-card border p-2 d-flex align-items-center" t-on-click="() => this.selectSalesman(salesman)" style="cursor: pointer;">
+                                    <img t-att-src="salesman.image_url" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;"/>
+                                    <span class="text-truncate"><t t-esc="salesman.name" /></span>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </main>
+                <footer class="modal-footer justify-content-end">
+                    <button class="btn btn-secondary" t-on-click="cancel"><t t-esc="props.cancelText" /></button>
+                </footer>
+            </div>
+        </div>
+    </t>
+</templates>

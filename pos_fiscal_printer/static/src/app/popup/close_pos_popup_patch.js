@@ -11,12 +11,18 @@ const patchConfig = {
         super.setup();
         this.orm = useService("orm");
         this.pos = useService("pos");
+        this.popup = useService("popup");
 
-        // Ensure state is initialized correctly
-        this.state = useState({
-            ...(this.state || {}),
-            zReport: "",
-        });
+        // Ensure state includes zReport. Use Object.assign to respect existing proxy if any.
+        // If super didn't init state, we init it.
+        // If super init state, we extend it.
+        if (!this.state) {
+            this.state = useState({ zReport: "" });
+        } else {
+            // If it's already a reactive object (Proxy), adding a property might trigger reactivity depending on Owl version.
+            // Best to use Object.assign.
+            Object.assign(this.state, { zReport: "" });
+        }
 
         // Initialize mixin properties
         Object.assign(this, {
@@ -42,13 +48,18 @@ const patchConfig = {
         return this.port?.readable?.getReader();
     },
 
+    // Bridge for mixin to use popup service
+    showPopup(name, props) {
+        return this.popup.add(name, props);
+    },
+
     openDetailsPopup() {
-        this.state.zReport = ""
+        if (this.state) this.state.zReport = "";
         return super.openDetailsPopup();
     },
 
     async closeSession() {
-        if (this.state.zReport === "" || !this.state.zReport) {
+        if (!this.state || this.state.zReport === "" || !this.state.zReport) {
             console.log("closeSession sin reporte Z");
         } else {
             console.log("closeSession con reporte Z");
@@ -62,7 +73,7 @@ const patchConfig = {
             this.printZViaApi();
         } else {
             this.printerCommands = [];
-            this.read_Z = false;
+            this.read_Z = false; // Reset flag
             this.printerCommands.push("I0Z");
             await this.actionPrint();
         }
@@ -73,31 +84,30 @@ const patchConfig = {
             this.printXViaApi();
         } else {
             this.printerCommands = [];
-            this.read_Z = false;
+            this.read_Z = false; // Reset flag
             this.printerCommands.push("I0X");
             await this.actionPrint();
         }
     }
 };
 
-// Explicitly assign mixin methods to avoid descriptor/getter issues with Owl
-Object.assign(patchConfig, {
-    setPort: FiscalPrinterMixin.setPort,
-    actionPrint: FiscalPrinterMixin.actionPrint,
-    printViaUSB: FiscalPrinterMixin.printViaUSB,
-    printViaApi: FiscalPrinterMixin.printViaApi,
-    printZViaApi: FiscalPrinterMixin.printZViaApi,
-    printXViaApi: FiscalPrinterMixin.printXViaApi,
-    write: FiscalPrinterMixin.write,
-    write_s2: FiscalPrinterMixin.write_s2,
-    write_Z: FiscalPrinterMixin.write_Z,
-    escribe_leer: FiscalPrinterMixin.escribe_leer,
-    setHeader: FiscalPrinterMixin.setHeader,
-    setLines: FiscalPrinterMixin.setLines,
-    setTotal: FiscalPrinterMixin.setTotal,
-    printFiscal: FiscalPrinterMixin.printFiscal,
-    printNoFiscal: FiscalPrinterMixin.printNoFiscal,
-    showPopup: FiscalPrinterMixin.showPopup,
-});
+// Explicitly assign mixin methods.
+// Note: We check if they exist to avoid assigning undefined, which might confuse Owl/Props validation.
+const mixinMethods = [
+    'setPort', 'actionPrint', 'printViaUSB',
+    'printViaApi', 'printZViaApi', 'printXViaApi',
+    'write', 'write_s2', 'write_Z', 'escribe_leer',
+    'setHeader', 'setLines', 'setTotal',
+    'printFiscal', 'printNoFiscal',
+    // 'showPopup' is NOT in mixin, we implemented it above.
+];
+
+for (const method of mixinMethods) {
+    if (FiscalPrinterMixin[method]) {
+        patchConfig[method] = FiscalPrinterMixin[method];
+    } else {
+        console.warn(`FiscalPrinterMixin method ${method} not found!`);
+    }
+}
 
 patch(ClosePosPopup.prototype, patchConfig);

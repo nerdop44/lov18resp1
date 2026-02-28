@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pos_config_form_view_inherit" model="ir.ui.view">
+        <field name="name">pos.config.form.view.inherit</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@id='other_devices']" position='after'>
+                <div class="col-12 col-lg-6 o_setting_box" id="salesman">
+                            <div class="o_setting_left_pane">
+
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <span class="o_form_label">Vendedores</span>
+                                <div class="content-group mt16">
+                                    <div class="row">
+                                        <field name="salesman_ids" widget="many2many_tags" domain="[('company_id', '=', company_id)]"/>
+                                    </div>
+                                </div>
+                            </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

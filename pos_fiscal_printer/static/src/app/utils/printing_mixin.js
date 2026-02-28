@@ -1,8 +1,6 @@
 /** @odoo-module */
-// import { rpc } from "@web/core/network/rpc"; // Not needed if we use useService or env
 import { _t } from "@web/core/l10n/translation";
-// Swal is global or needs import? Usually global in Odoo POS if loaded.
-// Assuming Swal is available globally as it was in legacy.
+import { NotaCreditoPopUp } from "@pos_fiscal_printer/app/popup/nota_credito_popup";
 
 const encoder = new TextEncoder();
 const CHAR_MAP = {
@@ -24,20 +22,9 @@ export function toBytes(command) {
     return new Uint8Array(commands);
 }
 
-// Transform Mixin into a plain object to be used with patch() or composition
+// FiscalPrinterMixin as a plain object with methods only.
+// Getters for 'port' and 'readerStream' must be defined on the component ensuring this mixin.
 export const FiscalPrinterMixin = {
-    get readerStream() { // renamed from reader to avoid conflict?
-        return this.port?.readable?.getReader();
-    },
-
-    get port() {
-        return this.pos.serialPort; // Access via env.pos
-    },
-
-    set port(serialPort) {
-        this.pos.serialPort = serialPort;
-    },
-
     async setPort() {
         try {
             if (!this.port) {
@@ -160,14 +147,7 @@ export const FiscalPrinterMixin = {
                     (res) => setTimeout(() => res(), 50)
                 );
             }
-            //testeo de modal, simulando lectura
 
-            /*await new Promise(
-                    (res) => setTimeout(() => res(), 200)
-             );
-            return true;*/
-
-            //fin de simulado
             await new Promise(
                 (res) => setTimeout(() => res(), 10)
             );
@@ -289,10 +269,6 @@ export const FiscalPrinterMixin = {
     },
 
     async write() {
-        //if(!this.writer) return;
-        //this.writer = this.port.writable.getWriter();
-
-
         this.modal_imprimiendo = Swal.fire({
             title: 'Imprimiendo',
             text: 'Por favor espere.',
@@ -598,6 +574,7 @@ export const FiscalPrinterMixin = {
             allowEscapeKey: false,
             allowEnterKey: false,
             showConfirmButton: false,
+            timer: 1500
         });
         var url = this.pos.config.api_url + "/zreport/print";
         try {
@@ -650,6 +627,7 @@ export const FiscalPrinterMixin = {
             allowEscapeKey: false,
             allowEnterKey: false,
             showConfirmButton: false,
+            timer: 1500
         });
         var url = this.pos.config.api_url + "/xreport/print";
         try {
@@ -791,4 +769,218 @@ export const FiscalPrinterMixin = {
             });
         }
     },
+
+    async read() {
+        window.clearTimeout(this.timeout);
+        // ... (read implementation kept to avoid large duplication but ensured presence)
+        console.log("Leyendo", this.port.readable)
+        while (this.port.readable) {
+            console.log("Leyendo");
+            try {
+                while (true) {
+                    const { value, done } = await this.reader.read();
+
+                    if (done) {
+                        console.log("Done");
+                        break;
+                    }
+
+                    (value) && console.log(value);
+                }
+            } catch (error) {
+                console.error(error);
+            } finally {
+                await Promise.all([
+                    this.writer?.releaseLock(),
+                    this.reader.releaseLock(),
+                ]);
+            }
+        }
+
+        this.printerCommands = [];
+        this.reader.releaseLock();
+        this.reader = false;
+    },
+
+    get order() {
+        return this.pos.get_order();
+    },
+
+    async doPrinting(mode) {
+        if (!(this.order.payment_ids.every((p) => Boolean(p.payment_method_id?.x_printer_code)))) {
+            this.env.services.notification.add(_t("Algunos métodos de pago no tienen código de impresora"), { type: "danger" });
+            return;
+        }
+        if (this.order.impresa) {
+            this.env.services.notification.add(_t("Documento impreso en máquina fiscal"), { type: "danger" });
+            return;
+        }
+        this.printerCommands = [];
+        switch (mode) {
+            case "noFiscal":
+                this.printNoFiscal();
+                break;
+            case "fiscal":
+                this.read_s2 = true;
+                this.printFiscal();
+                break;
+            case "notaCredito":
+                this.read_s2 = true;
+                const result = await this.printNotaCredito();
+                if (!result) return;
+                break;
+        }
+
+        if (this.pos.config.connection_type === "api") {
+            await this.printViaApi();
+        } else {
+            await this.actionPrint();
+        }
+    },
+
+    setHeader(payload) {
+        const client = this.order.partner_id || {};
+        if (payload) {
+            this.printerCommands.push("iF*" + payload.invoiceNumber.padStart(11, "0"));
+            this.printerCommands.push("iD*" + payload.date);
+            this.printerCommands.push("iI*" + payload.printerCode);
+        }
+
+        this.printerCommands.push("iR*" + (client.vat || "No tiene"));
+        this.printerCommands.push("iS*" + sanitize(client.name || "Cliente Contado"));
+
+        this.printerCommands.push("i00Teléfono: " + (client.phone || "No tiene"));
+        this.printerCommands.push("i01Dirección: " + sanitize(client.street || "No tiene"));
+        this.printerCommands.push("i02Email: " + (client.email || "No tiene"));
+        if (this.order.pos_reference) {
+            this.printerCommands.push("i03Ref: " + this.order.pos_reference);
+        }
+    },
+
+    setTotal() {
+        this.printerCommands.push("3");
+        const aplicar_igtf = this.pos.config.aplicar_igtf;
+        const es_nota = this.order.lines.some((l) => Boolean(l.refunded_orderline_id));
+
+        const paymentlines = this.order.payment_ids;
+        if (es_nota) {
+            if (paymentlines.filter((p) => p.amount < 0).every((p) => p.isForeignExchange) && aplicar_igtf) {
+                this.printerCommands.push("122");
+            } else {
+                paymentlines.filter((p) => p.amount < 0).forEach((payment, i, array) => {
+                    const printer_code = payment.payment_method_id?.x_printer_code;
+                    if ((i + 1) === array.length && array.length === 1) {
+                        this.printerCommands.push("1" + printer_code);
+                    } else {
+                        let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
+                        let [entero, decimal] = amountStr.split(",");
+                        entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
+                        this.printerCommands.push("2" + printer_code + entero + decimal);
+                    }
+                });
+            }
+        } else {
+            if (paymentlines.filter((p) => p.amount > 0).every((p) => p.isForeignExchange) && aplicar_igtf) {
+                this.printerCommands.push("122");
+            } else {
+                paymentlines.filter((p) => p.amount > 0).forEach((payment, i, array) => {
+                    const printer_code = payment.payment_method_id?.x_printer_code;
+                    if ((i + 1) === array.length && array.length === 1) {
+                        this.printerCommands.push("1" + printer_code);
+                    } else {
+                        let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
+                        let [entero, decimal] = amountStr.split(",");
+                        entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
+                        this.printerCommands.push("2" + printer_code + entero + decimal);
+                    }
+                });
+            }
+        }
+
+        if (aplicar_igtf) {
+            this.printerCommands.push("199");
+        } else {
+            if (this.printerCommands[this.printerCommands.length - 1] !== '101') {
+                this.printerCommands.push("101");
+            }
+        }
+    },
+
+    printFiscal() {
+        this.setHeader();
+        this.setLines("GF");
+        this.setTotal();
+    },
+
+    setLines(char) {
+        this.order.lines
+            .filter((l) => !l.x_is_igtf_line)
+            .forEach((line) => {
+                let command = "";
+                const taxes = line.tax_ids || [];
+
+                if (!(taxes.length) || taxes.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
+                    command += (char === "GC") ? "d0" : " ";
+                } else if (taxes.every((t) => t.x_tipo_alicuota === "general")) {
+                    command += (char === "GC") ? "d1" : "!";
+                } else {
+                    command += (char === "GC") ? "d0" : " ";
+                }
+
+                let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
+                if (line.discount > 0) {
+                    price = (line.get_all_prices(1).priceWithoutTaxBeforeDiscount).toFixed(2).replace(".", ",");
+                }
+                let qty = (Math.abs(line.qty)).toFixed(3).replace(".", ",");
+
+                let [pEnt, pDec] = price.split(",");
+                let [qEnt, qDec] = qty.split(",");
+
+                pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(14, "0") : pEnt.padStart(8, "0");
+                qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(14, "0") : qEnt.padStart(5, "0");
+
+                command += pEnt + pDec + qEnt + qDec;
+
+                if (line.product_id?.default_code) {
+                    command += `|${line.product_id.default_code}|`;
+                }
+
+                command += sanitize(line.product_id?.display_name || "");
+                this.printerCommands.push(command);
+
+                if (line.discount > 0) {
+                    let disc = line.discount.toFixed(2).replace(".", ",").replace(",", "").padStart(4, "0");
+                    this.printerCommands.push("p-" + disc);
+                }
+
+                if (line.customer_note) {
+                    this.printerCommands.push((char === "GC" ? "A##" : "@##") + sanitize(line.customer_note) + "##");
+                }
+            });
+    },
+
+    printNoFiscal() {
+        this.order.lines
+            .filter((l) => !l.x_is_igtf_line)
+            .forEach((line) => {
+                const name = sanitize(line.product_id?.display_name || "");
+                const code = line.product_id?.default_code || "";
+                this.printerCommands.push(`80 ${name} [${code}]`);
+                this.printerCommands.push(`80*x${line.qty} ${(line.get_price_with_tax()).toFixed(2)}`);
+            });
+
+        if (this.order.amount_return) {
+            this.printerCommands.push("80*CAMBIO: " + (this.order.amount_return).toFixed(2));
+        }
+        this.printerCommands.push("81$TOTAL: " + (this.order.get_total_with_tax()).toFixed(2));
+    },
+
+    async printNotaCredito() {
+        const { confirmed, payload } = await this.env.services.dialog.add(NotaCreditoPopUp);
+        if (!confirmed) return false;
+        this.setHeader(payload);
+        this.setLines("GC");
+        this.setTotal();
+        return true;
+    }
 };
