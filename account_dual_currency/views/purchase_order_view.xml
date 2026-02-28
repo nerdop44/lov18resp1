@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <record id="view_purchase_order_form_inherit_dual_currency" model="ir.ui.view">
+            <field name="name">purchase.order.form.inherit.dual_currency</field>
+            <field name="model">purchase.order</field>
+            <field name="inherit_id" ref="purchase.purchase_order_form"/>
+            <field name="arch" type="xml">
+                <!-- Tasa en el header: usando currency_id que siempre existe tanto en RFQs como en Órdenes -->
+                <xpath expr="//field[@name='currency_id']" position="after">
+                    <field name="currency_id_dif" invisible="1"/>
+                    <field name="tasa_referencial" readonly="1" string="Tasa Ref. (BCV)"/>
+                </xpath>
+                <!-- Columnas opcionales en líneas -->
+                <xpath expr="//field[@name='price_unit']" position="after">
+                    <field name="price_unit_dif" optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                </xpath>
+                <xpath expr="//field[@name='price_subtotal']" position="after">
+                    <field name="price_subtotal_dif" optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                </xpath>
+                <!-- Panel de totales en moneda de referencia -->
+                <xpath expr="//field[@name='tax_totals']" position="before">
+                    <group class="oe_subtotal_footer" name="purchase_total_ref">
+                        <field name="amount_untaxed_dif" string="Base Ref." widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="amount_tax_dif" string="Impuesto Ref." widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="amount_total_dif" string="Total Ref." class="oe_subtotal_footer_separator" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+</odoo>
