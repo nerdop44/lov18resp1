@@ -4,9 +4,9 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 {
-    "name": "Fiscal year closing",
+    "name": "[LocVe] Fiscal year closing",
     "summary": "Generic fiscal year closing wizard",
-    "version": "18.0.1.0.3",
+    "version": "18.0.1.0.4",
     "category": "Accounting & Finance",
     "website": "https://github.com/OCA/account-closing",
     "author": "Tecnativa, Odoo Community Association (OCA)",

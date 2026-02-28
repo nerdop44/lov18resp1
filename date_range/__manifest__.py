@@ -1,9 +1,9 @@
 # Copyright 2016 ACSONE SA/NV (<http://acsone.eu>)
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 {
-    "name": "Date Range",
+    "name": "[LocVe] Date Range",
     "summary": "Manage all kind of date range",
-    "version": "18.0.1.0.2",
+    "version": "18.0.1.0.3",
     "category": "Uncategorized",
     "website": "https://github.com/OCA/server-ux",
     "author": "ACSONE SA/NV, Odoo Community Association (OCA)",
