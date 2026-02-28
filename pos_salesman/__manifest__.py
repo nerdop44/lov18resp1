@@ -1,5 +1,5 @@
 {
-    "name": "[LocVe] Vendedor en POS",
+    "name": "[LOCVE] Vendedor en POS",
     'summary': """
         Agrega un campo vendedor en POS
         """,
@@ -8,7 +8,7 @@
     'maintainer': 'José Luis Vizcaya López remake Ing Nerdo Pulido',
     'website': 'https://github.com/birkot',
     'category': 'Point of Sale',
-    "version": "18.0.1.0.1",
+    "version": "18.0.1.0.2",
     "application": False,
     'depends': ['base', 'point_of_sale', 'hr'],
     'data': [

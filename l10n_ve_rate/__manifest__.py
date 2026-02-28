@@ -1,5 +1,5 @@
 {
-    "name": "[LocVe] Binaural Tasa de Cambio",
+    "name": "[LOCVE] Binaural Tasa de Cambio",
     "summary": """
         Módulo para obtener la tasa de cambio de la moneda base a la moneda extranjera
     """,
@@ -7,7 +7,7 @@
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Technical",
-    "version": "18.0.1.0.4",
+    "version": "18.0.1.0.5",
     # any module necessary for this one to work correctly
     "depends": ["base", "base_setup", "l10n_ve_base"],
     # always loaded

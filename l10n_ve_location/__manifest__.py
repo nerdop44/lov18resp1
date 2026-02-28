@@ -1,5 +1,5 @@
 {
-    "name": "[LocVe] Binaural Localización",
+    "name": "[LOCVE] Binaural Localización",
     "summary": """
         Maestros de ciudades, municipios
 parroquias. 
@@ -8,7 +8,7 @@ parroquias. 
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Accounting/Accounting",
-    "version": "18.0.1.0.4",
+    "version": "18.0.1.0.5",
     "depends": ["base", "contacts"],
     "data": [
         "security/ir.model.access.csv",

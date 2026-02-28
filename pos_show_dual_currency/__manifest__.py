@@ -1,9 +1,9 @@
 
 {
-    "name": """[LocVe] Venezuela: POS show dual currency""",
+    "name": """[LOCVE] Venezuela: POS show dual currency""",
     "summary": """Adds price  of other currency at products in POS""",
     "category": "LocVe [Localization]",
-    "version": "18.0.1.0.1",
+    "version": "18.0.1.0.2",
     "application": False,
     'author': 'Remake Ing Nerdo Pulido',
     'company': 'José Luis Vizcaya López remake Ing Nerdo Pulido',

@@ -1,6 +1,6 @@
 {
-    'name': '[LocVe] RC Multi-Moneda: Reportes Contables',
-    'version': '18.0.1.0.0',
+    'name': '[LOCVE] RC Multi-Moneda: Reportes Contables',
+    'version': '18.0.1.0.1',
     'category': 'LocVe [Localization]',
     'license': 'Other proprietary',
     'summary': 'Reportes contables en doble moneda (Bs./Divisa) para Venezuela',

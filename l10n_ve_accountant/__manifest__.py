@@ -1,12 +1,12 @@
 {
-    "name": "[LocVe] Binaural Contabilidad",
+    "name": "[LOCVE] Binaural Contabilidad",
     "summary": """
        Modulo para contabilidad Venezolana """,
     "license": "LGPL-3",
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Accounting/Localizations/Account Chart",
-    "version": "18.0.1.0.16",
+    "version": "18.0.1.0.17",
     # any module necessary for this one to work correctly
     "depends": [
         "base",
