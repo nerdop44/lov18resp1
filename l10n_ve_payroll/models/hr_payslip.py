@@ -509,45 +509,14 @@ class HRPayslip(models.Model):
                             tot_rule = amount * qty * rate / 100.0
                             #redondear el monto a los decimales de la nomenda de la compañía
                             tot_rule = float_round(tot_rule, precision_rounding=localdict['rule_rounding'])
-                            print('tot_rule', tot_rule)
-                            localdict = rule.category_id._sum_salary_rule_category(localdict,
-                                                                                   tot_rule)
-                            rule_name = payslip._get_rule_name(localdict, rule, employee_lang)
-                            line_vals.append({
-                                'sequence': rule.sequence,
-                                'code': rule.code,
-                                'name':  rule_name,
-                                'note': html2plaintext(rule.note) if not is_html_empty(rule.note) else '',
-                                'salary_rule_id': rule.id,
-                                'contract_id': localdict['contract'].id,
-                                'employee_id': localdict['employee'].id,
-                                'amount': amount,
-                                'quantity': qty,
-                                'rate': rate,
-                                'slip_id': payslip.id,
-                            })
-
-                    else:
-                        amount, qty, rate = rule._compute_rule(localdict)
-                        #este valor de previous_amount se deja siempre en 0 para que no lo suma en la categoría ya
-                        #que afecta el monto de acuerdo a los días que vienen en worked_days
-                        previous_amount = 0.0
-                        #set/overwrite the amount computed for this rule in the localdict
-                        tot_rule = amount * qty * rate / 100.0
-                        # redondear el monto a los decimales de la nomenda de la compañía
-                        tot_rule = float_round(tot_rule, precision_rounding=localdict['rule_rounding'])
-                        print('tot_rule', tot_rule)
-                        localdict[rule.code] = tot_rule
-                        result_rules_dict[rule.code] = {'total': tot_rule, 'amount': amount, 'quantity': qty}
-                        rules_dict[rule.code] = rule
-                        # sum the amount for its salary category
-                        localdict = rule.category_id._sum_salary_rule_category(localdict, tot_rule - previous_amount)
+                        _logger.debug('tot_rule %s', tot_rule)
+                        localdict = rule.category_id._sum_salary_rule_category(localdict,
+                                                                               tot_rule)
                         rule_name = payslip._get_rule_name(localdict, rule, employee_lang)
-                        # create/overwrite the rule in the temporary results
-                        result[rule.code] = {
+                        line_vals.append({
                             'sequence': rule.sequence,
                             'code': rule.code,
-                            'name': rule_name,
+                            'name':  rule_name,
                             'note': html2plaintext(rule.note) if not is_html_empty(rule.note) else '',
                             'salary_rule_id': rule.id,
                             'contract_id': localdict['contract'].id,
@@ -556,8 +525,39 @@ class HRPayslip(models.Model):
                             'quantity': qty,
                             'rate': rate,
                             'slip_id': payslip.id,
-                        }
-            line_vals += list(result.values())
+                        })
+
+                else:
+                    amount, qty, rate = rule._compute_rule(localdict)
+                    #este valor de previous_amount se deja siempre en 0 para que no lo suma en la categoría ya
+                    #que afecta el monto de acuerdo a los días que vienen en worked_days
+                    previous_amount = 0.0
+                    #set/overwrite the amount computed for this rule in the localdict
+                    tot_rule = amount * qty * rate / 100.0
+                    # redondear el monto a los decimales de la nomenda de la compañía
+                    tot_rule = float_round(tot_rule, precision_rounding=localdict['rule_rounding'])
+                    _logger.debug('tot_rule %s', tot_rule)
+                    localdict[rule.code] = tot_rule
+                    result_rules_dict[rule.code] = {'total': tot_rule, 'amount': amount, 'quantity': qty}
+                    rules_dict[rule.code] = rule
+                    # sum the amount for its salary category
+                    localdict = rule.category_id._sum_salary_rule_category(localdict, tot_rule - previous_amount)
+                    rule_name = payslip._get_rule_name(localdict, rule, employee_lang)
+                    # create/overwrite the rule in the temporary results
+                    result[rule.code] = {
+                        'sequence': rule.sequence,
+                        'code': rule.code,
+                        'name': rule_name,
+                        'note': html2plaintext(rule.note) if not is_html_empty(rule.note) else '',
+                        'salary_rule_id': rule.id,
+                        'contract_id': localdict['contract'].id,
+                        'employee_id': localdict['employee'].id,
+                        'amount': amount,
+                        'quantity': qty,
+                        'rate': rate,
+                        'slip_id': payslip.id,
+                    }
+        line_vals += list(result.values())
         return line_vals
 
     @api.depends('installment_ids')
@@ -644,7 +644,7 @@ class HRPayslip(models.Model):
     def _compute_basic_net(self):
         line_values = (self._origin)._get_line_values(['TOTAL'])
         for payslip in self:
-            print('line_values', line_values)
+            _logger.debug('line_values %s', line_values)
             payslip.basic_wage = 0 #line_values['BASIC'][payslip._origin.id]['total']
             payslip.net_wage = line_values['TOTAL'][payslip._origin.id]['total']
             payslip.net_wage_usd = line_values['TOTAL'][payslip._origin.id]['total_usd'] if 'total_usd' in line_values['TOTAL'][payslip._origin.id] else 0
