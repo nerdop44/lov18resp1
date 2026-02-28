@@ -4,7 +4,6 @@ import { useService } from "@web/core/utils/hooks";
 import { Component, onWillStart, useState } from "@odoo/owl";
 
 class TRM extends Component {
-    static props = { "*": true };
     setup() {
         this.state = useState({ trm: 0 });
         this.orm = useService('orm');

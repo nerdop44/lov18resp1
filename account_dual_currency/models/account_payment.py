@@ -3,10 +3,14 @@ from odoo.tools import float_round
 from odoo.exceptions import UserError
 
 
-class AccountMove(models.Model):
+class AccountPayment(models.Model):
     _inherit = 'account.payment'
 
-    tax_today = fields.Float(string="Tasa", default=lambda self: self._get_default_tasa(), digits=(16, 4))
+    def _valid_field_parameter(self, field_name, parameter):
+        return super()._valid_field_parameter(field_name, parameter)
+
+
+    tax_today = fields.Float(string="Tasa de Pago", default=lambda self: self._get_default_tasa())
     currency_id_dif = fields.Many2one("res.currency",
                                       string="Divisa de Referencia",
                                       default=lambda self: self.env.company.currency_id_dif )
@@ -21,13 +25,12 @@ class AccountMove(models.Model):
         readonly=True,
         help="Asiento contable de diferencia en tipo de cambio")
 
-    currency_id_name = fields.Char(related="currency_id.name")
+    currency_id_name = fields.Char(string="Nombre de Divisa", related="currency_id.name")
     journal_igtf_id = fields.Many2one('account.journal', string='Diario IGTF', check_company=True)
     aplicar_igtf_divisa = fields.Boolean(string="Aplicar IGTF")
     igtf_divisa_porcentage = fields.Float('% IGTF', related='company_id.igtf_divisa_porcentage')
 
-    mount_igtf = fields.Monetary(currency_field='currency_id', string='Importe IGTF', readonly=True,
-                                 digits=(16, 2))
+    mount_igtf = fields.Monetary(currency_field='currency_id', string='Importe IGTF', readonly=True)
 
     amount_total_pagar = fields.Monetary(currency_field='currency_id', string="Total Pagar(Importe + IGTF):",
                                          readonly=True)
@@ -143,8 +146,8 @@ class AccountMove(models.Model):
             move_id.action_post()
         return True
 
-    def _prepare_move_line_default_vals(self, write_off_line_vals=None, force_balance=None):
-        res = super()._prepare_move_line_default_vals(write_off_line_vals, force_balance=force_balance)
+    def _prepare_move_line_default_vals(self, write_off_line_vals=None):
+        res = super()._prepare_move_line_default_vals(write_off_line_vals)
         total_debit = 0
         total_credit = 0
         if res:
@@ -201,7 +204,7 @@ class AccountMove(models.Model):
                 pay.move_id.write({
                     'tax_today': pay.tax_today,
                 })
-        super(AccountMove, self)._synchronize_to_moves(changed_fields)
+        super(AccountPayment, self)._synchronize_to_moves(changed_fields)
 
     # @api.depends('reconciled_invoice_ids')
     # def _compute_payment_state(self):

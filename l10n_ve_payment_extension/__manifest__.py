@@ -1,12 +1,12 @@
 {
-    "name": "Binaural Retenciones",
+    "name": "[LocVe] Binaural Retenciones",
     "summary": """
        Modulo de extensiones de pago """,
     "license": "LGPL-3",
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Accountant/Accountant",
-    "version": "18.0.1.0.4",
+    "version": "18.0.1.0.55",
     # any module necessary for this one to work correctly
     "depends": [
         "base",
@@ -19,6 +19,7 @@
         "l10n_ve_tax_payer",
         "l10n_ve_base",
         "product",
+        "account_dual_currency",
     ],
     # always loaded
     "data": [
@@ -45,6 +46,7 @@
         "views/product.xml",
         "views/product_category.xml",
         "views/res_company.xml",
+        "views/res_company_signatures_view.xml",
         "views/signature_config.xml",
         "views/type_withholding.xml",
         "views/account_retention_line.xml",
@@ -66,5 +68,4 @@
     "images": ["static/description/icon.png"],
     "application": True,
     "binaural": True,
-    'installable': True,
 }

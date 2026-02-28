@@ -3,10 +3,10 @@
     "summary": "Modulo para campos del impuesto IGTF (Impuesto a las grandes transacciones financieras)",
     "license": "AGPL-3",
     "description": "Modulo para campos del impuesto IGTF (Impuesto a las grandes transacciones financieras)",
-    "author": "Remake Ing Nerdo Pulido",
+    "author": "Binauraldev",
     "website": "https://binauraldev.com/",
-    "category": "LocVe [Localization]",
-    "version": "18.0.1.0.3",
+    "category": "Accounting/Accounting",
+    "version": "18.0.1.0.12",
     "depends": [
         "base",
         "l10n_ve_rate",
@@ -24,11 +24,10 @@
         "wizard/account_payment_register.xml",
     ],
     "images": ["static/description/icon.png"],
-    "assets": {
-        "web.assets_backend": ["l10n_ve_igtf/static/src/components/**/*"],
-    },
+    # "assets": {
+    #     "web.assets_backend": ["l10n_ve_igtf/static/src/components/**/*"],
+    # },
     "pre_init_hook": "pre_init_hook",
     "application": True,
-    "installable": True,
     "binaural": True,
 }

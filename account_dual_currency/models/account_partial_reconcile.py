@@ -9,7 +9,7 @@ class AccountPartialReconcile(models.Model):
 
     company_currency_id_dif = fields.Many2one(
         comodel_name='res.currency',
-        string="Company Currency",
+        string="Moneda Empresa (Dual)",
         related='company_id.currency_id_dif')
 
     # ==== Amount fields ====

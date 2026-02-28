@@ -8,7 +8,7 @@
                 <xpath expr="//field[@name='original_value']" position="after">
                     <field name="original_value_ref" readonly="1" force_save="1"/>
                 </xpath>
-                <xpath expr="//div[@class='oe_title']" position="after">
+                <xpath expr="//div[hasclass('oe_title')]" position="after">
                     <group>
                         <group>
                             <field name="currency_id" readonly="1" force_save="1" string="Moneda Compañía"/>

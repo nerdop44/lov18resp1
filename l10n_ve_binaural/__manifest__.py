@@ -1,9 +1,10 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 {
-    "name": "Venezuela Binaural - Accounting",
+    "name": "[LocVe] Venezuela Binaural - Accounting",
     "website": "https://www.odoo.com/documentation/18.0/applications/finance/fiscal_localizations.html",
     "icon": "/account/static/description/l10n.png",
     "countries": ["ve"],
+    "version": "18.0.1.0.16",
     "author": "Odoo S.A., Binaural C.A",
     "category": "Accounting/Localizations/Account Charts",
     "description": """
@@ -48,6 +49,9 @@ but you will need set manually account defaults for taxes.
         "security/res_groups.xml",
         "security/ir_rule.xml",
         #data
+        "data/res_country_state.xml",
+        "data/res_country_municipality.xml",
+        "data/res_country_parish.xml",
         "data/ir_sequence.xml",
         #views
         "views/account_journal_views.xml",
@@ -60,5 +64,4 @@ but you will need set manually account defaults for taxes.
         "views/l10n_ve_menuitems.xml",
     ],
     "license": "LGPL-3",
-    'installable': True,
 }

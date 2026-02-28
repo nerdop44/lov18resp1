@@ -160,6 +160,91 @@ class AccountTax(models.Model):
         
         return res
 
+    @api.model
+    def _get_tax_totals_summary(self, base_lines, currency, company, cash_rounding=None):
+        """
+        Extensión de Odoo 18 que inyecta los campos bimonetarios en tax_totals.
+        En Odoo 18, _compute_tax_totals llama a _get_tax_totals_summary en lugar de
+        _prepare_tax_totals, por lo que debemos extender este método para añadir
+        los campos bimonetarios necesarios para los libros fiscales.
+        """
+        # Llama al método estándar de Odoo 18
+        res = super()._get_tax_totals_summary(
+            base_lines=base_lines,
+            currency=currency,
+            company=company,
+            cash_rounding=cash_rounding,
+        )
+
+        if not res:
+            return res
+
+        foreign_currency = company.currency_foreign_id or False
+        if not foreign_currency:
+            return res
+
+        try:
+            # Calcular totales foráneos directamente desde los registros de líneas
+            # El 'record' en base_lines es un account.move.line con foreign_subtotal y foreign_price_total
+            foreign_amount_untaxed = 0.0
+            foreign_amount_total = 0.0
+            groups_by_foreign_subtotal = {}
+
+            for base_line in base_lines:
+                record = base_line.get("record")
+                if not record:
+                    continue
+                # Sumamos subtotal foráneo (sin impuestos) y total foráneo (con impuestos)
+                if hasattr(record, 'foreign_subtotal'):
+                    foreign_amount_untaxed += record.foreign_subtotal or 0.0
+                if hasattr(record, 'foreign_price_total'):
+                    foreign_amount_total += record.foreign_price_total or 0.0
+
+                # Construir groups_by_foreign_subtotal para los libros fiscales
+                # La estructura que espera el reporte es:
+                # { "Nombre subtotal": [{ "tax_group_id": id, "tax_group_base_amount": float, "tax_group_amount": float }] }
+                if hasattr(record, 'tax_ids') and record.tax_ids:
+                    for tax in record.tax_ids:
+                        subtotal_name = tax.mapped('invoice_repartition_line_ids.factor_percent')
+                        group_id = tax.tax_group_id.id if tax.tax_group_id else False
+                        if not group_id:
+                            continue
+                        base_amount = record.foreign_subtotal or 0.0
+                        tax_amount = (record.foreign_price_total or 0.0) - base_amount
+
+                        # Agregar al diccionario de grupos
+                        for subtotal in res.get("subtotals", []):
+                            key = subtotal.get("name", "Untaxed Amount")
+                            if key not in groups_by_foreign_subtotal:
+                                groups_by_foreign_subtotal[key] = []
+                            # Buscar si ya existe un entry para este grupo
+                            found = False
+                            for entry in groups_by_foreign_subtotal[key]:
+                                if entry.get("tax_group_id") == group_id:
+                                    entry["tax_group_base_amount"] += base_amount
+                                    entry["tax_group_amount"] += tax_amount
+                                    found = True
+                                    break
+                            if not found:
+                                groups_by_foreign_subtotal[key].append({
+                                    "tax_group_id": group_id,
+                                    "tax_group_base_amount": base_amount,
+                                    "tax_group_amount": tax_amount,
+                                })
+
+            res["foreign_amount_untaxed"] = foreign_amount_untaxed
+            res["foreign_amount_total"] = foreign_amount_total or (foreign_amount_untaxed + (foreign_amount_total - foreign_amount_untaxed if foreign_amount_total > foreign_amount_untaxed else 0.0))
+            res["groups_by_foreign_subtotal"] = groups_by_foreign_subtotal
+            res["foreign_subtotals"] = []
+            res["foreign_formatted_amount_untaxed"] = formatLang(self.env, foreign_amount_untaxed, currency_obj=foreign_currency)
+            res["foreign_formatted_amount_total"] = formatLang(self.env, foreign_amount_total, currency_obj=foreign_currency)
+
+        except Exception as e:
+            _logger.warning("Error calculating foreign tax totals (bimonetary): %s", e)
+
+        return res
+
+
     def get_foreign_base_tax_lines(self, base_lines, tax_lines, currency):
         foreign_base_lines = [line.copy() for line in base_lines if line]
         foreign_tax_lines = None

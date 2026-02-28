@@ -2,9 +2,9 @@
     "name": "[LocVe] Binaural Impuesto",
     "summary": "Modulo para Impuestos Venezolanos",
     "license": "LGPL-3",
-    "author": "Remake Ing Nerdo Pulido",
+    "author": "Binauraldev",
     "website": "https://binauraldev.com/",
-    "category": "LocVe [Localization]",
+    "category": "Accounting/Localizations/Account Chart",
     "version": "18.0.1.0.2",
     # any module necessary for this one to work correctly
     "depends": ["base", "account", "l10n_ve_rate"],
@@ -15,9 +15,8 @@
     ],
     "images": ["static/description/icon.png"],
     "application": True,
-    "assets": {
-        "web.assets_backend": ["l10n_ve_tax/static/src/components/**/*"],
-    },
+    # "assets": {
+    #     "web.assets_backend": ["l10n_ve_tax/static/src/components/**/*"],
+    # },
     "binaural": True,
-    'installable': True,
 }

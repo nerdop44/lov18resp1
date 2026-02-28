@@ -19,6 +19,10 @@ import json
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return super()._valid_field_parameter(field_name, parameter)
+
+
     currency_id_dif = fields.Many2one("res.currency",
                                       string="Moneda Dual Ref.",
                                       default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')],
@@ -26,9 +30,9 @@ class AccountMove(models.Model):
 
     acuerdo_moneda = fields.Boolean(string="Acuerdo de Factura Bs.", default=False)
 
-    tax_today = fields.Float(string="Tasa", store=True,
-                             default=lambda self: self.env.company.currency_id_dif.inverse_rate,
-                             tracking=True, digits=(16, 4))
+    tax_today = fields.Float(string="Tasa de Factura", store=True,
+                             default=lambda self: self._default_tax_today(),
+                             tracking=True)
 
     tax_today_edited = fields.Boolean(string="Tasa Manual", default=False)
 
@@ -36,22 +40,22 @@ class AccountMove(models.Model):
 
     name_rate = fields.Char(store=True, readonly=True, compute='_name_ref')
     amount_untaxed_usd = fields.Monetary(currency_field='currency_id_dif', string="Base imponible Ref.", store=True,
-                                         compute="_amount_all_usd", digits=(16, 2), copy=False)
+                                         compute="_amount_all_usd", copy=False)
     amount_tax_usd = fields.Monetary(currency_field='currency_id_dif', string="Impuestos Ref.", store=True,
-                                     readonly=True, digits=(16, 2), compute="_amount_all_usd", copy=False)
+                                     readonly=True, compute="_amount_all_usd", copy=False)
     amount_total_usd = fields.Monetary(currency_field='currency_id_dif', string='Total Ref.', store=True, readonly=True,
                                        compute='_amount_all_usd',
-                                       digits=(16, 2), tracking=True)
+                                       tracking=True)
 
     amount_residual_usd = fields.Monetary(currency_field='currency_id_dif', compute='_compute_amount', string='Adeudado Ref.',
-                                          readonly=True, digits=(16, 2), store=True, copy=False)
+                                          readonly=True, store=True, copy=False)
     invoice_payments_widget_usd = fields.Binary(groups="account.group_account_invoice,account.group_account_readonly",
                                               compute='_compute_payments_widget_reconciled_info_USD')
 
     amount_untaxed_bs = fields.Monetary(currency_field='company_currency_id', string="Base imponible Bs.", store=True, copy=False,
                                         compute="_amount_all_usd")
     amount_tax_bs = fields.Monetary(currency_field='company_currency_id', string="Impuestos Bs.", store=True, copy=False,
-                                    readonly=True)
+                                    readonly=True, compute="_amount_all_usd")
     amount_total_bs = fields.Monetary(currency_field='company_currency_id', string='Total Bs.', store=True,
                                       readonly=True,
                                       compute='_amount_all_usd', copy=False)
@@ -68,73 +72,83 @@ class AccountMove(models.Model):
 
     verificar_pagos = fields.Boolean(string="Verificar pagos", compute='_verificar_pagos')
 
-    # asset_remaining_value_ref = fields.Monetary(currency_field='currency_id_dif', string='Valor depreciable Ref.', copy=False, compute='_compute_depreciation_cumulative_value_ref')
-    # asset_depreciated_value_ref = fields.Monetary(currency_field='currency_id_dif', string='Depreciación Acu. Ref.', copy=False, compute='_compute_depreciation_cumulative_value_ref')
+    asset_remaining_value_ref = fields.Monetary(currency_field='currency_id_dif', string='Valor depreciable Ref.', copy=False, compute='_compute_depreciation_cumulative_value_ref')
+    asset_depreciated_value_ref = fields.Monetary(currency_field='currency_id_dif', string='Depreciación Acu. Ref.', copy=False, compute='_compute_depreciation_cumulative_value_ref')
 
     move_igtf_id = fields.Many2one('account.move', string='Asiento Retención IGTF', copy=False)
 
-    # depreciation_value_ref = fields.Monetary(
-    #     string="Depreciation Ref.",
-    #     compute="_compute_depreciation_value_ref", inverse="_inverse_depreciation_value_ref", store=True, copy=False
-    # )
+    depreciation_value_ref = fields.Monetary(
+        string="Depreciation Ref.",
+        compute="_compute_depreciation_value_ref", inverse="_inverse_depreciation_value_ref", store=True, copy=False
+    )
+
+    def _default_tax_today(self):
+        """Calcular la tasa BCV (cuántos Bs equivalen a 1 USD)."""
+        usd = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+        vef = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs', 'VED'))], limit=1)
+        if usd and vef and usd.id != vef.id:
+            return usd._get_conversion_rate(
+                usd, vef, self.env.company, fields.Date.today()
+            )
+        return 1.0
 
     def _post(self, soft=True):
         res = super(AccountMove, self)._post(soft=soft)
         for move in self:
             move._verificar_pagos()
 
-    # @api.depends('asset_id', 'depreciation_value', 'asset_id.total_depreciable_value', 'asset_id.already_depreciated_amount_import')
-    # def _compute_depreciation_cumulative_value(self):
-    #     super(AccountMove, self)._compute_depreciation_cumulative_value()
-    #     for move in self:
-    #         if move.asset_id:
-    #             move.asset_remaining_value_ref = (move.asset_remaining_value / move.tax_today) if move.tax_today != 0 else 0
-    #             move.asset_depreciated_value_ref = (move.asset_depreciated_value / move.tax_today) if move.tax_today != 0 else 0
+    @api.depends('asset_id', 'depreciation_value', 'asset_id.total_depreciable_value', 'asset_id.already_depreciated_amount_import')
+    def _compute_depreciation_cumulative_value(self):
+        super(AccountMove, self)._compute_depreciation_cumulative_value()
+        for move in self:
+            if move.asset_id:
+                move.asset_remaining_value_ref = (move.asset_remaining_value / move.tax_today) if move.tax_today != 0 else 0
+                move.asset_depreciated_value_ref = (move.asset_depreciated_value / move.tax_today) if move.tax_today != 0 else 0
 
-    # @api.depends('line_ids.balance_usd')
-    # def _compute_depreciation_value_ref(self):
-    #     for move in self:
-    #         asset = move.asset_id or move.reversed_entry_id.asset_id  # reversed moves are created before being assigned to the asset
-    #         if asset:
-    #             account = asset.account_depreciation_expense_id if asset.asset_type != 'sale' else asset.account_depreciation_id
-    #             asset_depreciation = sum(
-    #                 move.line_ids.filtered(lambda l: l.account_id == account).mapped('balance_usd')
-    #             )
-    #             # Special case of closing entry - only disposed assets of type 'purchase' should match this condition
-    #             if any(
-    #                     line.account_id == asset.account_asset_id
-    #                     and float_compare(-line.balance_usd, asset.original_value_ref,
-    #                                       precision_rounding=asset.currency_id.rounding) == 0
-    #                     for line in move.line_ids
-    #             ):
-    #                 account = asset.account_depreciation_id
-    #                 asset_depreciation = (
-    #                         asset.original_value_ref
-    #                         - asset.salvage_value_ref
-    #                         - sum(
-    #                     move.line_ids.filtered(lambda l: l.account_id == account).mapped(
-    #                         'debit_usd' if asset.original_value_ref > 0 else 'credit_usd'
-    #                     )
-    #                 ) * (-1 if asset.original_value_ref < 0 else 1)
-    #                 )
-    #         else:
-    #             asset_depreciation = 0
-    #         move.depreciation_value_ref = asset_depreciation
+    @api.depends('line_ids.balance_usd')
+    def _compute_depreciation_value_ref(self):
+        for move in self:
+            asset = move.asset_id or move.reversed_entry_id.asset_id  # reversed moves are created before being assigned to the asset
+            if asset:
+                account = asset.account_depreciation_expense_id if asset.asset_type != 'sale' else asset.account_depreciation_id
+                asset_depreciation = sum(
+                    move.line_ids.filtered(lambda l: l.account_id == account).mapped('balance_usd')
+                )
+                # Special case of closing entry - only disposed assets of type 'purchase' should match this condition
+                if any(
+                        line.account_id == asset.account_asset_id
+                        and float_compare(-line.balance_usd, asset.original_value_ref,
+                                          precision_rounding=asset.currency_id.rounding) == 0
+                        for line in move.line_ids
+                ):
+                    account = asset.account_depreciation_id
+                    asset_depreciation = (
+                            asset.original_value_ref
+                            - asset.salvage_value_ref
+                            - sum(
+                        move.line_ids.filtered(lambda l: l.account_id == account).mapped(
+                            'debit_usd' if asset.original_value_ref > 0 else 'credit_usd'
+                        )
+                    ) * (-1 if asset.original_value_ref < 0 else 1)
+                    )
+            else:
+                asset_depreciation = 0
+            move.depreciation_value_ref = asset_depreciation
 
     # -------------------------------------------------------------------------
     # INVERSE METHODS
     # -------------------------------------------------------------------------
-    # def _inverse_depreciation_value(self):
-    #     for move in self:
-    #         asset = move.asset_id
-    #         amount = abs(move.depreciation_value_ref)
-    #         account = asset.account_depreciation_expense_id if asset.asset_type != 'sale' else asset.account_depreciation_id
-    #         move.write({'line_ids': [
-    #             Command.update(line.id, {
-    #                 'balance_usd': amount if line.account_id == account else -amount,
-    #             })
-    #             for line in move.line_ids
-    #         ]})
+    def _inverse_depreciation_value(self):
+        for move in self:
+            asset = move.asset_id
+            amount = abs(move.depreciation_value_ref)
+            account = asset.account_depreciation_expense_id if asset.asset_type != 'sale' else asset.account_depreciation_id
+            move.write({'line_ids': [
+                Command.update(line.id, {
+                    'balance_usd': amount if line.account_id == account else -amount,
+                })
+                for line in move.line_ids
+            ]})
 
     def _verificar_pagos(self):
         for rec in self:
@@ -154,6 +168,8 @@ class AccountMove(models.Model):
                     new_rate = 1 / new_rate_ids[self.env.company.currency_id_dif.id]
                     #print('new_rate', new_rate)
                     rec.tax_today = new_rate
+                    # Calcular totales al cambiar tasa
+                    rec._amount_all_usd()
         # if self.invoice_date and self.company_id.currency_id_dif and not self.tax_today_edited:
         #     new_rate_ids = self.env.company.currency_id_dif._get_rates(self.env.company, self.invoice_date)
         #     if new_rate_ids:
@@ -223,18 +239,31 @@ class AccountMove(models.Model):
         self.same_currency = self.currency_id == self.env.company.currency_id
 
 
+    @api.onchange('invoice_date', 'date')
+    def _onchange_invoice_date_rate(self):
+        for rec in self:
+            if not rec.tax_today_edited:
+                usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+                vef_currency = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs'))], limit=1)
+                if usd_currency and vef_currency and usd_currency.id != vef_currency.id:
+                    rec.tax_today = usd_currency._get_conversion_rate(
+                        usd_currency, vef_currency, rec.company_id, rec.invoice_date or rec.date or fields.Date.today()
+                    )
+                rec._onchange_tax_today()
+
     @api.onchange('tax_today')
     def _onchange_tax_today(self):
         self = self.with_context(check_move_validity=False)
         for rec in self:
             if not rec.move_type == 'entry':
+                is_vef = rec.currency_id.name in ('VEF', 'VES', 'Bs')
                 for l in rec.invoice_line_ids:
-                    l.price_unit = (l.price_unit_usd * rec.tax_today) if rec.currency_id == rec.company_id.currency_id else l.price_unit_usd
+                    # Si la factura es en Bs, el precio unitario base (en Bs) = Precio USD * Tasa
+                    # Si es en USD, el precio unitario base = Precio USD
+                    l.price_unit = (l.price_unit_usd * rec.tax_today) if is_vef else l.price_unit_usd
                 rec._onchange_quick_edit_total_amount()
                 rec._onchange_quick_edit_line_ids()
                 rec._compute_tax_totals()
-                #rec.line_ids._compute_currency_rate()
-                #rec.line_ids._compute_amount_currency()
                 rec.invoice_line_ids._compute_totals()
 
             else:
@@ -262,27 +291,27 @@ class AccountMove(models.Model):
     @api.onchange('currency_id')
     def _onchange_currency(self):
         for rec in self:
-            if rec.currency_id == self.env.company.currency_id:
-                for l in rec.invoice_line_ids:
-                    # pass
-                    l.currency_id = rec.currency_id
-                    l.price_unit = (l.price_unit_usd * (rec.tax_today if rec.tax_today > 0 else l.price_unit))
+            # Sincronizamos la tasa al cambiar de moneda si no ha sido editada manualmente
+            if not rec.tax_today_edited:
+                usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+                vef_currency = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs'))], limit=1)
+                if usd_currency and vef_currency and usd_currency.id != vef_currency.id:
+                    rec.tax_today = usd_currency._get_conversion_rate(
+                        usd_currency, vef_currency, rec.company_id, rec.invoice_date or fields.Date.today()
+                    )
 
-            else:
-                for l in rec.invoice_line_ids:
-                    # pass
-                    l.currency_id = rec.currency_id
-                    l.price_unit = l.price_unit_usd
+            is_vef = rec.currency_id.name in ('VEF', 'VES', 'Bs')
+            for l in rec.invoice_line_ids:
+                l.currency_id = rec.currency_id
+                l.price_unit = (l.price_unit_usd * rec.tax_today) if is_vef else l.price_unit_usd
 
-            #rec.invoice_line_ids._onchange_price_subtotal()
-
-            #rec._recompute_dynamic_lines(recompute_all_taxes=True)
+            # Sincronizar también los apuntes contables
             for aml in rec.line_ids:
                 aml.currency_id = rec.currency_id
                 aml._compute_currency_rate()
 
-
-            #rec._onchange_tax_today()
+            # Forzar actualización de totales y líneas
+            rec._onchange_tax_today()
 
     @api.depends('state', 'move_type')
     def _edit_trm(self):
@@ -337,42 +366,62 @@ class AccountMove(models.Model):
             move.amount_total_signed_usd = abs(total) if move.move_type == 'entry' else -total
         self.env.context = dict(self.env.context, tasa_factura=None, calcular_dual_currency=False)
 
+    currency_vef_id = fields.Many2one("res.currency", string="Moneda Bs.", compute="_compute_currency_vef_id")
+
+    @api.depends('company_id')
+    def _compute_currency_vef_id(self):
+        vef = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES', 'Bs', 'VED'))], limit=1)
+        for rec in self:
+            rec.currency_vef_id = vef
+
     @api.depends(
-        'tax_totals',
+        'invoice_line_ids.price_subtotal',
+        'invoice_line_ids.tax_ids',
+        'amount_untaxed',
+        'amount_total',
         'currency_id_dif',
-        'currency_id','tax_today')
+        'currency_id',
+        'tax_today')
     def _amount_all_usd(self):
         for rec in self:
-            if rec.is_invoice(include_receipts=True) and rec.tax_totals:
-                amount_untaxed = rec.tax_totals.get('amount_untaxed', 0)
-                amount_tax = 0
-                for product, income in rec.tax_totals.get('groups_by_subtotal', {}).items():
-                    ###print(product, income)
-                    for l in income:
-                        amount_tax += l.get('tax_group_amount', 0)
-
-                amount_total = rec.tax_totals.get('amount_total', 0)
-                if rec.currency_id != self.env.company.currency_id:
-                    rec.amount_untaxed_usd = rec.amount_untaxed
-                    rec.amount_tax_usd = rec.amount_tax
-                    rec.amount_total_usd = rec.amount_total
-                    rec.amount_untaxed_bs = rec.amount_untaxed_usd * rec.tax_today
-                    rec.amount_tax_bs = rec.amount_tax_usd * rec.tax_today
-                    rec.amount_total_bs = rec.amount_total_usd * rec.tax_today
-                else:
-                    rec.amount_untaxed_usd = (amount_untaxed / rec.tax_today) if rec.tax_today > 0 else 0
-                    rec.amount_tax_usd = (amount_tax / rec.tax_today) if rec.tax_today > 0 else 0
-                    rec.amount_total_usd = (amount_total / rec.tax_today) if rec.tax_today > 0 else 0
+            if rec.is_invoice(include_receipts=True):
+                # Detección explícita: ¿Es la factura en Bolívares?
+                is_vef = rec.currency_id.name in ('VEF', 'VES', 'Bs', 'VED')
+                tasa = rec.tax_today or 0.0
+                
+                if is_vef:
+                    # Factura en VEF → Referencia USD = Monto / Tasa
+                    rec.amount_untaxed_usd = rec.amount_untaxed / tasa if tasa > 0 else 0.0
+                    rec.amount_tax_usd = rec.amount_tax / tasa if tasa > 0 else 0.0
+                    rec.amount_total_usd = rec.amount_total / tasa if tasa > 0 else 0.0
+                    # Bs. = Monto directo
                     rec.amount_untaxed_bs = rec.amount_untaxed
                     rec.amount_tax_bs = rec.amount_tax
                     rec.amount_total_bs = rec.amount_total
+                else:
+                    # Factura en moneda no-Bs (asumimos USD) → Ref = Monto directo
+                    rec.amount_untaxed_usd = rec.amount_untaxed
+                    rec.amount_tax_usd = rec.amount_tax
+                    rec.amount_total_usd = rec.amount_total
+                    # Bs. = Monto * Tasa
+                    rec.amount_untaxed_bs = rec.amount_untaxed * tasa
+                    rec.amount_tax_bs = rec.amount_tax * tasa
+                    rec.amount_total_bs = rec.amount_total * tasa
             else:
-                rec.amount_untaxed_usd = 0
-                rec.amount_tax_usd = 0
-                rec.amount_total_usd = 0
-                rec.amount_untaxed_bs = 0
-                rec.amount_tax_bs = 0
-                rec.amount_total_bs = 0
+                rec.amount_untaxed_usd = 0.0
+                rec.amount_tax_usd = 0.0
+                rec.amount_total_usd = 0.0
+                rec.amount_untaxed_bs = 0.0
+                rec.amount_tax_bs = 0.0
+                rec.amount_total_bs = 0.0
+
+    @api.onchange('invoice_line_ids', 'tax_today', 'currency_id', 'line_ids')
+    def _onchange_recompute_dual_totals(self):
+        """Forzar recálculo dinámico en el cliente web antes de guardar."""
+        for rec in self:
+            if rec.is_invoice(include_receipts=True):
+                rec._amount_all_usd()
+
 
     @api.depends('move_type', 'line_ids.amount_residual_usd')
     def _compute_payments_widget_reconciled_info_USD(self):
@@ -693,15 +742,15 @@ class AccountMove(models.Model):
             move.invoice_outstanding_credits_debits_widget = payments_widget_vals
             move.invoice_has_outstanding = True
 
-    # @api.model
-    # def _prepare_move_for_asset_depreciation(self, vals):
-    #     move_vals = super(AccountMove, self)._prepare_move_for_asset_depreciation(vals)
-    #     asset_id = vals.get('asset_id')
-    #     move_vals['tax_today'] = asset_id.tax_today
-    #     move_vals['currency_id_dif'] = asset_id.currency_id_dif.id
-    #     #move_vals['asset_remaining_value_ref'] = move_vals['asset_remaining_value'] / asset_id.tax_today
-    #     #move_vals['asset_depreciated_value_ref'] = move_vals['asset_depreciated_value'] / asset_id.tax_today
-    #     return move_vals
+    @api.model
+    def _prepare_move_for_asset_depreciation(self, vals):
+        move_vals = super(AccountMove, self)._prepare_move_for_asset_depreciation(vals)
+        asset_id = vals.get('asset_id')
+        move_vals['tax_today'] = asset_id.tax_today
+        move_vals['currency_id_dif'] = asset_id.currency_id_dif.id
+        #move_vals['asset_remaining_value_ref'] = move_vals['asset_remaining_value'] / asset_id.tax_today
+        #move_vals['asset_depreciated_value_ref'] = move_vals['asset_depreciated_value'] / asset_id.tax_today
+        return move_vals
 
     def js_remove_outstanding_partial(self, partial_id):
         ''' Called by the 'payment' widget to remove a reconciled entry to the present invoice.

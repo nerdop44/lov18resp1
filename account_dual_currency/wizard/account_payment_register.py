@@ -6,29 +6,34 @@ from odoo.exceptions import UserError
 class AccountPaymentRegister(models.TransientModel):
     _inherit = 'account.payment.register'
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return super()._valid_field_parameter(field_name, parameter)
+
+
     amount = fields.Monetary(currency_field='currency_id', store=True, readonly=False)
-    tax_today = fields.Float(string="Tasa Actual", digits=(16, 4))
-    tax_invoice = fields.Float(string="Tasa Factura", digits=(16, 4))
+    tax_today = fields.Float(string="Tasa Actual")
+    tax_invoice = fields.Float(string="Tasa Factura")
     currency_id_dif = fields.Many2one("res.currency",string="Divisa de Referencia")
-    currency_id_name = fields.Char(related="currency_id.name")
-    amount_residual_usd = fields.Monetary(currency_field='currency_id_dif',string='Adeudado Divisa Ref.', readonly=True, digits=(16, 2))
-    payment_difference_bs = fields.Monetary(string="Diferencia Bs", currency_field='company_currency_id', digits=(16, 2))
-    payment_difference_usd = fields.Monetary(string="Diferencia $", currency_field='currency_id_dif',
-                                            digits=(16, 2))
+    currency_id_name = fields.Char(string="Nombre de Divisa", related="currency_id.name")
+    amount_residual_usd = fields.Monetary(currency_field='currency_id_dif',string='Adeudado Divisa Ref.', readonly=True)
+    payment_difference_bs = fields.Monetary(string="Diferencia Bs", currency_field='company_currency_id')
+    payment_difference_usd = fields.Monetary(string="Diferencia $", currency_field='currency_id_dif')
     journal_id_dif = fields.Many2one('account.journal', 'Diario de diferencia', store=True,
                                  domain="[('company_id', '=', company_id)]")
-    amount_usd = fields.Monetary(currency_field='currency_id_dif',string='Importe $', readonly=True, digits=(16, 2))
+    amount_usd = fields.Monetary(currency_field='currency_id_dif',string='Importe $', readonly=True)
 
     journal_igtf_id = fields.Many2one('account.journal', string='Diario IGTF', check_company=True)
     aplicar_igtf_divisa = fields.Boolean(string="Aplicar IGTF",
                                          default=lambda self: self._get_default_igtf())
     igtf_divisa_porcentage = fields.Float('% IGTF', related='company_id.igtf_divisa_porcentage')
 
-    mount_igtf = fields.Monetary(currency_field='currency_id', string='Importe IGTF', readonly=True,
-                                 digits=(16, 2))
+    mount_igtf = fields.Monetary(currency_field='currency_id', string='Importe IGTF', readonly=True)
 
     amount_total_pagar = fields.Monetary(currency_field='currency_id', string="Total Pagar(Importe + IGTF):",
                                          readonly=True)
+
+    # company_currency_id = fields.Many2one('res.currency', string='Company Currency')
+
 
     @api.depends('currency_id')
     def _get_default_igtf(self):
@@ -197,7 +202,7 @@ class AccountPaymentRegister(models.TransientModel):
             'amount': self.amount,
             'payment_type': self.payment_type,
             'partner_type': self.partner_type,
-            'ref': self.communication,
+            'memo': self.communication,
             'journal_id': self.journal_id.id,
             'currency_id': self.currency_id.id,
             'partner_id': self.partner_id.id,

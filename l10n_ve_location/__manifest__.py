@@ -1,5 +1,5 @@
 {
-    "name": "Binaural Localización",
+    "name": "[LocVe] Binaural Localización",
     "summary": """
         Maestros de ciudades, municipios
 parroquias. 

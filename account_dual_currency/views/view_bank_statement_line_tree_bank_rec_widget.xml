@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="account_accountant.view_bank_statement_line_tree_bank_rec_widget"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='amount']" position="after">
-                <field name="tasa_referencia_statement" string="Tasa" readonly="[('is_reconciled', '=', True)]"/>
+                <field name="tasa_referencia_statement" string="Tasa de Conciliación" readonly="[('is_reconciled', '=', True)]"/>
                 <field name="amount_usd_statement"/>
                 <field name="currency_id_dif_statement" invisible="1"/>
             </xpath>

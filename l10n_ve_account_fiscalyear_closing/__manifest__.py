@@ -3,10 +3,10 @@
     "summary": """
        Modulo para Cierre Fiscal """,
     "license": "LGPL-3",
-    "author": "Remake Ing Nerdo Pulido",
+    "author": "Binauraldev",
     "website": "https://binauraldev.com/",
-    "category": "LocVe [Localization]",
-    "version": "18.0.1.0.0",
+    "category": "Accounting/Localizations/Account Chart",
+    "version": "18.0.1.0.2",
     # any module necessary for this one to work correctly
     "depends": [
         "account_fiscal_year_closing",
@@ -21,5 +21,4 @@
     "images": ["static/description/icon.png"],
     "application": True,
     "binaural": True,
-    'installable': True,
 }

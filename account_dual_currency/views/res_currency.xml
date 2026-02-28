@@ -6,24 +6,27 @@
             <field name="inherit_id" ref="base.view_currency_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//sheet" position="before">
-                    <field name="facturas_por_actualizar" invisible="1"/>
-                    <div class="alert alert-danger" role="alert" style="margin-bottom:0px;" invisible="[('facturas_por_actualizar','=',True)]">
-                        <strong>
-                            - Existen facturas por actualizar a la nueva tasa
-                        </strong>
-                    </div>
                     <header>
-                        <button name="actualizar_facturas" string="Actualizar Facturas" class="oe_highlight" type="object" invisible="[('facturas_por_actualizar','=',True)]"/>
+                        <button name="actualizar_tasa" string="Actualizar Ahora" class="oe_highlight" type="object" invisible="1"/>
+                        <button name="actualizar_facturas" string="Actualizar Facturas" class="oe_highlight" type="object" invisible="not facturas_por_actualizar"/>
                         <button name="actualizar_productos" string="Actualizar Productos" class="oe_highlight" type="object"/>
                     </header>
+                    <div class="alert alert-danger" role="alert" style="margin-bottom:0px;" invisible="not facturas_por_actualizar">
+                        <strong>
+                            - Existe facturas por actualizar a la nueva tasa
+                        </strong>
+                    </div>
                 </xpath>
-                 <xpath expr="//field[@name='currency_subunit_label']" position="after">
+                 <xpath expr="//field[@name='active']" position="after">
                      <field name="sincronizar"/>
-                     <field name="server" invisible="[('sincronizar','=',False)]" required="[('sincronizar','=',True)]"/>
-                     <field name="act_productos" invisible="[('sincronizar','=',False)]"/>
-                     <button name="actualizar_tasa" string="Actualizar Ahora" class="oe_highlight" type="object"  invisible="[('sincronizar','=',False)]"/>
                      <field name="facturas_por_actualizar" invisible="1"/>
+                     <field name="server" invisible="not sincronizar" required="sincronizar"/>
+                     <field name="act_productos" invisible="not sincronizar"/>
                 </xpath>
+
+
+
+
                 <!--<xpath expr="//sheet" position="before">
                     <header>
                         <button name="actualizar_facturas" string="Actualizar Facturas" class="oe_highlight" type="object" />

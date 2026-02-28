@@ -35,7 +35,6 @@ class AccountPayment(models.Model):
         string="Modified Manually",
         default=False,
         help="Technical field required by enterprise features",
-        sync=False,  # Evita sincronización automática con move.line
         compute='_compute_manually_modified',
         store=False  # No almacenar en BD para evitar problemas
     )

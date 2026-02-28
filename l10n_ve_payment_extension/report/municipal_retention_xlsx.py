@@ -9,6 +9,7 @@ from collections import OrderedDict
 
 class MunicipalRetentionXlsx(models.AbstractModel):
     _name = "municipal.retention.xlsx"
+    _description = "Municipal Retention XLSX Report"
 
     def xlsx_file(self, tabla, nombre, retention_id):
         company = self.env.company

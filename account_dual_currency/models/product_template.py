@@ -5,11 +5,16 @@ from odoo.exceptions import UserError, ValidationError
 class Productos(models.Model):
     _inherit = 'product.template'
 
-    currency_id_dif = fields.Many2one('res.currency', string='Moneda Diferente', default=lambda self: self.env.company.currency_id_dif.id)
+    currency_id_dif = fields.Many2one('res.currency', string='Moneda Diferente', compute='_compute_currency_id_dif')
 
-    list_price_usd = fields.Monetary(string="Precio de venta $", currency_field='currency_id_dif')
-    standard_price_usd = fields.Float(string="Costo $", inverse='_set_standard_price_usd', compute='_compute_standard_price_usd', currency_field='currency_id_dif')
-    costo_reposicion_usd = fields.Monetary(string="Costo Reposición $", currency_field='currency_id_dif')
+    def _compute_currency_id_dif(self):
+        for rec in self:
+            rec.currency_id_dif = self.env.company.currency_id_dif.id
+
+
+    list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif')
+    standard_price_usd = fields.Float(string="Costo Alterno", inverse='_set_standard_price_usd', compute='_compute_standard_price_usd')
+    costo_reposicion_usd = fields.Monetary(string="Costo Reposición Alterno", currency_field='currency_id_dif')
 
     def _set_standard_price_usd(self):
         for template in self:
@@ -30,11 +35,22 @@ class Productos(models.Model):
     @api.onchange('list_price_usd')
     def _onchange_list_price_usd(self):
         for rec in self:
-            if rec.list_price_usd:
-                if rec.list_price_usd >0:
-                    tasa = self.env.company.currency_id_dif
-                    if tasa:
-                        rec.list_price = rec.list_price_usd * tasa.inverse_rate
+            if rec.list_price_usd and rec.list_price_usd > 0:
+                tasa = self.env.company.currency_id_dif
+                if tasa and tasa.inverse_rate:
+                    new_val = rec.list_price_usd * tasa.inverse_rate
+                    if abs(rec.list_price - new_val) > 0.01:
+                        rec.with_context(from_usd=True).list_price = new_val
+
+    @api.onchange('list_price')
+    def _onchange_list_price_sync_bs(self):
+        for rec in self:
+            if rec.list_price and not self._context.get('from_usd'):
+                tasa = self.env.company.currency_id_dif
+                if tasa and tasa.inverse_rate > 0:
+                    new_val = rec.list_price / tasa.inverse_rate
+                    if abs(rec.list_price_usd - new_val) > 0.01:
+                        rec.list_price_usd = new_val
 
     @api.onchange('standard_price_usd')
     def _onchange_standard_price_usd(self):
@@ -45,7 +61,19 @@ class Productos(models.Model):
             if rec.standard_price_usd and rec.categ_id.property_valuation == 'manual_periodic':
                 if rec.standard_price_usd > 0:
                     tasa = self.env.company.currency_id_dif
-                    if tasa:
-                        rec.standard_price = rec.standard_price_usd * tasa.inverse_rate
+                    if tasa and tasa.inverse_rate:
+                        new_val = rec.standard_price_usd * tasa.inverse_rate
+                        if abs(rec.standard_price - new_val) > 0.01:
+                            rec.with_context(from_usd=True).standard_price = new_val
+
+    @api.onchange('standard_price')
+    def _onchange_standard_price_sync_bs(self):
+        for rec in self:
+            if rec.standard_price and not self._context.get('from_usd'):
+                tasa = self.env.company.currency_id_dif
+                if tasa and tasa.inverse_rate > 0:
+                    new_val = rec.standard_price / tasa.inverse_rate
+                    if abs(rec.standard_price_usd - new_val) > 0.01:
+                        rec.standard_price_usd = new_val
 
 

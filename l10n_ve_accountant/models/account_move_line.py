@@ -318,6 +318,7 @@ class AccountMoveLine(models.Model):
             foreign_amount = -self.foreign_balance * distribution / 100.0
 
         res["foreign_amount"] = foreign_amount
+        res["foreign_currency_id"] = self.foreign_currency_id.id
         return res
 
     @api.model

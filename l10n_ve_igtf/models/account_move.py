@@ -40,13 +40,18 @@ class AccountMove(models.Model):
             move.amount_to_pay_igtf = 0
             if move.invoice_line_ids and move.is_invoice(include_receipts=True):
                 _logger.debug("Tax totals for move ID %s: %s", move.id, move.tax_totals)
-                if move.tax_totals:  # Verifica que tax_totals no esté vacío
-                    if "igtf" in move.tax_totals and "igtf_amount" in move.tax_totals["igtf"]:
-                        move.amount_to_pay_igtf = move.tax_totals["igtf"]["igtf_amount"] - move.amount_paid
-                    else:
-                        _logger.warning("Key 'igtf' or 'igtf_amount' not found in tax_totals for move ID: %s", move.id)
-                else:
-                    _logger.warning("tax_totals is empty for move ID: %s", move.id)
+                if move.tax_totals:
+                    igtf_amount = 0.0
+                    # Odoo 18 structure: tax_totals['subtotals'] -> list of dicts -> 'tax_groups' -> list of dicts
+                    subtotals = move.tax_totals.get('subtotals', [])
+                    for subtotal in subtotals:
+                        for tax_group in subtotal.get('tax_groups', []):
+                            # Identificar IGTF por nombre (ajustar si hay un identificador mejor)
+                            if 'IGTF' in tax_group.get('group_name', '').upper(): 
+                                igtf_amount += tax_group.get('tax_amount_currency', 0.0)
+                    
+                    move.amount_to_pay_igtf = igtf_amount - move.amount_paid
+
 
     @api.depends(
         "amount_total", "amount_residual", "amount_residual_igtf", "amount_to_pay_igtf", "bi_igtf"

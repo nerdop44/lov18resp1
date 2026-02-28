@@ -18,10 +18,15 @@ class AccountFiscalyearClosing(models.Model):
     _name = "account.fiscalyear.closing"
     _description = "Fiscal year closing"
 
+    # Método para permitir el uso del parámetro 'states'
+    def _valid_field_parameter(self, field_name, parameter):
+        if parameter == 'states':
+            return True  # Permite el uso del parámetro 'states'
+        return super(AccountFiscalyearClosing, self)._valid_field_parameter(field_name, parameter)
 
     def _default_year(self):
         company = self._default_company_id()
-        lock_date = company.fiscalyear_lock_date or fields.Date.today()
+        lock_date = company.fiscalyear_lock_date or fields.Date.context_today(self)
         fiscalyear = lock_date.year
         if (
             lock_date.month < int(company.fiscalyear_last_month)
@@ -35,24 +40,27 @@ class AccountFiscalyearClosing(models.Model):
 
     name = fields.Char(
         readonly=True,
-        
+        states={"draft": [("readonly", False)]},
     )
     check_draft_moves = fields.Boolean(
         readonly=True,
-        
+        states={"draft": [("readonly", False)]},
     )
     year = fields.Integer(
         help="Introduce here the year to close. If the fiscal year is between "
         "several natural years, you have to put here the last one.",
         default=lambda self: self._default_year(),
         readonly=True,
-        
+        states={"draft": [("readonly", False)]},
     )
     company_id = fields.Many2one(
         default=lambda self: self._default_company_id(),
         readonly=True,
-        
+        states={"draft": [("readonly", False)]},
     )
+    date_start = fields.Date(string="Start Date", readonly=True)
+    date_end = fields.Date(string="End Date", readonly=True)
+    date_opening = fields.Date(string="Opening Date", readonly=True)
     # chart_template_id = fields.Many2one( Ya no existe
     #     comodel_name="account.chart.template",
     #     string="Chart template",
@@ -69,41 +77,28 @@ class AccountFiscalyearClosing(models.Model):
         readonly=True,
         default="draft",
     )
-    calculation_date = fields.Datetime(
-        string="Calculation date",
-        readonly=True,
-    )
-    date_start = fields.Date(
-        string="From date",
+    calculation_date = fields.Date(string="Date", required=True, default=fields.Date.context_today)
+    date_range_id = fields.Many2one("date.range", string="Date range")
+    period_id = fields.Many2one("date.range", string="Period")
+    journal_id = fields.Many2one(
+        "account.journal",
+        string="Journal",
         required=True,
-        readonly=True,
-        
-    )
-    date_end = fields.Date(
-        string="To date",
-        required=True,
-        readonly=True,
-        
-    )
-    date_opening = fields.Date(
-        string="Opening date",
-        required=True,
-        readonly=True,
-        
+        domain="[('type', '=', 'general')]",
     )
     closing_template_id = fields.Many2one(
         comodel_name="account.fiscalyear.closing.template",
         string="Closing template",
         # domain="[('chart_template_ids', '=', chart_template_id)]",
         readonly=True,
-        
+        states={"draft": [("readonly", False)]},
     )
     move_config_ids = fields.One2many(
         comodel_name="account.fiscalyear.closing.config",
         inverse_name="fyc_id",
         string="Moves configuration",
         readonly=True,
-        
+        states={"draft": [("readonly", False)]},
     )
     move_ids = fields.One2many(
         comodel_name="account.move",
@@ -368,6 +363,11 @@ class AccountFiscalyearClosingConfig(models.Model):
     _order = "sequence asc, id asc"
     _description = "Fiscal year closing configuration"
 
+    # Método para permitir el uso del parámetro 'states'
+    def _valid_field_parameter(self, field_name, parameter):
+        if parameter == 'states':
+            return True  # Permite el uso del parámetro 'states'
+        return super(AccountFiscalyearClosingConfig, self)._valid_field_parameter(field_name, parameter)
 
     fyc_id = fields.Many2one(
         comodel_name="account.fiscalyear.closing",
@@ -396,7 +396,7 @@ class AccountFiscalyearClosingConfig(models.Model):
         (
             "code_uniq",
             "unique(code, fyc_id)",
-            _("Code must be unique per fiscal year closing!"),
+            "Code must be unique per fiscal year closing!",
         ),
     ]
 
@@ -535,6 +535,11 @@ class AccountFiscalyearClosingMapping(models.Model):
     _name = "account.fiscalyear.closing.mapping"
     _description = "Fiscal year closing mapping"
 
+    # Método para permitir el uso del parámetro 'states'
+    def _valid_field_parameter(self, field_name, parameter):
+        if parameter == 'states':
+            return True  # Permite el uso del parámetro 'states'
+        return super(AccountFiscalyearClosingMapping, self)._valid_field_parameter(field_name, parameter)
 
     fyc_config_id = fields.Many2one(
         comodel_name="account.fiscalyear.closing.config",

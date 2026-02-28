@@ -8,11 +8,10 @@ class AccountBankStatementLine(models.Model):
                                                 string="Divisa de Referencia",
                                                 default=lambda self: self.env.company.currency_id_dif)
 
-    tasa_referencia_statement = fields.Float(string="Tasa", store=True, default=lambda self: self._get_default_tasa(), digits=(16, 4))
+    tasa_referencia_statement = fields.Float(string="Tasa Referencia", store=True, default=lambda self: self._get_default_tasa())
 
-    amount_usd_statement = fields.Monetary(currency_field='currency_id_dif_statement', string='Total Ref.', store=True,
-                                           readonly=True, compute='_amount_usd',
-                                           digits=(16, 2))
+    amount_usd_statement = fields.Monetary(currency_field='currency_id_dif_statement', string='Total Ref. Extracto', store=True,
+                                           readonly=True, compute='_amount_usd')
 
     @api.onchange('date')
     def _onchange_date(self):
@@ -172,12 +171,12 @@ class AccountBankStatementLine(models.Model):
                                         considered as the amount in foreign currency. If not specified, the full balance is took.
                                         This value must be provided if move_line is not.
             'amount_residual':          The residual amount to reconcile expressed in the company's currency.
-                                        /!\ This value should be equivalent to move_line.amount_residual except we want
+                                        /! This value should be equivalent to move_line.amount_residual except we want
                                         to avoid browsing the record when the only thing we need in an overview of the
                                         reconciliation, for example in the reconciliation widget.
             'amount_residual_currency': The residual amount to reconcile expressed in the foreign's currency.
                                         Using this key doesn't make sense without passing 'currency_id' in vals.
-                                        /!\ This value should be equivalent to move_line.amount_residual_currency except
+                                        /! This value should be equivalent to move_line.amount_residual_currency except
                                         we want to avoid browsing the record when the only thing we need in an overview
                                         of the reconciliation, for example in the reconciliation widget.
             **kwargs:                   Additional values that need to land on the account.move.line to create.
@@ -192,7 +191,6 @@ class AccountBankStatementLine(models.Model):
         foreign_currency = self.foreign_currency_id or journal_currency or company_currency
         statement_line_rate = (self.amount_currency / self.amount) if self.amount else 0.0
 
-        balance_to_reconcile = counterpart_vals.pop('balance', None)
         amount_residual = -counterpart_vals.pop('amount_residual', move_line.amount_residual if move_line else 0.0) \
             if balance_to_reconcile is None else balance_to_reconcile
         amount_residual_currency = -counterpart_vals.pop('amount_residual_currency',

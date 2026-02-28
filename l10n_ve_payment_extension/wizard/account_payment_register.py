@@ -6,9 +6,6 @@ from ..utils.utils_retention import load_retention_lines
 class AccountPaymentRegister(models.TransientModel):
     _inherit = "account.payment.register"
 
-    company_currency_id = fields.Many2one(
-        "res.currency", default=lambda self: self.env.company.currency_id
-    )
     foreign_currency_id = fields.Many2one(
         "res.currency", default=lambda self: self.env.company.currency_foreign_id
     )

@@ -2,11 +2,11 @@
     "name": "[LocVe] Binaural Facturación",
     "summary": """
        Modulo para contabilidad Venezolana """,
-    "version": "18.0.1.0.3",
+    "version": "18.0.1.0.15",
     "license": "LGPL-3",
-    "author": "Remake Ing Nerdo Pulido",
+    "author": "Binauraldev",
     "website": "https://l10n_vedev.com/",
-    "category": "LocVe [Localization]",
+    "category": "Accounting/Localizations/Account Chart",
     # any module necessary for this one to work correctly
     "depends": [
         "l10n_ve_base",
@@ -26,7 +26,7 @@
         "report/report_invoice_free_form_dual.xml",
         "report/report_invoice_sale_note.xml",
         "report/report_invoice.xml",
-        #"views/account_move.xml",
+        "views/account_move.xml",
         "views/account_journal_views.xml",
         "views/res_config_settings.xml",
         "views/menu.xml",
@@ -34,5 +34,4 @@
     ],
     "images": ["static/description/icon.png"],
     "application": True,
-    'installable': True,
 }

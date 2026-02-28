@@ -1,4 +1,5 @@
 <odoo>
+
     <record id="account_invoices_details_views" model="ir.ui.view">
         <field name="name">account.invoices.details.view</field>
         <field name="model">account.invoices.details</field>
@@ -11,11 +12,13 @@
                             <field name="date_from" widget="date"/>
                             <field name="date_to" widget="date"/>
                             <field name="show_documents"/>
+                            <field name="currency_report_id" string="Ver en Moneda"/>
                         </group>
                     </group>
                 </sheet>
                 <footer>
-                    <button name="%(l10n_ve_accountant.action_account_invoices_details_report)d" type="action" string="Print"/>
+                    <button name="action_print" type="object" string="Imprimir" class="oe_highlight"/>
+                    <button string="Cancelar" class="btn-default" special="cancel"/>
                 </footer>
             </form>
         </field>

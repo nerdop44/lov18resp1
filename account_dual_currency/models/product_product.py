@@ -5,10 +5,15 @@ from odoo.tools import float_is_zero, float_repr
 class ProductProduct(models.Model):
     _inherit = 'product.product'
 
-    currency_id_dif = fields.Many2one('res.currency', string='Moneda Diferente', default=lambda self: self.env.company.currency_id_dif.id)
+    currency_id_dif = fields.Many2one('res.currency', string='Moneda Diferente', compute='_compute_currency_id_dif')
 
-    list_price_usd = fields.Monetary(string="Precio de venta $", currency_field='currency_id_dif')
-    standard_price_usd = fields.Float(string="Costo $", company_dependent=True)
+    def _compute_currency_id_dif(self):
+        for rec in self:
+            rec.currency_id_dif = self.env.company.currency_id_dif.id
+
+
+    list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif')
+    standard_price_usd = fields.Float(string="Costo Alterno", company_dependent=True)
 
     value_usd_svl = fields.Float(compute='_compute_value_usd_svl', compute_sudo=True)
 
@@ -41,8 +46,10 @@ class ProductProduct(models.Model):
             if rec.standard_price_usd and rec.categ_id.property_valuation == 'manual_periodic':
                 if rec.standard_price_usd > 0:
                     tasa = self.env.company.currency_id_dif
-                    if tasa:
-                        rec.standard_price = rec.standard_price_usd * tasa.inverse_rate
+                    if tasa and tasa.inverse_rate:
+                        new_val = rec.standard_price_usd * tasa.inverse_rate
+                        if abs(rec.standard_price - new_val) > 0.01:
+                            rec.standard_price = new_val
 
     def _prepare_in_svl_vals(self, quantity, unit_cost):
         """Prepare the values for a stock valuation layer created by a receipt.
@@ -53,8 +60,8 @@ class ProductProduct(models.Model):
         :rtype: dict
         """
         self.ensure_one()
-        tasa = self.env['res.currency'].sudo().search([('name', '=', 'USD')], limit=1)
-        unit_cost_usd = float(unit_cost) / tasa.inverse_rate
+        tasa = self.env.company.currency_id_dif
+        unit_cost_usd = float(unit_cost) / tasa.inverse_rate if tasa and tasa.inverse_rate else 0.0
         vals = {
             'product_id': self.id,
             'value': unit_cost * quantity,

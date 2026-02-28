@@ -132,18 +132,19 @@ class AccountRetention(models.Model):
     )
 
     foreign_total_invoice_amount = fields.Float(
-        string="Foreign StateTaxable Income",
+        string="Total Facturado (Bs.)",
         compute="_compute_totals",
-        help="Taxable Income Total",
+        help="Total base imponible en VEF",
         store=True,
     )
     foreign_total_iva_amount = fields.Float(
-        string="Foreign Total IVA", compute="_compute_totals", store=True
+        string="Total IVA (Bs.)", compute="_compute_totals", store=True
     )
     foreign_total_retention_amount = fields.Float(
+        string="Total Retenido (Bs.)",
         compute="_compute_totals",
         store=True,
-        help="Retained Amount Total",
+        help="Total monto retenido en VEF",
     )
     original_lines_per_invoice_counter = fields.Char(
         help=(
@@ -153,6 +154,26 @@ class AccountRetention(models.Model):
             " that the one that just has been deleted."
         )
     )
+
+    print_with_signatures = fields.Boolean(
+        string="Imprimir con Firmas y Sellos",
+        default=True,
+        help="Si se marca, el comprobante PDF incluirá la firma y el sello de la empresa.",
+    )
+
+    def get_signature(self):
+        """Retorna la imagen de firma del representante legal si print_with_signatures=True."""
+        self.ensure_one()
+        if self.print_with_signatures:
+            return self.company_id.signature_image
+        return False
+
+    def get_stamp(self):
+        """Retorna la imagen del sello húmedo de la empresa si print_with_signatures=True."""
+        self.ensure_one()
+        if self.print_with_signatures:
+            return self.company_id.stamp_image
+        return False
 
     @api.depends("type", "partner_id")
     def _compute_allowed_lines_move_ids(self):
@@ -413,18 +434,10 @@ class AccountRetention(models.Model):
         Clear retention lines and payments.
         """
         self.ensure_one()
-        self.update(
-            {
-                "retention_line_ids": (
-                    Command.clear()
-                    if any(
-                        isinstance(id, models.NewId)
-                        for id in self.retention_line_ids.ids
-                    )
-                    else False
-                ),
-            }
-        )
+        if any(isinstance(id, models.NewId) for id in self.retention_line_ids.ids):
+            self.retention_line_ids = [Command.clear()]
+
+
 
     @api.onchange("retention_line_ids")
     def onchange_retention_line_ids(self):
@@ -435,20 +448,40 @@ class AccountRetention(models.Model):
         for retention in self.filtered(
             lambda r: (r.type_retention, r.state) == ("iva", "draft") and r.partner_id
         ):
-            original_lines_per_invoice_counter = json.loads(
-                retention.original_lines_per_invoice_counter
-            )
+            # Cargar original_lines_per_invoice_counter, asegurando que sea un diccionario,
+            # y si está vacío o es None, inicializarlo como un defaultdict.
+            original_lines_per_invoice_counter_raw = retention.original_lines_per_invoice_counter
+            if original_lines_per_invoice_counter_raw:
+                original_lines_per_invoice_counter = defaultdict(int, json.loads(original_lines_per_invoice_counter_raw))
+            else:
+                original_lines_per_invoice_counter = defaultdict(int)
+
             lines_per_invoice_counter = defaultdict(int)
             for line in retention.retention_line_ids:
-                lines_per_invoice_counter[str(line.move_id.id)] += 1
+                # Nos aseguramos de que line.move_id sea un registro válido antes de intentar acceder a su .id
+                if line.move_id:
+                    lines_per_invoice_counter[str(line.move_id.id)] += 1
+
+            # Almacenar las líneas a eliminar en un recordset separado para evitar
+            # modificar el recordset mientras se itera sobre él, lo que puede causar problemas.
+            lines_to_remove = self.env['account.retention.line'] # Inicializar un recordset vacío
 
             for line in retention.retention_line_ids:
-                if (
-                    line.move_id.id
-                    and lines_per_invoice_counter[str(line.move_id.id)]
-                    != original_lines_per_invoice_counter[str(line.move_id.id)]
-                ):
-                    retention.retention_line_ids -= line
+                # Solo procesamos líneas que tienen un move_id válido
+                if line.move_id:
+                    # Obtener la cuenta original para esta factura, por defecto 0 si no se encuentra
+                    original_count = original_lines_per_invoice_counter.get(str(line.move_id.id), 0)
+                    # Obtener la cuenta actual para esta factura
+                    current_count = lines_per_invoice_counter[str(line.move_id.id)]
+
+                    # === MODIFICACIÓN CLAVE AQUÍ ===
+                    # Solo eliminamos líneas si la cuenta actual es *menor que* la cuenta original.
+                    # Esto indica una eliminación.
+                    if current_count < original_count:
+                        lines_to_remove |= line # Añadir la línea al conjunto de líneas a eliminar
+
+            # Eliminar todas las líneas identificadas de una vez después del bucle
+            retention.retention_line_ids -= lines_to_remove
 
             return {
                 "value": {
@@ -470,6 +503,10 @@ class AccountRetention(models.Model):
             self._safe_create_payments()
         return res
 
+    def action_generate_payment(self):
+        # Desactivado a favor de Opción A (Pago al Aprobar)
+        pass
+
     def unlink(self):
         for record in self:
             if record.state == "emitted":
@@ -480,52 +517,137 @@ class AccountRetention(models.Model):
                 )
         return super().unlink()
 
-
-# =========================================================================
-# Bloque de código a REEMPLAZAR (busca _safe_create_payments en tu archivo)
-# =========================================================================
-
     def _safe_create_payments(self):
         """
-        Versión segura para crear pagos que no modifica movimientos publicados.
-        Ahora incluye lógica de desviación para ISLR (borrador), replicando el flujo de IVA.
+        Crea o actualiza los pagos en borrador para retenciones IVA e ISLR.
+        Para IVA: sincroniza el pago por factura.
+        Para ISLR: sincroniza por concepto+factura via _create_islr_payments_on_draft.
+        Para Municipal: no crea pagos automáticos.
         """
         for retention in self:
-            # 1. El municipal no crea pagos automáticos. Salto inmediato.
+            # El municipal no crea pagos automáticos por ahora (puedes agregarlo aquí si es necesario)
             if retention.type_retention == "municipal":
                 continue
-                
-            # 2. Las retenciones contabilizadas (emitted) no deben crear/recrear pagos.
-            if retention.state != 'draft':
+
+            # Las retenciones contabilizadas no deben recrear pagos
+            if retention.state != "draft":
                 continue
-                
-            # 3. LÓGICA ISLR: Siempre se llama para recrear/actualizar en borrador si hay cambios en líneas.
+
+            # Sin líneas de retención, no hay nada que pagar
+            if not retention.retention_line_ids:
+                continue
+
+            # LÓGICA ISLR: sincronizar por concepto+factura
             if retention.type_retention == "islr":
                 retention._create_islr_payments_on_draft()
                 continue
+
+            # LÓGICA IVA: sincronizar un pago por cada factura agrupada
+            if retention.type_retention == "iva":
+                retention._sync_iva_payments_on_draft()
+
+    def _sync_iva_payments_on_draft(self):
+        """
+        Sincroniza los pagos IVA en borrador.
+        Agrupa las líneas de retención por factura y crea/actualiza un pago por grupo.
+        """
+        self.ensure_one()
+        Payment = self.env["account.payment"]
+        Rate = self.env["res.currency.rate"]
+
+        journal = (
+            self.env.company.iva_supplier_retention_journal_id
+            if self.type == "in_invoice"
+            else self.env.company.iva_customer_retention_journal_id
+        )
+        if not journal:
+            return
+
+        partner_type = "supplier" if self.type in ("in_invoice", "in_refund") else "customer"
+
+        # Agrupar líneas por factura
+        lines_by_move = defaultdict(lambda: self.env["account.retention.line"])
+        for line in self.retention_line_ids:
+            if line.move_id:
+                lines_by_move[line.move_id] += line
+
+        existing_payments = {}
+        for payment in self.payment_ids:
+            linked_moves = payment.retention_line_ids.mapped("move_id")
+            for move in linked_moves:
+                existing_payments[move] = payment
+
+        payments_to_keep = self.env["account.payment"]
+
+        for move, lines in lines_by_move.items():
+            if move.move_type in ("in_invoice", "out_refund"):
+                payment_type = "outbound"
+            else:
+                payment_type = "inbound"
+
+            if move.move_type in ("in_refund", "out_refund"):
+                payment_type = "inbound" if partner_type == "supplier" else "outbound"
+
+            # Moneda del pago: VEF (Regla universal venezolana)
+            currency_vef = self.env.company.currency_foreign_id
+            # Monto en VEF
+            total_retention_vef = sum(lines.mapped("foreign_retention_amount"))
+            # Tasa
+            foreign_rate = lines[0].foreign_currency_rate if lines else 1.0
+
+            if currency_vef.is_zero(total_retention_vef):
+                continue
+
+            # Odoo 18 requiere payment_method_line_id (detectado según sentido de la factura/movimiento)
+            payment_method_line = (journal.outbound_payment_method_line_ids if payment_type == "outbound" else journal.inbound_payment_method_line_ids)[:1]
+            if not payment_method_line:
+                payment_method_line = journal._get_available_payment_method_lines(payment_type)[:1]
             
-            # 4. LÓGICA IVA: Solo se crea si es IVA y *NO* tiene pagos (mantenemos la lógica original de IVA).
-            if retention.type_retention == "iva" and not retention.payment_ids:
-                payment_vals = {
-                    "retention_id": retention.id,
-                    "partner_id": retention.partner_id.id,
-                    "payment_type_retention": "iva",
-                    "is_retention": True,
-                    "currency_id": self.env.user.company_id.currency_id.id,
-                }        
+            if not payment_method_line:
+                _logger.warning("El diario %s no tiene configurado un método de pago para pagos de tipo %s. El pago no se sincronizará automáticamente.", journal.display_name, payment_type)
+                continue
 
-                def account_retention_line_empty_recordset():
-                    return self.env["account.retention.line"]
+            payment_vals = {
+                "retention_id": self.id,
+                "partner_id": self.partner_id.id,
+                "partner_type": partner_type,
+                "payment_type_retention": "iva",
+                "is_retention": True,
+                "journal_id": journal.id,
+                "payment_type": payment_type,
+                "payment_method_line_id": payment_method_line.id,
+                "foreign_rate": foreign_rate,
+                "currency_id": currency_vef.id,
+                "amount": total_retention_vef,
+                "date": self.date_accounting or fields.Date.context_today(self),
+                "retention_line_ids": [(6, 0, lines.ids)],
+            }
 
-                if retention.type == "in_invoice":
-                    retention._create_payments_for_iva_supplier(
-                        payment_vals, account_retention_line_empty_recordset
-                    )
-                if retention.type == "out_invoice":
-                    retention._create_payments_for_iva_customer(
-                        payment_vals, account_retention_line_empty_recordset
-                    )
-    
+            payment = existing_payments.get(move)
+            if payment and payment.state == "draft":
+                payment.write(payment_vals)
+            elif not payment:
+                payment = Payment.create(payment_vals)
+                if hasattr(payment, 'foreign_inverse_rate'):
+                    payment.write({
+                        "foreign_inverse_rate": Rate.compute_inverse_rate(payment.foreign_rate)
+                    })
+            else:
+                payments_to_keep |= payment
+                continue
+
+            lines.write({"payment_id": payment.id})
+            payments_to_keep |= payment
+
+        payments_to_remove = self.payment_ids.filtered(
+            lambda p: p not in payments_to_keep and p.state == "draft"
+        )
+        if payments_to_remove:
+            payments_to_remove.unlink()
+
+        return payments_to_keep
+
+
 
 #    # Bloque de código a REEMPLAZAR (buscar _safe_create_payments en tu archivo)
 ## =========================================================================
@@ -774,9 +896,6 @@ class AccountRetention(models.Model):
     def _create_islr_payments_on_draft(self):
         """
         Sincroniza los pagos de ISLR en modo borrador, agrupados por concepto y factura.
-        Este método es idempotente: crea, actualiza o elimina pagos según sea necesario,
-        en lugar de borrarlos y recrearlos siempre.
-        Se llama desde create/write a través de _safe_create_payments.
         """
         self.ensure_one()
         Payment = self.env['account.payment']
@@ -787,6 +906,9 @@ class AccountRetention(models.Model):
             if self.type == 'in_invoice'
             else self.env.company.islr_customer_retention_journal_id.id
         )
+        journal = self.env['account.journal'].browse(journal_id)
+        if not journal:
+            return
 
         # 1. Determinar los pagos que DEBERÍAN existir
         lines_by_concept_and_move = defaultdict(lambda: self.env['account.retention.line'])
@@ -798,8 +920,11 @@ class AccountRetention(models.Model):
 
         # 2. Iterar sobre los pagos requeridos para crear o actualizar
         for (concept, move), lines in lines_by_concept_and_move.items():
-            total_retention = sum(lines.mapped('retention_amount'))
-            if self.company_currency_id.is_zero(total_retention):
+            # Moneda VEF
+            currency_vef = self.env.company.currency_foreign_id
+            total_retention_vef = sum(lines.mapped('foreign_retention_amount'))
+            
+            if currency_vef.is_zero(total_retention_vef):
                 continue
 
             partner_type = 'supplier' if self.type in ('in_invoice', 'in_refund') else 'customer'
@@ -807,48 +932,52 @@ class AccountRetention(models.Model):
             if move.move_type in ('in_refund', 'out_refund'):
                 payment_type = 'inbound' if payment_type == 'outbound' else 'outbound'
 
-            payment_method_ref = (
-                "account.account_payment_method_manual_in"
-                if payment_type == "inbound"
-                else "account.account_payment_method_manual_out"
-            )
+            # Odoo 18 requiere payment_method_line_id
+            payment_method_line = (journal.outbound_payment_method_line_ids if payment_type == "outbound" else journal.inbound_payment_method_line_ids)[:1]
+            if not payment_method_line:
+                _logger.warning("El diario %s no tiene configurado un método de pago para pagos de tipo %s. El pago no se sincronizará automáticamente.", journal.display_name, payment_type)
+                continue
 
             payment_vals = {
                 'retention_id': self.id,
                 'partner_id': self.partner_id.id,
                 'payment_type_retention': 'islr',
                 'is_retention': True,
-                'journal_id': journal_id,
+                'journal_id': journal.id,
                 'partner_type': partner_type,
                 'payment_type': payment_type,
                 'payment_concept_id': concept.id,
                 'foreign_rate': lines[0].foreign_currency_rate,
-                'payment_method_id': self.env.ref(payment_method_ref).id,
-                'amount': total_retention,
-                'currency_id': self.env.company.currency_id.id,
+                'payment_method_line_id': payment_method_line.id,
+                'amount': total_retention_vef,
+                'currency_id': currency_vef.id,
                 'date': self.date_accounting or fields.Date.context_today(self),
                 "retention_line_ids": [Command.set(lines.ids)],
             }
 
             # Si ya existe un pago para este concepto, se actualiza. Si no, se crea.
             payment = existing_payments.get(concept)
-            if payment:
+            if payment and payment.state == 'draft':
                 payment.write(payment_vals)
-            else:
+            elif not payment:
                 payment = Payment.create(payment_vals)
+            else:
+                payments_to_keep |= payment
+                continue
             
-            # Asignar payment_id a las líneas (importante para la bidireccionalidad)
             lines.write({'payment_id': payment.id})
             payments_to_keep |= payment
 
         # 3. Eliminar pagos que ya no son necesarios
-        payments_to_remove = self.payment_ids - payments_to_keep
+        payments_to_remove = self.payment_ids.filtered(lambda p: p not in payments_to_keep and p.state == 'draft')
         if payments_to_remove:
             payments_to_remove.unlink()
 
         return payments_to_keep
+
     
     def action_post(self):
+
         for retention in self:
             try:
                 # Validaciones iniciales (se mantienen igual)
@@ -902,6 +1031,9 @@ class AccountRetention(models.Model):
 
                 # Procesar cada pago con contexto seguro (se mantiene igual)
                 for payment in retention.payment_ids.with_context(skip_manually_modified_check=True):
+                    # FORZAR SINCRONIZACIÓN DEL CORRELATIVO AL PAGO AHORA QUE HAY NÚMERO
+                    payment._synchronize_to_moves(set())
+                    
                     _logger.info(f"Procesando pago {payment.id}")
                     if not payment.move_id:
                         if hasattr(payment, 'action_create'):
@@ -911,7 +1043,6 @@ class AccountRetention(models.Model):
                             _logger.info("Publicando pago (versión moderna)")
                         payment.with_context(skip_manually_modified_check=True).action_post()
                     elif payment.state != 'posted':
-                        _logger.info("Publicando pago pendiente")
                         payment.with_context(skip_manually_modified_check=True).action_post()
 
                 # Asignar número de comprobante a facturas (se mantiene igual)
@@ -920,10 +1051,13 @@ class AccountRetention(models.Model):
                     _logger.info(f"Asignando número de comprobante a {len(move_ids)} facturas")
                     retention.set_voucher_number_in_invoice(move_ids, retention)
 
+                # Reconciliar pagos con facturas (NUEVO)
+                _logger.info("Iniciando reconciliación de pagos con facturas")
+                retention._reconcile_all_payments()
+
                 # Actualizar estado de la retención (se mantiene igual)
                 retention.write({'state': 'emitted'})
                 _logger.info(f"Retención {retention.id} marcada como emitida")
-        
             except Exception as e:
                 _logger.error("Error al publicar retención %s: %s", retention.id, str(e), exc_info=True)
                 raise UserError(_("Error al publicar la retención: %s") % str(e))
@@ -1040,20 +1174,7 @@ class AccountRetention(models.Model):
                 _logger.error(f"Error asignando secuencia a retención {retention.id}: {str(e)}")
                 raise UserError(_("Error al asignar número de secuencia: %s") % str(e))
 
-    # def _set_sequence(self):
-    #     for retention in self.filtered(lambda r: not r.number):
-    #         sequence_number = ""
-    #         if retention.type_retention == "iva":
-    #             sequence_number = retention.get_sequence_iva_retention().next_by_id()
-    #         elif retention.type_retention == "islr":
-    #             sequence_number = retention.get_sequence_islr_retention().next_by_id()
-    #         else:
-    #             sequence_number = (
-    #                 retention.get_sequence_municipal_retention().next_by_id()
-    #             )
-    #         correlative = f"{retention.date_accounting.year}{retention.date_accounting.month:02d}{sequence_number}"
-    #         retention.name = correlative
-    #         retention.number = correlative
+
 
     @api.model
     def get_sequence_iva_retention(self):
@@ -1202,8 +1323,13 @@ class AccountRetention(models.Model):
                     "is_retention": True,
                     "foreign_rate": line.move_id.foreign_rate,
                     "foreign_inverse_rate": line.move_id.foreign_inverse_rate,
-                    "retention_line_ids": line,
+                    "retention_line_ids": [(4, line.id)],
                     "currency_id": self.env.user.company_id.currency_id.id,
+                    'amount': line.retention_amount, # <--- AÑADE ESTA LÍNEA
+                    'payment_concept_id': line.payment_concept_id.id if line.payment_concept_id else False, # <--- AÑADE ESTA LÍNEA
+                    'date': self.date_accounting, # <--- AÑADE ESTA LÍNEA
+                    # "retention_line_ids": line,
+                    # "currency_id": self.env.user.company_id.currency_id.id,
                 }
             )
 
@@ -1342,6 +1468,19 @@ class AccountRetention(models.Model):
             _logger.warning(f"compute_retention_lines_data: El atributo 'name' EXISTE: {invoice_id.name}")
         else:
             _logger.warning(f"compute_retention_lines_data: El atributo 'name' NO EXISTE.")
+        # --- INICIO DE LA VALIDACIÓN CRÍTICA ---
+        if invoice_id.currency_id != self.env.company.currency_id and (not foreign_rate or foreign_rate == 0.0):
+            _logger.error(
+                f"Tasa de cambio extranjera (foreign_rate) es cero o nula para la factura {invoice_id.display_name} "
+                f"({invoice_id.id}) con moneda {invoice_id.currency_id.name} para la fecha {invoice_id.date}. "
+                "Verifique las tasas de cambio configuradas en Finanzas -> Configuración -> Monedas -> Tasas."
+            )
+            raise UserError(_(
+                "No se pudo crear la línea de retención. La tasa de cambio para la factura '%s' (moneda %s) "
+                "es cero o no está definida para la fecha %s. Por favor, configure la tasa de cambio "
+                "en Configuración > Monedas > Tasas."
+            ) % (invoice_id.display_name, invoice_id.currency_id.name, invoice_id.date))
+        # --- FIN DE LA VALIDACIÓN CRÍTICA ---
 
 
         tax_ids = invoice_id.invoice_line_ids.filtered(
@@ -1360,50 +1499,150 @@ class AccountRetention(models.Model):
         lines_data = []
         if "subtotals" in invoice_id.tax_totals and invoice_id.tax_totals["subtotals"]:
             _logger.warning(f"Tax Totals for invoice ID {invoice_id.id}: {invoice_id.tax_totals}")
-            for subtotal in invoice_id.tax_totals["subtotals"]:
-                subtotal_name = subtotal.get("name", "Subtotal")  # Default name
-                for tax_group_data in subtotal.get("tax_groups", []):
+
+            # ==========================================================================
+            # REGLA UNIVERSAL VENEZOLANA: Las retenciones SIEMPRE se expresan en VEF
+            # ==========================================================================
+            # La lógica es independiente de cuál sea la moneda base de la empresa.
+            # El principio es:
+            #   1. Si la factura ya está en VEF → montos de retención en VEF directamente
+            #   2. Si la factura está en cualquier otra moneda (USD, EUR, etc.) →
+            #      convertir a VEF usando la tasa de l10n_ve_tax (ya precalculada en
+            #      tax_totals['foreign_amount_untaxed'] y ['foreign_amount_total'])
+            #
+            # En todos los casos también guardamos los montos en la moneda de la empresa
+            # para el registro contable en la moneda del sistema.
+            # ==========================================================================
+
+            tax_totals = invoice_id.tax_totals
+
+            # Identificar el VEF como moneda objetivo de retención
+            # Se asume que company.currency_foreign_id es VEF (configurado por el módulo)
+            vef_currency = self.env.company.currency_foreign_id
+            invoice_currency = invoice_id.currency_id
+
+            # Tasa de la factura (moneda empresa → VEF)
+            foreign_rate = invoice_id.foreign_rate or 1.0
+            foreign_inverse_rate = 1.0 / foreign_rate if foreign_rate else 0.0
+
+            # ¿La factura ya está en VEF?
+            invoice_is_in_vef = (vef_currency and invoice_currency == vef_currency) or (
+                not vef_currency and invoice_currency == self.env.company.currency_id
+            )
+
+            # Montos globales en VEF precalculados por l10n_ve_tax en _get_tax_totals_summary
+            global_vef_untaxed = tax_totals.get("foreign_amount_untaxed", 0.0)
+            global_vef_total = tax_totals.get("foreign_amount_total", 0.0)
+
+            for subtotal in tax_totals["subtotals"]:
+                subtotal_name = subtotal.get("name", "Subtotal")
+                subtotal_tax_groups = subtotal.get("tax_groups", [])
+                total_groups = len(subtotal_tax_groups)
+
+                for idx, tax_group_data in enumerate(subtotal_tax_groups):
                     tax = tax_ids.filtered(lambda t: t.tax_group_id.id == tax_group_data.get("id"))
                     if not tax:
-                        _logger.warning(f"compute_retention_lines_data: No se encontró impuesto para el grupo de impuestos con ID {tax_group_data.get('id')}.")
-
+                        _logger.warning(f"compute_retention_lines_data: No se encontró impuesto para el grupo ID {tax_group_data.get('id')}.")
                         continue
                     tax = tax[0]
-                    _logger.warning(f"compute_retention_lines_data: Impuesto encontrado: ID {tax.id}, Nombre {tax.name}, Grupo de Impuestos ID {tax.tax_group_id.id}")
+                    _logger.warning(f"compute_retention_lines_data: Impuesto: ID {tax.id}, Nombre {tax.name}")
 
-                    retention_amount = tax_group_data["tax_amount"] * (withholding_amount / 100)
-                    retention_amount = float_round(
-                        retention_amount,
+                    # Montos en la moneda de empresa (lo que sea: USD, VEF, EUR, etc.)
+                    invoice_amount_company = tax_group_data.get(
+                        "base_amount_currency", tax_group_data.get("base_amount", 0.0)
+                    )
+                    iva_amount_company = tax_group_data.get(
+                        "tax_amount_currency", tax_group_data.get("tax_amount", 0.0)
+                    )
+
+                    # ==========================================================
+                    # Calcular montos en VEF (el objetivo SIEMPRE es VEF)
+                    # ==========================================================
+                    if invoice_is_in_vef:
+                        # La factura ya está en VEF → usar montos directamente
+                        vef_invoice_amount = invoice_amount_company
+                        vef_iva_amount = iva_amount_company
+                        vef_invoice_total = tax_totals.get(
+                            "total_amount_currency", tax_totals.get("total_amount", 0.0)
+                        )
+                    elif global_vef_untaxed > 0:
+                        # La factura está en otra moneda y l10n_ve_tax ya calculó los VEF
+                        # Usar los valores globales precalculados (proporcional si hay múltiples grupos)
+                        if  total_groups == 1:
+                            vef_invoice_amount = global_vef_untaxed
+                            vef_iva_amount = global_vef_total - global_vef_untaxed
+                        else:
+                            # Múltiples grupos: calcular proporcional al porcentaje del grupo sobre el total
+                            total_company_untaxed = tax_totals.get("base_amount_currency", tax_totals.get("base_amount", 1.0)) or 1.0
+                            proportion = invoice_amount_company / total_company_untaxed if total_company_untaxed else 0.0
+                            vef_invoice_amount = global_vef_untaxed * proportion
+                            vef_iva_amount = (global_vef_total - global_vef_untaxed) * proportion
+                        vef_invoice_total = global_vef_total
+                    else:
+                        # Fallback: convertir usando la tasa directo
+                        vef_invoice_amount = invoice_amount_company * foreign_rate
+                        vef_iva_amount = iva_amount_company * foreign_rate
+                        vef_invoice_total = (
+                            tax_totals.get("total_amount_currency", tax_totals.get("total_amount", 0.0))
+                            * foreign_rate
+                        )
+
+                    # Retención en VEF (siempre)
+                    vef_retention_amount = float_round(
+                        vef_iva_amount * (withholding_amount / 100),
+                        precision_digits=vef_currency.decimal_places if vef_currency else 2,
+                    )
+
+                    # Retención en moneda empresa (para el apunte contable)
+                    retention_amount_company = float_round(
+                        iva_amount_company * (withholding_amount / 100),
                         precision_digits=invoice_id.company_currency_id.decimal_places,
                     )
-                    foreign_retention_amount = float_round(
-                        (tax_group_data.get("tax_amount_currency", 0.0) * (withholding_amount / 100)),
-                        precision_digits=invoice_id.foreign_currency_id.decimal_places,
+
+                    invoice_total_company = tax_totals.get(
+                        "total_amount_currency", tax_totals.get("total_amount", 0.0)
                     )
+
+                    _logger.warning(
+                        f"Retención calculada: "
+                        f"invoice={invoice_amount_company} {invoice_currency.name}, "
+                        f"iva={iva_amount_company} {invoice_currency.name}, "
+                        f"vef_invoice={vef_invoice_amount}, vef_iva={vef_iva_amount}, "
+                        f"tasa={foreign_rate}, ret_vef={vef_retention_amount}"
+                    )
+
                     line_data = {
                         "name": _("Iva Retention"),
                         "invoice_type": invoice_id.move_type,
                         "move_id": invoice_id.id,
                         "payment_id": payment.id if payment else None,
                         "aliquot": tax.amount,
-                        "iva_amount": tax_group_data["tax_amount"],
-                        "invoice_total": invoice_id.tax_totals["total_amount"],
-                        "related_percentage_tax_base": withholding_amount,
-                        "invoice_amount": tax_group_data["base_amount"],
-                        "foreign_currency_rate": invoice_id.foreign_rate,
-                        "foreign_iva_amount": tax_group_data.get("tax_amount_currency", 0.0),
-                        "foreign_invoice_total": invoice_id.tax_totals.get("total_amount_currency", 0.0),
-                        "retention_amount": retention_amount,  # ¡Añade esta línea!
-                        "foreign_retention_amount": foreign_retention_amount,  # ¡Y esta!
+                        # Montos en moneda empresa
+                        "invoice_amount": invoice_amount_company,
+                        "iva_amount": iva_amount_company,
+                        "invoice_total": invoice_total_company,
+                        "retention_amount": retention_amount_company,
+                        # Montos en VEF (siempre — regla universal de retenciones VE)
+                        "foreign_invoice_amount": vef_invoice_amount,
+                        "foreign_iva_amount": vef_iva_amount,
+                        "foreign_invoice_total": vef_invoice_total,
+                        "foreign_retention_amount": vef_retention_amount,
+                        # Tasa
+                        "foreign_currency_rate": foreign_rate,
+                        "foreign_currency_inverse_rate": foreign_inverse_rate,
+                        "islr_tax_base": withholding_amount,
                     }
-                    # Agrega esta condición para evitar líneas con monto cero
+                    # Evitar líneas con monto cero
                     if line_data.get("retention_amount") != 0.0 or line_data.get("foreign_retention_amount") != 0.0:
-
                         lines_data.append(line_data)
+
+
         _logger.warning(f"compute_retention_lines_data: Datos de las líneas de retención calculadas: {lines_data}")
 
         return lines_data
-        
+
+
+
 #        lines_data = []
 #        subtotals_name = invoice_id.tax_totals["subtotals"][0]["name"]
 #        tax_groups = zip(
@@ -1440,33 +1679,16 @@ class AccountRetention(models.Model):
 #                "move_id": invoice_id.id,
 #                "payment_id": payment.id if payment else None,
 #                "aliquot": tax.amount,
-#                "iva_amount": tax_group["tax_group_amount"],
-#                "invoice_total": invoice_id.tax_totals["amount_total"],
-#                "related_percentage_tax_base": withholding_amount,
-#                "invoice_amount": tax_group["tax_group_base_amount"],
-#                "foreign_currency_rate": invoice_id.foreign_rate,
-#                "foreign_invoice_amount": foreign_tax_group["tax_group_base_amount"],
-#                "foreign_iva_amount": foreign_tax_group["tax_group_amount"],
-#                "foreign_invoice_total": invoice_id.tax_totals["foreign_amount_total"],
-#            }
-#            if invoice_id.move_type == "out_invoice":
-#                line_data["retention_amount"] = 0.0
-#                line_data["foreign_retention_amount"] = 0.0
-#            else:
-#                line_data["retention_amount"] = retention_amount
-#                line_data["foreign_retention_amount"] = float_round(
-#                    (line_data["foreign_iva_amount"] * (withholding_amount / 100)),
-#                    precision_digits=invoice_id.foreign_currency_id.decimal_places,
-#                )
-#            lines_data.append(line_data)
-#        return lines_data
+
 
     def get_signature(self):
-        config = self.env["signature.config"].search(
-            [("active", "=", True), ("company_id", "=", self.company_id.id)],
-            limit=1,
-        )
-        if config and config.signature:
-            return config.signature.decode()
-        else:
-            return False
+        self.ensure_one()
+        if self.print_with_signatures and self.company_id.signature_image:
+            return self.company_id.signature_image
+        return False
+
+    def get_stamp(self):
+        self.ensure_one()
+        if self.print_with_signatures and self.company_id.stamp_image:
+            return self.company_id.stamp_image
+        return False

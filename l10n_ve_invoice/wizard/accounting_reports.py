@@ -22,7 +22,7 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
         return is_system_currency_bs
 
     def _default_date_to(self):
-        current_day = fields.Date.today()
+        current_day = fields.Date.context_today(self)
         return current_day
 
     def _default_date_from(self):
@@ -120,56 +120,6 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             )
         return fields_purchase_book_line
 
-    def get_pos_z_data(self):
-        z_lines = []
-        domain = [
-            ('date', '>=', self.date_from),
-            ('date', '<=', self.date_to),
-            ('company_id', '=', self.company_id.id),
-            ('state', '=', 'done') # Assuming 'done' is the status for processed Z reports
-        ]
-        
-        # Check if model exists to avoid crashes if module not installed
-        if 'pos.report.z' not in self.env:
-            return []
-            
-        z_reports = self.env['pos.report.z'].search(domain, order='date asc')
-        
-        for z in z_reports:
-            # Determine values based on Z report fields (mapping from l10n_ve_sale_book_pos logic)
-            total_exempt = z.total_exempt + z.total_exempt_nc
-            total_base_g = z.total_base_iva_16 + z.total_base_iva_16_nc
-            total_tax_g = z.total_iva_16 + z.total_iva_16_nc
-            # Assuming reduced/additional are zero for now or need to check model if fields exist
-            # Based on previous file reading, they were not explicitly summed in the loop I saw, 
-            # but I should check the z report model content I am about to recieve in view_file 
-            # to be precise. For now I use generic logic and will refine if fields differ.
-            
-            total_w_iva = total_exempt + total_base_g + total_tax_g
-            
-            line = {
-                "_id": "z_%s" % z.id,
-                "document_date": self._format_date(z.date),
-                "accounting_date": self._format_date(z.date),
-                "vat": "No Contribuyente", # Or generic
-                "partner_name": "Resumen Diario de Ventas (Z: %s)" % z.number,
-                "document_number": z.number,
-                "move_type": "FAC", # Treated as Invoice Aggregation
-                "transaction_type": "01-REG",
-                "number_invoice_affected": "",
-                "correlative": z.number, # Use Z number as control?
-                "reduced_aliquot": 0.08,
-                "general_aliquot": 0.16,
-                "total_sales_iva": total_w_iva,
-                "total_sales_not_iva": total_exempt,
-                "amount_reduced_aliquot": 0.0, # Placeholder
-                "amount_general_aliquot": total_tax_g,
-                "tax_base_reduced_aliquot": 0.0,
-                "tax_base_general_aliquot": total_base_g,
-            }
-            z_lines.append(line)
-        return z_lines
-
     def parse_sale_book_data(self):
         sale_book_lines = []
         moves = self.search_moves()
@@ -178,7 +128,7 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             taxes = self._determinate_amount_taxeds(move)
             sale_book_line = self._fields_sale_book_line(move, taxes)
             sale_book_lines.append(sale_book_line)
-        return sale_book_lines + self.get_pos_z_data()
+        return sale_book_lines
 
     def parse_purchase_book_data(self):
         purchase_book_lines = []

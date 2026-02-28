@@ -1,22 +1,22 @@
 
+
 <odoo>
-	<data>
 
 		<record id="view_retention_iva_form_binaural_payment_extension" model="ir.ui.view">
 			<field name="name">Retention IVA client form</field>
 			<field name="model">account.retention</field>
 			<field name="type">form</field>
 			<field name="arch" type="xml">
-				<form string="Retention">
+				<form string="Retención IVA">
 					<header>
-						<button name="action_draft" type="object" invisible="state != 'cancel'" string="Convert to draft"/>
-						<button name="action_post" type="object" invisible="state != 'draft'" string="Approve" class="oe_highlight"/>
-						<button name="action_cancel" type="object" invisible="state != 'emitted'" string="Cancel" 
-								confirm="Are you sure you want to cancel this voucher? The associated accounting entries will be reversed"/>
+						<button name="action_draft" type="object" invisible="state != 'cancel'" string="Convertir a borrador"/>
+						<button name="action_post" type="object" invisible="state != 'draft'" string="Aprobar" class="oe_highlight"/>
+						<button name="action_cancel" type="object" invisible="state != 'emitted'" string="Cancelar" 
+								confirm="¿Está seguro de cancelar este comprobante? Los asientos contables asociados serán revertidos."/>
 						<field name="state" widget="statusbar" nolabel="1"/>
 					</header>
 					<group colspan="4" col="4">
-						<!-- Invisible fields -->
+						<!-- Campos invisibles -->
 						<field name="original_lines_per_invoice_counter" invisible="1"/>
 						<field name="base_currency_is_vef" invisible="1"/>
 						<field name="company_currency_id" invisible="1"/>
@@ -28,59 +28,45 @@
 						<field name="number" force_save="1" readonly="type == 'in_invoice' or state in ['emitted', 'cancel']" required="type == 'out_invoice'" />
 						<field name="correlative" force_save="1" invisible="1" readonly="type == 'in_invoice'"/>
 						<field name="date" readonly="state in ['emitted', 'cancel']"/>
+						<field name="print_with_signatures" readonly="state in ['emitted', 'cancel']"/>
 					</group>
 					<notebook>
-						<page name="retention_lines" string="Retention Lines">
+						<page name="retention_lines" string="Líneas de Retención">
 							<field colspan="4" name="retention_line_ids" nolabel="1" readonly="state in ['emitted', 'cancel']">
-								<list string="Retention Lines" editable="bottom">
-									<!-- Invisible fields -->
+								<list string="Líneas de Retención" editable="bottom">
+									<!-- Campos invisibles -->
 									<field name="invoice_type" column_invisible="True"/>
 									<field name="company_currency_id" column_invisible="True"/>
 									<field name="foreign_currency_id" column_invisible="True"/>
 									<field name="name"/>
 									<field name="move_id" domain="[('iva_voucher_number', '=',False)]"/>
 									<field name="company_id" optional="hide" groups="base.group_multi_company"/>
-									<field name="aliquot"/>
-									<field name="related_percentage_tax_base" optional="hide"/>
-									<!-- Amounts -->
-									<field name="invoice_total" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef"/>
-									<field name="invoice_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef"/>
-									<field name="iva_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef"/>
-									<field name="retention_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef"/>
-									<!-- Foreign Amounts -->
-									<field name="foreign_invoice_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
-									<field name="foreign_iva_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
-									<field name="foreign_invoice_total" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
-									<field name="foreign_retention_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
-									<field name="foreign_currency_rate" optional="hide"/>
+									<field name="aliquot" string="Alícuota (%)"/>
+									<field name="islr_tax_base" optional="hide"/>
+									<!-- Montos siempre en VEF (Bs.) — Regla universal de retenciones venezolanas -->
+									<field name="foreign_invoice_total" widget="monetary" string="Total Factura (Bs.)" options="{'currency_field': 'foreign_currency_id'}" readonly="1"/>
+									<field name="foreign_invoice_amount" widget="monetary" string="Base Imponible (Bs.)" options="{'currency_field': 'foreign_currency_id'}"/>
+									<field name="foreign_iva_amount" widget="monetary" string="IVA (Bs.)" options="{'currency_field': 'foreign_currency_id'}"/>
+									<field name="foreign_retention_amount" widget="monetary" string="Monto Retenido (Bs.)" options="{'currency_field': 'foreign_currency_id'}"/>
+									<field name="foreign_currency_rate" string="Tasa de Retención" optional="hide"/>
 								</list>
 							</field>
-							<group col="2" colspan="2" invisible="not base_currency_is_vef">
-								<field name="total_invoice_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" />
-								<field name="total_iva_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" />
-								<field name="total_retention_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" />
-							</group>
-							<group col="2" colspan="2" invisible="base_currency_is_vef">
-								<field name="foreign_total_invoice_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" />
-								<field name="foreign_total_iva_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" />
-								<field name="foreign_total_retention_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" />
+							<group col="2" colspan="2">
+								<field name="foreign_total_invoice_amount" widget="monetary" string="Total Facturado (Bs.)" options="{'currency_field': 'foreign_currency_id'}" />
+								<field name="foreign_total_iva_amount" widget="monetary" string="Total IVA (Bs.)" options="{'currency_field': 'foreign_currency_id'}" />
+								<field name="foreign_total_retention_amount" widget="monetary" string="Total Retenido (Bs.)" options="{'currency_field': 'foreign_currency_id'}" />
 							</group>
 						</page>
-						<page name="Payments" string="payments">
-							<field name="payment_ids" nolabel="1" readonly="state in ['emitted', 'cancel']">
-								<list string="Payments" editable="bottom">
+						<page name="Payments" string="Pagos">
+							<field name="payment_ids" nolabel="1" readonly="state != 'draft'">
+								<list string="Pagos" editable="bottom">
 									<field name="date"/>
 									<field name="name"/>
 									<field name="amount"/>
 									<field name="state"/>
-									<field name="foreign_rate" optional="hide"/>
-									<field name="payment_type" optional="hide"/>
-									<field name="payment_type_retention" optional="hide"/>
-									<field name="partner_type" optional="hide"/>
-                                    <field name="company_id" column_invisible="1"/>
+									<field name="foreign_rate" optional="hide" string="Tasa de Retención"/>
 									<field name="partner_id" optional="hide"/>
 									<field name="currency_id" optional="hide"/>
-									<field name="is_retention" optional="hide"/>
 								</list>
 							</field>
 						</page>
@@ -94,33 +80,31 @@
 			<field name="model">account.retention</field>
 			<field name="type">list</field>
 			<field name="arch" type="xml">
-				<list string="Retention">
+				<list string="Retenciones IVA">
 					<field name="number"/>
 					<field name="type"/>
 					<field name="partner_id"/>
 					<field name="date"/>
 					<field name="date_accounting"/>
-					<!-- <field name="total_tax_ret" string="Monto Retenido" widget="monetary" options="{'currency_field': 'company_currency_id'}"/> -->
 					<field name="company_id" optional="hide" groups="base.group_multi_company"/>
 					<field name="state"/>
 				</list>
 			</field>
 		</record>
 		
-		<!--View: Search: Retenciones client-->
+		<!--View: Search: Retenciones IVA-->
 		<record id="view_retention_iva_search_binaural_payment_extension" model="ir.ui.view">
 			<field name="name">IVA Retention</field>
 			<field name="model">account.retention</field>
 			<field name="arch" type="xml">
-				<search string="IVA Retention">
-					<field name="number" string="Number" filter_domain="[('number','ilike',self)]"/>
-					<field name="partner_id" string="Business Name" filter_domain="[('partner_id','ilike',self)]"/>
-					<field name="date" string="Vocher date" filter_domain="[('date','ilike',self)]"/>
+				<search string="Retenciones IVA">
+					<field name="number" string="Número" filter_domain="[('number','ilike',self)]"/>
+					<field name="partner_id" string="Razón Social" filter_domain="[('partner_id','ilike',self)]"/>
+					<field name="date" string="Fecha Comprobante" filter_domain="[('date','ilike',self)]"/>
 					<field name="date_accounting" string="Fecha Contable" filter_domain="[('date_accounting','ilike',self)]"/>
-					<!-- <field name="retention_line" string="Factura" filter_domain="[('retention_line.invoice_id.name','ilike',self)]"/> -->
-					<group expand="0" string="Group By">
-						<filter name="group_state" string="State" domain="[]" context="{'group_by':'state'}"/>
-						<filter name="group_partner" string="Business Name" domain="[]" context="{'group_by':'partner_id'}"/>
+					<group expand="0" string="Agrupar por">
+						<filter name="group_state" string="Estado" domain="[]" context="{'group_by':'state'}"/>
+						<filter name="group_partner" string="Razón Social" domain="[]" context="{'group_by':'partner_id'}"/>
 						<filter name="group_date_accounting" string="Fecha Contable" domain="[]" context="{'group_by':'date_accounting'}"/>
 					</group>
 				</search>
@@ -128,28 +112,27 @@
 		</record>
 		
 		<record id="action_retention_iva_client" model="ir.actions.act_window">
-			<field name="name">IVA Retention Clients</field>
+			<field name="name">Retenciones IVA Clientes</field>
 			<field name="res_model">account.retention</field>
 			<field name="binding_view_types">list</field>
 			<field name="view_mode">list,form</field>
 			<field name="view_ids" eval="[(5, 0, 0),
-						(0, 0, {'view_mode': 'list', 'view_id': ref('view_retention_iva_tree_binaural_payment_extension')}),
-						(0, 0, {'view_mode': 'form', 'view_id': ref('view_retention_iva_form_binaural_payment_extension')})]"/>
+					(0, 0, {'view_mode': 'list', 'view_id': ref('view_retention_iva_tree_binaural_payment_extension')}),
+					(0, 0, {'view_mode': 'form', 'view_id': ref('view_retention_iva_form_binaural_payment_extension')})]"/>
 			<field name="context">{"default_type":'out_invoice', "default_type_retention":'iva'}</field>
 			<field name="domain">[('type_retention', '=', 'iva'), ('type', '=', 'out_invoice')]</field>
 		</record>
 		
 		<record id="action_retention_iva_supplier" model="ir.actions.act_window">
-			<field name="name">IVA Retention Suppliers</field>
+			<field name="name">Retenciones IVA Proveedores</field>
 			<field name="res_model">account.retention</field>
 			<field name="binding_view_types">list</field>
 			<field name="view_mode">list,form</field>
 			<field name="view_ids" eval="[(5, 0, 0),
-						(0, 0, {'view_mode': 'list', 'view_id': ref('view_retention_iva_tree_binaural_payment_extension')}),
-						(0, 0, {'view_mode': 'form', 'view_id': ref('view_retention_iva_form_binaural_payment_extension')})]"/>
+					(0, 0, {'view_mode': 'list', 'view_id': ref('view_retention_iva_tree_binaural_payment_extension')}),
+					(0, 0, {'view_mode': 'form', 'view_id': ref('view_retention_iva_form_binaural_payment_extension')})]"/>
 			<field name="context">{"default_type":'in_invoice', "default_type_retention":'iva'}</field>
 			<field name="domain">[('type_retention', '=', 'iva'), ('type', '=', 'in_invoice')]</field>
 		</record>
 	
-	</data>
 </odoo>

@@ -22,7 +22,7 @@ class AccountMove(models.Model):
     )
     last_payment_date = fields.Date(compute="_compute_payment_dates", store=True)
     first_payment_date = fields.Date(compute="_compute_payment_dates", store=True)
-    is_contingency = fields.Boolean(related="journal_id.is_contingency")
+    is_contingency = fields.Boolean(related="journal_id.is_contingency", store=True)
 
     next_installment_date = fields.Date(compute="_compute_next_installment_date")
 
@@ -62,7 +62,7 @@ class AccountMove(models.Model):
 #    )
 #    # FIN DE LAS MODIFICACIONES SUGERIDAS
    
-    @api.constrains("correlative", "journal_id.is_contingency")
+    @api.constrains("correlative", "is_contingency")
     def _check_correlative(self):
         AccountMove = self.env["account.move"]
         is_series_invoicing_enabled = self.company_id.group_sales_invoicing_series
@@ -167,7 +167,7 @@ class AccountMove(models.Model):
                 continue
             for term in invoice.payment_term_details:
                 term_date = datetime.strptime(term.get("date", ""), date_format).date()
-                if term_date and term_date >= fields.Date.today():
+                if term_date and term_date >= fields.Date.context_today(self):
                     invoice.next_installment_date = term_date
                     break
 
@@ -222,7 +222,8 @@ class AccountMove(models.Model):
             return correlative.next_by_id(correlative.id)
 
         correlative = sequence.search(
-            [("code", "=", "invoice.correlative"), ("company_id", "=", self.env.company.id)]
+            [("code", "=", "invoice.correlative"), ("company_id", "=", self.env.company.id)],
+            limit=1
         )
         if not correlative:
             correlative = sequence.create(

@@ -3,7 +3,7 @@
 
     <data>
         <record id="action_invoice_free_form_l10n_ve_invoice" model="ir.actions.report">
-            <field name="name">Free Form</field>
+            <field name="name">Forma Libre Original</field>
             <field name="model">account.move</field>
             <field name="report_type">qweb-pdf</field>
             <field name="report_name">l10n_ve_invoice.template_invoice_free_form_l10n_ve_invoice</field>
@@ -35,11 +35,6 @@
                     /* Otros estilos que ya puedan existir en tu plantilla */
                 </style>
                 <div class="page">
-                    <!-- HEADER -->
-                    <!-- Custom Top Margin (Spacer Div) -->
-                    <t t-if="o.company_id.activate_custom_margin">
-                        <div t-att-style="'height: ' + str(o.company_id.forma_libre_top_margin) + 'cm; width: 100%;'"></div>
-                    </t>
                     <div id="informations" class="row mt-4 mb-4">
                         <div class="col-auto col-6 mw-100 mb-2">
                             <span><strong>Razón Social:</strong> <t t-out="o.partner_id.name"/></span>

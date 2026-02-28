@@ -15,6 +15,10 @@ _logger = logging.getLogger(__name__)
 class AccountMove(models.Model):
     _inherit = "account.move"
 
+    def _valid_field_parameter(self, field_name, parameter):
+        return parameter in ('digits', 'states') or super()._valid_field_parameter(field_name, parameter)
+
+
     def _get_fields_to_compute_lines(self):
         return ["invoice_line_ids", "line_ids", "foreign_inverse_rate", "foreign_rate"]
 
@@ -87,27 +91,8 @@ class AccountMove(models.Model):
         store=True,
     )
 
-       # INICIO: Añadir los siguientes campos aquí
-    retention_iva_line_ids = fields.One2many(
-        "account.retention.iva.line",
-        "move_id",
-        string="Líneas de Retención de IVA",
-        copy=True,
-    )
-    retention_islr_line_ids = fields.One2many(
-        "account.retention.islr.line",
-        "move_id",
-        string="Líneas de Retención de ISLR",
-        copy=True,
-    )
-    retention_municipal_line_ids = fields.One2many(
-        "account.retention.municipal.line",
-        "move_id",
-        string="Líneas de Retención Municipal",
-        copy=True,
-    )
-    # FIN: De los campos a añadir
     # === INICIO DE LA MODIFICACIÓN PARA base_currency_is_vef ===
+
     base_currency_is_vef = fields.Boolean(
         compute='_compute_base_currency_is_vef',
         store=True, # Lo almacenamos para optimizar el rendimiento
@@ -296,33 +281,23 @@ class AccountMove(models.Model):
                 [("id", "=", int(foreign_currency_id))]
             )
             foreign_currency_symbol = foreign_currency_record.symbol or ""
-            view = False  # Definición segura antes de cualquier condición
+            # ... (código anterior en el método get_view) ...
             if view_type == "form":
-                view = self.env.ref(
-                    'l10n_ve_binaural.view_account_move_form_binaural_invoice', 
-                    False
-            )
-            if view:
-                doc = etree.XML(res["arch"])
-                page = doc.xpath("//page[@name='foreign_currency']")
-                ...
-            else:
-                return super(AccountMove, self).get_view(view_id=view_id, view_type=view_type, **options)
-            # if view_type == "form":
-            #     view = self.env.ref('l10n_ve_binaural.view_account_move_form_binaural_invoice', False)
-            # if view:
-            #     view_id = view.idindicame puentialmente de donde a donde va el ca,m
- 
-            #     # view_id = self.env.ref(
-            #     #     "l10n_ve_accountant.view_account_move_form_binaural_invoice"
-            #     # ).id
-            #     doc = etree.XML(res["arch"])
-                page = doc.xpath("//page[@name='foreign_currency']")
-                if page:
-                    page[0].set(
-                        "string", _("Foreign Currency ") + " " + foreign_currency_symbol
-                    )
-                    res["arch"] = etree.tostring(doc, encoding="unicode")
+                    # === MODIFICACIÓN CRÍTICA AQUÍ ===
+                    # ANTES (lo que probablemente tienes ahora y causa el error):
+                    # view_id_to_check = self.env.ref("l10n_ve_payment_extension.view_account_move_form_binaural_invoice", raise_if_not_found=False)
+
+                    # AHORA (la corrección):
+                view_id_to_check = self.env.ref("l10n_ve_payment_extension.account_move_form_binaural_payment_extension", raise_if_not_found=False)
+
+                if view_id_to_check and view_id == view_id_to_check.id:
+                    doc = etree.XML(res["arch"])
+                    page = doc.xpath("//page[@name='foreign_currency']")
+                    if page:
+                        page[0].set(
+                            "string", _("Foreign Currency ") + " " + foreign_currency_symbol
+                        )
+                        res["arch"] = etree.tostring(doc, encoding="unicode")
         return res
 
     @api.model_create_multi
@@ -336,12 +311,12 @@ class AccountMove(models.Model):
         Ensure that the foreign_rate and foreign_inverse_rate are computed and computes the foreign
         debit and foreign credit of the line_ids fields (journal entries) when the move is created.
         """
-        # for vals in vals_list:
-        #
-        #     if 'name' in vals and vals['name'] != "/":
-        #         existing_record = self.search([('name', '=', vals['name'])], limit=1)
-        #         if existing_record:
-        #             raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
+        for vals in vals_list:
+
+            if 'name' in vals and vals['name'] != "/":
+                existing_record = self.search([('name', '=', vals['name'])], limit=1)
+                if existing_record:
+                    raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
 
         moves = super().create(vals_list)
         moves._compute_rate()
@@ -370,10 +345,10 @@ class AccountMove(models.Model):
         the move is edited.
         """
 
-        # if 'name' in vals:
-        #     existing_record = self.search([('name', '=', vals['name']), ('id', '!=', self.id)], limit=1)
-        #     if existing_record:
-        #         raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
+        if 'name' in vals:
+            existing_record = self.search([('name', '=', vals['name']), ('id', '!=', self.id)], limit=1)
+            if existing_record:
+                raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
 
         if vals.get("foreign_rate", False):
             for move in self:
@@ -711,15 +686,6 @@ class AccountMove(models.Model):
             if move.is_invoice() and move.invoice_line_ids and move.foreign_currency_id and move.currency_id != move.foreign_currency_id:
                 if 'foreign_amount_untaxed' in move.tax_totals:
                     move.foreign_taxable_income = move.tax_totals['foreign_amount_untaxed']
-                    
-#    def _compute_foreign_taxable_income(self):
-#        """
-#        Compute the foreign taxable income of the invoice
-#        """
-#        for move in self:
-#            move.foreign_taxable_income = False
-#            if move.is_invoice() and move.invoice_line_ids:
-#                move.foreign_taxable_income = move.tax_totals["foreign_amount_untaxed"]
 
     @api.depends("tax_totals")
     def _compute_foreign_total_billed(self):

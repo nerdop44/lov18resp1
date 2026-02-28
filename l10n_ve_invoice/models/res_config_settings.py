@@ -21,12 +21,12 @@ class ResConfigSettings(models.TransientModel):
         related="company_id.show_tag_on_usd_invoice", readonly=False
     )
     forma_libre_top_margin = fields.Float(
-        related="company_id.forma_libre_top_margin",
+        related="company_id.forma_libre_top_margin", 
         readonly=False,
         string="Margen Superior Forma Libre (cm)"
     )
     activate_custom_margin = fields.Boolean(
-        related="company_id.activate_custom_margin",
+        related="company_id.activate_custom_margin", 
         readonly=False,
         string="Margen Superior Personalizado Forma Libre"
     )

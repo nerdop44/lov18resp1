@@ -1,6 +1,4 @@
-
 <odoo>
-<data>
 
     <template id="account_report_document">
 
@@ -412,7 +410,5 @@
 
         </t>
     </template>
-
-</data>
 
 </odoo>

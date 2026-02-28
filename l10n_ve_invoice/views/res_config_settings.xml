@@ -48,7 +48,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Forma Libre Top Margin Setting -->
                         <div class="col-12 col-lg-6 o_setting_box" id="forma_libre_margin_setting">
                             <div class="o_setting_left_pane">
@@ -70,6 +70,8 @@
                                 </div>
                             </div>
                         </div>
+
+
 
                         <div class="col-12 col-lg-4 o_setting_box">
                             <div class="o_setting_left_pane">

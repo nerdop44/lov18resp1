@@ -66,7 +66,7 @@ class ArcvReport(models.TransientModel):
                 (
                     line.date_accounting.year,
                     line.date_accounting.month,
-                    line.related_percentage_fees,
+                    line.islr_percentage_perc,
                 )
             ] += line
         return retentions_by_month_and_percentage_fees
