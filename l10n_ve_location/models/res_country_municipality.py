@@ -11,7 +11,7 @@ class ResCountryMunicipalityBinauralLocalizacion(models.Model):
 
     country_id = fields.Many2one("res.country", string="Country", required=True)
 
-    state_id = fields.Many2many("res.country.state", string="State", required=True)
+    state_id = fields.Many2one('res.country.state', string='Estado', required=True, ondelete='restrict', domain="[('country_id', '=', country_id)]")
 
     name = fields.Char(string="Municipality", required=True)
 

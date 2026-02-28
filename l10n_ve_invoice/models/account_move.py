@@ -235,34 +235,3 @@ class AccountMove(models.Model):
             )
         return correlative.next_by_id(correlative.id)
 
-    @api.model
-    def _get_tax_totals(self):
-        # Llama al método original para obtener los totales de impuestos
-        base_lines = self.invoice_line_ids.mapped(lambda line: {
-           'price_subtotal': line.price_subtotal,
-           'discount': line.discount,
-           'taxes': line.tax_ids,
-           'record': line
-        })
-            
-        # Llama al método de impuestos para calcular los totales
-        tax_totals = self.env['account.tax']._prepare_tax_totals(base_lines, self.currency_id)
-    
-        # Asegúrate de que cada subtotal tenga 'formatted_amount'
-        for subtotal in tax_totals.get('subtotals',[]):
-            if 'formatted_amount' not in subtotal:
-                subtotal['formatted_amount'] = self.env['account.move'].format_monetary(subtotal['amount'], self.currency_id)
-        
-        # Asegúrate de que 'foreign_subtotals' esté presente y tenga 'formatted_amount'
-        if 'foreign_subtotals' in tax_totals:
-            foreign_currency = self.secondary_currency_id if hasattr(self, 'secondary_currency_id') and self.secondary_currency_id else self.currency_id # Usa la moneda alternativa si está disponible, sino la moneda principal
-            for subtotal in tax_totals['foreign_subtotals']:
-                if 'formatted_amount' not in subtotal:
-                    subtotal['formatted_amount'] = self.env['account.move'].format_monetary(subtotal['amount'], foreign_currency)
-
-        return tax_totals
-                ### Verifica que 'foreign_subtotals' esté presente
-        ##if 'foreign_subtotals' not in tax_totals:
-        ##    tax_totals['foreign_subtotals'] = []  # O inicializa como desees
-
-        ##return tax_totals

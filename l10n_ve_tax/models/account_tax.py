@@ -15,7 +15,6 @@ class AccountTax(models.Model):
     def _prepare_tax_totals(
         self, base_lines, currency, tax_lines=None, is_company_currency_requested=False
     ):
-        _logger.criltical("¡¡¡MI METODO _prepare_tax_totals SE ESTÁ EJECUTANDO!!!") # Línea agregada
 
         """
         This function adds the alternate currency tax amounts to tax_totals.
