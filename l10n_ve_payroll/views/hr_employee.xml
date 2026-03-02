@@ -43,7 +43,7 @@
                     </h1>
                 </xpath>
                 <xpath expr="//field[@name='study_field']" position="replace">
-                    <field name="study_field" string="Profesión" required="True"/>
+                    <field name="study_field" string="Profesión" required="1"/>
                 </xpath>
                 <xpath expr="//field[@name='work_contact_id']" position="after">
                     <field name="nationality"/>

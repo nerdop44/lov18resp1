@@ -21,7 +21,7 @@
         <field name="arch" type="xml">
             <field name="amount_paid" position="after">
                 <label for="x_igtf_amount" />
-                <field name="x_igtf_amount" force_save="True" nolabel="1" class="oe_subtotal_footer_separator" widget="monetary"/>
+                <field name="x_igtf_amount" force_save="1" nolabel="1" class="oe_subtotal_footer_separator" widget="monetary"/>
             </field>
         </field>
     </record>

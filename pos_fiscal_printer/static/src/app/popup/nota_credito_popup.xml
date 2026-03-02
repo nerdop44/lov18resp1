@@ -5,15 +5,15 @@
             <div class="d-flex flex-column gap-3 p-3">
                 <div class="d-flex flex-column">
                     <label class="form-label fw-bold">Código de impresora</label>
-                    <input type="text" class="form-control" t-model="fields.printerCode" maxlength="10" minlength="10" required="True" />
+                    <input type="text" class="form-control" t-model="fields.printerCode" maxlength="10" minlength="10" required="1" />
                 </div>
                 <div class="d-flex flex-column">
                     <label class="form-label fw-bold">N° de factura</label>
-                    <input type="text" class="form-control" t-model="fields.invoiceNumber" maxlength="11" required="True" />
+                    <input type="text" class="form-control" t-model="fields.invoiceNumber" maxlength="11" required="1" />
                 </div>
                 <div class="d-flex flex-column">
                     <label class="form-label fw-bold">Fecha de factura</label>
-                    <input type="date" class="form-control" t-model="fields.date" required="True" />
+                    <input type="date" class="form-control" t-model="fields.date" required="1" />
                 </div>
             </div>
             <footer class="footer d-flex justify-content-end gap-2 p-3 border-top">

@@ -37,7 +37,7 @@
                     </group>
                     <notebook>
                         <page string="Detalle de ventas POS">
-                            <field name="pos_order_ids" nolabel="1" readonly="True" force_save="True"/>
+                            <field name="pos_order_ids" nolabel="1" readonly="1" force_save="1"/>
                             <group>
                                 <field name="total_exempt_pos"/>
                                 <field name="total_base_iva_16_pos"/>
