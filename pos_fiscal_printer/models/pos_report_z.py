@@ -16,7 +16,7 @@ class PosReportZ(models.Model):
     #impresora fiscal
     x_fiscal_printer_id = fields.Many2one("x.pos.fiscal.printer", "Impresora fiscal", tracking=True)
     x_fiscal_printer_code = fields.Char("Código de la impresora fiscal", related="x_fiscal_printer_id.serial", tracking=True)
-    connection_type = fields.Selection([('serial', 'Serial'), ('usb', 'USB'), ('usb_serial', 'USB Serial'),('file', 'Archivo'), ('api', 'API')], related="x_fiscal_printer_id.connection_type")
+    connection_type = fields.Selection(related="x_fiscal_printer_id.connection_type")
     #fecha y hora del reporte
     date = fields.Datetime("Fecha y hora", tracking=True)
 

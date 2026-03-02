@@ -7,7 +7,7 @@ class PosConfig(models.Model):
         "Show dual currency", help="Show Other Currency in POS", default=True
     )
 
-    rate_company = fields.Float(string='Company Rate', related='currency_id.rate')
+    rate_company = fields.Float(string='Company Rate', related='currency_id.rate', store=True)
 
     show_currency = fields.Many2one('res.currency', string='Ref. Currency', default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')], limit=1))
 
@@ -22,9 +22,7 @@ class PosConfig(models.Model):
 
     show_currency_symbol = fields.Char(related='show_currency.symbol')
 
-    show_currency_position = fields.Selection([('after', 'After'),
-                      ('before', 'Before'),
-                      ],related='show_currency.position')
+    show_currency_position = fields.Selection(related='show_currency.position')
 
     default_location_src_id = fields.Many2one(
         "stock.location", related="picking_type_id.default_location_src_id"

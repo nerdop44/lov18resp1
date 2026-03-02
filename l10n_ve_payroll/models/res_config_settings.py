@@ -22,4 +22,4 @@ class ResConfigSettings(models.TransientModel):
 
     salario_minimo = fields.Float(string='Salario Mínimo', related='company_id.salario_minimo', readonly=False)
 
-    periodo_prestaciones = fields.Selection([('mensual', 'Mensual'),('trimetral','Trimestral')], string='Periodo Prestaciones', related='company_id.periodo_prestaciones', readonly=False)
+    periodo_prestaciones = fields.Selection(string='Periodo Prestaciones', related='company_id.periodo_prestaciones', readonly=False)

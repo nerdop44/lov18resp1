@@ -118,11 +118,11 @@ class PosConfig(models.Model):
     _inherit = "pos.config"
 
     x_fiscal_command_baudrate = fields.Integer("Baudrate", default=9600)
-    x_fiscal_commands_time = fields.Integer("Tiempo de espera", default=750,related="x_fiscal_printer_id.x_fiscal_commands_time")
+    x_fiscal_commands_time = fields.Integer("Tiempo de espera", related="x_fiscal_printer_id.x_fiscal_commands_time")
     x_fiscal_printer_id = fields.Many2one("x.pos.fiscal.printer", "Impresora fiscal")
     x_fiscal_printer_code = fields.Char(related="x_fiscal_printer_id.serial")
-    flag_21 = fields.Selection([('00', '00'), ('30', '30')], string="Flag 21", related="x_fiscal_printer_id.flag_21")
-    connection_type = fields.Selection([('serial', 'Serial'), ('usb', 'USB'), ('usb_serial', 'USB Serial'),('file', 'Archivo'), ('api', 'API')], related="x_fiscal_printer_id.connection_type")
+    flag_21 = fields.Selection(string="Flag 21", related="x_fiscal_printer_id.flag_21")
+    connection_type = fields.Selection(related="x_fiscal_printer_id.connection_type")
     x_fiscal_command_parity = fields.Selection(related="x_fiscal_printer_id.x_fiscal_command_parity")
     api_url = fields.Char(related="x_fiscal_printer_id.api_url")
 
@@ -161,10 +161,10 @@ class ResConfigSettings(models.TransientModel):
         store=True,
     )
 
-    flag_21 = fields.Selection([('00', '00'), ('30', '30')], string="Flag 21", related="pos_config_id.flag_21",
+    flag_21 = fields.Selection(string="Flag 21", related="pos_config_id.flag_21",
         store=True)
 
-    connection_type = fields.Selection([('serial', 'Serial'), ('usb', 'USB'), ('usb_serial', 'USB Serial'),('file', 'Archivo'), ('api', 'API')],
+    connection_type = fields.Selection(
         related="pos_config_id.connection_type",
         store=True
     )

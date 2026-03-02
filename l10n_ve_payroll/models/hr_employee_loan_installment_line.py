@@ -10,8 +10,8 @@ class HRLoanInstallmentLine(models.Model):
     _order = 'date,name'
     
     name = fields.Char('Nombre')
-    employee_id = fields.Many2one('hr.employee',string='Empleado',required="1")
-    loan_id = fields.Many2one('hr.employee.loan',string='Préstamo',required="1", ondelete='cascade')
+    employee_id = fields.Many2one('hr.employee',string='Empleado',required=True)
+    loan_id = fields.Many2one('hr.employee.loan',string='Préstamo',required=True, ondelete='cascade')
     date = fields.Date('Fecha')
     is_paid = fields.Boolean('Pagado')
     amount = fields.Monetary('Monto',currency_field='currency_id_dif')
