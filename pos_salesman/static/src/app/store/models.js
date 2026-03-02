@@ -1,6 +1,6 @@
 import { patch } from "@web/core/utils/patch";
 import { PosStore } from "@point_of_sale/app/store/pos_store";
-import { Order } from "@point_of_sale/app/store/models";
+import { PosOrder } from "@point_of_sale/app/models/pos_order";
 
 patch(PosStore.prototype, {
     async _processData(loadedData) {
@@ -9,7 +9,7 @@ patch(PosStore.prototype, {
     },
 });
 
-patch(Order.prototype, {
+patch(PosOrder.prototype, {
     setup(_attr, options) {
         super.setup(...arguments);
         this.salesman_id = this.salesman_id || null;
