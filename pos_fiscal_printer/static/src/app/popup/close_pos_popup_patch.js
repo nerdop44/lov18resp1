@@ -11,7 +11,12 @@ const patchConfig = {
         super.setup();
         this.orm = useService("orm");
         this.pos = useService("pos");
-        this.popup = useService("popup");
+        try {
+            this.popup = useService("popup");
+        } catch (e) {
+            console.warn("Popup service not available in Odoo 18, utilizing dialog service if possible");
+            this.dialog = useService("dialog");
+        }
 
         // Ensure state includes zReport. Use Object.assign to respect existing proxy if any.
         // If super didn't init state, we init it.
