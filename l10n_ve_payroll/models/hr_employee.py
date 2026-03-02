@@ -18,9 +18,9 @@ class HREmpleyee(models.Model):
     rif = fields.Char(string="RIF")
     islr = fields.Float(string="% ISLR", default=0)
 
-    primer_nombre = fields.Char(string="Primer Nombre", required=True)
+    primer_nombre = fields.Char(string="Primer Nombre", required=False)
     segundo_nombre = fields.Char(string="Segundo Nombre")
-    primer_apellido = fields.Char(string="Primer Apellido", required=True)
+    primer_apellido = fields.Char(string="Primer Apellido", required=False)
     segundo_apellido = fields.Char(string="Segundo Apellido")
 
     #   MINTRA
