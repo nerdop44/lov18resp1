@@ -24,17 +24,17 @@ class HREmployeeLoanType(models.Model):
             record.count_loan_draft = len(emp_loan)
 
 
-    name = fields.Char('Nombre', required="1")
-    loan_limit = fields.Monetary('Monto Límite', default=0, required="1", currency_field='currency_id_dif')
-    loan_term = fields.Integer('Cuotas', default=12, required="1")
+    name = fields.Char('Nombre', required=True)
+    loan_limit = fields.Monetary('Monto Límite', default=0, required=True, currency_field='currency_id_dif')
+    loan_term = fields.Integer('Cuotas', default=12, required=True)
     is_apply_interest = fields.Boolean('Aplicar Interes', default=True)
     interest_rate = fields.Float('% Intereses',default=10)
     interest_type = fields.Selection([('liner','Linear'),('reduce','Reducido')],string='Tipo de Interes',
                                      default='liner')
                                      
-    loan_account = fields.Many2one('account.account',string='Cuenta de Prestamo', required="1")
-    interest_account = fields.Many2one('account.account',string='Cuenta de Interes', required="1")
-    journal_id = fields.Many2one('account.journal',string='Diario', required="1")
+    loan_account = fields.Many2one('account.account',string='Cuenta de Prestamo', required=True)
+    interest_account = fields.Many2one('account.account',string='Cuenta de Interes', required=True)
+    journal_id = fields.Many2one('account.journal',string='Diario', required=True)
     color = fields.Integer(string= 'Color')
     count_loan_draft = fields.Integer(compute='_compute_loan_draft')
     count_loan_done = fields.Integer(compute='_compute_loan_done')
