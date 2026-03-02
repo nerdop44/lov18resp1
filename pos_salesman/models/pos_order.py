@@ -4,7 +4,7 @@ from odoo.exceptions import UserError
 class PosOrder(models.Model):
     _inherit = 'pos.order'
 
-    salesman_id = fields.Many2one('hr.employee', string='Vendedor', readonly="1", force_save="1")
+    salesman_id = fields.Many2one('hr.employee', string='Vendedor', readonly="1")
 
 
     def _order_fields(self, ui_order):

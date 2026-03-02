@@ -16,7 +16,7 @@ class PosSession(models.Model):
 
     tax_today = fields.Float(string="Tasa Sesión", store=True,
                              compute="_tax_today",
-                             tracking=True, digits=(16, 4))
+                             digits=(16, 4))
 
     ref_me_currency_id = fields.Many2one('res.currency', related='config_id.show_currency', string="Reference Currency",
                                          store=False)
@@ -51,7 +51,7 @@ class PosSession(models.Model):
         currency_field='ref_me_currency_id',
         help="Opening balance summed to all cash transactions.",
         readonly=True)
-    cash_real_transaction_ref = fields.Monetary(string='Transaction', currency_field='ref_me_currency_id',
+    cash_real_transaction_ref = fields.Monetary(string='Ref. Transaction', currency_field='ref_me_currency_id',
                                                 readonly=True)
 
     def set_cashbox_pos_usd(self, cashbox_value, notes):

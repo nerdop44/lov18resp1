@@ -23,6 +23,6 @@ class XPosFiscalPrinter(models.Model):
         ("odd", "Odd"),
     ], string="Paridad", default="even", required=True)
 
-    x_fiscal_commands_time = fields.Integer("Tiempo de espera", tracking=True, default=750)
+    x_fiscal_commands_time = fields.Integer("Tiempo de espera", default=750)
     company_id = fields.Many2one('res.company', string='Compañía', required=True, default=lambda self: self.env.company)
 

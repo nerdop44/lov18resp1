@@ -67,7 +67,7 @@ class PosPaymentMethod(models.Model):
 class PosConfig(models.Model):
     _inherit = "pos.config"
 
-    x_igtf_product_id = fields.Many2one("product.product", "Producto IGTF", tracking=True)
+    x_igtf_product_id = fields.Many2one("product.product", "Producto IGTF")
 
     aplicar_igtf = fields.Boolean("Aplicar IGTF", default=False)
 

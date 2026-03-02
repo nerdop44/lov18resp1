@@ -6,7 +6,7 @@ from odoo.exceptions import ValidationError
 class PosOrder(models.Model):
     _inherit = "pos.order"
 
-    z_report = fields.Char("Reporte Z", ralated="session_id.x_pos_z_report_number", store=True)
+    z_report = fields.Char("Reporte Z", related="session_id.x_pos_z_report_number", store=True)
 
     num_factura = fields.Char("Num. Factura Fiscal", store=True)
 
@@ -112,14 +112,14 @@ class AccountTax(models.Model):
         ("general", "General"),
         ("reducido", "Reducido"),
         ("adicional", "Adicional"),
-    ], "Tipo de alícuota", tracking=True, default="general")
+    ], "Tipo de alícuota", default="general")
 
 class PosConfig(models.Model):
     _inherit = "pos.config"
 
-    x_fiscal_command_baudrate = fields.Integer("Baudrate", tracking=True, default=9600)
-    x_fiscal_commands_time = fields.Integer("Tiempo de espera", tracking=True, default=750,related="x_fiscal_printer_id.x_fiscal_commands_time")
-    x_fiscal_printer_id = fields.Many2one("x.pos.fiscal.printer", "Impresora fiscal", tracking=True)
+    x_fiscal_command_baudrate = fields.Integer("Baudrate", default=9600)
+    x_fiscal_commands_time = fields.Integer("Tiempo de espera", default=750,related="x_fiscal_printer_id.x_fiscal_commands_time")
+    x_fiscal_printer_id = fields.Many2one("x.pos.fiscal.printer", "Impresora fiscal")
     x_fiscal_printer_code = fields.Char(related="x_fiscal_printer_id.serial")
     flag_21 = fields.Selection([('00', '00'), ('30', '30')], string="Flag 21", related="x_fiscal_printer_id.flag_21")
     connection_type = fields.Selection([('serial', 'Serial'), ('usb', 'USB'), ('usb_serial', 'USB Serial'),('file', 'Archivo'), ('api', 'API')], related="x_fiscal_printer_id.connection_type")

@@ -7,11 +7,11 @@ class PosConfig(models.Model):
         "Show dual currency", help="Show Other Currency in POS", default=True
     )
 
-    rate_company = fields.Float(string='Rate', related='currency_id.rate')
+    rate_company = fields.Float(string='Company Rate', related='currency_id.rate')
 
-    show_currency = fields.Many2one('res.currency', string='Currency', default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')], limit=1))
+    show_currency = fields.Many2one('res.currency', string='Ref. Currency', default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')], limit=1))
 
-    show_currency_rate = fields.Float(string='Rate', compute='_compute_show_currency_rate', store=False)
+    show_currency_rate = fields.Float(string='Ref. Rate', compute='_compute_show_currency_rate', store=False)
 
     @api.depends('show_currency')
     def _compute_show_currency_rate(self):
