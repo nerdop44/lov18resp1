@@ -76,34 +76,17 @@ patch(PosStore.prototype, {
         // Ensure value is a number
         const amount = typeof value === 'number' ? value : parseFloat(value) || 0;
 
-        let formatted = formatMonetary(amount, {
-            currencyId: currency.id,
-            currencySymbol: currency.symbol,
-            currencyPosition: currency.position,
-            rounding: currency.rounding,
-            digits: [69, currency.decimal_places],
-        });
-
-
-
-        // Fallback: If formatMonetary returns just the number or fails to add symbol, force it
-        if (!formatted.includes(currency.symbol)) {
-            if (currency.position === 'before') {
-                formatted = currency.symbol + ' ' + amount.toFixed(currency.decimal_places);
-            } else {
-                formatted = amount.toFixed(currency.decimal_places) + ' ' + currency.symbol;
-            }
-        } else {
-            // Correct usage of symbol position if formatMonetary didn't respect it (e.g. locale overrides)
-            if (currency.position === 'before' && !formatted.startsWith(currency.symbol)) {
-                // heuristic check: if it ends with symbol but should start
-                if (formatted.endsWith(currency.symbol)) {
-                    formatted = currency.symbol + ' ' + formatted.slice(0, -currency.symbol.length).trim();
-                } else {
-                    formatted = currency.symbol + ' ' + amount.toFixed(currency.decimal_places);
-                }
-            }
+        let formatted = "";
+        try {
+            // Manual formatting as fallback
+            formatted = (currency.position === 'before' ? currency.symbol + ' ' : '') +
+                amount.toFixed(currency.decimal_places).replace(/\./g, ",") +
+                (currency.position === 'after' ? ' ' + currency.symbol : '');
+        } catch (e) {
+            console.warn("Manual formatting in format_currency_ref failed:", e);
+            formatted = amount.toFixed(2);
         }
+
         return formatted;
     },
 

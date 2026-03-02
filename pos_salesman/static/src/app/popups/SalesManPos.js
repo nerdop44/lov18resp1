@@ -1,7 +1,7 @@
-import { AbstractPosPopup } from "@point_of_sale/app/utils/abstract_pos_popup";
+import { AbstractAwaitablePopup } from "@point_of_sale/app/popups/abstract_awaitable_popup";
 import { _t } from "@web/core/l10n/translation";
 
-export class SalesManPos extends AbstractPosPopup {
+export class SalesManPos extends AbstractAwaitablePopup {
     static template = "pos_salesman.SalesManPos";
     static defaultProps = {
         confirmText: _t("Seleccionar"),
