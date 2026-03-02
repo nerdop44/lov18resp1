@@ -6,7 +6,13 @@ import { useService } from "@web/core/utils/hooks";
 
 patch(PaymentScreen.prototype, {
     setup() {
-        super.setup();
-        this.pos = useService("pos");
-    }
+        if (super.setup) {
+            super.setup();
+        }
+        try {
+            this.pos = useService("pos");
+        } catch (e) {
+            console.error("Failed to load 'pos' service in PaymentScreen:", e);
+        }
+    },
 });

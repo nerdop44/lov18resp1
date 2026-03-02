@@ -126,26 +126,41 @@ patch(PosStore.prototype, {
     },
 
     getProductPriceFormatted(product, ref = false) {
+        if (!product) return "";
         // Use get_product_price_with_tax to include taxes if possible
-        let price = product.get_price(this.pricelist, 1);
+        let price = 0;
+        try {
+            price = product.get_price(this.pricelist, 1);
+        } catch (e) {
+            console.warn("Error getting product price:", e);
+        }
+
         if (typeof price !== 'number') price = 0;
 
         const price_with_tax = this.get_product_price_with_tax(product, price);
 
-        if (ref && (this.config.show_dual_currency || this.res_currency_ref)) {
+        if (ref && (this.config?.show_dual_currency || this.res_currency_ref)) {
             // Use the new centralized helper
             return this.getAmountInRefCurrency(price_with_tax);
         }
+
         if (this.currency) {
-            return formatMonetary(price_with_tax, {
-                currencyId: this.currency.id,
-                currencySymbol: this.currency.symbol,
-                currencyPosition: this.currency.position,
-                rounding: this.currency.rounding,
-                digits: [69, this.currency.decimal_places],
-            });
+            try {
+                return formatMonetary(price_with_tax, {
+                    currencyId: this.currency.id,
+                    currencySymbol: this.currency.symbol,
+                    currencyPosition: this.currency.position,
+                    rounding: this.currency.rounding,
+                    digits: [69, this.currency.decimal_places],
+                });
+            } catch (e) {
+                console.warn("formatMonetary failed for main currency:", e);
+                return (this.currency.position === 'before' ? this.currency.symbol : '') +
+                    price_with_tax.toFixed(this.currency.decimal_places) +
+                    (this.currency.position === 'after' ? ' ' + this.currency.symbol : '');
+            }
         }
-        return "" + price_with_tax;
+        return "" + price_with_tax.toFixed(2);
     },
 
     get_product_price_with_tax(product, price) {
