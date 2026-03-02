@@ -75,9 +75,9 @@ class HRPayslip(models.Model):
                         vacaciones.dias_vaca -= dias_vaca.number_of_days
         return res
 
-    @api.model
-    def create(self, vals):
-        result = super(HRPayslip, self).create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        result = super(HRPayslip, self).create(vals_list)
         for rec in result:
             if rec.payslip_run_id:
                 rec.tasa_cambio = rec.payslip_run_id.tasa_cambio

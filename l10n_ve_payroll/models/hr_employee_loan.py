@@ -450,11 +450,12 @@ class HREmployeeLoan(models.Model):
 
 
 
-    @api.model
-    def create(self, vals):
-        if vals.get('name', '/') == '/':
-            vals['name'] = self.env['ir.sequence'].next_by_code('hr.employee.loan') or '/'
-        return super(HREmployeeLoan, self).create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('name', '/') == '/':
+                vals['name'] = self.env['ir.sequence'].next_by_code('hr.employee.loan') or '/'
+        return super(HREmployeeLoan, self).create(vals_list)
         
     def copy(self, default=None):
         if default is None:

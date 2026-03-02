@@ -20,12 +20,12 @@ class HREmployeeLoanDocument(models.Model):
     note = fields.Text(string ='Note')
     
     
-    @api.model
-    def create(self, vals):
-        vals['sequ_name'] = self.env['ir.sequence'].next_by_code(
-            'hr.employee.loan.document') or 'LOAN/DOC/'
-        result = super(HREmployeeLoanDocument, self).create(vals)
-        return result
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            vals['sequ_name'] = self.env['ir.sequence'].next_by_code(
+                'hr.employee.loan.document') or 'LOAN/DOC/'
+        return super(HREmployeeLoanDocument, self).create(vals_list)
         
     
    
