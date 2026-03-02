@@ -7,7 +7,7 @@ class PosConfig(models.Model):
         "Show dual currency", help="Show Other Currency in POS", default=True
     )
 
-    rate_company = fields.Float(string='Company Rate', related='currency_id.rate', store=True)
+    rate_company = fields.Float(string='Company Rate', related='journal_id.currency_id.rate', store=True)
 
     show_currency = fields.Many2one('res.currency', string='Ref. Currency', default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')], limit=1))
 
