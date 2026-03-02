@@ -5,26 +5,20 @@
         <field name="model">pos.config</field>
         <field name="inherit_id" ref="point_of_sale.pos_config_view_form" />
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='iface_big_scrollbars']/../.." position="after">
-                <div class="col-xs-12 col-md-6 o_setting_box" id="show_prod_qtys">
-                    <div class="o_setting_left_pane">
-                        <field name="show_dual_currency" />
-                    </div>
-                    <div class="o_setting_right_pane">
-                        <label for="show_dual_currency" />
-                        <div class="text-muted">
-                            Adds price of other currency at products
+            <xpath expr="//setting[@id='pricing']" position="after">
+                <setting id="show_prod_qtys" string="Doble Moneda" help="Muestra el precio en la moneda secundaria en los productos">
+                    <field name="show_dual_currency" />
+                    <div class="content-group" invisible="not show_dual_currency">
+                        <div class="row mt16">
+                            <label for="show_currency" string="Moneda" class="col-lg-3 o_light_label"/>
+                            <field name="show_currency" />
                         </div>
-                        <div class="content-group mt16 row"  invisible="[('show_dual_currency','=',False)]">
-                            <label for="show_currency" string="Currency"  class="col-lg-3 o_light_label"/>
-                            <field name="show_currency"   />
+                        <div class="row mt16">
+                            <label for="show_currency_rate" string="Tasa" class="col-lg-3 o_light_label"/>
+                            <field name="show_currency_rate" digits="[12,21]"/>
                         </div>
-                        <div class="content-group mt16 row"  invisible="[('show_dual_currency','=',False)]">
-                             <label for="show_currency_rate" string="Rate"  class="col-lg-3 o_light_label"/>
-                             <field name="show_currency_rate" digits="[12,21]"/>
-                         </div>
                     </div>
-                </div>
+                </setting>
             </xpath>
         </field>
     </record>
