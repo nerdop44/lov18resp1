@@ -55,7 +55,7 @@
                         
                     </div>
                 	<label for="name" class="oe_edit_only"/>
-                	<h1><field name="name" readonly="1"/></h1>
+                	<h1><field name="name" readonly="True"/></h1>
                     
                     <group>
                         <group>
@@ -64,10 +64,10 @@
                             <field name="manager_id" readonly="state != 'draft'"/>
                         </group>
                         <group>
-                            <field name="date" readonly="1"/>
+                            <field name="date" readonly="True"/>
                             <field name="job_id" readonly="state != 'draft'"/>
                             <field name="loan_url" invisible="1"/>
-                            <field name="user_id" readonly="1"/>
+                            <field name="user_id" readonly="True"/>
                             <field name="hr_manager_id" invisible="1"/>
                             <field name="is_close" invisible="1"/>
                             <field name="move_id" invisible="1" />
@@ -77,7 +77,7 @@
                         <group>
                             <field name="is_apply_interest" invisible="1"/>
                             <field name="payment_method" readonly="state != 'draft'"/>
-                            <field name="currency_id_dif" readonly="1"/>
+                            <field name="currency_id_dif" readonly="True"/>
                             <field name="loan_amount" readonly="state != 'draft'"/>
                             <field name="interest_amount" invisible="is_apply_interest != True"/>
                             <field name="paid_amount"/>
@@ -109,7 +109,7 @@
                         </page>
                         <page string="Cuotas">
                             <br/>
-                            <field name="installment_lines" readonly="1" >
+                            <field name="installment_lines" readonly="True" >
                                 <list decoration-success="is_paid == True"  decoration-muted="is_skip == True">
                                     <field name="name"/>
                                     <field name="date"/>
@@ -118,7 +118,7 @@
                                     <field name="installment_amt" sum="installment_amt"/>
                                     <field name="ins_interest" sum="ins_interest"/>
                                     <field name="total_installment" sum="total_installment"/>
-                                    <field name="currency_id_dif" readonly="1"/>
+                                    <field name="currency_id_dif" readonly="True"/>
                                     <field name="is_paid" invisible="1"/>
                                     <field name="is_skip" invisible="1"/>
                                     <button type="object" name="action_view_payslip" string="Payslip" class="btn-primary"

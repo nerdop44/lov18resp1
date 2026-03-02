@@ -75,7 +75,7 @@
         <field name="inherit_id" ref="point_of_sale.pos_payment_method_view_form"/>
         <field name="arch" type="xml">
             <field name="company_id" position="after">
-                <field name="x_printer_code" required="1" />
+                <field name="x_printer_code" required="True" />
             </field>
         </field>
     </record>
@@ -85,7 +85,7 @@
         <field name="inherit_id" ref="account.view_tax_form"/>
         <field name="arch" type="xml">
             <field name="amount" position="after">
-                <field name="x_tipo_alicuota" required="1" />
+                <field name="x_tipo_alicuota" required="True" />
             </field>
         </field>
     </record>

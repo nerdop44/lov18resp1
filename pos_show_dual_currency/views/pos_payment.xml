@@ -7,8 +7,8 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='amount']" position="after">
                 <field name="currency_id_dif"/>
-                <field name="tax_today" readonly="1" force_save="1"/>
-                <field name="amount_ref" readonly="1" force_save="1"/>
+                <field name="tax_today" readonly="True" force_save="True"/>
+                <field name="amount_ref" readonly="True" force_save="True"/>
             </xpath>
         </field>
     </record>
@@ -20,8 +20,8 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='amount']" position="after">
                 <field name="currency_id_dif" optional="hide"/>
-                <field name="tax_today" readonly="1" force_save="1"/>
-                <field name="amount_ref" readonly="1" force_save="1"/>
+                <field name="tax_today" readonly="True" force_save="True"/>
+                <field name="amount_ref" readonly="True" force_save="True"/>
             </xpath>
         </field>
     </record>

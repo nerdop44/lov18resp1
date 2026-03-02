@@ -80,7 +80,7 @@ class HREmployeeLoan(models.Model):
                                      default='liner')
     interest_rate = fields.Float(string='% Intereses', default=10)
     interest_amount = fields.Monetary('Monto de intereses', compute='get_interest_amount', currency_field='currency_id_dif')
-    installment_lines = fields.One2many('hr.employee.loan.installment.line','loan_id',string='Cuotas')
+    installment_lines = fields.One2many('hr.employee.loan.installment.line','loan_id',string='Líneas de Cuotas')
     notes = fields.Text('Razón', required=True)
     is_close = fields.Boolean('Cerrado',compute='is_ready_to_close')
     move_id = fields.Many2one('account.move',string='Asiento Contable')

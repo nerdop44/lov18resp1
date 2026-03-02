@@ -6,10 +6,10 @@
         <field name="model">x.pos.fiscal.printer</field>
         <field name="arch" type="xml">
             <list>
-                <field name="name" required="1" />
-                <field name="serial" required="1" />
+                <field name="name" required="True" />
+                <field name="serial" required="True" />
                 <field name="flag_21" />
-                <field name="serial_port" required="1" />
+                <field name="serial_port" required="True" />
                 <field name="connection_type" />
                 <field name="x_fiscal_command_parity" />
                 <field name="api_url" />
@@ -23,9 +23,9 @@
             <form string="Impresoras fiscales">
                 <sheet>
                     <group>
-                        <field name="name" required="1" />
+                        <field name="name" required="True" />
                         <field name="x_fiscal_commands_time" />
-                        <field name="serial" required="1" />
+                        <field name="serial" required="True" />
                         <field name="flag_21" />
                         <field name="serial_port" />
                         <field name="connection_type" />
