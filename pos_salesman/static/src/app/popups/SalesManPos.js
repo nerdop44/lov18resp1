@@ -1,7 +1,6 @@
 /** @odoo-module */
 
-import { AbstractAwaitablePopup } from "@point_of_sale/app/popups/abstract_awaitable_popup";
-
+import { AbstractAwaitablePopup } from "@point_of_sale/app/popup/popup";
 import { _t } from "@web/core/l10n/translation";
 
 export class SalesManPos extends AbstractAwaitablePopup {
@@ -11,6 +10,7 @@ export class SalesManPos extends AbstractAwaitablePopup {
         salesmen: { type: Array, optional: true },
     };
     static defaultProps = {
+        ...AbstractAwaitablePopup.defaultProps,
         confirmText: _t("Seleccionar"),
         cancelText: _t("Cancelar"),
         title: _t("Asignar Vendedor"),
