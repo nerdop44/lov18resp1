@@ -161,8 +161,15 @@ class PosSession(models.Model):
             
             currency_ref[0]['rate'] = rate_tasa  # Inject the (possibly inverted) rate
             
-            if result and 'data' in result and result['data']:
-                result['data'][0]['res_currency_ref'] = currency_ref[0]
+            if result:
+                # Odoo 18 Data Dictionary Structure
+                if 'pos.session' in result and 'data' in result['pos.session'] and result['pos.session']['data']:
+                    result['pos.session']['data'][0]['res_currency_ref'] = currency_ref[0]
+                    
+                if 'pos.config' in result and 'data' in result['pos.config'] and result['pos.config']['data']:
+                    result['pos.config']['data'][0]['show_currency_rate'] = rate_tasa
+                    result['pos.config']['data'][0]['show_currency_symbol'] = currency_ref[0]['symbol']
+                    result['pos.config']['data'][0]['show_currency_position'] = currency_ref[0]['position']
         
         return result
 
