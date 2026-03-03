@@ -299,34 +299,43 @@ class ResCurrency(models.Model):
     @api.model
     def get_trm_systray(self):
         company_id = self.env.company
-        currency_dif = company_id.currency_id_dif
         
-        if not currency_dif:
-            return 0.0
-
-        last_rate = self.env['res.currency.rate'].search([
-            ('currency_id', '=', currency_dif.id),
-            ('company_id', '=', company_id.id),
-        ], order='name desc', limit=1)
-
-        tasa = 0.0
-        if last_rate:
-             tasa = last_rate.rate
+        # Obtener las dos monedas principales usando comodines universales
+        usd_currency = self.env['res.currency'].search([('name', 'in', ['USD', 'US$'])], limit=1)
+        ves_currency = self.env['res.currency'].search([('name', 'in', ['VES', 'VEF'])], limit=1)
         
-        if (tasa == 0.0 or tasa == 1.0) and currency_dif.inverse_rate and currency_dif.inverse_rate > 1:
-            tasa = currency_dif.inverse_rate
-
-        if tasa == 0.0 or tasa == 1.0:
-            try:
-                usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
-                if usd_currency:
-                    bcv_rate = usd_currency.get_bcv()
-                    if bcv_rate and bcv_rate > 1:
-                        tasa = bcv_rate
-            except:
-                pass
-
+        if not usd_currency or not ves_currency:
+            return 1.0
+            
+        # Determinar si la compañia es base USD o base VES
+        if company_id.currency_id.id == usd_currency.id:
+            # Base USD
+            rate_record = self.env['res.currency.rate'].search([
+                ('currency_id', '=', ves_currency.id),
+                '|', ('company_id', '=', company_id.id), ('company_id', '=', False)
+            ], order='name desc', limit=1)
+            tasa = rate_record.rate if rate_record else ves_currency.rate
+            
+        elif company_id.currency_id.id == ves_currency.id:
+            # Base VES, la tasa de USD es su valor inverso
+            rate_record = self.env['res.currency.rate'].search([
+                ('currency_id', '=', usd_currency.id),
+                '|', ('company_id', '=', company_id.id), ('company_id', '=', False)
+            ], order='name desc', limit=1)
+            
+            if rate_record:
+                tasa = rate_record.inverse_rate if rate_record.inverse_rate > 0 else (1.0 / rate_record.rate if rate_record.rate > 0 else 1.0)
+            else:
+                tasa = usd_currency.inverse_rate if usd_currency.inverse_rate > 0 else (1.0 / usd_currency.rate if usd_currency.rate > 0 else 1.0)
+        else:
+            diff = company_id.currency_id_dif
+            rate_record = self.env['res.currency.rate'].search([
+                ('currency_id', '=', diff.id),
+                '|', ('company_id', '=', company_id.id), ('company_id', '=', False)
+            ], order='name desc', limit=1)
+            tasa = rate_record.rate if rate_record else diff.rate
+            
         if tasa < 1.0 and tasa > 0.0:
             tasa = 1.0 / tasa
-
-        return round(tasa, 4)
+            
+        return round(tasa, 4) if tasa else 1.0

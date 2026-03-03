@@ -1,6 +1,7 @@
 {
     'name': "[LOCVE] Venezuela: Account Dual Currency",
-    'version': "18.0.1.0.112",
+    'version': "18.0.1.0.113",
+
 
 
 
