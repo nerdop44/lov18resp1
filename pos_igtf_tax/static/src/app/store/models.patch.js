@@ -32,7 +32,7 @@ patch(PosPayment.prototype, {
         } else {
             if (value !== igtf_antes) {
                 if (this.isForeignExchange) {
-                    super.set_amount(value * (1 / config.show_currency_rate));
+                    super.set_amount(value * config.show_currency_rate);
                 } else {
                     super.set_amount(value);
                 }

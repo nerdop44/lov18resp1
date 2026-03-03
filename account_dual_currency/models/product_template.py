@@ -35,25 +35,30 @@ class Productos(models.Model):
     @api.onchange('list_price_usd')
     def _onchange_list_price_usd(self):
         for rec in self:
-            tasa = self.env.company.currency_id_dif
-            if tasa and tasa.inverse_rate > 0:
-                new_val = rec.list_price_usd * tasa.inverse_rate
-                if abs(rec.list_price - new_val) > 0.01:
-                    rec.with_context(from_usd=True).list_price = new_val
-            elif not rec.list_price_usd:
-                rec.with_context(from_usd=True).list_price = 0.0
+            if not self._context.get('from_usd'):
+                company = self.env.company
+                if company.currency_id and company.currency_id_dif:
+                    rate = company.currency_id_dif._get_conversion_rate(
+                        company.currency_id_dif, company.currency_id, company, fields.Date.context_today(self))
+                    new_val = rec.list_price_usd * rate
+                    if abs(rec.list_price - new_val) > 0.01:
+                        rec.with_context(from_usd=True).list_price = new_val
+                elif not rec.list_price_usd:
+                    rec.with_context(from_usd=True).list_price = 0.0
 
     @api.onchange('list_price')
     def _onchange_list_price_sync_bs(self):
         for rec in self:
             if not self._context.get('from_usd'):
-                tasa = self.env.company.currency_id_dif
-                if tasa and tasa.inverse_rate > 0:
-                    new_val = rec.list_price / tasa.inverse_rate
+                company = self.env.company
+                if company.currency_id and company.currency_id_dif:
+                    rate = company.currency_id._get_conversion_rate(
+                        company.currency_id, company.currency_id_dif, company, fields.Date.context_today(self))
+                    new_val = rec.list_price * rate
                     if abs(rec.list_price_usd - new_val) > 0.01:
-                        rec.list_price_usd = new_val
+                        rec.with_context(from_usd=True).list_price_usd = new_val
                 elif not rec.list_price:
-                    rec.list_price_usd = 0.0
+                    rec.with_context(from_usd=True).list_price_usd = 0.0
 
     @api.onchange('standard_price_usd')
     def _onchange_standard_price_usd(self):
@@ -62,25 +67,30 @@ class Productos(models.Model):
                 rec.product_variant_ids[0].standard_price_usd = rec.standard_price_usd
 
             if rec.categ_id.property_valuation == 'manual_periodic':
-                tasa = self.env.company.currency_id_dif
-                if tasa and tasa.inverse_rate > 0:
-                    new_val = rec.standard_price_usd * tasa.inverse_rate
-                    if abs(rec.standard_price - new_val) > 0.01:
-                        rec.with_context(from_usd=True).standard_price = new_val
-                elif not rec.standard_price_usd:
-                    rec.with_context(from_usd=True).standard_price = 0.0
+                if not self._context.get('from_usd'):
+                    company = self.env.company
+                    if company.currency_id and company.currency_id_dif:
+                        rate = company.currency_id_dif._get_conversion_rate(
+                            company.currency_id_dif, company.currency_id, company, fields.Date.context_today(self))
+                        new_val = rec.standard_price_usd * rate
+                        if abs(rec.standard_price - new_val) > 0.01:
+                            rec.with_context(from_usd=True).standard_price = new_val
+                    elif not rec.standard_price_usd:
+                        rec.with_context(from_usd=True).standard_price = 0.0
 
     @api.onchange('standard_price')
     def _onchange_standard_price_sync_bs(self):
         for rec in self:
             if not self._context.get('from_usd'):
-                tasa = self.env.company.currency_id_dif
-                if tasa and tasa.inverse_rate > 0:
-                    new_val = rec.standard_price / tasa.inverse_rate
+                company = self.env.company
+                if company.currency_id and company.currency_id_dif:
+                    rate = company.currency_id._get_conversion_rate(
+                        company.currency_id, company.currency_id_dif, company, fields.Date.context_today(self))
+                    new_val = rec.standard_price * rate
                     if abs(rec.standard_price_usd - new_val) > 0.01:
-                        rec.standard_price_usd = new_val
+                        rec.with_context(from_usd=True).standard_price_usd = new_val
                 elif not rec.standard_price:
-                    rec.standard_price_usd = 0.0
+                    rec.with_context(from_usd=True).standard_price_usd = 0.0
 
 
 
