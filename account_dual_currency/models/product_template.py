@@ -37,10 +37,13 @@ class Productos(models.Model):
         for rec in self:
             if not self._context.get('from_usd'):
                 company = self.env.company
-                if company.currency_id and company.currency_id_dif:
-                    rate = company.currency_id_dif._get_conversion_rate(
-                        company.currency_id_dif, company.currency_id, company, fields.Date.context_today(self))
-                    new_val = rec.list_price_usd * rate
+                tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
+                if tasa > 0:
+                    if company.currency_id.name == 'USD':
+                       new_val = rec.list_price_usd / tasa
+                    else:
+                       new_val = rec.list_price_usd * tasa
+                    
                     if abs(rec.list_price - new_val) > 0.01:
                         rec.with_context(from_usd=True).list_price = new_val
                 elif not rec.list_price_usd:
@@ -51,10 +54,13 @@ class Productos(models.Model):
         for rec in self:
             if not self._context.get('from_usd'):
                 company = self.env.company
-                if company.currency_id and company.currency_id_dif:
-                    rate = company.currency_id._get_conversion_rate(
-                        company.currency_id, company.currency_id_dif, company, fields.Date.context_today(self))
-                    new_val = rec.list_price * rate
+                tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
+                if tasa > 0:
+                    if company.currency_id.name == 'USD':
+                       new_val = rec.list_price * tasa
+                    else:
+                       new_val = rec.list_price / tasa
+                       
                     if abs(rec.list_price_usd - new_val) > 0.01:
                         rec.with_context(from_usd=True).list_price_usd = new_val
                 elif not rec.list_price:
@@ -69,10 +75,13 @@ class Productos(models.Model):
             if rec.categ_id.property_valuation == 'manual_periodic':
                 if not self._context.get('from_usd'):
                     company = self.env.company
-                    if company.currency_id and company.currency_id_dif:
-                        rate = company.currency_id_dif._get_conversion_rate(
-                            company.currency_id_dif, company.currency_id, company, fields.Date.context_today(self))
-                        new_val = rec.standard_price_usd * rate
+                    tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
+                    if tasa > 0:
+                        if company.currency_id.name == 'USD':
+                           new_val = rec.standard_price_usd / tasa
+                        else:
+                           new_val = rec.standard_price_usd * tasa
+                        
                         if abs(rec.standard_price - new_val) > 0.01:
                             rec.with_context(from_usd=True).standard_price = new_val
                     elif not rec.standard_price_usd:
@@ -83,10 +92,13 @@ class Productos(models.Model):
         for rec in self:
             if not self._context.get('from_usd'):
                 company = self.env.company
-                if company.currency_id and company.currency_id_dif:
-                    rate = company.currency_id._get_conversion_rate(
-                        company.currency_id, company.currency_id_dif, company, fields.Date.context_today(self))
-                    new_val = rec.standard_price * rate
+                tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
+                if tasa > 0:
+                    if company.currency_id.name == 'USD':
+                       new_val = rec.standard_price * tasa
+                    else:
+                       new_val = rec.standard_price / tasa
+                       
                     if abs(rec.standard_price_usd - new_val) > 0.01:
                         rec.with_context(from_usd=True).standard_price_usd = new_val
                 elif not rec.standard_price:

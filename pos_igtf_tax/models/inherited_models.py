@@ -36,6 +36,12 @@ class PosOrderLine(models.Model):
 
     x_is_igtf_line = fields.Boolean("Linea IGTF")
 
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        result = super()._load_pos_data_fields(config_id)
+        result.append('x_is_igtf_line')
+        return result
+
     def _order_line_fields(self, line, session_id):
         result = super()._order_line_fields(line, session_id)
         vals = result[2]
@@ -56,6 +62,12 @@ class PosPaymentMethod(models.Model):
 
     x_igtf_percentage = fields.Float("Porcentaje de IGTF")
     x_is_foreign_exchange = fields.Boolean("Pago en divisas")
+
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        result = super()._load_pos_data_fields(config_id)
+        result.extend(['x_igtf_percentage', 'x_is_foreign_exchange'])
+        return result
 
     @api.constrains("x_igtf_percentage")
     def _check_x_igtf_percentage(self):
