@@ -8,10 +8,10 @@ export class NotaCreditoPopUp extends Component {
     static template = "pos_fiscal_printer.NotaCreditoPopUp";
     static components = { Dialog };
     // Temporarily removing props validation to fix OwlError crash
-    // static props = {
-    //     getPayload: Function,
-    //     close: Function,
-    // };
+    static props = {
+        getPayload: { type: Function, optional: true },
+        close: { type: Function, optional: true },
+    };
 
     setup() {
         this.pos = useService("pos");

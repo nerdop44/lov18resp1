@@ -16,12 +16,9 @@ patch(ProductProduct.prototype, {
 
 patch(PosPayment.prototype, {
     get isForeignExchange() {
-        const currency_ref = this.models.res_currency_ref;
-        if (currency_ref && this.payment_method_id && this.payment_method_id.currency_id) {
-            return this.payment_method_id.currency_id.id === currency_ref.id;
-        }
-        return false;
+        return this.payment_method_id?.x_is_foreign_exchange || false;
     },
+
     set isForeignExchange(val) {
         // Allow assignment from server data
     },

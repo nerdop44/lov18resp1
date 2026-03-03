@@ -78,10 +78,14 @@ patch(PosStore.prototype, {
 
         let formatted = "";
         try {
-            // Manual formatting as fallback
-            formatted = (currency.position === 'before' ? currency.symbol + ' ' : '') +
-                amount.toFixed(currency.decimal_places).replace(/\./g, ",") +
-                (currency.position === 'after' ? ' ' + currency.symbol : '');
+            // Manual formatting as fallback - explicit string conversion for safety
+            const symbol = String(currency.symbol || "");
+            const position = String(currency.position || "after");
+            const decimals = parseInt(currency.decimal_places) || 2;
+
+            formatted = (position === 'before' ? symbol + ' ' : '') +
+                amount.toFixed(decimals).replace(/\./g, ",") +
+                (position === 'after' ? ' ' + symbol : '');
         } catch (e) {
             console.warn("Manual formatting in format_currency_ref failed:", e);
             formatted = amount.toFixed(2);

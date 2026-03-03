@@ -21,3 +21,10 @@ Asegurar la estabilidad y despliegue de la localización venezolana optimizada p
 ## Bitácora de Trazabilidad
 - [2026-03-01 12:05]: Sincronización de contexto solicitada por el usuario. Confirmado SSH producción: `29159705@tbriceno65-animalc.odoo.com`.
 - [2026-03-02 11:40]: FIX: Corregido error de carga en POS (@pos_salesman) para Odoo 18. Despliegue completado en ramas `Dep3` (Prueba) y `Produccion`. Versión incrementada a `18.0.1.0.5`.
+- [2026-03-03]: FASE 21: Estabilización Funcional y Precios Reactivos.
+  - Definición del campo ausente `inverse_rate` en `res.currency`.
+  - Sincronización bidireccional instantánea de `list_price` y `standard_price` en `product.template`.
+  - Corrección de prefijos `@odoo-module` en JS de `pos_salesman` para habilitar botón en POS.
+  - Refactorización de componentes XML (`pos_show_dual_currency`) para visualización premium de Restante y Vuelto en divisas.
+  - Habilitación del cobro automático de IGTF (3%) para pagos en efectivo en divisas.
+

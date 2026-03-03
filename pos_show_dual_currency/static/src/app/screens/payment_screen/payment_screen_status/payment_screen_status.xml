@@ -3,19 +3,28 @@
     <t t-name="pos_show_dual_currency.PaymentScreenStatus" t-inherit="point_of_sale.PaymentScreenStatus" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('payment-status-remaining')]" position="inside">
              <t t-if="pos.config.show_dual_currency">
-                <div class="currency-dual-remaining" style="color: red; font-size: medium; margin-top: 5px;">
-                     Restante: <t t-esc="pos.getAmountInRefCurrency(props.order.get_due())"/>
+                <div class="currency-dual-remaining p-2 mt-2 border rounded shadow-sm" 
+                     style="background-color: #fff5f5; border-color: #feb2b2 !important;">
+                     <div class="text-muted small fw-bold">Restante en Divisa</div>
+                     <div class="text-danger fs-5 fw-bolder">
+                        <t t-esc="pos.getAmountInRefCurrency(props.order.get_due())"/>
+                     </div>
                 </div>
             </t>
         </xpath>
 
         <xpath expr="//div[hasclass('payment-status-change')]" position="inside">
              <t t-if="pos.config.show_dual_currency">
-                <div class="currency-dual-change" style="color: red; font-size: medium; margin-top: 5px;">
-                     Vuelto: <t t-esc="pos.getAmountInRefCurrency(props.order.get_change())"/>
+                <div class="currency-dual-change p-2 mt-2 border rounded shadow-sm" 
+                     style="background-color: #f0fff4; border-color: #9ae6b4 !important;">
+                     <div class="text-muted small fw-bold">Vuelto en Divisa</div>
+                     <div class="text-success fs-5 fw-bolder">
+                        <t t-esc="pos.getAmountInRefCurrency(props.order.get_change())"/>
+                     </div>
                 </div>
             </t>
         </xpath>
+
 
 
     </t>

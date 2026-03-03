@@ -86,4 +86,4 @@ for (const method of mixinMethods) {
     }
 }
 
-// patch(ReceiptScreen.prototype, patchConfig);
+patch(ReceiptScreen.prototype, patchConfig);
