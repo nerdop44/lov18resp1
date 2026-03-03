@@ -1,6 +1,7 @@
 {
     'name': "[LOCVE] Venezuela: Account Dual Currency",
-    'version': "18.0.1.0.107",
+    'version': "18.0.1.0.108",
+
     'category': 'LocVe [Localization]',
     'license': 'Other proprietary',
     'summary': """Esta aplicación permite manejar dualidad de moneda en Contabilidad.""",
