@@ -39,7 +39,8 @@ class Productos(models.Model):
                 company = self.env.company
                 tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
                 if tasa > 0:
-                    if company.currency_id.name == 'USD':
+                    is_base_usd = company.currency_id.name in ['USD', 'US$'] or company.currency_id.symbol == '$'
+                    if is_base_usd:
                        new_val = rec.list_price_usd / tasa
                     else:
                        new_val = rec.list_price_usd * tasa
@@ -56,7 +57,8 @@ class Productos(models.Model):
                 company = self.env.company
                 tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
                 if tasa > 0:
-                    if company.currency_id.name == 'USD':
+                    is_base_usd = company.currency_id.name in ['USD', 'US$'] or company.currency_id.symbol == '$'
+                    if is_base_usd:
                        new_val = rec.list_price * tasa
                     else:
                        new_val = rec.list_price / tasa
@@ -77,7 +79,8 @@ class Productos(models.Model):
                     company = self.env.company
                     tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
                     if tasa > 0:
-                        if company.currency_id.name == 'USD':
+                        is_base_usd = company.currency_id.name in ['USD', 'US$'] or company.currency_id.symbol == '$'
+                        if is_base_usd:
                            new_val = rec.standard_price_usd / tasa
                         else:
                            new_val = rec.standard_price_usd * tasa
@@ -94,7 +97,8 @@ class Productos(models.Model):
                 company = self.env.company
                 tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
                 if tasa > 0:
-                    if company.currency_id.name == 'USD':
+                    is_base_usd = company.currency_id.name in ['USD', 'US$'] or company.currency_id.symbol == '$'
+                    if is_base_usd:
                        new_val = rec.standard_price * tasa
                     else:
                        new_val = rec.standard_price / tasa

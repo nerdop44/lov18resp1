@@ -16,7 +16,7 @@ patch(ProductProduct.prototype, {
 
 patch(PosPayment.prototype, {
     get isForeignExchange() {
-        return this.payment_method_id?.x_is_foreign_exchange || false;
+        return this.payment_method?.x_is_foreign_exchange || false;
     },
 
     set isForeignExchange(val) {
@@ -93,8 +93,8 @@ patch(PosOrder.prototype, {
 
         const igtf_monto = paymentLines
             .filter((p) => p.isForeignExchange)
-            .map(({ amount, payment_method_id }) => {
-                const percentage = payment_method_id?.x_igtf_percentage || 0;
+            .map(({ amount, payment_method }) => {
+                const percentage = payment_method?.x_igtf_percentage || 0;
                 return amount * (percentage / 100);
             })
             .reduce((prev, current) => prev + current, 0);

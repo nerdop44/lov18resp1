@@ -2,7 +2,6 @@
 
 import { _t } from "@web/core/l10n/translation";
 
-import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
 import { usePos } from "@point_of_sale/app/store/pos_hook";
 import { Component } from "@odoo/owl";
 import { SalesManPos } from "@pos_salesman/app/popups/SalesManPos";
@@ -47,19 +46,9 @@ export class BtnSalesMan extends Component {
 }
 
 // Odoo 18 compatibility for POS Control Buttons
-if (registry.category("pos_control_buttons")) {
-    registry.category("pos_control_buttons").add("BtnSalesMan", {
-        component: BtnSalesMan,
-        condition: function () {
-            return true;
-        },
-    });
-} else {
-    // Fallback for Odoo 16/17 just in case
-    ProductScreen.addControlButton({
-        component: BtnSalesMan,
-        condition: function () {
-            return true;
-        },
-    });
-}
+registry.category("pos_control_buttons").add("BtnSalesMan", {
+    component: BtnSalesMan,
+    condition: function () {
+        return true;
+    },
+});
