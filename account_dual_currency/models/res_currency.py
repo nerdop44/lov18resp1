@@ -324,7 +324,7 @@ class ResCurrency(models.Model):
             ], order='name desc', limit=1)
             
             if rate_record:
-                tasa = rate_record.inverse_rate if rate_record.inverse_rate > 0 else (1.0 / rate_record.rate if rate_record.rate > 0 else 1.0)
+                tasa = 1.0 / rate_record.rate if rate_record.rate > 0 else 1.0
             else:
                 tasa = usd_currency.inverse_rate if usd_currency.inverse_rate > 0 else (1.0 / usd_currency.rate if usd_currency.rate > 0 else 1.0)
         else:
