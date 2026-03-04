@@ -28,7 +28,7 @@ class PosSession(models.Model):
     def load_data(self, models_to_load, only_data=False):
         response = super().load_data(models_to_load, only_data)
         
-        # Odoo 18: Inyectar hr_salesmen en la respuesta principal para que el frontend lo recoja
+        # Odoo 18: Inyectar hr_salesmen en los datos de configuración para evitar TypeError en el loop de modelos del frontend
         salesman_ids = self.config_id.salesman_ids.ids if self.config_id else []
         
         domain = [('id', 'in', salesman_ids)] if salesman_ids else []
@@ -37,10 +37,7 @@ class PosSession(models.Model):
             ['name', 'id']
         )
         
-        # Inject into root response
-        response['hr_salesmen'] = salesmen
-        
-        # Inject into config just in case
+        # Inject into config
         if 'pos.config' in response and response['pos.config'].get('data'):
             response['pos.config']['data'][0]['hr_salesmen'] = salesmen
             
