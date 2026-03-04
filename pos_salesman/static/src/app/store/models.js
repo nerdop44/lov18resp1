@@ -20,11 +20,18 @@ patch(PosData.prototype, {
 patch(PosStore.prototype, {
     setup() {
         super.setup(...arguments);
-        this.salesman_ids = this.salesman_ids || [];
+        // Using reactive to ensure changes are tracked if needed, 
+        // but simple property is usually enough for the store
+        if (this.salesman_ids === undefined) {
+            this.salesman_ids = [];
+        }
     },
     async processData(loadedData) {
         await super.processData(...arguments);
-        this.salesman_ids = loadedData['hr_salesmen'] || this.data.hr_salesmen || [];
+        // Odoo 18: Data might be in loadedData or already processed in this.data
+        const salesmen = loadedData['hr_salesmen'] || this.data.hr_salesmen || [];
+        this.salesman_ids = salesmen;
+        console.log(">>>>>>>> Salesmen loaded in PosStore:", this.salesman_ids.length);
     },
 });
 

@@ -10,6 +10,7 @@
                         <button name="actualizar_tasa" string="Actualizar Ahora" class="oe_highlight" type="object" invisible="1"/>
                         <button name="actualizar_facturas" string="Actualizar Facturas" class="oe_highlight" type="object" invisible="not facturas_por_actualizar"/>
                         <button name="actualizar_productos" string="Actualizar Productos" class="oe_highlight" type="object"/>
+                        <button name="action_fix_astronomical_prices" string="Restaurar Precios (Emergencia)" class="btn-danger" type="object" confirm="¿Está seguro de querer restaurar los precios? Esto dividirá los precios billonarios por la tasa hasta normalizarlos."/>
                     </header>
                     <div class="alert alert-danger" role="alert" style="margin-bottom:0px;" invisible="not facturas_por_actualizar">
                         <strong>

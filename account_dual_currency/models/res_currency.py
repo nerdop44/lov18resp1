@@ -139,14 +139,42 @@ class ResCurrency(models.Model):
                     f._compute_payments_widget_reconciled_info_USD()
 
     def actualizar_productos(self):
-        for rec in self:
-            product_ids = self.env['product.template'].search([('list_price_usd','>',0)])
-            for p in product_ids:
-                p.list_price = p.list_price_usd * rec.inverse_rate
+        # Disabled to prevent cyclic recursion with computed list_price_usd
+        pass
+        # for rec in self:
+        #     product_ids = self.env['product.template'].search([('list_price_usd','>',0)])
+        #     for p in product_ids:
+        #         p.list_price = p.list_price_usd * rec.inverse_rate
+        #
+        #     product_product_ids = self.env['product.product'].search([('list_price_usd', '>', 0)])
+        #     for p in product_product_ids:
+        #         p.list_price = p.list_price_usd * rec.inverse_rate
 
-            product_product_ids = self.env['product.product'].search([('list_price_usd', '>', 0)])
-            for p in product_product_ids:
-                p.list_price = p.list_price_usd * rec.inverse_rate
+    def action_fix_astronomical_prices(self):
+        """ Método de emergencia para restaurar precios inflados trillonarios """
+        company = self.env.company
+        tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
+        if tasa <= 1:
+            return
+            
+        # Umbral de sanidad: 100 millones (ajustable si hay productos legítimos muy caros)
+        threshold = 100000000.0
+        
+        # Corregir Templates
+        templates = self.env['product.template'].search([('list_price', '>', threshold)])
+        for t in templates:
+            price = t.list_price
+            while price > threshold:
+                price = price / tasa
+            t.list_price = price
+            
+        # Corregir Variantes
+        variants = self.env['product.product'].search([('lst_price', '>', threshold)])
+        for v in variants:
+            price = v.lst_price
+            while price > threshold:
+                price = price / tasa
+            v.lst_price = price
 
             list_product_ids = self.env['product.pricelist.item'].search([('currency_id', '=', self.id)])
 

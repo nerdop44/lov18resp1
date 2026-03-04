@@ -17,7 +17,8 @@ export class BtnSalesMan extends Component {
         const order = this.pos.get_order();
         if (!order) return;
 
-        if (this.pos.salesman_ids.length === 0) {
+        const salesman_list = this.pos.salesman_ids || this.pos.data.hr_salesmen || [];
+        if (salesman_list.length === 0) {
             this.pos.popup.add("ErrorPopup", {
                 title: _t("Sin Vendedores"),
                 body: _t("No hay vendedores configurados para este punto de venta."),
@@ -25,7 +26,7 @@ export class BtnSalesMan extends Component {
             return;
         }
 
-        const salesmen = this.pos.salesman_ids.map(s => ({
+        const salesmen = salesman_list.map(s => ({
             ...s,
             image_url: `/web/image/hr.employee/${s.id}/image_128`
         }));
