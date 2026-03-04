@@ -100,6 +100,18 @@ patch(PosStore.prototype, {
     getAmountInRefCurrency(amount) {
         if (!amount && amount !== 0) return "";
         let rate = 1.0;
+
+        // Reconstruct res_currency_ref from config if missing
+        if (!this.res_currency_ref && this.config) {
+            this.res_currency_ref = {
+                symbol: this.config.show_currency_symbol || "$",
+                position: this.config.show_currency_position || "after",
+                rounding: 0.01,
+                decimal_places: 2,
+                rate: this.config.show_currency_rate || 1.0,
+            };
+        }
+
         if (this.res_currency_ref && this.res_currency_ref.rate) {
             rate = this.res_currency_ref.rate;
         } else {
@@ -111,7 +123,26 @@ patch(PosStore.prototype, {
         }
         if (isNaN(rate) || rate === 0) rate = 1;
 
-        const final_val = amount * rate;
+        let final_val = 0;
+        const ref_symbol = this.res_currency_ref ? this.res_currency_ref.symbol : (this.config.show_currency_symbol || '$');
+
+        // Dynamic division/multiplication based on context and magnitude
+        if (ref_symbol === '$' || ref_symbol === 'USD') {
+            // Converting to USD: If rate is e.g. 425.67 Bs/USD, we must divide AMOUNT (Bs) by RATE to get USD.
+            if (rate > 1) {
+                final_val = amount / rate;
+            } else {
+                final_val = amount * rate;
+            }
+        } else {
+            // Converting to Bs: If rate is 425.67 Bs/USD, we must multiply AMOUNT (USD) by RATE to get Bs.
+            if (rate > 1) {
+                final_val = amount * rate;
+            } else {
+                final_val = amount / rate;
+            }
+        }
+
         return this.format_currency_ref(final_val);
     },
 
@@ -136,22 +167,18 @@ patch(PosStore.prototype, {
 
         if (this.currency) {
             try {
-                // Try using the store's own env for formatting if possible
-                if (this.env?.services?.localization) {
-                    // Logic for localization service formatting
-                }
-
-                // Fallback to manual formatting to avoid dependency errors
                 const amount = price_with_tax;
-                const currency = this.currency;
-                return (currency.position === 'before' ? currency.symbol + ' ' : '') +
-                    amount.toFixed(currency.decimal_places).replace(/\./g, ",") +
-                    (currency.position === 'after' ? ' ' + currency.symbol : '');
+                // Fix: Ensure we extract the symbol as string, not the JS primitive Symbol type
+                const curr_sym = typeof this.currency.symbol === 'symbol' ? '' : (this.currency.symbol || '');
+                return (this.currency.position === 'before' ? curr_sym + ' ' : '') +
+                    amount.toFixed(this.currency.decimal_places).replace(/\./g, ",") +
+                    (this.currency.position === 'after' ? ' ' + curr_sym : '');
             } catch (e) {
                 console.warn("Formatting failed for main currency:", e);
-                return (this.currency.position === 'before' ? this.currency.symbol : '') +
-                    price_with_tax.toFixed(this.currency.decimal_places) +
-                    (this.currency.position === 'after' ? ' ' + this.currency.symbol : '');
+                const curr_sym = typeof this.currency.symbol === 'symbol' ? '' : (this.currency.symbol || '');
+                return (this.currency.position === 'before' ? curr_sym : '') +
+                    price_with_tax.toFixed(this.currency.decimal_places || 2) +
+                    (this.currency.position === 'after' ? ' ' + curr_sym : '');
             }
         }
         return "" + price_with_tax.toFixed(2);
