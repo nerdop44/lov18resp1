@@ -25,29 +25,23 @@ class PosSession(models.Model):
             result['search_params']['fields'].append('salesman_ids')
         return result
 
-    @api.model
-    def _load_pos_data(self, data):
-        result = super()._load_pos_data(data)
+    def load_data(self, models_to_load, only_data=False):
+        response = super().load_data(models_to_load, only_data)
         
-        # En Odoo 18, `_load_pos_data` puede llamarse como @api.model, por tanto `self` puede estar vacío.
-        # Extraemos la sesión y configuración desde el diccionario `result` inyectado por `super()`.
-        salesman_ids = []
-        if 'pos.config' in result and result['pos.config']['data']:
-             config_data = result['pos.config']['data'][0]
-             salesman_ids = config_data.get('salesman_ids', [])
-             
-        # Cargar todos los empleados si no hay vendedores restringidos a esta tienda,
-        # o solo los vendedores configurados.
+        # Odoo 18: Inyectar hr_salesmen en la respuesta principal para que el frontend lo recoja
+        salesman_ids = self.config_id.salesman_ids.ids if self.config_id else []
+        
         domain = [('id', 'in', salesman_ids)] if salesman_ids else []
         salesmen = self.env['hr.employee'].search_read(
             domain,
             ['name', 'id']
         )
         
-        # Force injection into root and into config just in case
-        result['hr_salesmen'] = salesmen
+        # Inject into root response
+        response['hr_salesmen'] = salesmen
         
-        if 'pos.config' in result and result['pos.config']['data']:
-            result['pos.config']['data'][0]['hr_salesmen'] = salesmen
+        # Inject into config just in case
+        if 'pos.config' in response and response['pos.config'].get('data'):
+            response['pos.config']['data'][0]['hr_salesmen'] = salesmen
             
-        return result
+        return response
