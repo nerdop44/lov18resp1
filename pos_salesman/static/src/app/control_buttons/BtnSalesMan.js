@@ -20,8 +20,12 @@ export class BtnSalesMan extends Component {
         const order = this.pos.get_order();
         if (!order) return;
 
+        console.log("BtnSalesMan: this.pos.data keys:", Object.keys(this.pos.data));
+        console.log("BtnSalesMan: this.pos.data.hr_salesmen:", this.pos.data.hr_salesmen);
+        console.log("BtnSalesMan: this.pos.salesman_ids:", this.pos.salesman_ids);
+
         // In Odoo 18, we injected hr_salesmen into the data service (this.pos.data)
-        const salesman_list = this.pos.data.hr_salesmen || this.pos.salesman_ids || [];
+        const salesman_list = (this.pos.data && this.pos.data.hr_salesmen) || this.pos.salesman_ids || [];
         if (salesman_list.length === 0) {
             this.notification.add(_t("No hay vendedores configurados para este punto de venta."), {
                 title: _t("Sin Vendedores"),

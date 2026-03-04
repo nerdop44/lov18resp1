@@ -13,8 +13,10 @@ patch(PosData.prototype, {
 
         // Inject hr_salesmen into the data service for reactivity in Odoo 18
         if (response.hr_salesmen) {
+            console.log(">>>>>>>> hr_salesmen Found in Response:", response.hr_salesmen.length);
             this.hr_salesmen = response.hr_salesmen;
-            console.log(">>>>>>>> hr_salesmen Injected into PosData:", this.hr_salesmen.length);
+        } else {
+            console.warn(">>>>>>>> hr_salesmen NOT found in Response Root");
         }
 
         if (response && response.res_currency_ref) {
