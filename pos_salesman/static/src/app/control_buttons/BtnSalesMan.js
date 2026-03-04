@@ -45,10 +45,9 @@ export class BtnSalesMan extends Component {
     }
 }
 
-// Odoo 18 compatibility for POS Control Buttons
-registry.category("pos_control_buttons").add("BtnSalesMan", {
-    component: BtnSalesMan,
-    condition: function () {
-        return true;
-    },
+import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
+import { patch } from "@web/core/utils/patch";
+
+patch(ProductScreen.components, {
+    BtnSalesMan,
 });

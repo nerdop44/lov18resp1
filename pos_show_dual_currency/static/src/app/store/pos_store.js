@@ -232,6 +232,6 @@ patch(PosStore.prototype, {
 
     get show_currency_rate_display() {
         const rate = this.config.show_currency_rate || 0;
-        return rate.toFixed(2);
+        return rate.toFixed(4);
     }
 });

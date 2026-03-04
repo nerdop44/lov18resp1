@@ -13,7 +13,7 @@ class Productos(models.Model):
 
 
     list_price = fields.Float(string="Precio de Venta en $")
-    list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif')
+    list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif', compute='_compute_list_price_usd', inverse='_inverse_list_price_usd')
     standard_price_usd = fields.Float(string="Costo Alterno", inverse='_set_standard_price_usd', compute='_compute_standard_price_usd')
     costo_reposicion_usd = fields.Monetary(string="Costo Reposición Alterno", currency_field='currency_id_dif')
 
@@ -33,19 +33,19 @@ class Productos(models.Model):
         for template in (self - unique_variants):
             template.standard_price_usd = 0.0
 
-    @api.onchange('list_price_usd')
-    def _onchange_list_price_usd(self):
-        pass
-
-    @api.onchange('list_price')
-    def _onchange_list_price_sync_bs(self):
+    @api.depends('list_price', 'currency_id_dif')
+    def _compute_list_price_usd(self):
         for rec in self:
-            company = self.env.company
+            company = rec.env.company
+            tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
+            rec.list_price_usd = rec.list_price * tasa if tasa > 0 else 0.0
+
+    def _inverse_list_price_usd(self):
+        for rec in self:
+            company = rec.env.company
             tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
             if tasa > 0:
-                rec.list_price_usd = rec.list_price * tasa
-            else:
-                rec.list_price_usd = 0.0
+                rec.list_price = rec.list_price_usd / tasa
 
     @api.onchange('standard_price_usd')
     def _onchange_standard_price_usd(self):

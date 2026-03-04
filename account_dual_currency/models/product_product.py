@@ -12,8 +12,22 @@ class ProductProduct(models.Model):
             rec.currency_id_dif = self.env.company.currency_id_dif.id
 
 
-    list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif')
+    list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif', compute='_compute_list_price_usd', inverse='_inverse_list_price_usd')
     standard_price_usd = fields.Float(string="Costo Alterno", company_dependent=True)
+
+    @api.depends('lst_price', 'currency_id_dif')
+    def _compute_list_price_usd(self):
+        for rec in self:
+            company = rec.env.company
+            tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
+            rec.list_price_usd = rec.lst_price * tasa if tasa > 0 else 0.0
+
+    def _inverse_list_price_usd(self):
+        for rec in self:
+            company = rec.env.company
+            tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
+            if tasa > 0:
+                rec.lst_price = rec.list_price_usd / tasa
 
     value_usd_svl = fields.Float(compute='_compute_value_usd_svl', compute_sudo=True)
 
