@@ -662,6 +662,12 @@ class PosSession(models.Model):
         fields.append('cash_register_balance_start_mn_ref')
         return search_params
 
+    @api.model
+    def _loader_params_product_product(self):
+        result = super()._loader_params_product_product()
+        result['search_params']['fields'].extend(['list_price_usd', 'standard_price_usd'])
+        return result
+
     def action_pos_session_open(self):
         for session in self.filtered(lambda session: session.state == 'opening_control'):
             if session.config_id.cash_control and not session.rescue:

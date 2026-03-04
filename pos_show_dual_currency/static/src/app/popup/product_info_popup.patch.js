@@ -20,6 +20,7 @@ patch(ProductInfoPopup.prototype, {
         if (!this.pos.config.show_dual_currency && !this.pos.res_currency_ref) {
             return "";
         }
-        return this.pos.getProductPriceFormatted(this.props.product, true);
+        // Direct read from product.template injected list_price_usd
+        return this.pos.format_currency_ref(this.props.product.list_price_usd || 0);
     }
 });
