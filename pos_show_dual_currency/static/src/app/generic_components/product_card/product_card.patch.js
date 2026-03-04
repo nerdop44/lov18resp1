@@ -20,8 +20,8 @@ patch(ProductCard.prototype, {
         if (!this.pos.config.show_dual_currency && !this.pos.res_currency_ref) {
             return "";
         }
-        // Direct read from product.template injected list_price_usd
-        return this.pos.format_currency_ref(this.props.product.list_price_usd || 0);
+        // Direct read from product.lst_price (the MASTER USD price in this DB)
+        return this.pos.format_currency_ref(this.props.product.lst_price || 0);
     },
 
     get mainPrice() {

@@ -665,7 +665,7 @@ class PosSession(models.Model):
     @api.model
     def _loader_params_product_product(self):
         result = super()._loader_params_product_product()
-        result['search_params']['fields'].extend(['list_price_usd', 'standard_price_usd'])
+        result['search_params']['fields'].extend(['list_price_usd', 'standard_price_usd', 'lst_price'])
         return result
 
     def action_pos_session_open(self):

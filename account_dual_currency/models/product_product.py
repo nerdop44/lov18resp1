@@ -11,6 +11,13 @@ class ProductProduct(models.Model):
         for rec in self:
             rec.currency_id_dif = self.env.company.currency_id_dif.id
 
+    cost_currency_id = fields.Many2one('res.currency', string="Moneda de Costo", compute='_compute_cost_currency_id')
+
+    def _compute_cost_currency_id(self):
+        for rec in self:
+            ves = self.env['res.currency'].search([('name', 'in', ['VES', 'VEF'])], limit=1)
+            rec.cost_currency_id = ves.id if ves else self.env.company.currency_id.id
+
 
     list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif', compute='_compute_list_price_usd')
     standard_price_usd = fields.Float(string="Costo en Bs.", compute='_compute_standard_price_usd')
