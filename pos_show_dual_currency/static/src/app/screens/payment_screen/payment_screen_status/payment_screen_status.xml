@@ -7,7 +7,7 @@
                      style="background-color: #fff5f5; border-color: #feb2b2 !important;">
                      <div class="text-muted small fw-bold">Restante en Divisa</div>
                      <div class="text-danger fs-5 fw-bolder">
-                        <t t-esc="pos.getAmountInRefCurrency(props.order.get_due())"/>
+                        <t t-esc="pos.getAmountInRefCurrency(props.order.get_due(), true)"/>
                      </div>
                 </div>
             </t>
@@ -19,7 +19,7 @@
                      style="background-color: #f0fff4; border-color: #9ae6b4 !important;">
                      <div class="text-muted small fw-bold">Vuelto en Divisa</div>
                      <div class="text-success fs-5 fw-bolder">
-                        <t t-esc="pos.getAmountInRefCurrency(props.order.get_change())"/>
+                        <t t-esc="pos.getAmountInRefCurrency(props.order.get_change(), true)"/>
                      </div>
                 </div>
             </t>

@@ -4,7 +4,7 @@
         <xpath expr="//div[hasclass('total')]" position="inside">
             <t t-if="pos.config.show_dual_currency">
                 <span class="total-dual" style="font-size: 0.8em; color: #dc3545; margin-left: 10px;">
-                     / <t t-esc="pos.getAmountInRefCurrency(currentOrder.getTotalDue())"/>
+                     / <t t-esc="pos.getAmountInRefCurrency(currentOrder.getTotalDue(), true)"/>
                 </span>
             </t>
         </xpath>

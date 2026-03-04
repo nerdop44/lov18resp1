@@ -171,8 +171,8 @@ patch(PosStore.prototype, {
         const price_with_tax = this.get_product_price_with_tax(product, price);
 
         if (ref && (this.config?.show_dual_currency || this.res_currency_ref)) {
-            // Use the new centralized helper
-            return this.getAmountInRefCurrency(price_with_tax);
+            // Use the new centralized helper, pass true to divide by rate instead of multiplying
+            return this.getAmountInRefCurrency(price_with_tax, true);
         }
 
         if (this.currency) {
