@@ -157,22 +157,25 @@ class ResCurrency(models.Model):
         if tasa <= 1:
             return
             
-        # Umbral de sanidad: 100 millones (ajustable si hay productos legítimos muy caros)
-        threshold = 100000000.0
+        # Umbral de sanidad: 50,000 (ajustable). Cualquier cosa por encima es sospechosa de inflación.
+        threshold = 50000.0
         
         # Corregir Templates
         templates = self.env['product.template'].search([('list_price', '>', threshold)])
+        _logger.info(">>>>>>>> Pachacutec: Corrigiendo %s templates con precios altos", len(templates))
         for t in templates:
             price = t.list_price
-            while price > threshold:
+            # Si el precio es más de 100 veces el umbral, es definitivamente corrupto
+            while price > threshold * 10:
                 price = price / tasa
             t.list_price = price
             
         # Corregir Variantes
         variants = self.env['product.product'].search([('lst_price', '>', threshold)])
+        _logger.info(">>>>>>>> Pachacutec: Corrigiendo %s variantes con precios altos", len(variants))
         for v in variants:
             price = v.lst_price
-            while price > threshold:
+            while price > threshold * 10:
                 price = price / tasa
             v.lst_price = price
 

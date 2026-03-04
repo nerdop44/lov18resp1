@@ -3,6 +3,7 @@
 import { _t } from "@web/core/l10n/translation";
 
 import { usePos } from "@point_of_sale/app/store/pos_hook";
+import { useService } from "@web/core/utils/hooks";
 import { Component } from "@odoo/owl";
 import { SalesManPos } from "@pos_salesman/app/popups/SalesManPos";
 
@@ -12,6 +13,7 @@ export class BtnSalesMan extends Component {
     static template = "pos_salesman.BtnSalesMan";
     setup() {
         this.pos = usePos();
+        this.popup = useService("popup");
     }
     async onClick() {
         const order = this.pos.get_order();
@@ -19,7 +21,7 @@ export class BtnSalesMan extends Component {
 
         const salesman_list = this.pos.salesman_ids || this.pos.data.hr_salesmen || [];
         if (salesman_list.length === 0) {
-            this.pos.popup.add("ErrorPopup", {
+            this.popup.add("ErrorPopup", {
                 title: _t("Sin Vendedores"),
                 body: _t("No hay vendedores configurados para este punto de venta."),
             });
@@ -31,7 +33,7 @@ export class BtnSalesMan extends Component {
             image_url: `/web/image/hr.employee/${s.id}/image_128`
         }));
 
-        const { confirmed, payload } = await this.pos.popup.add(SalesManPos, {
+        const { confirmed, payload } = await this.popup.add(SalesManPos, {
             title: _t("Seleccionar Vendedor"),
             salesmen: salesmen,
         });
