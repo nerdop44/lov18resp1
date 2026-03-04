@@ -12,7 +12,6 @@ class Productos(models.Model):
             rec.currency_id_dif = self.env.company.currency_id_dif.id
 
 
-    list_price = fields.Float(string="Precio de Venta en $")
     list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif', compute='_compute_list_price_usd', inverse='_inverse_list_price_usd')
     standard_price_usd = fields.Float(string="Costo Alterno", inverse='_set_standard_price_usd', compute='_compute_standard_price_usd')
     costo_reposicion_usd = fields.Monetary(string="Costo Reposición Alterno", currency_field='currency_id_dif')
