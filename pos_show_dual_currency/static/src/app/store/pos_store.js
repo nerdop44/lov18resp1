@@ -12,16 +12,13 @@ patch(PosData.prototype, {
         console.log(">>>>>>>> PosData Patched: loadInitialData Response Keys:", Object.keys(response));
 
         if (response && response.res_currency_ref) {
-            this.res_currency_ref = response.res_currency_ref;
-            console.log(">>>>>>>> Intercepted res_currency_ref in PosData Root:", this.res_currency_ref);
+            // Eliminar asignación a this para evitar OwlError (TypeError: 'set' on proxy)
+            console.log(">>>>>>>> Intercepted res_currency_ref in PosData Root:", response.res_currency_ref);
         } else if (response && response["pos.session"]) {
             const session = response["pos.session"].data[0];
             if (session && session.res_currency_ref) {
-                // Save to the PosData instance
-                this.res_currency_ref = session.res_currency_ref;
-                // ALSO try to attach it to the session object itself for easier access if it's consumed later
-                // session.res_currency_ref is already there
-                console.log(">>>>>>>> Intercepted res_currency_ref in PosData:", this.res_currency_ref);
+                // Eliminar asignación a this para evitar OwlError (TypeError: 'set' on proxy)
+                console.log(">>>>>>>> Intercepted res_currency_ref in PosData:", session.res_currency_ref);
             } else {
                 console.warn(">>>>>>>> res_currency_ref NOT found in RPC response for pos.session", response["pos.session"]);
             }
@@ -100,10 +97,11 @@ patch(PosStore.prototype, {
     getAmountInRefCurrency(amount) {
         if (!amount && amount !== 0) return "";
         let rate = 1.0;
+        let active_currency_ref = this.res_currency_ref;
 
         // Reconstruct res_currency_ref from config if missing
-        if (!this.res_currency_ref && this.config) {
-            this.res_currency_ref = {
+        if (!active_currency_ref && this.config) {
+            active_currency_ref = {
                 symbol: this.config.show_currency_symbol || "$",
                 position: this.config.show_currency_position || "after",
                 rounding: 0.01,
@@ -112,8 +110,8 @@ patch(PosStore.prototype, {
             };
         }
 
-        if (this.res_currency_ref && this.res_currency_ref.rate) {
-            rate = this.res_currency_ref.rate;
+        if (active_currency_ref && active_currency_ref.rate) {
+            rate = active_currency_ref.rate;
         } else {
             rate = this.config.show_currency_rate;
         }
@@ -124,7 +122,7 @@ patch(PosStore.prototype, {
         if (isNaN(rate) || rate === 0) rate = 1;
 
         let final_val = 0;
-        const ref_symbol = this.res_currency_ref ? this.res_currency_ref.symbol : (this.config.show_currency_symbol || '$');
+        const ref_symbol = active_currency_ref ? active_currency_ref.symbol : (this.config.show_currency_symbol || '$');
 
         // Dynamic division/multiplication based on context and magnitude
         if (ref_symbol === '$' || ref_symbol === 'USD') {
