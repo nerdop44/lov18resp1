@@ -20,7 +20,7 @@ patch(ProductInfoPopup.prototype, {
         if (!this.pos.config.show_dual_currency && !this.pos.res_currency_ref) {
             return "";
         }
-        // Direct read from product.lst_price (the MASTER USD price in this DB)
-        return this.pos.format_currency_ref(this.props.product.lst_price || 0);
+        // Use the injected list_price_usd (Master USD from DB, unconverted in frontend)
+        return this.pos.format_currency_ref(this.props.product.list_price_usd || 0);
     }
 });

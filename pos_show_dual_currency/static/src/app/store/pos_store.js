@@ -34,10 +34,20 @@ patch(PosData.prototype, {
             }
         }
 
-        if (response['account.tax']) {
-            console.log(">>>>>>>> Account Taxes loaded in RPC:", response['account.tax'].data ? response['account.tax'].data.length : 'N/A');
-        } else {
-            console.warn(">>>>>>>> Account Taxes MISSING in RPC response");
+        if (response && response['product.product']) {
+            const products = response['product.product'].data;
+            const config = response['pos.config']?.data?.[0];
+            const rate = config?.show_currency_rate || 1.0;
+
+            if (config?.show_dual_currency && rate && rate !== 1.0) {
+                console.log(">>>>>>>> Dual Currency: Converting Product Prices to VES using rate", rate);
+                for (const p of products) {
+                    // Convert USD master (from DB) to VES display (for POS Engine)
+                    // price_ves = price_usd / rate (where rate is usually 1/tasa)
+                    if (p.lst_price) p.lst_price = p.lst_price / rate;
+                    if (p.list_price) p.list_price = p.list_price / rate;
+                }
+            }
         }
 
         return response;
