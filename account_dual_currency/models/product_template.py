@@ -13,13 +13,11 @@ class Productos(models.Model):
 
 
     list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif', compute='_compute_list_price_usd')
-    standard_price_usd = fields.Float(string="Costo Alterno", compute='_compute_standard_price_usd')
+    standard_price_usd = fields.Float(string="Costo en Bs.", compute='_compute_standard_price_usd')
     costo_reposicion_usd = fields.Monetary(string="Costo Reposición Alterno", currency_field='currency_id_dif')
 
     def _set_standard_price_usd(self):
-        for template in self:
-            if len(template.product_variant_ids) == 1:
-                template.product_variant_ids.standard_price_usd = template.standard_price_usd
+        pass # Inhabilitado porque ahora standard_price (USD) es el maestro
 
     @api.depends_context('company')
     @api.depends('product_variant_ids', 'product_variant_ids.standard_price_usd')
@@ -45,14 +43,13 @@ class Productos(models.Model):
 
     @api.onchange('standard_price_usd')
     def _onchange_standard_price_usd(self):
-        for rec in self:
-            if len(rec.product_variant_ids) == 1:
-                rec.product_variant_ids[0].standard_price_usd = rec.standard_price_usd
+        pass
 
     @api.onchange('standard_price')
     def _onchange_standard_price_sync_bs(self):
         # Inhabilitado para evitar bucles.
         pass
+
 
 
 

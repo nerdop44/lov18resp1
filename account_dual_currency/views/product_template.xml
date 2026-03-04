@@ -28,10 +28,16 @@
                         <field name="list_price_usd" class="oe_inline" />
                       </div>
                    </xpath>
+                   <xpath expr="//label[@for='standard_price']" position="attributes">
+                       <attribute name="string">Costo en $</attribute>
+                   </xpath>
+                   <xpath expr="//field[@name='standard_price']" position="attributes">
+                       <attribute name="options">{'currency_field': 'currency_id_dif'}</attribute>
+                   </xpath>
                    <xpath expr="//div[@name='standard_price_uom']" position="after">
-                      <label for="standard_price_usd" class="fw-bold" groups="base.group_user" invisible="product_variant_count &gt; 1 and not is_product_variant" string="Costo Alterno"/>
+                      <label for="standard_price_usd" class="fw-bold" groups="base.group_user" invisible="product_variant_count &gt; 1 and not is_product_variant" string="Costo en Bs."/>
                       <div name="standard_price_uom_usd" groups="base.group_user" invisible="product_variant_count &gt; 1 and not is_product_variant" class="o_row">
-                          <field name="standard_price_usd" class="oe_inline" />
+                          <field name="standard_price_usd" class="oe_inline" widget="monetary" options="{'currency_field': 'cost_currency_id'}"/>
                       </div>
                       <label for="costo_reposicion_usd" class="fw-bold" string="Costo Reposición Alterno"/>
                       <div name="costo_reposicion_uom_usd" class="o_row">

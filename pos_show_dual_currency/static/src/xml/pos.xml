@@ -68,7 +68,7 @@
 
     <t t-name="OrderSummary" t-inherit="point_of_sale.OrderSummary" t-inherit-mode="extension">
         <xpath expr="//t[@t-esc='_total']" position="after">
-            / <span style="color: red">$ </span> <span style="color: red" t-esc="env.pos.format_currency_no_symbol(props.order.get_total_with_tax() * env.pos.config.show_currency_rate)" />
+            / <span style="color: red" t-esc="env.pos.getAmountInRefCurrency(props.order.get_total_with_tax(), true)" />
         </xpath>
     </t>
 

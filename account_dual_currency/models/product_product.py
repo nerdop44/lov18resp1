@@ -13,7 +13,14 @@ class ProductProduct(models.Model):
 
 
     list_price_usd = fields.Monetary(string="Precio Alterno", currency_field='currency_id_dif', compute='_compute_list_price_usd')
-    standard_price_usd = fields.Float(string="Costo Alterno", company_dependent=True)
+    standard_price_usd = fields.Float(string="Costo en Bs.", compute='_compute_standard_price_usd')
+
+    @api.depends('standard_price', 'currency_id_dif')
+    def _compute_standard_price_usd(self):
+        for rec in self:
+            company = rec.env.company
+            tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
+            rec.standard_price_usd = rec.standard_price * tasa if tasa > 0 else 0.0
 
     @api.depends('lst_price', 'currency_id_dif')
     def _compute_list_price_usd(self):
@@ -53,14 +60,8 @@ class ProductProduct(models.Model):
 
     @api.onchange('standard_price_usd')
     def _onchange_standard_price_usd(self):
-        for rec in self:
-            if rec.standard_price_usd and rec.categ_id.property_valuation == 'manual_periodic':
-                if rec.standard_price_usd > 0:
-                    tasa = self.env.company.currency_id_dif
-                    if tasa and tasa.inverse_rate:
-                        new_val = rec.standard_price_usd * tasa.inverse_rate
-                        if abs(rec.standard_price - new_val) > 0.01:
-                            rec.standard_price = new_val
+        # Inhabilitado: el costo maestro ahora es standard_price (USD)
+        pass
 
     def _prepare_in_svl_vals(self, quantity, unit_cost):
         """Prepare the values for a stock valuation layer created by a receipt.
