@@ -72,20 +72,7 @@ patch(Orderline.prototype, {
 
             if (!price) price = 0;
 
-            let rate = 1.0;
-            if (this.pos.res_currency_ref && this.pos.res_currency_ref.rate) {
-                rate = this.pos.res_currency_ref.rate;
-            } else {
-                rate = this.pos.config.show_currency_rate || 1;
-            }
-
-            // Ensure rate is number
-            if (typeof rate !== 'number') rate = parseFloat(rate) || 1;
-            if (rate === 0) rate = 1;
-
-            const final_val = price * rate;
-
-            return this.pos.format_currency_ref(final_val);
+            return this.pos.getAmountInRefCurrency(price);
 
         } catch (e) {
             console.error("Orderline Price Calculation Error:", e);

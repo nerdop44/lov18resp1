@@ -24,11 +24,6 @@ patch(OrderWidget.prototype, {
         const sign = this.props.taxTotals.order_sign || 1;
         // Calculate total with sign
         const amount = total * sign;
-        // Conversion: Amount / Rate (since rate is inverse/Tasa like 60 Bs/USD)
-        if (this.pos.config.show_currency_rate) {
-            return this.pos.format_currency_ref(amount / this.pos.config.show_currency_rate);
-        } else {
-            return this.pos.format_currency_ref(amount);
-        }
+        return this.pos.getAmountInRefCurrency(amount);
     }
 });

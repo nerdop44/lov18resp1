@@ -11,11 +11,8 @@
     </t>
 
     <t t-name="pos_salesman.ProductScreen" t-inherit="point_of_sale.ProductScreen" t-inherit-mode="extension" owl="1">
-        <xpath expr="//div[hasclass('control-buttons')]" position="inside">
-            <BtnSalesMan t-if="!ui.isSmall" />
-        </xpath>
-        <xpath expr="//div[hasclass('actionpad')]/div[hasclass('d-md-none') or hasclass('d-flex')][1]" position="inside">
-            <BtnSalesMan t-if="ui.isSmall" />
+        <xpath expr="//div[hasclass('subpads')]" position="inside">
+            <BtnSalesMan />
         </xpath>
     </t>
 </templates>
