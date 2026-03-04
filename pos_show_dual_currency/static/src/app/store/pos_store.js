@@ -125,21 +125,16 @@ patch(PosStore.prototype, {
         let final_val = 0;
         const ref_symbol = active_currency_ref ? active_currency_ref.symbol : (this.config.show_currency_symbol || '$');
 
-        // Dynamic division/multiplication based on context and magnitude
+        // NEW LOGIC (Pachacutec): Base is USD (list_price). 
+        // 1. If we want USD (Reference), and input is USD, return direct.
+        // 2. If we want Bs (Reference), multiply USD * Rate.
+
         if (ref_symbol === '$' || ref_symbol === 'USD') {
-            // Converting to USD: If rate is e.g. 425.67 Bs/USD, we must divide AMOUNT (Bs) by RATE to get USD.
-            if (rate > 1) {
-                final_val = amount / rate;
-            } else {
-                final_val = amount * rate;
-            }
+            // Base is USD, we want USD. No conversion needed.
+            final_val = amount;
         } else {
-            // Converting to Bs: If rate is 425.67 Bs/USD, we must multiply AMOUNT (USD) by RATE to get Bs.
-            if (rate > 1) {
-                final_val = amount * rate;
-            } else {
-                final_val = amount / rate;
-            }
+            // Base is USD, we want Bs (Reference). Multiply.
+            final_val = amount * rate;
         }
 
         return this.format_currency_ref(final_val);
@@ -166,18 +161,28 @@ patch(PosStore.prototype, {
 
         if (this.currency) {
             try {
-                const amount = price_with_tax;
+                // NEW LOGIC (Pachacutec): If main currency is НЕ USD (e.g. VEF/Bs), 
+                // we must multiply the price (USD) by the system rate.
+                let rate = this.config.show_currency_rate || 1.0;
+                if (typeof rate !== 'number') rate = parseFloat(rate) || 1.0;
+
+                const ref_symbol = this.res_currency_ref ? this.res_currency_ref.symbol : (this.config.show_currency_symbol || '$');
+
+                // If main currency is e.g. Bs, and Reference is USD, or if main is just not USD.
+                // We assume main currency here is the one needing conversion from USD base.
+                let display_amount = price_with_tax;
+                if (this.currency.name !== 'USD' && this.currency.symbol !== '$') {
+                    display_amount = price_with_tax * rate;
+                }
+
                 // Fix: Ensure we extract the symbol as string, not the JS primitive Symbol type
                 const curr_sym = typeof this.currency.symbol === 'symbol' ? '' : (this.currency.symbol || '');
                 return (this.currency.position === 'before' ? curr_sym + ' ' : '') +
-                    amount.toFixed(this.currency.decimal_places).replace(/\./g, ",") +
+                    display_amount.toFixed(this.currency.decimal_places).replace(/\./g, ",") +
                     (this.currency.position === 'after' ? ' ' + curr_sym : '');
             } catch (e) {
                 console.warn("Formatting failed for main currency:", e);
-                const curr_sym = typeof this.currency.symbol === 'symbol' ? '' : (this.currency.symbol || '');
-                return (this.currency.position === 'before' ? curr_sym : '') +
-                    price_with_tax.toFixed(this.currency.decimal_places || 2) +
-                    (this.currency.position === 'after' ? ' ' + curr_sym : '');
+                return price_with_tax.toFixed(2);
             }
         }
         return "" + price_with_tax.toFixed(2);
