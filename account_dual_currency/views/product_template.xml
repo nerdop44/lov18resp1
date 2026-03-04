@@ -18,11 +18,14 @@
             <field name="model">product.template</field>
             <field name="inherit_id" ref="product.product_template_form_view"/>
             <field name="arch" type="xml">
+                   <xpath expr="//label[@for='list_price']" position="attributes">
+                       <attribute name="string">Precio de Venta en $</attribute>
+                   </xpath>
                    <xpath expr="//div[@name='list_price_uom']" position="after">
                       <field name="currency_id_dif" invisible="1"/>
                       <label for="list_price_usd" class="fw-bold mt-1" string="Precio de Venta en Bs."/>
                       <div name="pricing_usd" class="o_row">
-                        <field name="list_price_usd" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="list_price_usd" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                       </div>
                    </xpath>
                    <xpath expr="//div[@name='standard_price_uom']" position="after">
