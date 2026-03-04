@@ -21,11 +21,30 @@ export class BtnSalesMan extends Component {
         if (!order) return;
 
         console.log("BtnSalesMan: this.pos.data keys:", Object.keys(this.pos.data));
-        console.log("BtnSalesMan: this.pos.data.hr_salesmen:", this.pos.data.hr_salesmen);
-        console.log("BtnSalesMan: this.pos.salesman_ids:", this.pos.salesman_ids);
 
-        // In Odoo 18, we injected hr_salesmen into the data service (this.pos.data)
-        const salesman_list = (this.pos.data && this.pos.data.hr_salesmen) || this.pos.salesman_ids || [];
+        let salesman_list = (this.pos.data && this.pos.data.hr_salesmen) || [];
+
+        // Fallback 1: Try from PosStore's direct property (if we patched it there)
+        if (salesman_list.length === 0 && this.pos.hr_salesmen) {
+            salesman_list = this.pos.hr_salesmen;
+        }
+
+        // Fallback 2: Try from the actual hr.employee model records in Odoo 18
+        if (salesman_list.length === 0 && this.pos.models && this.pos.models['hr.employee']) {
+            const employeeModel = this.pos.models['hr.employee'];
+            const allEmployees = typeof employeeModel.getAll === 'function' ? employeeModel.getAll() : (employeeModel.data || []);
+
+            // Filter by the IDs in config if available
+            const allowedIds = this.pos.config.salesman_ids || [];
+            if (allowedIds.length > 0) {
+                salesman_list = allEmployees.filter(e => allowedIds.includes(e.id));
+            } else {
+                salesman_list = allEmployees;
+            }
+        }
+
+        console.log("BtnSalesMan: Final salesman_list count:", salesman_list.length);
+
         if (salesman_list.length === 0) {
             this.notification.add(_t("No hay vendedores configurados para este punto de venta."), {
                 title: _t("Sin Vendedores"),

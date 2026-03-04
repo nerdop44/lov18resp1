@@ -8,17 +8,30 @@ class PosSession(models.Model):
 
     def _loader_params_hr_employee(self):
         result = super()._loader_params_hr_employee()
-        # Ensure we can search by the IDs in the config
+        # Add basic fields for salesmen
+        result['search_params']['fields'].extend(['name', 'id'])
         return result
 
     def _get_pos_ui_hr_salesmen(self, params):
+        # Filter employees by config salesman_ids
         return self.env['hr.employee'].search_read(
             [('id', 'in', self.config_id.salesman_ids.ids)],
             ['name', 'id']
         )
 
+    def _loader_params_pos_config(self):
+        result = super()._loader_params_pos_config()
+        result['search_params']['fields'].append('salesman_ids')
+        return result
+
     @api.model
     def _load_pos_data(self, data):
         result = super()._load_pos_data(data)
-        result['hr_salesmen'] = self._get_pos_ui_hr_salesmen(None)
+        # Force injection into root and into config just in case
+        salesmen = self._get_pos_ui_hr_salesmen(None)
+        result['hr_salesmen'] = salesmen
+        
+        if 'pos.config' in result and result['pos.config']['data']:
+            result['pos.config']['data'][0]['hr_salesmen'] = salesmen
+            
         return result

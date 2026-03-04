@@ -13,10 +13,13 @@ patch(PosData.prototype, {
 
         // Inject hr_salesmen into the data service for reactivity in Odoo 18
         if (response.hr_salesmen) {
-            console.log(">>>>>>>> hr_salesmen Found in Response:", response.hr_salesmen.length);
+            console.log(">>>>>>>> hr_salesmen Found in Response Root:", response.hr_salesmen.length);
             this.hr_salesmen = response.hr_salesmen;
+        } else if (response["pos.config"] && response["pos.config"].data && response["pos.config"].data[0].hr_salesmen) {
+            console.log(">>>>>>>> hr_salesmen Found in pos.config:", response["pos.config"].data[0].hr_salesmen.length);
+            this.hr_salesmen = response["pos.config"].data[0].hr_salesmen;
         } else {
-            console.warn(">>>>>>>> hr_salesmen NOT found in Response Root");
+            console.warn(">>>>>>>> hr_salesmen NOT found in Response Root or pos.config");
         }
 
         if (response && response.res_currency_ref) {
