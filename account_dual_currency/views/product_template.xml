@@ -19,15 +19,25 @@
             <field name="inherit_id" ref="product.product_template_form_view"/>
             <field name="arch" type="xml">
                    <xpath expr="//label[@for='list_price']" position="attributes">
-                       <attribute name="string">Precio de Venta en $</attribute>
+                       <attribute name="string">Precio de Venta en Bs.</attribute>
+                   </xpath>
+                   <xpath expr="//field[@name='list_price']" position="attributes">
+                       <attribute name="readonly">1</attribute>
+                       <attribute name="force_save">1</attribute>
+                   </xpath>
+                   <xpath expr="//label[@for='list_price']" position="before">
+                        <field name="currency_id_dif" invisible="1"/>
+                        <field name="cost_currency_id" invisible="1"/>
+                        <label for="list_price_usd" class="fw-bold" string="Precio de Venta en $"/>
+                        <div name="pricing_usd_new" class="o_row">
+                            <field name="list_price_usd" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
+                        </div>
                    </xpath>
                    <xpath expr="//div[@name='list_price_uom']" position="after">
-                      <field name="currency_id_dif" invisible="1"/>
-                      <field name="cost_currency_id" invisible="1"/>
-                      <label for="list_price_usd" class="fw-bold mt-1" string="Precio de Venta en Bs."/>
-                      <div name="pricing_usd" class="o_row">
-                        <field name="list_price_usd" class="oe_inline" widget="monetary" options="{'currency_field': 'cost_currency_id'}" />
-                      </div>
+                        <!-- Summary include tax help text -->
+                        <div class="text-muted" invisible="not list_price_usd">
+                           <field name="price_with_tax_info" class="oe_inline"/>
+                        </div>
                    </xpath>
                    <xpath expr="//label[@for='standard_price']" position="attributes">
                        <attribute name="string">Costo en $</attribute>
