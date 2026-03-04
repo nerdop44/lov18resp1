@@ -26,7 +26,7 @@
                       <field name="cost_currency_id" invisible="1"/>
                       <label for="list_price_usd" class="fw-bold mt-1" string="Precio de Venta en Bs."/>
                       <div name="pricing_usd" class="o_row">
-                        <field name="list_price_usd" class="oe_inline" options="{'currency_field': 'cost_currency_id'}" />
+                        <field name="list_price_usd" class="oe_inline" widget="monetary" options="{'currency_field': 'cost_currency_id'}" />
                       </div>
                    </xpath>
                    <xpath expr="//label[@for='standard_price']" position="attributes">
@@ -55,7 +55,7 @@
             <field name="arch" type="xml">
                  <xpath expr="//field[@name='list_price']" position="after">
                     <field name="cost_currency_id" invisible="1"/>
-                    <field name="list_price_usd" options="{'currency_field': 'cost_currency_id'}" />
+                    <field name="list_price_usd" widget="monetary" options="{'currency_field': 'cost_currency_id'}" />
                  </xpath>
                 <xpath expr="//field[@name='standard_price']" position="after">
                     <field name="currency_id_dif" invisible="1"/>
@@ -72,7 +72,7 @@
                  <xpath expr="//field[@name='list_price']" position="after">
                      <field name="currency_id_dif" invisible="1"/>
                      <field name="cost_currency_id" invisible="1"/>
-                    <field name="list_price_usd" options="{'currency_field': 'cost_currency_id'}" />
+                    <field name="list_price_usd" widget="monetary" options="{'currency_field': 'cost_currency_id'}" />
                  </xpath>
             </field>
         </record>
@@ -84,7 +84,7 @@
             <field name="arch" type="xml">
                  <xpath expr="//field[@name='lst_price']" position="after">
                     <field name="cost_currency_id" invisible="1"/>
-                    <field name="list_price_usd" options="{'currency_field': 'cost_currency_id'}" />
+                    <field name="list_price_usd" widget="monetary" options="{'currency_field': 'cost_currency_id'}" />
                  </xpath>
                 <xpath expr="//field[@name='standard_price']" position="after">
                     <field name="currency_id_dif" invisible="1"/>
@@ -105,7 +105,7 @@
                 <xpath expr="//field[@name='list_price']/.." position="after">
                     <div name="product_lst_price_usd" class="mt-1" style="color: red;">
                         <field name="cost_currency_id" invisible="1"/>
-                        Precio Alt.: <field name="list_price_usd" options="{'currency_field': 'cost_currency_id'}"/>
+                        Precio Alt.: <field name="list_price_usd" widget="monetary" options="{'currency_field': 'cost_currency_id'}"/>
                     </div>
                 </xpath>
             </field>
