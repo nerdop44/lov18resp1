@@ -2,9 +2,11 @@
 
 import { Component } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { Dialog } from "@web/core/dialog/dialog";
 
 export class SalesManPos extends Component {
     static template = "pos_salesman.SalesManPos";
+    static components = { Dialog };
     static props = {
         title: { type: String, optional: true },
         salesmen: { type: Array, optional: true },
