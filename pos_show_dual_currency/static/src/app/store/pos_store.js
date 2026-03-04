@@ -11,7 +11,10 @@ patch(PosData.prototype, {
         const response = await super.loadInitialData(...arguments);
         console.log(">>>>>>>> PosData Patched: loadInitialData Response Keys:", Object.keys(response));
 
-        if (response && response["pos.session"]) {
+        if (response && response.res_currency_ref) {
+            this.res_currency_ref = response.res_currency_ref;
+            console.log(">>>>>>>> Intercepted res_currency_ref in PosData Root:", this.res_currency_ref);
+        } else if (response && response["pos.session"]) {
             const session = response["pos.session"].data[0];
             if (session && session.res_currency_ref) {
                 // Save to the PosData instance

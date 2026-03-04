@@ -163,6 +163,9 @@ class PosSession(models.Model):
             
             if result:
                 # Odoo 18 Data Dictionary Structure
+                # Safest way to pass custom data without ORM stripping it: Add to root dict
+                result['res_currency_ref'] = currency_ref[0]
+                
                 if 'pos.session' in result and 'data' in result['pos.session'] and result['pos.session']['data']:
                     result['pos.session']['data'][0]['res_currency_ref'] = currency_ref[0]
                     
