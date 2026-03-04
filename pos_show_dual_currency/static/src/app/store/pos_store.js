@@ -11,6 +11,12 @@ patch(PosData.prototype, {
         const response = await super.loadInitialData(...arguments);
         console.log(">>>>>>>> PosData Patched: loadInitialData Response Keys:", Object.keys(response));
 
+        // Inject hr_salesmen into the data service for reactivity in Odoo 18
+        if (response.hr_salesmen) {
+            this.hr_salesmen = response.hr_salesmen;
+            console.log(">>>>>>>> hr_salesmen Injected into PosData:", this.hr_salesmen.length);
+        }
+
         if (response && response.res_currency_ref) {
             console.log(">>>>>>>> Intercepted res_currency_ref in PosData Root:", response.res_currency_ref);
         } else if (response && response["pos.session"]) {
@@ -95,7 +101,7 @@ patch(PosStore.prototype, {
         return formatted;
     },
 
-    getAmountInRefCurrency(amount) {
+    getAmountInRefCurrency(amount, fromMainCurrency = false) {
         if (!amount && amount !== 0) return "";
         let rate = 1.0;
         let active_currency_ref = this.res_currency_ref;
@@ -125,16 +131,21 @@ patch(PosStore.prototype, {
         let final_val = 0;
         const ref_symbol = active_currency_ref ? active_currency_ref.symbol : (this.config.show_currency_symbol || '$');
 
-        // NEW LOGIC (Pachacutec): Base is USD (list_price). 
-        // 1. If we want USD (Reference), and input is USD, return direct.
-        // 2. If we want Bs (Reference), multiply USD * Rate.
+        // NEW LOGIC (Pachacutec): 
+        // If fromMainCurrency is true, amount is in VEF (Bs.F). 
+        // We must divide by rate to get USD (Base).
+        let base_amount = amount;
+        if (fromMainCurrency) {
+            base_amount = amount / rate;
+        }
 
+        // Now process like usual with base_amount (USD)
         if (ref_symbol === '$' || ref_symbol === 'USD') {
-            // Base is USD, we want USD. No conversion needed.
-            final_val = amount;
+            // Base is USD, we want USD.
+            final_val = base_amount;
         } else {
             // Base is USD, we want Bs (Reference). Multiply.
-            final_val = amount * rate;
+            final_val = base_amount * rate;
         }
 
         return this.format_currency_ref(final_val);

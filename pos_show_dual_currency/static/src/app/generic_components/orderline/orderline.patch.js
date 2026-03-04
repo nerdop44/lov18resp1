@@ -72,7 +72,7 @@ patch(Orderline.prototype, {
 
             if (!price) price = 0;
 
-            return this.pos.getAmountInRefCurrency(price);
+            return this.pos.getAmountInRefCurrency(price, true);
 
         } catch (e) {
             console.error("Orderline Price Calculation Error:", e);
