@@ -13,15 +13,26 @@ export class BtnSalesMan extends Component {
     static template = "pos_salesman.BtnSalesMan";
     setup() {
         this.pos = usePos();
-        this.popup = useService("popup");
+        try {
+            this.popup = useService("popup");
+        } catch (e) {
+            console.warn("BtnSalesMan: popup service not found via useService, using env.services fallback.");
+            this.popup = this.env.services.popup;
+        }
     }
     async onClick() {
         const order = this.pos.get_order();
         if (!order) return;
 
+        const popup = this.popup || this.env.services.popup;
+        if (!popup) {
+            console.error("BtnSalesMan: Critical error, popup service is unavailable.");
+            return;
+        }
+
         const salesman_list = this.pos.salesman_ids || this.pos.data.hr_salesmen || [];
         if (salesman_list.length === 0) {
-            this.popup.add("ErrorPopup", {
+            popup.add("ErrorPopup", {
                 title: _t("Sin Vendedores"),
                 body: _t("No hay vendedores configurados para este punto de venta."),
             });
@@ -33,7 +44,7 @@ export class BtnSalesMan extends Component {
             image_url: `/web/image/hr.employee/${s.id}/image_128`
         }));
 
-        const { confirmed, payload } = await this.popup.add(SalesManPos, {
+        const { confirmed, payload } = await popup.add(SalesManPos, {
             title: _t("Seleccionar Vendedor"),
             salesmen: salesmen,
         });

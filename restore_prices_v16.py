@@ -16,7 +16,7 @@ class PriceRestorer:
         
         # Destino (v18)
         self.dst_url = 'https://tbriceno65-animalc.odoo.com'
-        self.dst_db = 'tbriceno65-animalc'
+        self.dst_db = 'tbriceno65-animalc-produccion-29159705'
         self.dst_user = 'migration_api'
         self.dst_pass = 'migration_password_123'
         
@@ -83,11 +83,11 @@ class PriceRestorer:
                     src_records = self.src_models.execute_kw(self.src_db, self.src_uid, self.src_pass,
                         'product.template', 'search_read',
                         [domain_v16],
-                        {'fields': ['list_price'], 'limit': 1}
+                        {'fields': ['list_price_usd'], 'limit': 1}
                     )
                     
                     if src_records:
-                        price_v16 = src_records[0]['list_price']
+                        price_v16 = src_records[0]['list_price_usd']
                         # Actualizar en v18
                         if abs(p_v18['list_price'] - price_v16) > 0.01:
                             logger.info(f"Actualizando {p_v18['name']} ({p_v18['default_code']}): {p_v18['list_price']} -> {price_v16}")

@@ -12,15 +12,14 @@ patch(PosData.prototype, {
         console.log(">>>>>>>> PosData Patched: loadInitialData Response Keys:", Object.keys(response));
 
         if (response && response.res_currency_ref) {
-            // Eliminar asignación a this para evitar OwlError (TypeError: 'set' on proxy)
             console.log(">>>>>>>> Intercepted res_currency_ref in PosData Root:", response.res_currency_ref);
         } else if (response && response["pos.session"]) {
-            const session = response["pos.session"].data[0];
-            if (session && session.res_currency_ref) {
-                // Eliminar asignación a this para evitar OwlError (TypeError: 'set' on proxy)
-                console.log(">>>>>>>> Intercepted res_currency_ref in PosData:", session.res_currency_ref);
+            const sessionModel = response["pos.session"];
+            const res_currency_ref = sessionModel.res_currency_ref || (sessionModel.data && sessionModel.data[0] ? sessionModel.data[0].res_currency_ref : null);
+            if (res_currency_ref) {
+                console.log(">>>>>>>> Intercepted res_currency_ref in PosData (Session lvl):", res_currency_ref);
             } else {
-                console.warn(">>>>>>>> res_currency_ref NOT found in RPC response for pos.session", response["pos.session"]);
+                console.warn(">>>>>>>> res_currency_ref NOT found in RPC response for pos.session", sessionModel);
             }
         }
 
@@ -53,10 +52,12 @@ patch(PosStore.prototype, {
 
         // 3. Try finding it in the loaded models if they are accessible
         if (this.models && this.models['pos.session']) {
-            // It might be a collection or array
-            const sessionData = this.models['pos.session'].data || this.models['pos.session'];
+            const sessionModel = this.models['pos.session'];
+            if (sessionModel.res_currency_ref) return sessionModel.res_currency_ref;
+
+            const sessionData = sessionModel.data || sessionModel;
             if (Array.isArray(sessionData) && sessionData.length > 0) {
-                const sess = sessionData.find(s => s.id === this.session.id) || sessionData[0];
+                const sess = sessionData.find(s => s.id === this.session?.id) || sessionData[0];
                 if (sess && sess.res_currency_ref) return sess.res_currency_ref;
             }
         }
