@@ -45,9 +45,9 @@ export class BtnSalesMan extends Component {
     }
 }
 
-import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
+import { ActionpadWidget } from "@point_of_sale/app/screens/product_screen/action_pad/action_pad";
 import { patch } from "@web/core/utils/patch";
 
-patch(ProductScreen.components, {
+patch(ActionpadWidget.components, {
     BtnSalesMan,
 });

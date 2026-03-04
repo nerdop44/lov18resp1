@@ -17,6 +17,8 @@ class PosSession(models.Model):
             ['name', 'id']
         )
 
-    def _pos_data_process(self, loaded_data):
-        super()._pos_data_process(loaded_data)
-        loaded_data['hr_salesmen'] = self._get_pos_ui_hr_salesmen(None)
+    @api.model
+    def _load_pos_data(self, data):
+        result = super()._load_pos_data(data)
+        result['hr_salesmen'] = self._get_pos_ui_hr_salesmen(None)
+        return result
