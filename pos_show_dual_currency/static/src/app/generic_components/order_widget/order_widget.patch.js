@@ -24,6 +24,7 @@ patch(OrderWidget.prototype, {
         const sign = this.props.taxTotals.order_sign || 1;
         // Calculate total with sign
         const amount = total * sign;
-        return this.pos.getAmountInRefCurrency(amount);
+        // Se le envía true porque el amount de origen (Bs) necesita dividirse por la tasa para reflejar el de Referencia ($)
+        return this.pos.getAmountInRefCurrency(amount, true);
     }
 });
