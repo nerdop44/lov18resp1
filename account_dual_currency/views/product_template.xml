@@ -38,19 +38,19 @@
                     <xpath expr="//field[@name='categ_id']" position="before">
                         <label for="list_price_usd" string="Precio Venta ($)"/>
                         <div class="o_row">
-                            <field name="list_price_usd" widget="monetary" options="{'currency_field': 'currency_id_dif'}" class="fw-bold"/>
+                            <field name="list_price_usd" widget="monetary" options="{'currency_field': 'currency_id_dif'}" class="fw-bold" nolabel="1"/>
                             <span>por</span>
-                            <field name="uom_id" position="move"/>
+                            <field name="uom_id" position="move" nolabel="1"/>
                         </div>
 
                         <field name="price_with_tax_info" string="Impuestos Incl.?" readonly="1" class="text-info small"/>
                         
-                        <label for="list_price_bs" string="Venta (Bs.)"/>
+                        <label for="list_price_bs" string="Precio Venta (Bs.)"/>
                         <div class="o_row">
-                            <field name="list_price_bs" readonly="1" force_save="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" class="text-primary"/>
-                            <field name="price_with_tax_bs" readonly="1" nolabel="1" class="text-muted small"/>
-                            <span>por</span>
-                            <field name="uom_name" class="text-muted"/>
+                            <field name="list_price_bs" readonly="1" force_save="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" class="text-primary" nolabel="1"/>
+                            <!-- Campos informativos ocultos a petición del usuario para purificar Pachacutec -->
+                            <field name="price_with_tax_bs" invisible="1"/>
+                            <field name="uom_name" invisible="1"/>
                         </div>
 
                         <field name="taxes_id" position="move"/>
@@ -61,6 +61,11 @@
                         <field name="supplier_taxes_id" position="move"/>
                         
                         <field name="costo_reposicion_usd" string="Costo Reposición ($)?" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                        
+                        <!-- Zona de Saneamiento: Ocultar aquí cualquier residuo si persiste Pachacutec -->
+                        <div invisible="1" class="d-none">
+                            <field name="uom_po_id" invisible="1"/>
+                        </div>
                     </xpath>
 
                     <!-- Ajuste de Etiquetas (Afuera del move para evitar ParseError) -->
