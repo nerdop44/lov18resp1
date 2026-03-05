@@ -36,25 +36,32 @@
                         <field name="currency_id_dif" invisible="1"/>
                         <field name="cost_currency_id" invisible="1"/>
                         <group name="master_dollar_config_premium" class="mt-2 mb-2">
-                            <group string="Ventas y Precios">
+                            <group name="group_sales_premium" string="💰 Ventas y Precios (USD Maestro)">
                                 <label for="list_price_usd" string="Precio Maestro ($)"/>
                                 <div class="o_row">
-                                    <field name="list_price_usd" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
-                                    <span class="text-muted">(Sin Impuestos)</span>
+                                    <field name="list_price_usd" class="oe_inline fw-bold" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
+                                    <span class="text-muted small italic">(Precio Base en Dólares)</span>
                                 </div>
-                                <field name="list_price" string="Calculado en Bs." readonly="1" force_save="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" />
-                                <label for="price_with_tax_info" string="Resumen c/Impuestos"/>
+                                <label for="list_price_bs" string="Equivalente en Bs."/>
                                 <div class="o_row">
-                                    <field name="price_with_tax_info" nolabel="1" class="text-info fw-bold w-100"/>
+                                    <field name="list_price_bs" readonly="1" force_save="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" class="oe_inline text-primary" />
+                                    <span class="text-muted small italic">(Inc. Impuestos)</span>
+                                </div>
+                                <label for="price_with_tax_info" string="Resumen Informativo"/>
+                                <div class="o_row">
+                                    <field name="price_with_tax_info" nolabel="1" class="text-info fw-bold w-100" style="font-size: 0.95em;"/>
                                 </div>
                                 <field name="taxes_id" widget="many2many_tags" context="{'default_type_tax_use':'sale', 'search_default_sale': 1, 'active_test': True}"/>
                             </group>
-                            <group string="Costos e Inversión">
-                                <label for="standard_price" string="Costo Maestro ($)"/>
+                            <group name="group_costs_premium" string="📦 Costos e Inversión (USD Maestro)">
+                                <label for="standard_price" string="Costo de Compra ($)"/>
                                 <div class="o_row">
-                                    <field name="standard_price" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
+                                    <field name="standard_price" class="oe_inline fw-bold" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
                                 </div>
-                                <field name="standard_price_usd" string="Calculado en Bs." readonly="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" />
+                                <label for="standard_price_bs" string="Costo en Bs."/>
+                                <div class="o_row">
+                                    <field name="standard_price_bs" readonly="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" class="oe_inline" />
+                                </div>
                                 <label for="costo_reposicion_usd" string="Costo Reposición ($)"/>
                                 <div class="o_row">
                                     <field name="costo_reposicion_usd" widget="monetary" options="{'currency_field': 'currency_id_dif'}" class="oe_inline" />

@@ -19,15 +19,18 @@ class ProductProduct(models.Model):
             rec.cost_currency_id = ves.id if ves else self.env.company.currency_id.id
 
 
-    list_price_usd = fields.Float(string="Precio de Venta en $")
-    standard_price_usd = fields.Float(string="Costo en Bs.", compute='_compute_standard_price_usd')
+    list_price_usd = fields.Float(string="Precio Venta ($)")
+    standard_price_bs = fields.Monetary(string="Costo en Bs.", compute='_compute_standard_price_bs', currency_field='cost_currency_id')
+    
+    # Aliases para retrocompatibilidad interna si es necesario
+    standard_price_usd = fields.Float(related='standard_price_bs', readonly=True)
 
     @api.depends('standard_price', 'currency_id_dif')
-    def _compute_standard_price_usd(self):
+    def _compute_standard_price_bs(self):
         for rec in self:
             company = rec.env.company
             tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
-            rec.standard_price_usd = rec.standard_price * tasa if tasa > 0 else 0.0
+            rec.standard_price_bs = rec.standard_price * tasa if tasa > 0 else 0.0
 
     # Removed old compute for list_price_usd as it is now the master field
 

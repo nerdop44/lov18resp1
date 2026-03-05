@@ -22,8 +22,10 @@ class Productos(models.Model):
             rec.cost_currency_id = ves.id if ves else rec.env.company.currency_id.id
 
 
-    list_price_usd = fields.Float(string="Precio de Venta en $")
-    standard_price_usd = fields.Float(string="Costo en Bs.", compute='_compute_standard_price_usd', store=True)
+    list_price_usd = fields.Float(string="Precio Venta ($)")
+    standard_price_bs = fields.Monetary(string="Costo en Bs.", compute='_compute_standard_price_bs', currency_field='cost_currency_id')
+    list_price_bs = fields.Monetary(string="Venta en Bs.", compute='_compute_list_price_bs', currency_field='cost_currency_id')
+    
     list_price = fields.Float(
         'Sales Price', default=1.0,
         digits='Product Price',
@@ -32,12 +34,31 @@ class Productos(models.Model):
     )
     price_with_tax_info = fields.Char(compute='_compute_price_with_tax_info')
 
-    @api.depends('list_price_usd')
+    @api.depends('list_price_usd', 'taxes_id')
     def _compute_list_price(self):
         for rec in self:
             company = rec.env.company
             tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
-            rec.list_price = rec.list_price_usd * tasa if tasa > 0 else 0.0
+            price_ex_tax = rec.list_price_usd * tasa if tasa > 0 else 0.0
+            
+            # El usuario solicitó que list_price sea list_price_usd * tasa * taxes_id
+            if rec.taxes_id:
+                res = rec.taxes_id.compute_all(price_ex_tax, quantity=1, product=rec)
+                rec.list_price = res['total_included']
+            else:
+                rec.list_price = price_ex_tax
+
+    @api.depends('list_price')
+    def _compute_list_price_bs(self):
+        for rec in self:
+            rec.list_price_bs = rec.list_price
+
+    @api.depends('standard_price', 'currency_id_dif')
+    def _compute_standard_price_bs(self):
+        for rec in self:
+            company = rec.env.company
+            tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
+            rec.standard_price_bs = rec.standard_price * tasa if tasa > 0 else 0.0
 
     @api.depends('list_price_usd', 'list_price', 'taxes_id')
     def _compute_price_with_tax_info(self):
@@ -59,15 +80,11 @@ class Productos(models.Model):
         pass # Inhabilitado porque ahora standard_price (USD) es el maestro
 
     @api.depends_context('company')
-    @api.depends('product_variant_ids', 'product_variant_ids.standard_price_usd')
+    @api.depends('product_variant_ids', 'product_variant_ids.standard_price')
     def _compute_standard_price_usd(self):
-        # Depends on force_company context because standard_price is company_dependent
-        # on the product_product
-        unique_variants = self.filtered(lambda template: len(template.product_variant_ids) == 1)
-        for template in unique_variants:
-            template.standard_price_usd = template.product_variant_ids.standard_price_usd
-        for template in (self - unique_variants):
-            template.standard_price_usd = 0.0
+        # Este método ya no es necesario para standard_price_usd (ahora standard_price_bs)
+        # pero mantenemos la firma si es referenciada en otros lados, vacía.
+        pass
 
     # Removed old compute for list_price_usd as it is now the master field
 
