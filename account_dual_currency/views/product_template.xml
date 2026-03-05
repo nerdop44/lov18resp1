@@ -19,32 +19,11 @@
             <field name="inherit_id" ref="product.product_template_form_view"/>
             <field name="arch" type="xml">
                    <!-- Rediseño Total Pachacutec -->
-                    <!-- Ocultar todos los campos nativos de precios, costos, impuestos y UOM para control total Pachacutec -->
+                    <!-- Ocultar Precios Nativos (Control Total) Pachacutec -->
                     <xpath expr="//field[@name='list_price']" position="attributes">
                         <attribute name="invisible">1</attribute>
                     </xpath>
                     <xpath expr="//field[@name='standard_price']" position="attributes">
-                        <attribute name="invisible">1</attribute>
-                    </xpath>
-                    <xpath expr="//field[@name='taxes_id']" position="attributes">
-                        <attribute name="invisible">1</attribute>
-                    </xpath>
-                    <xpath expr="//field[@name='supplier_taxes_id']" position="attributes">
-                        <attribute name="invisible">1</attribute>
-                    </xpath>
-                    <xpath expr="//field[@name='uom_id']" position="attributes">
-                        <attribute name="invisible">1</attribute>
-                    </xpath>
-                    <xpath expr="//label[@for='list_price']" position="attributes">
-                        <attribute name="invisible">1</attribute>
-                    </xpath>
-                    <xpath expr="//label[@for='standard_price']" position="attributes">
-                        <attribute name="invisible">1</attribute>
-                    </xpath>
-                    <xpath expr="//label[@for='uom_id']" position="attributes">
-                        <attribute name="invisible">1</attribute>
-                    </xpath>
-                    <xpath expr="//label[@for='uom_po_id']" position="attributes">
                         <attribute name="invisible">1</attribute>
                     </xpath>
 
@@ -55,13 +34,13 @@
                         <field name="uom_name" invisible="1"/>
                     </xpath>
 
-                    <!-- Inserción de Precisión en la columna derecha Pachacutec -->
+                    <!-- Inserción de Precisión Pachacutec -->
                     <xpath expr="//field[@name='categ_id']" position="before">
                         <label for="list_price_usd" string="Precio Venta ($)"/>
                         <div class="o_row">
                             <field name="list_price_usd" widget="monetary" options="{'currency_field': 'currency_id_dif'}" class="fw-bold"/>
                             <span>por</span>
-                            <field name="uom_id" groups="uom.group_uom" options="{'no_create': True}" nolabel="1"/>
+                            <field name="uom_id" position="move"/>
                         </div>
 
                         <field name="price_with_tax_info" string="Impuestos Incl.?" readonly="1" class="text-info small"/>
@@ -74,12 +53,12 @@
                             <field name="uom_name" class="text-muted"/>
                         </div>
 
-                        <field name="taxes_id" widget="many2many_tags" context="{'default_type_tax_use':'sale', 'search_default_sale': 1, 'active_test': True}" string="Impuestos de Venta?"/>
+                        <field name="taxes_id" position="move" string="Impuestos de Venta?"/>
                         
                         <field name="standard_price" string="Costo ($)?" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
                         <field name="standard_price_bs" string="Costo (Bs.)?" readonly="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary"/>
                         
-                        <field name="supplier_taxes_id" widget="many2many_tags" context="{'default_type_tax_use':'purchase', 'search_default_purchase': 1, 'active_test': True}" string="Impuestos de compra?"/>
+                        <field name="supplier_taxes_id" position="move" string="Impuestos de compra?"/>
                         
                         <field name="costo_reposicion_usd" string="Costo Reposición ($)?" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
                     </xpath>
