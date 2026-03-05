@@ -35,23 +35,30 @@
                    <xpath expr="//div[@name='pricing']" position="after">
                         <field name="currency_id_dif" invisible="1"/>
                         <field name="cost_currency_id" invisible="1"/>
-                        <group name="master_dollar_config" class="mt-0 pt-0">
-                            <group string="Precio de Venta (Maestro USD)">
-                                <label for="list_price_usd"/>
+                        <group name="master_dollar_config_premium" class="mt-2 mb-2">
+                            <group string="Ventas y Precios">
+                                <label for="list_price_usd" string="Precio Maestro ($)"/>
                                 <div class="o_row">
                                     <field name="list_price_usd" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
+                                    <span class="text-muted">(Sin Impuestos)</span>
                                 </div>
-                                <field name="list_price" string="Equivalente en Bs." readonly="1" force_save="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" />
-                                <field name="price_with_tax_info" nolabel="1" class="text-muted italic w-100" style="font-size: 0.9em;"/>
+                                <field name="list_price" string="Calculado en Bs." readonly="1" force_save="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" />
+                                <label for="price_with_tax_info" string="Resumen c/Impuestos"/>
+                                <div class="o_row">
+                                    <field name="price_with_tax_info" nolabel="1" class="text-info fw-bold w-100"/>
+                                </div>
                                 <field name="taxes_id" widget="many2many_tags" context="{'default_type_tax_use':'sale', 'search_default_sale': 1, 'active_test': True}"/>
                             </group>
-                            <group string="Costo / Reposición">
-                                <label for="standard_price"/>
+                            <group string="Costos e Inversión">
+                                <label for="standard_price" string="Costo Maestro ($)"/>
                                 <div class="o_row">
                                     <field name="standard_price" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
                                 </div>
-                                <field name="standard_price_usd" string="Equivalente en Bs." readonly="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" />
-                                <field name="costo_reposicion_usd" widget="monetary" options="{'currency_field': 'currency_id_dif'}" />
+                                <field name="standard_price_usd" string="Calculado en Bs." readonly="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" />
+                                <label for="costo_reposicion_usd" string="Costo Reposición ($)"/>
+                                <div class="o_row">
+                                    <field name="costo_reposicion_usd" widget="monetary" options="{'currency_field': 'currency_id_dif'}" class="oe_inline" />
+                                </div>
                             </group>
                         </group>
                    </xpath>

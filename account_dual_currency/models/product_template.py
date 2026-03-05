@@ -14,14 +14,16 @@ class Productos(models.Model):
     cost_currency_id = fields.Many2one('res.currency', string="Moneda de Costo", compute='_compute_cost_currency_id')
 
     def _compute_cost_currency_id(self):
+        ves = self.env['res.currency'].search([('name', 'in', ['VES', 'VEF'])], limit=1)
+        if not ves:
+            # Fallback a buscar por símbolo si el nombre falló
+            ves = self.env['res.currency'].search([('symbol', 'ilike', 'Bs')], limit=1)
         for rec in self:
-            # En Venezuela, si el maestro es USD, el costo alterno/precio alterno es Bs.
-            ves = self.env['res.currency'].search([('name', 'in', ['VES', 'VEF'])], limit=1)
-            rec.cost_currency_id = ves.id if ves else self.env.company.currency_id.id
+            rec.cost_currency_id = ves.id if ves else rec.env.company.currency_id.id
 
 
     list_price_usd = fields.Float(string="Precio de Venta en $")
-    standard_price_usd = fields.Float(string="Costo en Bs.", compute='_compute_standard_price_usd')
+    standard_price_usd = fields.Float(string="Costo en Bs.", compute='_compute_standard_price_usd', store=True)
     list_price = fields.Float(
         'Sales Price', default=1.0,
         digits='Product Price',
