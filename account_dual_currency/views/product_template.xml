@@ -34,9 +34,11 @@
                         <attribute name="invisible">1</attribute>
                     </xpath>
 
-                    <!-- Los campos técnicos ocultos permanecen arriba -->
-                    <field name="currency_id_dif" invisible="1"/>
-                    <field name="cost_currency_id" invisible="1"/>
+                    <!-- Los campos técnicos ocultos -->
+                    <xpath expr="//field[@name='list_price']" position="after">
+                        <field name="currency_id_dif" invisible="1"/>
+                        <field name="cost_currency_id" invisible="1"/>
+                    </xpath>
 
                     <!-- Insertar sección de precios al final del bloque general para ganar ancho completo -->
                     <xpath expr="//page[@name='general_information']/group" position="after">
