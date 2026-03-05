@@ -22,8 +22,8 @@ class ProductProduct(models.Model):
     list_price_usd = fields.Float(string="Precio Venta ($)")
     standard_price_bs = fields.Monetary(string="Costo en Bs.", compute='_compute_standard_price_bs', currency_field='cost_currency_id')
     
-    # Aliases para retrocompatibilidad interna si es necesario
-    standard_price_usd = fields.Float(related='standard_price_bs', readonly=True)
+    # Aliases para retrocompatibilidad interna - DEBE ser Monetary como la fuente
+    standard_price_usd = fields.Monetary(related='standard_price_bs', readonly=True)
 
     @api.depends('standard_price', 'currency_id_dif')
     def _compute_standard_price_bs(self):
