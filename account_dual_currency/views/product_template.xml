@@ -34,21 +34,20 @@
                         <attribute name="invisible">1</attribute>
                     </xpath>
 
-                    <xpath expr="//field[@name='list_price']" position="after">
-                        <field name="currency_id_dif" invisible="1"/>
-                        <field name="cost_currency_id" invisible="1"/>
-                        <group name="pricing_dual_currency_clean">
-                            <group name="group_sales_dual">
-                                <field name="list_price_usd" string="Venta ($)" widget="monetary" options="{'currency_field': 'currency_id_dif'}" class="fw-bold"/>
-                                <field name="list_price_bs" string="Venta (Bs.)" readonly="1" force_save="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" class="text-primary"/>
-                                <field name="price_with_tax_info" string="Impuestos Incl." readonly="1" class="text-info small"/>
-                                <field name="taxes_id" widget="many2many_tags" context="{'default_type_tax_use':'sale', 'search_default_sale': 1, 'active_test': True}"/>
-                            </group>
-                            <group name="group_costs_dual">
-                                <field name="standard_price" string="Costo ($)" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
-                                <field name="standard_price_bs" string="Costo (Bs.)" readonly="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary"/>
-                                <field name="costo_reposicion_usd" string="Reposición ($)" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
-                            </group>
+                    <!-- Los campos técnicos ocultos permanecen arriba -->
+                    <field name="currency_id_dif" invisible="1"/>
+                    <field name="cost_currency_id" invisible="1"/>
+
+                    <!-- Insertar sección de precios al final del bloque general para ganar ancho completo -->
+                    <xpath expr="//page[@name='general_information']/group" position="after">
+                        <group name="pricing_dual_currency_final" string="Precios y Costos">
+                            <field name="list_price_usd" string="Venta ($)" widget="monetary" options="{'currency_field': 'currency_id_dif'}" class="fw-bold"/>
+                            <field name="list_price_bs" string="Venta (Bs.)" readonly="1" force_save="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" class="text-primary"/>
+                            <field name="price_with_tax_info" string="Impuestos Incl." readonly="1" class="text-info small"/>
+                            <field name="taxes_id" widget="many2many_tags" context="{'default_type_tax_use':'sale', 'search_default_sale': 1, 'active_test': True}"/>
+                            <field name="standard_price" string="Costo ($)" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                            <field name="standard_price_bs" string="Costo (Bs.)" readonly="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary"/>
+                            <field name="costo_reposicion_usd" string="Reposición ($)" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
                         </group>
                     </xpath>
             </field>
