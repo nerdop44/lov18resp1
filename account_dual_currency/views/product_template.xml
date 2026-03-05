@@ -53,14 +53,22 @@
                             <field name="uom_name" class="text-muted"/>
                         </div>
 
-                        <field name="taxes_id" position="move" string="Impuestos de Venta?"/>
+                        <field name="taxes_id" position="move"/>
                         
                         <field name="standard_price" string="Costo ($)?" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
                         <field name="standard_price_bs" string="Costo (Bs.)?" readonly="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary"/>
                         
-                        <field name="supplier_taxes_id" position="move" string="Impuestos de compra?"/>
+                        <field name="supplier_taxes_id" position="move"/>
                         
                         <field name="costo_reposicion_usd" string="Costo Reposición ($)?" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                    </xpath>
+
+                    <!-- Ajuste de Etiquetas (Afuera del move para evitar ParseError) -->
+                    <xpath expr="//field[@name='taxes_id']" position="attributes">
+                        <attribute name="string">Impuestos de Venta?</attribute>
+                    </xpath>
+                    <xpath expr="//field[@name='supplier_taxes_id']" position="attributes">
+                        <attribute name="string">Impuestos de compra?</attribute>
                     </xpath>
             </field>
         </record>
