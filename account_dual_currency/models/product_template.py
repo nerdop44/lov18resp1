@@ -36,6 +36,7 @@ class Productos(models.Model):
         compute='_compute_list_price', store=True, readonly=True
     )
     price_with_tax_info = fields.Char(compute='_compute_price_with_tax_info')
+    price_with_tax_bs = fields.Char(compute='_compute_price_with_tax_bs')
 
     @api.depends('list_price_usd', 'taxes_id')
     def _compute_list_price(self):
@@ -82,6 +83,18 @@ class Productos(models.Model):
                 except Exception:
                     pass
             rec.price_with_tax_info = f"(= $ {total_usd:,.2f} / Bs. {total_bs:,.2f} impuestos incluidos)".replace(',', 'X').replace('.', ',').replace('X', '.')
+    @api.depends('list_price', 'taxes_id')
+    def _compute_price_with_tax_bs(self):
+        for rec in self:
+            total_bs = rec.list_price
+            if rec.taxes_id:
+                try:
+                    res_bs = rec.taxes_id.compute_all(rec.list_price, quantity=1, product=rec)
+                    total_bs = res_bs['total_included']
+                except Exception:
+                    pass
+            rec.price_with_tax_bs = f"(= Bs. {total_bs:,.2f} impuestos incluidos)".replace(',', 'X').replace('.', ',').replace('X', '.')
+
     costo_reposicion_usd = fields.Monetary(string="Costo Reposición Alterno", currency_field='currency_id_dif')
 
     def _set_standard_price_usd(self):
