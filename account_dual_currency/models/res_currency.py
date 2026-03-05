@@ -139,16 +139,34 @@ class ResCurrency(models.Model):
                     f._compute_payments_widget_reconciled_info_USD()
 
     def actualizar_productos(self):
-        # Disabled to prevent cyclic recursion with computed list_price_usd
-        pass
-        # for rec in self:
-        #     product_ids = self.env['product.template'].search([('list_price_usd','>',0)])
-        #     for p in product_ids:
-        #         p.list_price = p.list_price_usd * rec.inverse_rate
-        #
-        #     product_product_ids = self.env['product.product'].search([('list_price_usd', '>', 0)])
-        #     for p in product_product_ids:
-        #         p.list_price = p.list_price_usd * rec.inverse_rate
+        """ Actualización masiva de list_price (Bs) basada en list_price_usd y la tasa actual.
+        Uso de SQL para evitar Timeouts en catálogos grandes. Pachacutec.
+        """
+        for rec in self:
+            tasa = rec.inverse_rate if rec.name == 'USD' else self.env.company.currency_id_dif.get_trm_systray()
+            if tasa <= 0:
+                continue
+            
+            _logger.info(">>>>>>>> Pachacutec: Iniciando actualización masiva de precios (Tasa: %s)", tasa)
+            
+            # Actualizar Templates (list_price = list_price_usd * tasa)
+            query_tmpl = """
+                UPDATE product_template 
+                SET list_price = list_price_usd * %s 
+                WHERE list_price_usd > 0
+            """
+            self.env.cr.execute(query_tmpl, (tasa,))
+            
+            # Nota: Odoo 18 maneja variantes. Si no hay list_price_usd en variantes, heredan del template.
+            # Si existen, actualizamos también variantes.
+            query_prod = """
+                UPDATE product_product 
+                SET lst_price = list_price_usd * %s 
+                WHERE list_price_usd > 0
+            """
+            self.env.cr.execute(query_prod, (tasa,))
+            
+            _logger.info(">>>>>>>> Pachacutec: Precios actualizados vía SQL.")
 
     def action_fix_astronomical_prices(self):
         """ Método de emergencia para restaurar precios inflados trillonarios """

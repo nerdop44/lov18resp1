@@ -25,16 +25,18 @@ class Productos(models.Model):
 
     list_price_usd = fields.Float(string="Precio Venta ($)")
     standard_price_bs = fields.Monetary(string="Costo en Bs.", compute='_compute_standard_price_bs', currency_field='cost_currency_id')
-    list_price_bs = fields.Monetary(string="Venta en Bs.", compute='_compute_list_price_bs', currency_field='cost_currency_id')
+    
+    #list_price_bs = fields.Monetary(string="Venta en Bs.", compute='_compute_list_price_bs', currency_field='cost_currency_id')
+    # Eliminamos list_price_bs para usar list_price nativo como el campo de Bs Pachacutec
     
     # Campo para compatibilidad con otros módulos, refleja el costo maestro (USD)
     standard_price_usd = fields.Float(string="Costo Maestro ($)", compute='_compute_standard_price_compat')
     
     list_price = fields.Float(
-        'Sales Price', default=1.0,
+        'Precio Venta (Bs.)', default=1.0,
         digits='Product Price',
-        help="Price at which the product is sold to customers.",
-        compute='_compute_list_price', store=True, readonly=True
+        help="Precio de venta en Bolívares, calculado automáticamente desde el Dólar Maestro.",
+        compute='_compute_list_price', store=True, readonly=False
     )
     price_with_tax_info = fields.Char(compute='_compute_price_with_tax_info')
     price_with_tax_bs = fields.Char(compute='_compute_price_with_tax_bs')
@@ -55,6 +57,7 @@ class Productos(models.Model):
 
     @api.depends('list_price')
     def _compute_list_price_bs(self):
+        # Mantenemos por compatibilidad de vistas si es necesario, pero apuntando a list_price
         for rec in self:
             rec.list_price_bs = rec.list_price
 

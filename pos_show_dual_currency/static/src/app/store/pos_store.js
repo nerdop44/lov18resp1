@@ -152,46 +152,40 @@ patch(PosStore.prototype, {
 
     getProductPriceFormatted(product, ref = false) {
         if (!product) return "";
-        // Use get_product_price_with_tax to include taxes if possible
-        let price = 0;
-        try {
-            price = product.get_price(this.pricelist, 1);
-        } catch (e) {
-            console.warn("Error getting product price:", e);
+
+        // Pachacutec: Priorizamos los campos cargados directamente del backend para evitar desincronización
+        if (ref && product.list_price_usd !== undefined) {
+            // Si el producto tiene el campo maestro USD inyectado, lo usamos directamente
+            return this.format_currency_ref(product.list_price_usd || 0);
         }
 
-        if (typeof price !== 'number') price = 0;
+        // Para el precio principal (Bs), usamos el campo list_price nativo que ya viene calculado desde el backend
+        let price = product.list_price || 0;
+
+        // Incluimos impuestos si aplica (la lógica nativa get_price podría ser necesaria para pricelists)
+        if (this.pricelist) {
+            try {
+                price = product.get_price(this.pricelist, 1);
+            } catch (e) { }
+        }
 
         const price_with_tax = this.get_product_price_with_tax(product, price);
 
-        if (ref && (this.config?.show_dual_currency || this.res_currency_ref)) {
-            // Use the new centralized helper, pass true to divide by rate instead of multiplying
+        if (ref) {
+            // Fallback si no hay list_price_usd: dividir por la tasa del sistema
             return this.getAmountInRefCurrency(price_with_tax, true);
         }
 
         if (this.currency) {
             try {
-                // NEW LOGIC (Pachacutec): If main currency is НЕ USD (e.g. VEF/Bs), 
-                // we must multiply the price (USD) by the system rate.
-                let rate = this.config.show_currency_rate || 1.0;
-                if (typeof rate !== 'number') rate = parseFloat(rate) || 1.0;
-
-                const ref_symbol = this.res_currency_ref ? this.res_currency_ref.symbol : (this.config.show_currency_symbol || '$');
-
-                // If main currency is e.g. Bs, and Reference is USD, or if main is just not USD.
-                // We assume main currency here is the one needing conversion from USD base.
-                let display_amount = price_with_tax;
-                if (this.currency.name !== 'USD' && this.currency.symbol !== '$') {
-                    display_amount = price_with_tax * rate;
-                }
-
-                // Fix: Ensure we extract the symbol as string, not the JS primitive Symbol type
+                // Pachacutec: Eliminamos la multiplicación redundante por rate. 
+                // Si la moneda es Bs, el precio ya viene en Bs desde el backend/pricelist.
+                const display_amount = price_with_tax;
                 const curr_sym = typeof this.currency.symbol === 'symbol' ? '' : (this.currency.symbol || '');
                 return (this.currency.position === 'before' ? curr_sym + ' ' : '') +
                     display_amount.toFixed(this.currency.decimal_places).replace(/\./g, ",") +
                     (this.currency.position === 'after' ? ' ' + curr_sym : '');
             } catch (e) {
-                console.warn("Formatting failed for main currency:", e);
                 return price_with_tax.toFixed(2);
             }
         }

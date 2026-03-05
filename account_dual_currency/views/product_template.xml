@@ -51,9 +51,9 @@
 
                         <field name="price_with_tax_info" string="Impuestos Incl.?" readonly="1" class="text-info small"/>
                         
-                        <label for="list_price_bs" string="Precio Venta (Bs.)"/>
+                        <label for="list_price" string="Precio Venta (Bs.)"/>
                         <div class="o_row">
-                            <field name="list_price_bs" readonly="1" force_save="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" class="text-primary" nolabel="1"/>
+                            <field name="list_price" readonly="1" force_save="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" class="text-primary" nolabel="1"/>
                         </div>
 
                         <field name="taxes_id" position="move" string="Impuestos de Venta?"/>

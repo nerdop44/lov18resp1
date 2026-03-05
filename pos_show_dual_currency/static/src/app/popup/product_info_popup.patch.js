@@ -22,5 +22,9 @@ patch(ProductInfoPopup.prototype, {
         }
         // Use the injected list_price_usd (Master USD from DB, unconverted in frontend)
         return this.pos.format_currency_ref(this.props.product.list_price_usd || 0);
+    },
+
+    get mainPrice() {
+        return this.pos.getProductPriceFormatted(this.props.product, false);
     }
 });
