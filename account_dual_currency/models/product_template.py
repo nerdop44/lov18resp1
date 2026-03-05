@@ -12,6 +12,7 @@ class Productos(models.Model):
             rec.currency_id_dif = self.env.company.currency_id_dif.id
 
     cost_currency_id = fields.Many2one('res.currency', string="Moneda de Costo", compute='_compute_cost_currency_id')
+    uom_name = fields.Char(related='uom_id.name', string="Nombre UoM")
 
     def _compute_cost_currency_id(self):
         ves = self.env['res.currency'].search([('name', 'in', ['VES', 'VEF'])], limit=1)
