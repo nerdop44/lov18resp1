@@ -133,7 +133,9 @@ class ProductProduct(models.Model):
     _inherit = 'product.product'
 
     # Campos relacionados para que el cargador del POS los encuentre en product.product
+    currency_id_dif = fields.Many2one(related='product_tmpl_id.currency_id_dif', readonly=True)
+    cost_currency_id = fields.Many2one(related='product_tmpl_id.cost_currency_id', readonly=True)
     list_price_usd = fields.Float(related='product_tmpl_id.list_price_usd', readonly=False)
     standard_price_usd = fields.Float(related='product_tmpl_id.standard_price_usd', readonly=False)
-    costo_reposicion_usd = fields.Float(related='product_tmpl_id.costo_reposicion_usd', readonly=False)
-    standard_price_bs = fields.Monetary(related='product_tmpl_id.standard_price_bs', readonly=False)
+    costo_reposicion_usd = fields.Monetary(related='product_tmpl_id.costo_reposicion_usd', readonly=False, currency_field='currency_id_dif')
+    standard_price_bs = fields.Monetary(related='product_tmpl_id.standard_price_bs', readonly=False, currency_field='cost_currency_id')
