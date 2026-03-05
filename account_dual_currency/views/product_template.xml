@@ -19,14 +19,16 @@
             <field name="inherit_id" ref="product.product_template_form_view"/>
             <field name="arch" type="xml">
                    <!-- Rediseño Total Pachacutec -->
-                    <!-- Ocultar campos originales usando selectores de campo (más robusto en v18) -->
+                    <!-- Ocultar todos los campos nativos de precios y costos para control total Pachacutec -->
                     <xpath expr="//field[@name='list_price']" position="attributes">
                         <attribute name="invisible">1</attribute>
                     </xpath>
                     <xpath expr="//field[@name='standard_price']" position="attributes">
                         <attribute name="invisible">1</attribute>
                     </xpath>
-                    <!-- Ocultar etiquetas si existen como elementos separados -->
+                    <xpath expr="//field[@name='taxes_id']" position="attributes">
+                        <attribute name="invisible">1</attribute>
+                    </xpath>
                     <xpath expr="//label[@for='list_price']" position="attributes">
                         <attribute name="invisible">1</attribute>
                     </xpath>
@@ -34,19 +36,20 @@
                         <attribute name="invisible">1</attribute>
                     </xpath>
 
-                    <!-- Los campos técnicos ocultos -->
+                    <!-- Campos técnicos ocultos -->
                     <xpath expr="//field[@name='list_price']" position="after">
                         <field name="currency_id_dif" invisible="1"/>
                         <field name="cost_currency_id" invisible="1"/>
                     </xpath>
 
-                    <!-- Integración en la columna derecha (Top) -->
-                    <xpath expr="//field[@name='taxes_id']" position="before">
+                    <!-- Inserción Estratégica en el tope de la columna derecha Pachacutec -->
+                    <!-- Usamos categ_id como ancla de la columna derecha -->
+                    <xpath expr="//field[@name='categ_id']" position="before">
                         <field name="list_price_usd" string="Precio Venta ($)" widget="monetary" options="{'currency_field': 'currency_id_dif'}" class="fw-bold"/>
                         <field name="list_price_bs" string="Venta (Bs.)" readonly="1" force_save="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary" class="text-primary"/>
                         <field name="price_with_tax_info" string="Impuestos Incl." readonly="1" class="text-info small"/>
-                    </xpath>
-                    <xpath expr="//field[@name='taxes_id']" position="after">
+                        <field name="taxes_id" widget="many2many_tags" context="{'default_type_tax_use':'sale', 'search_default_sale': 1, 'active_test': True}" string="Impuestos de Venta"/>
+                        
                         <field name="standard_price" string="Costo ($)" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
                         <field name="standard_price_bs" string="Costo (Bs.)" readonly="1" options="{'currency_field': 'cost_currency_id'}" widget="monetary"/>
                         <field name="costo_reposicion_usd" string="Costo Reposición ($)" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
