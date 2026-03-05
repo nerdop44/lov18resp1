@@ -31,6 +31,13 @@
                    <xpath expr="//div[@name='standard_price_uom']" position="attributes">
                        <attribute name="invisible">1</attribute>
                    </xpath>
+                   <!-- Forzar ocultación en casos de herencia múltiple -->
+                   <xpath expr="//field[@name='list_price']" position="attributes">
+                       <attribute name="invisible">1</attribute>
+                   </xpath>
+                   <xpath expr="//field[@name='standard_price']" position="attributes">
+                       <attribute name="invisible">1</attribute>
+                   </xpath>
 
                    <xpath expr="//div[@name='pricing']" position="after">
                         <field name="currency_id_dif" invisible="1"/>
