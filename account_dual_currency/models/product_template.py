@@ -129,3 +129,11 @@ class Productos(models.Model):
 
 
 
+class ProductProduct(models.Model):
+    _inherit = 'product.product'
+
+    # Campos relacionados para que el cargador del POS los encuentre en product.product
+    list_price_usd = fields.Float(related='product_tmpl_id.list_price_usd', readonly=False)
+    standard_price_usd = fields.Float(related='product_tmpl_id.standard_price_usd', readonly=False)
+    costo_reposicion_usd = fields.Float(related='product_tmpl_id.costo_reposicion_usd', readonly=False)
+    standard_price_bs = fields.Monetary(related='product_tmpl_id.standard_price_bs', readonly=False)

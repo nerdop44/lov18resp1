@@ -159,8 +159,8 @@ patch(PosStore.prototype, {
             return this.format_currency_ref(product.list_price_usd || 0);
         }
 
-        // Para el precio principal (Bs), usamos el campo list_price nativo que ya viene calculado desde el backend
-        let price = product.list_price || 0;
+        // Para el precio principal (Bs), usamos el campo lst_price nativo que ya viene calculado desde el backend
+        let price = product.lst_price || 0;
 
         // Incluimos impuestos si aplica (la lógica nativa get_price podría ser necesaria para pricelists)
         if (this.pricelist) {

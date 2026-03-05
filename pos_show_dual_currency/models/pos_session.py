@@ -668,6 +668,12 @@ class PosSession(models.Model):
         result['search_params']['fields'].extend(['list_price_usd', 'standard_price_usd', 'lst_price'])
         return result
 
+    # Pachacutec: Compatibilidad definitiva para Odoo 18
+    def _get_product_product_loader_params(self):
+        result = super()._get_product_product_loader_params()
+        result['search_params']['fields'].extend(['list_price_usd', 'standard_price_usd', 'lst_price'])
+        return result
+
     # Pachacutec: Compatibilidad explícita para Odoo 18
     def _get_pos_ui_product_product(self, params):
         """ Asegura que los campos maestros de USD se carguen en el modelo del POS. """
