@@ -26,6 +26,9 @@ class Productos(models.Model):
     standard_price_bs = fields.Monetary(string="Costo en Bs.", compute='_compute_standard_price_bs', currency_field='cost_currency_id')
     list_price_bs = fields.Monetary(string="Venta en Bs.", compute='_compute_list_price_bs', currency_field='cost_currency_id')
     
+    # Campo para compatibilidad con otros módulos, refleja el costo maestro (USD)
+    standard_price_usd = fields.Float(string="Costo Maestro ($)", compute='_compute_standard_price_compat')
+    
     list_price = fields.Float(
         'Sales Price', default=1.0,
         digits='Product Price',
@@ -59,6 +62,11 @@ class Productos(models.Model):
             company = rec.env.company
             tasa = company.currency_id_dif.get_trm_systray() if company.currency_id_dif else 0.0
             rec.standard_price_bs = rec.standard_price * tasa if tasa > 0 else 0.0
+
+    @api.depends('standard_price')
+    def _compute_standard_price_compat(self):
+        for rec in self:
+            rec.standard_price_usd = rec.standard_price
 
     @api.depends('list_price_usd', 'list_price', 'taxes_id')
     def _compute_price_with_tax_info(self):

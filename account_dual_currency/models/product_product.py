@@ -19,11 +19,14 @@ class ProductProduct(models.Model):
             rec.cost_currency_id = ves.id if ves else self.env.company.currency_id.id
 
 
-    list_price_usd = fields.Float(string="Precio Venta ($)")
-    standard_price_bs = fields.Monetary(string="Costo en Bs.", compute='_compute_standard_price_bs', currency_field='cost_currency_id')
-    
-    # Aliases para retrocompatibilidad interna - DEBE ser Monetary como la fuente
-    standard_price_usd = fields.Monetary(related='standard_price_bs', readonly=True)
+    # Los campos se heredan de product.template
+    # Solo definimos standard_price_usd como compute aquí para asegurar consistencia
+    standard_price_usd = fields.Float(string="Costo Maestro ($)", compute='_compute_standard_price_compat')
+
+    @api.depends('standard_price')
+    def _compute_standard_price_compat(self):
+        for rec in self:
+            rec.standard_price_usd = rec.standard_price
 
     @api.depends('standard_price', 'currency_id_dif')
     def _compute_standard_price_bs(self):
