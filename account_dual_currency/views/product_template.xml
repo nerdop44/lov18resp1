@@ -8,7 +8,7 @@
             <field name="arch" type="xml">
                     <xpath expr="//field[@name='standard_price']" position="after">
                         <field name="currency_id_dif" invisible="1"/>
-                        <field name="standard_price_usd"/>
+                        <field name="standard_price_bs"/>
                     </xpath>
             </field>
         </record>
@@ -83,7 +83,7 @@
                  </xpath>
                 <xpath expr="//field[@name='standard_price']" position="after">
                     <field name="currency_id_dif" invisible="1"/>
-                    <field name="standard_price_usd" options="{'currency_field': 'cost_currency_id'}" />
+                    <field name="standard_price_bs" options="{'currency_field': 'cost_currency_id'}" />
                  </xpath>
             </field>
         </record>
@@ -112,7 +112,7 @@
                  </xpath>
                 <xpath expr="//field[@name='standard_price']" position="after">
                     <field name="currency_id_dif" invisible="1"/>
-                    <field name="standard_price_usd" options="{'currency_field': 'cost_currency_id'}" />
+                    <field name="standard_price_bs" options="{'currency_field': 'cost_currency_id'}" />
                  </xpath>
             </field>
         </record>
