@@ -154,9 +154,9 @@ patch(PosStore.prototype, {
             if (!product) return "";
 
             // Pachacutec: Priorizamos los campos cargados directamente del backend para evitar desincronización
-            if (ref && product.list_price_usd !== undefined) {
-                // Si el producto tiene el campo maestro USD inyectado, lo usamos directamente
-                return this.format_currency_ref(product.list_price_usd || 0);
+            if (ref && product.list_price_usd && product.list_price_usd > 0) {
+                // Si el producto tiene el campo maestro USD inyectado y es mayor a cero, lo usamos directamente
+                return this.format_currency_ref(product.list_price_usd);
             }
 
             // Para el precio principal (Bs), usamos el campo lst_price nativo que ya viene calculado desde el backend

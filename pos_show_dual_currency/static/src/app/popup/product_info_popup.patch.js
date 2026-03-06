@@ -17,11 +17,7 @@ patch(ProductInfoPopup.prototype, {
     },
 
     get priceInRefCurrency() {
-        if (!this.pos.config.show_dual_currency && !this.pos.res_currency_ref) {
-            return "";
-        }
-        // Use the injected list_price_usd (Master USD from DB, unconverted in frontend)
-        return this.pos.format_currency_ref(this.props.product.list_price_usd || 0);
+        return this.pos.getProductPriceFormatted(this.props.product, true);
     },
 
     get mainPrice() {
