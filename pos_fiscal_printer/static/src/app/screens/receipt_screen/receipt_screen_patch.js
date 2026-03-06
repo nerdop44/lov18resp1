@@ -57,7 +57,8 @@ const patchConfig = {
     },
 
     orderDone() {
-        if (this.currentOrder.impresa) {
+        const order = this.props.order;
+        if (order && order.impresa) {
             super.orderDone();
         } else {
             this.dialog.add(ConfirmationDialog, {

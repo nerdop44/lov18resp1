@@ -803,7 +803,7 @@ export const FiscalPrinterMixin = {
     },
 
     get order() {
-        return this.pos.get_order();
+        return this.props?.order || this.pos?.get_order?.() || this.pos?.currentOrder;
     },
 
     async doPrinting(mode) {
