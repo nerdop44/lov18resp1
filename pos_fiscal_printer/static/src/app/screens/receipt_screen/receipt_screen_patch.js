@@ -56,6 +56,10 @@ const patchConfig = {
         return this.port?.readable?.getReader();
     },
 
+    get order() {
+        return this.props?.order || this.pos?.get_order?.() || this.pos?.currentOrder;
+    },
+
     orderDone() {
         const order = this.props.order;
         if (order && order.impresa) {
