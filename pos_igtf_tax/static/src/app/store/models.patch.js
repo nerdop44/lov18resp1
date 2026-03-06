@@ -25,36 +25,35 @@ patch(PosPayment.prototype, {
 
     set_amount(value) {
         const config = this.models["pos.config"].getFirst();
-        const igtf_antes = this.pos_order_id.x_igtf_amount;
+        const order = this.pos_order_id;
 
-        if (value === this.pos_order_id.get_due()) {
-            super.set_amount(value);
+        // Native apply
+        if (this.isForeignExchange) {
+            super.set_amount(value * (config.show_currency_rate || 1.0));
         } else {
-            if (value !== igtf_antes) {
-                if (this.isForeignExchange) {
-                    super.set_amount(value * config.show_currency_rate);
-                } else {
-                    super.set_amount(value);
-                }
-            }
+            super.set_amount(value);
         }
 
         const igtfProduct = config.x_igtf_product_id;
         if (!(igtfProduct || igtfProduct?.length)) return;
-        if (!this.isForeignExchange) return;
+        if (!this.isForeignExchange) {
+            // If we are changing from a foreign exchange to something else, remove IGTF
+            order.removeIGTF();
+            return;
+        }
 
-        if (value === igtf_antes) return;
-        this.pos_order_id.removeIGTF();
-
-        const price = this.pos_order_id.x_igtf_amount;
+        // Add/Refresh IGTF line
+        order.removeIGTF();
+        const price = order.x_igtf_amount;
         const product = this.models["product.product"].get(igtfProduct[0]);
 
-        if (product) {
-            this.pos_order_id.add_product(product, {
+        if (product && price > 0) {
+            order.add_product(product, {
                 quantity: 1,
                 price: price,
                 lst_price: price,
                 merge: false,
+                extra_vals: { x_is_igtf_line: true }
             });
         }
     }

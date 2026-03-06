@@ -58,8 +58,18 @@ class PosOrderLine(models.Model):
 class PosPaymentMethod(models.Model):
     _inherit = "pos.payment.method"
 
-    x_igtf_percentage = fields.Float("Porcentaje de IGTF")
+    x_igtf_percentage = fields.Float("Porcentaje de IGTF", compute="_compute_x_igtf_percentage", store=True, readonly=False)
     x_is_foreign_exchange = fields.Boolean("Pago en divisas")
+
+    @api.depends('x_is_foreign_exchange', 'company_id.igtf_percentage')
+    def _compute_x_igtf_percentage(self):
+        for rec in self:
+            if rec.x_is_foreign_exchange and not rec.x_igtf_percentage:
+                rec.x_igtf_percentage = rec.company_id.igtf_percentage or 3.0
+            elif not rec.x_is_foreign_exchange:
+                rec.x_igtf_percentage = 0.0
+            else:
+                rec.x_igtf_percentage = rec.x_igtf_percentage
 
     @api.model
     def _load_pos_data_fields(self, config_id):
