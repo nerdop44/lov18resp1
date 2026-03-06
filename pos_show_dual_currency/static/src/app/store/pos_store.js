@@ -81,7 +81,7 @@ patch(PosStore.prototype, {
 
         // Ensure value is a number
         const amount = typeof value === 'number' ? value : parseFloat(value) || 0;
-
+        let formatted = "";
         try {
             const symbol = String(currency.symbol || "");
             const position = String(currency.position || "after");
