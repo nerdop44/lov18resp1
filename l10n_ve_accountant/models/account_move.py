@@ -314,9 +314,14 @@ class AccountMove(models.Model):
         for vals in vals_list:
 
             if 'name' in vals and vals['name'] != "/":
-                existing_record = self.search([('name', '=', vals['name'])], limit=1)
+                # MODIFICACIÓN PACHACUTEC: Segregar por company_id para evitar colisiones en multi-empresa
+                company_id = vals.get('company_id') or self.env.company.id
+                existing_record = self.search([
+                    ('name', '=', vals['name']),
+                    ('company_id', '=', company_id)
+                ], limit=1)
                 if existing_record:
-                    raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
+                    raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists in this company."))
 
         moves = super().create(vals_list)
         moves._compute_rate()
@@ -346,9 +351,16 @@ class AccountMove(models.Model):
         """
 
         if 'name' in vals:
-            existing_record = self.search([('name', '=', vals['name']), ('id', '!=', self.id)], limit=1)
-            if existing_record:
-                raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
+            for move in self:
+                # MODIFICACIÓN PACHACUTEC: Segregar por company_id
+                company_id = vals.get('company_id') or move.company_id.id
+                existing_record = self.search([
+                    ('name', '=', vals['name']),
+                    ('id', '!=', move.id),
+                    ('company_id', '=', company_id)
+                ], limit=1)
+                if existing_record:
+                    raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists in this company."))
 
         if vals.get("foreign_rate", False):
             for move in self:

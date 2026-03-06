@@ -11,8 +11,8 @@ odoo.define('1010_pos_dual_currency.ClosePosPopup', function (require) {
         class extends ClosePosPopup {
             static props = {
                 ...ClosePosPopup.props,
-                other_payment_methods: { optional: true },
-                amount_authorized_diff_ref: { optional: true },
+                other_payment_methods: { type: Array, optional: true },
+                amount_authorized_diff_ref: { type: Number, optional: true },
             };
             setup() {
                 super.setup();
