@@ -314,14 +314,17 @@ class AccountMove(models.Model):
         for vals in vals_list:
 
             if 'name' in vals and vals['name'] != "/":
-                # MODIFICACIÓN PACHACUTEC: Segregar por company_id para evitar colisiones en multi-empresa
+                # MODIFICACIÓN PACHACUTEC: Segregar por company_id y journal_id para evitar falsos positivos
                 company_id = vals.get('company_id') or self.env.company.id
-                existing_record = self.search([
-                    ('name', '=', vals['name']),
-                    ('company_id', '=', company_id)
-                ], limit=1)
+                journal_id = vals.get('journal_id')
+                domain = [('name', '=', vals['name']), ('company_id', '=', company_id)]
+                if journal_id:
+                    domain.append(('journal_id', '=', journal_id))
+                
+                existing_record = self.search(domain, limit=1)
                 if existing_record:
-                    raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists in this company."))
+                    # Si ya existe con el mismo nombre en la misma empresa/diario, es un error real, de lo contrario permitimos
+                    raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists in this journal/company."))
 
         moves = super().create(vals_list)
         moves._compute_rate()
@@ -352,15 +355,17 @@ class AccountMove(models.Model):
 
         if 'name' in vals:
             for move in self:
-                # MODIFICACIÓN PACHACUTEC: Segregar por company_id
+                # MODIFICACIÓN PACHACUTEC: Segregar por company_id y journal_id
                 company_id = vals.get('company_id') or move.company_id.id
+                journal_id = vals.get('journal_id') or move.journal_id.id
                 existing_record = self.search([
                     ('name', '=', vals['name']),
                     ('id', '!=', move.id),
-                    ('company_id', '=', company_id)
+                    ('company_id', '=', company_id),
+                    ('journal_id', '=', journal_id)
                 ], limit=1)
                 if existing_record:
-                    raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists in this company."))
+                    raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists in this journal/company."))
 
         if vals.get("foreign_rate", False):
             for move in self:
