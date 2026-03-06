@@ -71,18 +71,15 @@ patch(PosStore.prototype, {
     },
 
     format_currency_ref(value) {
-        const currency = this.get_currency_ref() || {
-            symbol: this.config.show_currency_symbol || "$",
-            position: this.config.show_currency_position || "after",
-            rounding: 0.01,
-            decimal_places: 2,
-            id: 999999 // Fallback ID
-        };
-
-        // Ensure value is a number
-        const amount = typeof value === 'number' ? value : parseFloat(value) || 0;
-        let formatted = "";
         try {
+            const currency = this.get_currency_ref() || {
+                symbol: this.config?.show_currency_symbol || "$",
+                position: this.config?.show_currency_position || "after",
+                rounding: 0.01,
+                decimal_places: 2,
+                id: 999999 // Fallback ID
+            };
+            const amount = typeof value === 'number' ? value : parseFloat(value) || 0;
             const symbol = String(currency.symbol || "");
             const position = String(currency.position || "after");
             const decimals = parseInt(currency.decimal_places) || 2;
@@ -92,15 +89,14 @@ patch(PosStore.prototype, {
             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
             const formatted_val = parts.join(',');
 
-            formatted = (position === 'before' ? symbol + ' ' : '') +
+            return (position === 'before' ? symbol + ' ' : '') +
                 formatted_val +
                 (position === 'after' ? ' ' + symbol : '');
         } catch (e) {
             console.warn("Manual formatting in format_currency_ref failed:", e);
-            formatted = amount.toFixed(2);
+            const fallback_amount = typeof value === 'number' ? value : parseFloat(value) || 0;
+            return fallback_amount.toFixed(2);
         }
-
-        return formatted;
     },
 
     getAmountInRefCurrency(amount, fromMainCurrency = false) {
@@ -154,37 +150,37 @@ patch(PosStore.prototype, {
     },
 
     getProductPriceFormatted(product, ref = false) {
-        if (!product) return "";
+        try {
+            if (!product) return "";
 
-        // Pachacutec: Priorizamos los campos cargados directamente del backend para evitar desincronización
-        if (ref && product.list_price_usd !== undefined) {
-            // Si el producto tiene el campo maestro USD inyectado, lo usamos directamente
-            return this.format_currency_ref(product.list_price_usd || 0);
-        }
+            // Pachacutec: Priorizamos los campos cargados directamente del backend para evitar desincronización
+            if (ref && product.list_price_usd !== undefined) {
+                // Si el producto tiene el campo maestro USD inyectado, lo usamos directamente
+                return this.format_currency_ref(product.list_price_usd || 0);
+            }
 
-        // Para el precio principal (Bs), usamos el campo lst_price nativo que ya viene calculado desde el backend
-        let price = product.lst_price || 0;
+            // Para el precio principal (Bs), usamos el campo lst_price nativo que ya viene calculado desde el backend
+            let price = product.lst_price || 0;
 
-        // Incluimos impuestos si aplica (la lógica nativa get_price podría ser necesaria para pricelists)
-        if (this.pricelist) {
-            try {
-                price = product.get_price(this.pricelist, 1);
-            } catch (e) { }
-        }
+            // Incluimos impuestos si aplica (la lógica nativa get_price podría ser necesaria para pricelists)
+            if (this.pricelist) {
+                try {
+                    price = product.get_price(this.pricelist, 1);
+                } catch (e) { }
+            }
 
-        const price_with_tax = this.get_product_price_with_tax(product, price);
+            const price_with_tax = this.get_product_price_with_tax(product, price);
 
-        if (ref) {
-            // Fallback si no hay list_price_usd: dividir por la tasa del sistema
-            return this.getAmountInRefCurrency(price_with_tax, true);
-        }
+            if (ref) {
+                // Fallback si no hay list_price_usd: dividir por la tasa del sistema
+                return this.getAmountInRefCurrency(price_with_tax, true);
+            }
 
-        if (this.currency) {
-            try {
+            if (this.currency) {
                 // Pachacutec: Eliminamos la multiplicación redundante por rate. 
-                // Si la moneda es Bs, el precio ya viene en Bs desde el backend/pricelist.
                 // Aplicamos el mismo formato profesional (puntos para miles, comas para decimales)
-                const parts = price_with_tax.toFixed(this.currency.decimal_places).split('.');
+                const decimals = this.currency.decimal_places || 2;
+                const parts = price_with_tax.toFixed(decimals).split('.');
                 parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
                 const formatted_val = parts.join(',');
 
@@ -192,11 +188,12 @@ patch(PosStore.prototype, {
                 return (this.currency.position === 'before' ? curr_sym + ' ' : '') +
                     formatted_val +
                     (this.currency.position === 'after' ? ' ' + curr_sym : '');
-            } catch (e) {
-                return price_with_tax.toFixed(2);
             }
+            return "" + price_with_tax.toFixed(2);
+        } catch (e) {
+            console.error("Error in getProductPriceFormatted:", e);
+            return "";
         }
-        return "" + price_with_tax.toFixed(2);
     },
 
     get_product_price_with_tax(product, price) {
