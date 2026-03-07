@@ -14,5 +14,17 @@ patch(PaymentScreenStatus.prototype, {
     },
     get totalWithIgtfDivisa() {
         return this.pos.getAmountInRefCurrency(this.props.order.total_with_igtf, true);
+    },
+    get saleTotal() {
+        return this.env.utils.formatCurrency(this.props.order.sale_total_without_igtf);
+    },
+    get saleTotalDivisa() {
+        return this.pos.getAmountInRefCurrency(this.props.order.sale_total_without_igtf, true);
+    },
+    get igtfAmount() {
+        return this.env.utils.formatCurrency(this.props.order.x_igtf_amount);
+    },
+    get igtfAmountDivisa() {
+        return this.pos.getAmountInRefCurrency(this.props.order.x_igtf_amount, true);
     }
 });

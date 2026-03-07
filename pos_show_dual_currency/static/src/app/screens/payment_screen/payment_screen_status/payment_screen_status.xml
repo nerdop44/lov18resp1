@@ -1,16 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
     <t t-name="pos_show_dual_currency.PaymentScreenStatus" t-inherit="point_of_sale.PaymentScreenStatus" t-inherit-mode="extension">
-        <xpath expr="//section" position="before">
-            <div t-if="props.order.x_igtf_amount > 0" class="total-igtf-container p-3 mb-2 rounded-3 border fw-bolder text-center"
-                 style="background-color: #f6e05e; border-color: #ecc94b !important; color: #744210;">
-                <div class="fs-4">TOTAL A COBRAR (inc. IGTF)</div>
-                <div class="fs-1"><t t-esc="totalWithIgtf"/></div>
-                <div t-if="pos.config.show_dual_currency" class="fs-3 mt-1" style="color: #c05621;">
-                    <t t-esc="totalWithIgtfDivisa"/>
+        <xpath expr="//div[hasclass('payment-status-container')]" position="before">
+            <div t-if="props.order.x_igtf_amount > 0" class="igtf-totals-summary mb-2 p-2 border-bottom border-2" style="background-color: #fffaf0;">
+                <div class="d-flex justify-content-between mb-1 small text-muted">
+                    <span>Subtotal Venta:</span>
+                    <span>
+                        <t t-esc="saleTotal"/> 
+                        <t t-if="pos.config.show_dual_currency"> / <span class="text-danger"><t t-esc="saleTotalDivisa"/></span></t>
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between mb-1 small text-muted">
+                    <span>IGTF (3%):</span>
+                    <span>
+                        <t t-esc="igtfAmount"/>
+                        <t t-if="pos.config.show_dual_currency"> / <span class="text-danger"><t t-esc="igtfAmountDivisa"/></span></t>
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between border-top pt-2 mt-1">
+                    <span class="fw-bolder fs-5 text-uppercase">Total Final:</span>
+                    <span class="fw-bolder fs-3 text-end">
+                        <t t-esc="totalWithIgtf"/>
+                        <t t-if="pos.config.show_dual_currency"><br/><span class="text-danger fs-4"><t t-esc="totalWithIgtfDivisa"/></span></t>
+                    </span>
                 </div>
             </div>
         </xpath>
+
         <xpath expr="//div[hasclass('payment-status-remaining')]" position="inside">
              <t t-if="pos.config.show_dual_currency">
                 <div class="currency-dual-remaining p-2 mt-2 border rounded shadow-sm" 
@@ -34,8 +50,6 @@
                 </div>
             </t>
         </xpath>
-
-
 
     </t>
 </templates>

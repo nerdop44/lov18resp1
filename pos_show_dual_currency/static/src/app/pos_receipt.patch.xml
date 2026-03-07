@@ -9,11 +9,11 @@
                 IGTF (3%): <t t-esc="props.formatCurrency(props.data.x_igtf_amount)"/>
             </div>
             <t t-if="props.data.x_igtf_amount">
-                <div class="pos-receipt-amount-total-igtf" style="text-align: right; font-weight: bold; font-size: medium; border-top: 2px solid black; margin-top: 5px; padding-top: 5px;">
+                <div class="pos-receipt-amount-total-igtf" style="text-align: right; font-weight: bolder; font-size: 1.2em; border-top: 1px solid black; margin-top: 10px; padding-top: 5px;">
                     TOTAL CON IGTF: <t t-esc="props.formatCurrency(props.data.total_with_igtf)"/>
                 </div>
-                <div t-if="pos.config.show_dual_currency" class="pos-receipt-amount-dual-igtf" style="text-align: right; color: red; font-weight: bold; font-size: small;">
-                    Total en Divisa (inc. IGTF): <t t-esc="pos.getAmountInRefCurrency(props.data.total_with_igtf, true)"/>
+                <div t-if="pos.config.show_dual_currency" class="pos-receipt-amount-dual-igtf" style="text-align: right; color: red; font-weight: bolder; font-size: 1.1em;">
+                    Total Divisa (inc. IGTF): <t t-esc="pos.getAmountInRefCurrency(props.data.total_with_igtf, true)"/>
                 </div>
             </t>
         </xpath>
