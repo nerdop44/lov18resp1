@@ -4,13 +4,35 @@ import { ProductProduct } from "@point_of_sale/app/models/product_product";
 import { PosPayment } from "@point_of_sale/app/models/pos_payment";
 import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { PosOrderline } from "@point_of_sale/app/models/pos_order_line";
+import { PosData } from "@point_of_sale/app/models/data_service";
 import { patch } from "@web/core/utils/patch";
 import { roundDecimals } from "@web/core/utils/numbers";
+
+// Pachacutec: Global lock to prevent IGTF reactivity during order deletion.
+// This is the only way to ensure synchronous operations don't collide.
+window.__pachacutec_global_lock = false;
 
 patch(ProductProduct.prototype, {
     get isIgtfProduct() {
         const config = this.models?.["pos.config"]?.getFirst();
         return config?.x_igtf_product_id ? config.x_igtf_product_id[0] === this.id : false;
+    }
+});
+
+patch(PosData.prototype, {
+    localDeleteCascade(record, removeFromServer = false) {
+        // Pachacutec: Activate global lock before any cascade cleanup.
+        window.__pachacutec_global_lock = true;
+        try {
+            const result = super.localDeleteCascade(...arguments);
+            return result;
+        } catch (e) {
+            console.error("Pachacutec: localDeleteCascade crash suppressed:", e);
+            return true;
+        } finally {
+            // Restore lock only after the entire cascade (and its side effects) finished.
+            window.__pachacutec_global_lock = false;
+        }
     }
 });
 
@@ -24,21 +46,28 @@ patch(PosPayment.prototype, {
     },
 
     set_amount(value) {
+        if (window.__pachacutec_global_lock) {
+            super.set_amount(value);
+            return;
+        }
         const config = this.models?.["pos.config"]?.getFirst();
         const order = this.pos_order_id;
         let amount = value;
 
-        // Pachacutec: Odoo auto-fills the remaining balance (due) in Bs when clicking the payment method.
-        // We only multiply if the value being set is NOT the exact due balance, meaning the user 
-        // typed a specific USD amount on the keypad.
-        if (this.isForeignExchange) {
+        if (this.isForeignExchange && order && config) {
             const due = order.getTotalDue();
             if (Math.abs(value - due) > 0.01) {
                 amount = value * (config.show_currency_rate || 1.0);
             }
         }
         super.set_amount(amount);
-        order.refreshIGTF();
+        if (order && !window.__pachacutec_global_lock && typeof order.refreshIGTF === "function") {
+            try {
+                order.refreshIGTF();
+            } catch (e) {
+                console.warn("Pachacutec: refreshIGTF failed during set_amount", e);
+            }
+        }
     }
 });
 
@@ -71,49 +100,58 @@ patch(PosOrderline.prototype, {
 
 patch(PosOrder.prototype, {
     get x_igtf_amount() {
-        const paymentLines = this.payment_ids || [];
+        if (window.__pachacutec_global_lock) return 0;
+        
+        try {
+            const paymentLines = (this.payment_ids || []).filter(p => p);
 
-        const igtf_monto = paymentLines
-            .filter((p) => p.isForeignExchange)
-            .map(({ amount, payment_method_id }) => {
-                const percentage = payment_method_id?.x_igtf_percentage || 0;
-                return amount * (percentage / 100);
-            })
-            .reduce((prev, current) => prev + current, 0);
+            const igtf_monto = paymentLines
+                .filter((p) => p.isForeignExchange)
+                .map(({ amount, payment_method_id }) => {
+                    const percentage = payment_method_id?.x_igtf_percentage || 0;
+                    return (amount || 0) * (percentage / 100);
+                })
+                .reduce((prev, current) => prev + current, 0);
 
-        const total = (this.lines || [])
-            .filter((p) => !p.x_is_igtf_line)
-            .map((p) => p.get_price_with_tax())
-            .reduce((prev, current) => prev + current, 0);
+            const total = (this.lines || [])
+                .filter((p) => p && !p.x_is_igtf_line)
+                .map((p) => p.get_price_with_tax())
+                .reduce((prev, current) => prev + current, 0);
 
-        const max_igtf = total * 0.03;
+            const max_igtf = total * 0.03;
 
-        let final_igtf = igtf_monto;
-        if (igtf_monto > max_igtf) {
-            final_igtf = max_igtf;
+            let final_igtf = igtf_monto;
+            if (igtf_monto > max_igtf) {
+                final_igtf = max_igtf;
+            }
+
+            return roundDecimals(parseFloat(final_igtf) || 0, 2);
+        } catch (e) {
+            return 0;
         }
-
-        return roundDecimals(parseFloat(final_igtf) || 0, 2);
     },
     set x_igtf_amount(val) {
         // Allow assignment from server data
     },
 
     get igtf_base_bs() {
+        if (window.__pachacutec_global_lock) return 0;
         return (this.payment_ids || [])
-            .filter((p) => p.isForeignExchange)
-            .reduce((sum, p) => sum + p.amount, 0);
+            .filter((p) => p && p.isForeignExchange)
+            .reduce((sum, p) => sum + (p.amount || 0), 0);
     },
 
     get igtf_base_divisa() {
+        if (window.__pachacutec_global_lock) return 0;
         const config = this.models["pos.config"].getFirst();
         const rate = config?.show_currency_rate || 1.0;
         return this.igtf_base_bs / (rate > 0 ? rate : 1.0);
     },
 
     get sale_total_without_igtf() {
+        if (window.__pachacutec_global_lock) return 0;
         return (this.lines || [])
-            .filter((p) => !p.x_is_igtf_line)
+            .filter((p) => p && !p.x_is_igtf_line)
             .map((p) => p.get_price_with_tax())
             .reduce((prev, current) => prev + current, 0);
     },
@@ -131,46 +169,82 @@ patch(PosOrder.prototype, {
     },
 
     update(vals, opts) {
+        if (window.__pachacutec_global_lock) {
+            super.update(vals, opts);
+            return;
+        }
         super.update(vals, opts);
-        if (vals.payment_ids) {
-            this.refreshIGTF();
+        if (vals.payment_ids && !window.__pachacutec_global_lock) {
+            try {
+                this.refreshIGTF();
+            } catch (e) {
+                console.warn("Pachacutec: refreshIGTF failed during update", e);
+            }
+        }
+    },
+
+    delete() {
+        // Extra safety: set lock if called directly (though usually it goes to PosData)
+        window.__pachacutec_global_lock = true;
+        try {
+            return super.delete(...arguments);
+        } finally {
+            // Note: we don't unset it here if it was set by localDeleteCascade
         }
     },
 
     remove_paymentline(line) {
         super.remove_paymentline(line);
-        this.refreshIGTF();
-    },
-
-    refreshIGTF() {
-        if (this.finalized) return;
-        this.removeIGTF();
-        
-        const price = this.x_igtf_amount;
-        const config = this.models["pos.config"].getFirst();
-        const igtfProduct = config?.x_igtf_product_id;
-        
-        if (igtfProduct && igtfProduct.length > 0 && price > 0) {
-            const product = this.models["product.product"].get(igtfProduct[0]);
-            if (product) {
-                // Pachacutec: Use update to ensure reactivity and total synchronization
-                this.update({
-                    lines: [["create", {
-                        product_id: product,
-                        order_id: this,
-                        price_unit: price,
-                        qty: 1,
-                        price_type: "original",
-                        x_is_igtf_line: true
-                    }]]
-                });
-                this.recomputeOrderData();
+        if (!window.__pachacutec_global_lock) {
+            try {
+                this.refreshIGTF();
+            } catch (e) {
+                console.warn("Pachacutec: refreshIGTF failed during remove_paymentline", e);
             }
         }
     },
 
+    refreshIGTF() {
+        if (this.finalized || window.__pachacutec_global_lock) return;
+        try {
+            this.removeIGTF();
+            
+            const price = this.x_igtf_amount;
+            const config = this.models["pos.config"].getFirst();
+            const igtfProduct = config?.x_igtf_product_id;
+            
+            if (igtfProduct && igtfProduct.length > 0 && price > 0) {
+                const product = this.models["product.product"].get(igtfProduct[0]);
+                if (product) {
+                    this.update({
+                        lines: [["create", {
+                            product_id: product,
+                            order_id: this,
+                            price_unit: price,
+                            qty: 1,
+                            price_type: "original",
+                            x_is_igtf_line: true
+                        }]]
+                    });
+                    this.recomputeOrderData();
+                }
+            }
+        } catch (e) {
+            console.warn("Pachacutec: refreshIGTF failed:", e);
+        }
+    },
+
     removeIGTF() {
-        const linesToRemove = (this.lines || []).filter(({ x_is_igtf_line }) => x_is_igtf_line);
-        linesToRemove.forEach((line) => line.delete());
+        if (window.__pachacutec_global_lock) return;
+        const linesToRemove = (this.lines || []).filter((l) => l && l.x_is_igtf_line);
+        for (const line of linesToRemove) {
+            if (line && typeof line.delete === "function") {
+                try {
+                    line.delete();
+                } catch (e) {
+                    console.warn("Pachacutec: Error deleting IGTF line", e);
+                }
+            }
+        }
     }
 });
