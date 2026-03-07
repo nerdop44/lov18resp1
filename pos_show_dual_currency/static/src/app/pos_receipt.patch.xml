@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <templates id="template" xml:space="preserve">
     <t t-name="OrderReceipt" t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
-        <xpath expr="//div[hasclass('pos-receipt-amount')]" position="after">
+        <xpath expr="//div[hasclass('receipt-total')]" position="after">
             <div class="pos-receipt-amount-dual" style="text-align: right; color: red; font-size: small; border-top: 1px dashed black; padding-top: 5px;">
                 Total en Divisa: <t t-esc="pos.getAmountInRefCurrency(props.data.total_with_tax, true)"/>
             </div>
@@ -9,7 +9,7 @@
                 IGTF (3%): <t t-esc="pos.format_currency(props.data.x_igtf_amount)"/>
             </div>
         </xpath>
-        <xpath expr="//t[@t-foreach='props.data.paymentlines']//span[hasclass('pos-receipt-right-align')]" position="after">
+        <xpath expr="//div[hasclass('paymentlines')]//span[hasclass('pos-receipt-right-align')]" position="after">
             <t t-if="pos.config.show_dual_currency">
                  <div style="text-align: right; color: red; font-size: x-small;">
                     <t t-esc="pos.getAmountInRefCurrency(line.amount, true)"/>
