@@ -9,7 +9,7 @@ import { roundDecimals } from "@web/core/utils/numbers";
 
 patch(ProductProduct.prototype, {
     get isIgtfProduct() {
-        const config = this.pos.config;
+        const config = this.models?.["pos.config"]?.getFirst();
         return config?.x_igtf_product_id ? config.x_igtf_product_id[0] === this.id : false;
     }
 });
@@ -24,7 +24,7 @@ patch(PosPayment.prototype, {
     },
 
     set_amount(value) {
-        const config = this.pos.config;
+        const config = this.models?.["pos.config"]?.getFirst();
         const order = this.pos_order_id;
 
         // Native apply
