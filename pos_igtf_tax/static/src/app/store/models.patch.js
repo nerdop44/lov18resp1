@@ -26,13 +26,18 @@ patch(PosPayment.prototype, {
     set_amount(value) {
         const config = this.models?.["pos.config"]?.getFirst();
         const order = this.pos_order_id;
+        let amount = value;
 
-        // Native apply
+        // Pachacutec: Odoo auto-fills the remaining balance (due) in Bs when clicking the payment method.
+        // We only multiply if the value being set is NOT the exact due balance, meaning the user 
+        // typed a specific USD amount on the keypad.
         if (this.isForeignExchange) {
-            super.set_amount(value * (config.show_currency_rate || 1.0));
-        } else {
-            super.set_amount(value);
+            const due = order.getTotalDue();
+            if (Math.abs(value - due) > 0.01) {
+                amount = value * (config.show_currency_rate || 1.0);
+            }
         }
+        super.set_amount(amount);
 
         const igtfProduct = config.x_igtf_product_id;
         if (!(igtfProduct || igtfProduct?.length)) return;
