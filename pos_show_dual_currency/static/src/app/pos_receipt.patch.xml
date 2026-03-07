@@ -6,7 +6,7 @@
                 Total en Divisa: <t t-esc="pos.getAmountInRefCurrency(props.data.total_with_tax, true)"/>
             </div>
             <div t-if="props.data.x_igtf_amount" class="pos-receipt-igtf" style="text-align: right; font-size: x-small;">
-                IGTF (3%): <t t-esc="pos.format_currency(props.data.x_igtf_amount)"/>
+                IGTF (3%): <t t-esc="props.formatCurrency(props.data.x_igtf_amount)"/>
             </div>
         </xpath>
         <xpath expr="//div[hasclass('paymentlines')]//span[hasclass('pos-receipt-right-align')]" position="after">
