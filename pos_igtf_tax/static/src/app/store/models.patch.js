@@ -121,9 +121,18 @@ patch(PosOrder.prototype, {
         // Allow assignment from server data
     },
 
+    get total_with_igtf() {
+        const total_without_igtf = (this.lines || [])
+            .filter((p) => !p.x_is_igtf_line)
+            .map((p) => p.get_price_with_tax())
+            .reduce((prev, current) => prev + current, 0);
+        return roundDecimals(total_without_igtf + this.x_igtf_amount, 2);
+    },
+
     export_for_printing() {
         const result = super.export_for_printing(...arguments);
         result.x_igtf_amount = this.x_igtf_amount;
+        result.total_with_igtf = this.total_with_igtf;
         return result;
     },
 

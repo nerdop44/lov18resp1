@@ -8,5 +8,11 @@ patch(PaymentScreenStatus.prototype, {
     setup() {
         super.setup();
         this.pos = useService("pos");
+    },
+    get totalWithIgtf() {
+        return this.env.utils.formatCurrency(this.props.order.total_with_igtf);
+    },
+    get totalWithIgtfDivisa() {
+        return this.pos.getAmountInRefCurrency(this.props.order.total_with_igtf, true);
     }
 });
