@@ -121,6 +121,12 @@ patch(PosOrder.prototype, {
         // Allow assignment from server data
     },
 
+    export_for_printing() {
+        const result = super.export_for_printing(...arguments);
+        result.x_igtf_amount = this.x_igtf_amount;
+        return result;
+    },
+
     removeIGTF() {
         const linesToRemove = (this.lines || []).filter(({ x_is_igtf_line }) => x_is_igtf_line);
         linesToRemove.forEach((line) => this.removeOrderline(line));

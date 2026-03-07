@@ -960,7 +960,6 @@ export const FiscalPrinterMixin = {
 
     printNoFiscal() {
         this.order.lines
-            .filter((l) => !l.x_is_igtf_line)
             .forEach((line) => {
                 const name = sanitize(line.product_id?.display_name || "");
                 const code = line.product_id?.default_code || "";
