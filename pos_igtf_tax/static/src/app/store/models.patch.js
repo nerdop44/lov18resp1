@@ -5,11 +5,12 @@ import { PosPayment } from "@point_of_sale/app/models/pos_payment";
 import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { PosOrderline } from "@point_of_sale/app/models/pos_order_line";
 import { PosData } from "@point_of_sale/app/models/data_service";
+import DevicesSynchronisation from "@point_of_sale/app/store/devices_synchronisation";
 import { patch } from "@web/core/utils/patch";
 import { roundDecimals } from "@web/core/utils/numbers";
 
-// Pachacutec: Global lock to prevent IGTF reactivity during order deletion.
-// This is the only way to ensure synchronous operations don't collide.
+// Pachacutec: Global lock to prevent IGTF reactivity during order deletion or synchronization.
+// This is critical to ensure synchronous operations don't collide with the reactive model.
 window.__pachacutec_global_lock = false;
 
 patch(ProductProduct.prototype, {
@@ -36,6 +37,22 @@ patch(PosData.prototype, {
     }
 });
 
+patch(DevicesSynchronisation.prototype, {
+    processDeletedRecords(deletedRecords) {
+        // Pachacutec: Activate global lock during whole synchronization cleanup.
+        // This prevents IGTF from reacting while multiple records are being purged.
+        window.__pachacutec_global_lock = true;
+        try {
+            return super.processDeletedRecords(...arguments);
+        } catch (e) {
+            console.error("Pachacutec: processDeletedRecords crash suppressed during sync:", e);
+            return true;
+        } finally {
+            window.__pachacutec_global_lock = false;
+        }
+    }
+});
+
 patch(PosPayment.prototype, {
     get isForeignExchange() {
         return this.payment_method_id?.x_is_foreign_exchange || false;
@@ -55,7 +72,7 @@ patch(PosPayment.prototype, {
         let amount = value;
 
         if (this.isForeignExchange && order && config) {
-            const due = order.getTotalDue();
+            const due = typeof order.getTotalDue === "function" ? order.getTotalDue() : 0;
             if (Math.abs(value - due) > 0.01) {
                 amount = value * (config.show_currency_rate || 1.0);
             }
@@ -100,10 +117,10 @@ patch(PosOrderline.prototype, {
 
 patch(PosOrder.prototype, {
     get x_igtf_amount() {
-        if (window.__pachacutec_global_lock) return 0;
+        if (window.__pachacutec_global_lock || !this.models) return 0;
         
         try {
-            const paymentLines = (this.payment_ids || []).filter(p => p);
+            const paymentLines = (this.payment_ids || []).filter(p => p && p.payment_method_id);
 
             const igtf_monto = paymentLines
                 .filter((p) => p.isForeignExchange)
@@ -115,7 +132,7 @@ patch(PosOrder.prototype, {
 
             const total = (this.lines || [])
                 .filter((p) => p && !p.x_is_igtf_line)
-                .map((p) => p.get_price_with_tax())
+                .map((p) => typeof p.get_price_with_tax === "function" ? p.get_price_with_tax() : 0)
                 .reduce((prev, current) => prev + current, 0);
 
             const max_igtf = total * 0.03;
@@ -135,24 +152,24 @@ patch(PosOrder.prototype, {
     },
 
     get igtf_base_bs() {
-        if (window.__pachacutec_global_lock) return 0;
+        if (window.__pachacutec_global_lock || !this.models) return 0;
         return (this.payment_ids || [])
             .filter((p) => p && p.isForeignExchange)
             .reduce((sum, p) => sum + (p.amount || 0), 0);
     },
 
     get igtf_base_divisa() {
-        if (window.__pachacutec_global_lock) return 0;
-        const config = this.models["pos.config"].getFirst();
+        if (window.__pachacutec_global_lock || !this.models) return 0;
+        const config = this.models["pos.config"]?.getFirst();
         const rate = config?.show_currency_rate || 1.0;
         return this.igtf_base_bs / (rate > 0 ? rate : 1.0);
     },
 
     get sale_total_without_igtf() {
-        if (window.__pachacutec_global_lock) return 0;
+        if (window.__pachacutec_global_lock || !this.models) return 0;
         return (this.lines || [])
             .filter((p) => p && !p.x_is_igtf_line)
-            .map((p) => p.get_price_with_tax())
+            .map((p) => typeof p.get_price_with_tax === "function" ? p.get_price_with_tax() : 0)
             .reduce((prev, current) => prev + current, 0);
     },
 
@@ -189,7 +206,7 @@ patch(PosOrder.prototype, {
         try {
             return super.delete(...arguments);
         } finally {
-            // Note: we don't unset it here if it was set by localDeleteCascade
+            // Note: we don't unset it here if it was set by localDeleteCascade or sync
         }
     },
 
@@ -205,16 +222,16 @@ patch(PosOrder.prototype, {
     },
 
     refreshIGTF() {
-        if (this.finalized || window.__pachacutec_global_lock) return;
+        if (this.finalized || window.__pachacutec_global_lock || !this.models) return;
         try {
             this.removeIGTF();
             
             const price = this.x_igtf_amount;
-            const config = this.models["pos.config"].getFirst();
+            const config = this.models["pos.config"]?.getFirst();
             const igtfProduct = config?.x_igtf_product_id;
             
             if (igtfProduct && igtfProduct.length > 0 && price > 0) {
-                const product = this.models["product.product"].get(igtfProduct[0]);
+                const product = this.models["product.product"]?.get(igtfProduct[0]);
                 if (product) {
                     this.update({
                         lines: [["create", {
@@ -235,7 +252,7 @@ patch(PosOrder.prototype, {
     },
 
     removeIGTF() {
-        if (window.__pachacutec_global_lock) return;
+        if (window.__pachacutec_global_lock || !this.models) return;
         const linesToRemove = (this.lines || []).filter((l) => l && l.x_is_igtf_line);
         for (const line of linesToRemove) {
             if (line && typeof line.delete === "function") {
