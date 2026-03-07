@@ -38,28 +38,25 @@ patch(PosPayment.prototype, {
             }
         }
         super.set_amount(amount);
-
-        const igtfProduct = config.x_igtf_product_id;
-        if (!(igtfProduct || igtfProduct?.length)) return;
-        if (!this.isForeignExchange) {
-            // If we are changing from a foreign exchange to something else, remove IGTF
-            order.removeIGTF();
-            return;
-        }
-
-        // Add/Refresh IGTF line
+        
+        // Pachacutec: We must refresh the IGTF line based on all payments
+        // to support combined payments correctly.
         order.removeIGTF();
+        
         const price = order.x_igtf_amount;
-        const product = this.models["product.product"].get(igtfProduct[0]);
-
-        if (product && price > 0) {
-            order.add_product(product, {
-                quantity: 1,
-                price: price,
-                lst_price: price,
-                merge: false,
-                extra_vals: { x_is_igtf_line: true }
-            });
+        const igtfProduct = config.x_igtf_product_id;
+        
+        if (igtfProduct && igtfProduct.length > 0 && price > 0) {
+            const product = this.models["product.product"].get(igtfProduct[0]);
+            if (product) {
+                order.add_product(product, {
+                    quantity: 1,
+                    price: price,
+                    lst_price: price,
+                    merge: false,
+                    extra_vals: { x_is_igtf_line: true }
+                });
+            }
         }
     }
 });
