@@ -38,26 +38,7 @@ patch(PosPayment.prototype, {
             }
         }
         super.set_amount(amount);
-        
-        // Pachacutec: We must refresh the IGTF line based on all payments
-        // to support combined payments correctly.
-        order.removeIGTF();
-        
-        const price = order.x_igtf_amount;
-        const igtfProduct = config.x_igtf_product_id;
-        
-        if (igtfProduct && igtfProduct.length > 0 && price > 0) {
-            const product = this.models["product.product"].get(igtfProduct[0]);
-            if (product) {
-                order.add_product(product, {
-                    quantity: 1,
-                    price: price,
-                    lst_price: price,
-                    merge: false,
-                    extra_vals: { x_is_igtf_line: true }
-                });
-            }
-        }
+        order.refreshIGTF();
     }
 });
 
@@ -137,12 +118,43 @@ patch(PosOrder.prototype, {
         return result;
     },
 
-    removeIGTF() {
-        const linesToRemove = (this.lines || []).filter(({ x_is_igtf_line }) => x_is_igtf_line);
-        linesToRemove.forEach((line) => this.removeOrderline(line));
+    update(vals, opts) {
+        super.update(vals, opts);
+        if (vals.payment_ids) {
+            this.refreshIGTF();
+        }
     },
 
-    add_product(product, options) {
-        return super.add_product(product, options);
+    remove_paymentline(line) {
+        super.remove_paymentline(line);
+        this.refreshIGTF();
+    },
+
+    refreshIGTF() {
+        this.removeIGTF();
+        
+        const price = this.x_igtf_amount;
+        const config = this.models["pos.config"].getFirst();
+        const igtfProduct = config?.x_igtf_product_id;
+        
+        if (igtfProduct && igtfProduct.length > 0 && price > 0) {
+            const product = this.models["product.product"].get(igtfProduct[0]);
+            if (product) {
+                this.models["pos.order.line"].create({
+                    product_id: product,
+                    order_id: this,
+                    price_unit: price,
+                    qty: 1,
+                    price_type: "original",
+                    x_is_igtf_line: true
+                });
+                this.recomputeOrderData();
+            }
+        }
+    },
+
+    removeIGTF() {
+        const linesToRemove = (this.lines || []).filter(({ x_is_igtf_line }) => x_is_igtf_line);
+        linesToRemove.forEach((line) => line.delete());
     }
 });
