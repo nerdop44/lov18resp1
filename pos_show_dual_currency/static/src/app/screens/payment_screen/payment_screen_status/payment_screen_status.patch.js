@@ -27,12 +27,19 @@ patch(PaymentScreenStatus.prototype, {
     get igtfAmountDivisa() {
         return this.pos.getAmountInRefCurrency(this.props.order.x_igtf_amount, true);
     },
+    get igtfBaseDivisa() {
+        return this.pos.getAmountInRefCurrency(this.props.order.igtf_base_bs, true);
+    },
     get remainingWithIgtf() {
-        // order.get_due() returns (taxTotals.order_remaining) which is (total - paid)
-        // Since IGTF is added as an orderline, it's already in total_with_tax and thus in get_due().
-        return this.env.utils.formatCurrency(this.props.order.get_due());
+        const order = this.props.order;
+        const total = order.total_with_igtf;
+        const paid = order.get_total_paid();
+        return this.env.utils.formatCurrency(total - paid);
     },
     get remainingWithIgtfDivisa() {
-        return this.pos.getAmountInRefCurrency(this.props.order.get_due(), true);
+        const order = this.props.order;
+        const total = order.total_with_igtf;
+        const paid = order.get_total_paid();
+        return this.pos.getAmountInRefCurrency(total - paid, true);
     }
 });
