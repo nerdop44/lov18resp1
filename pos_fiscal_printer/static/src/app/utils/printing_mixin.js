@@ -808,8 +808,7 @@ export const FiscalPrinterMixin = {
 
     async doPrinting(mode) {
         if (!(this.order.payment_ids.every((p) => Boolean(p.payment_method_id?.x_printer_code)))) {
-            this.env.services.notification.add(_t("Algunos métodos de pago no tienen código de impresora"), { type: "danger" });
-            return;
+            console.warn("Algunos métodos de pago no tienen código de impresora, se usará '01' por defecto.");
         }
         if (this.order.impresa) {
             this.env.services.notification.add(_t("Documento impreso en máquina fiscal"), { type: "danger" });
@@ -868,7 +867,7 @@ export const FiscalPrinterMixin = {
                 this.printerCommands.push("122");
             } else {
                 paymentlines.filter((p) => p.amount < 0).forEach((payment, i, array) => {
-                    const printer_code = payment.payment_method_id?.x_printer_code;
+                    const printer_code = payment.payment_method_id?.x_printer_code || '01';
                     if ((i + 1) === array.length && array.length === 1) {
                         this.printerCommands.push("1" + printer_code);
                     } else {
@@ -884,7 +883,7 @@ export const FiscalPrinterMixin = {
                 this.printerCommands.push("122");
             } else {
                 paymentlines.filter((p) => p.amount > 0).forEach((payment, i, array) => {
-                    const printer_code = payment.payment_method_id?.x_printer_code;
+                    const printer_code = payment.payment_method_id?.x_printer_code || '01';
                     if ((i + 1) === array.length && array.length === 1) {
                         this.printerCommands.push("1" + printer_code);
                     } else {
