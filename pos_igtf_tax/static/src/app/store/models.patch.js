@@ -9,14 +9,14 @@ import { roundDecimals } from "@web/core/utils/numbers";
 
 patch(ProductProduct.prototype, {
     get isIgtfProduct() {
-        const config = this.models?.["pos.config"]?.getFirst();
+        const config = this.pos.config;
         return config?.x_igtf_product_id ? config.x_igtf_product_id[0] === this.id : false;
     }
 });
 
 patch(PosPayment.prototype, {
     get isForeignExchange() {
-        return this.payment_method?.x_is_foreign_exchange || false;
+        return this.payment_method_id?.x_is_foreign_exchange || false;
     },
 
     set isForeignExchange(val) {
@@ -24,7 +24,7 @@ patch(PosPayment.prototype, {
     },
 
     set_amount(value) {
-        const config = this.models["pos.config"].getFirst();
+        const config = this.pos.config;
         const order = this.pos_order_id;
 
         // Native apply
@@ -92,8 +92,8 @@ patch(PosOrder.prototype, {
 
         const igtf_monto = paymentLines
             .filter((p) => p.isForeignExchange)
-            .map(({ amount, payment_method }) => {
-                const percentage = payment_method?.x_igtf_percentage || 0;
+            .map(({ amount, payment_method_id }) => {
+                const percentage = payment_method_id?.x_igtf_percentage || 0;
                 return amount * (percentage / 100);
             })
             .reduce((prev, current) => prev + current, 0);
