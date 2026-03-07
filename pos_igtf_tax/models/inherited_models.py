@@ -102,5 +102,7 @@ class ResConfigSettings(models.TransientModel):
     @api.constrains("pos_x_igtf_product_id")
     def _check_pos_x_igtf_product_id(self):
         for rec in self.filtered("pos_x_igtf_product_id"):
+            if not rec.pos_x_igtf_product_id.property_account_income_id:
+                raise ValidationError("El producto IGTF debe tener una cuenta de ingresos configurada")
             if sum(rec.pos_x_igtf_product_id.taxes_id.mapped("amount")) != 0:
                 raise ValidationError("El producto IGTF debe ser exento")

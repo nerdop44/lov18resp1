@@ -222,21 +222,22 @@ patch(PosOrder.prototype, {
     },
 
     refreshIGTF() {
-        if (this.finalized || window.__pachacutec_global_lock || !this.models) return;
+        if (!this.models || this.finalized || window.__pachacutec_global_lock) return;
+        
         try {
             this.removeIGTF();
-            
-            const price = this.x_igtf_amount;
-            const config = this.models["pos.config"]?.getFirst();
+            const config = this.config;
+            const igtfPercentage = this.x_igtf_percentage || 0;
             const igtfProduct = config?.x_igtf_product_id;
-            
-            if (igtfProduct && igtfProduct.length > 0 && price > 0) {
+
+            if (igtfPercentage > 0 && igtfProduct) {
                 const product = this.models["product.product"]?.get(igtfProduct[0]);
-                if (product) {
+                const price = this.get_total_with_tax() * (igtfPercentage / 100);
+
+                if (product && Math.abs(price) > 0.001) {
                     this.update({
                         lines: [["create", {
                             product_id: product,
-                            order_id: this,
                             price_unit: price,
                             qty: 1,
                             price_type: "original",
@@ -247,7 +248,7 @@ patch(PosOrder.prototype, {
                 }
             }
         } catch (e) {
-            console.warn("Pachacutec: refreshIGTF failed:", e);
+            console.error("Error refreshing IGTF:", e);
         }
     },
 
