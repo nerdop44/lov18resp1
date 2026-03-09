@@ -1,6 +1,10 @@
 
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
+from odoo.tools import float_round
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class PosSession(models.Model):
     _inherit = 'pos.session'
@@ -12,6 +16,66 @@ class PosSession(models.Model):
             "x_is_foreign_exchange",
         ])
         return result
+
+    def _accumulate_amounts(self, data):
+        """
+        Override para agregar el monto IGTF de las órdenes POS al diccionario 'sales'.
+        El IGTF se cobra como pago recibible (add a los receivables) pero su línea de
+        crédito de ventas NO se genera automáticamente por _prepare_tax_base_line_values
+        porque el x_igtf_amount es un campo calculado, no una línea de producto real.
+        Sin esta corrección, el move de sesión queda con más débitos que créditos por
+        el monto IGTF total, causando 'The entry is not balanced'.
+        """
+        data = super()._accumulate_amounts(data)
+
+        # Solo aplicar si el POS está configurado para IGTF
+        igtf_product = self.config_id.x_igtf_product_id
+        if not igtf_product or not self.config_id.aplicar_igtf:
+            return data
+
+        # Cuenta de ingresos del producto IGTF
+        igtf_account = igtf_product.property_account_income_id
+        if not igtf_account:
+            _logger.warning("[IGTF] El producto IGTF '%s' no tiene cuenta de ingresos configurada. El IGTF no se acumulará en el cierre de sesión.", igtf_product.name)
+            return data
+
+        sales = data.get('sales')
+        currency_rounding = self.currency_id.rounding
+        closed_orders = self._get_closed_orders()
+
+        _logger.warning("[IGTF] Acumulando IGTF en sales dict. Ordenes cerradas: %s", len(closed_orders))
+
+        for order in closed_orders:
+            if order.is_invoiced:
+                continue
+            igtf_amount = order.x_igtf_amount
+            if not igtf_amount:
+                continue
+            igtf_amount_rounded = float_round(igtf_amount, precision_rounding=currency_rounding)
+            if igtf_amount_rounded == 0.0:
+                continue
+
+            _logger.warning("[IGTF] Orden %s: x_igtf_amount=%.6f (redondeado=%.6f)", order.name, igtf_amount, igtf_amount_rounded)
+
+            # Clave para agrupar: (account_id, sign, tax_ids, tax_tag_ids, product_id)
+            igtf_key = (
+                igtf_account.id,
+                1,  # sign positivo (venta)
+                tuple(),  # sin impuestos (IGTF es exento)
+                tuple(),  # sin tags
+                igtf_product.id if self.config_id.is_closing_entry_by_product else False,
+            )
+            sales[igtf_key] = self._update_amounts(
+                sales[igtf_key],
+                {
+                    'amount': igtf_amount_rounded,
+                    'amount_converted': igtf_amount_rounded,
+                },
+                order.date_order,
+            )
+
+        _logger.warning("[IGTF] Acumulación completada. Keys en sales: %s", list(sales.keys()))
+        return data
 
 
 class PosOrder(models.Model):
