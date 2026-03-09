@@ -33,11 +33,17 @@ class PosSession(models.Model):
         if not igtf_product or not self.config_id.aplicar_igtf:
             return data
 
-        # Cuenta de ingresos del producto IGTF
-        igtf_account = igtf_product.property_account_income_id
+        # Cuenta de ingresos del producto IGTF: buscar via jerarquía template→categoría
+        # `property_account_income_id` puede estar vacío aunque la categoría tenga cuenta
+        product_accounts = igtf_product._get_product_accounts()
+        igtf_account = (
+            igtf_product.property_account_income_id
+            or product_accounts.get('income')
+        )
         if not igtf_account:
-            _logger.warning("[IGTF] El producto IGTF '%s' no tiene cuenta de ingresos configurada. El IGTF no se acumulará en el cierre de sesión.", igtf_product.name)
+            _logger.warning("[IGTF] El producto IGTF '%s' no tiene cuenta de ingresos configurada (ni directa ni por categoría). El IGTF no se acumulará en el cierre de sesión.", igtf_product.name)
             return data
+        _logger.warning("[IGTF] Usando cuenta de ingresos IGTF: %s (%s)", igtf_account.code, igtf_account.name)
 
         sales = data.get('sales')
         currency_rounding = self.currency_id.rounding
