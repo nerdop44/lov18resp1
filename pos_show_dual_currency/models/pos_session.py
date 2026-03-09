@@ -575,7 +575,7 @@ class PosSession(models.Model):
 
         self.picking_ids.move_ids.sudo()._trigger_scheduler()
         self.write({'state': 'closed'})
-        return {}
+        return
 
     def close_session_from_ui_ref(self, bank_payment_method_diff_pairs=None):
         bank_payment_method_diffs = dict(bank_payment_method_diff_pairs or [])
