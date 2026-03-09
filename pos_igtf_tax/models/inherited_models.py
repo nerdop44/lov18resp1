@@ -20,11 +20,10 @@ class PosSession(models.Model):
     def _accumulate_amounts(self, data):
         """
         Override para agregar el monto IGTF de las órdenes POS al diccionario 'sales'.
-        El IGTF se cobra como pago recibible (add a los receivables) pero su línea de
-        crédito de ventas NO se genera automáticamente por _prepare_tax_base_line_values
-        porque el x_igtf_amount es un campo calculado, no una línea de producto real.
-        Sin esta corrección, el move de sesión queda con más débitos que créditos por
-        el monto IGTF total, causando 'The entry is not balanced'.
+        El IGTF se cobra como pago recibible pero su línea de crédito de ventas no se
+        genera automáticamente por _prepare_tax_base_line_values. Sin esta corrección,
+        el move de sesión queda desbalanceado por el monto IGTF total.
+        NOTA: La corrección real se aplica en _fix_igtf_imbalance_in_session_move.
         """
         data = super()._accumulate_amounts(data)
 
@@ -34,22 +33,18 @@ class PosSession(models.Model):
             return data
 
         # Cuenta de ingresos del producto IGTF: buscar via jerarquía template→categoría
-        # `property_account_income_id` puede estar vacío aunque la categoría tenga cuenta
         product_accounts = igtf_product._get_product_accounts()
         igtf_account = (
             igtf_product.property_account_income_id
             or product_accounts.get('income')
         )
         if not igtf_account:
-            _logger.warning("[IGTF] El producto IGTF '%s' no tiene cuenta de ingresos configurada (ni directa ni por categoría). El IGTF no se acumulará en el cierre de sesión.", igtf_product.name)
+            _logger.warning("[IGTF] Producto IGTF '%s' no tiene cuenta de ingresos (ni directa ni por categoría).", igtf_product.name)
             return data
-        _logger.warning("[IGTF] Usando cuenta de ingresos IGTF: %s (%s)", igtf_account.code, igtf_account.name)
 
         sales = data.get('sales')
         currency_rounding = self.currency_id.rounding
         closed_orders = self._get_closed_orders()
-
-        _logger.warning("[IGTF] Acumulando IGTF en sales dict. Ordenes cerradas: %s", len(closed_orders))
 
         for order in closed_orders:
             if order.is_invoiced:
@@ -61,14 +56,11 @@ class PosSession(models.Model):
             if igtf_amount_rounded == 0.0:
                 continue
 
-            _logger.warning("[IGTF] Orden %s: x_igtf_amount=%.6f (redondeado=%.6f)", order.name, igtf_amount, igtf_amount_rounded)
-
-            # Clave para agrupar: (account_id, sign, tax_ids, tax_tag_ids, product_id)
             igtf_key = (
                 igtf_account.id,
-                1,  # sign positivo (venta)
-                tuple(),  # sin impuestos (IGTF es exento)
-                tuple(),  # sin tags
+                1,
+                tuple(),
+                tuple(),
                 igtf_product.id if self.config_id.is_closing_entry_by_product else False,
             )
             sales[igtf_key] = self._update_amounts(
@@ -80,7 +72,6 @@ class PosSession(models.Model):
                 order.date_order,
             )
 
-        _logger.warning("[IGTF] Acumulación completada. Keys en sales: %s", list(sales.keys()))
         return data
 
 
