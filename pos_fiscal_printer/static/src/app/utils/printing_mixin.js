@@ -683,7 +683,7 @@ export const FiscalPrinterMixin = {
         });
 
         const commands = this.printerCommands.map(sanitize);
-        console.log("Comandos sanitizados:", commands);
+        console.warn("[FISCAL] printViaApi - Comandos a enviar:", commands);
 
         var body = JSON.stringify({
             params: {
@@ -711,6 +711,7 @@ export const FiscalPrinterMixin = {
                 const result = data.result;
 
                 if (result) {
+                    console.warn("[FISCAL] printViaApi - Resultado de la API:", result);
                     if (result.state && result.state.lastInvoiceNumber) {
                         this.order.impresa = true;
                         console.log("Finalizada con factura " + result.state.lastInvoiceNumber.toString());
@@ -839,6 +840,7 @@ export const FiscalPrinterMixin = {
 
     setHeader(payload) {
         const client = this.order.partner_id || {};
+        console.warn("[FISCAL] setHeader - Cliente:", client.name, "RIF:", client.vat);
         if (payload) {
             this.printerCommands.push("iF*" + payload.invoiceNumber.padStart(11, "0"));
             this.printerCommands.push("iD*" + payload.date);
@@ -854,14 +856,17 @@ export const FiscalPrinterMixin = {
         if (this.order.pos_reference) {
             this.printerCommands.push("i03Ref: " + this.order.pos_reference);
         }
+        console.warn("[FISCAL] setHeader - Comandos actuales:", this.printerCommands);
     },
 
     setTotal() {
+        console.warn("[FISCAL] setTotal - Inicio");
         this.printerCommands.push("3");
         const aplicar_igtf = this.pos.config.aplicar_igtf;
         const es_nota = this.order.lines.some((l) => Boolean(l.refunded_orderline_id));
 
         const paymentlines = this.order.payment_ids;
+        console.warn("[FISCAL] setTotal - Pagos:", paymentlines.length, "Aplicar IGTF:", aplicar_igtf);
         if (es_nota) {
             paymentlines.filter((p) => p.amount < 0).forEach((payment, i, array) => {
                 const printer_code = payment.payment_method_id?.x_printer_code || '01';
@@ -889,12 +894,14 @@ export const FiscalPrinterMixin = {
         }
 
         if (aplicar_igtf) {
+            console.warn("[FISCAL] setTotal - Añadiendo comando 199");
             this.printerCommands.push("199");
         } else {
             if (this.printerCommands[this.printerCommands.length - 1] !== '101') {
                 this.printerCommands.push("101");
             }
         }
+        console.warn("[FISCAL] setTotal - Comandos finales:", this.printerCommands);
     },
 
     printFiscal() {
@@ -904,10 +911,12 @@ export const FiscalPrinterMixin = {
     },
 
     setLines(char) {
+        console.warn("[FISCAL] setLines - Inicio con char:", char);
         this.order.lines
             .forEach((line) => {
                 let command = "";
                 const taxes = line.tax_ids || [];
+                console.warn("[FISCAL] setLines - Procesando línea:", line.product_id?.display_name, "Impuestos:", taxes.length);
 
                 if (!(taxes.length) || taxes.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
@@ -936,6 +945,7 @@ export const FiscalPrinterMixin = {
                 }
 
                 command += sanitize(line.product_id?.display_name || "");
+                console.warn("[FISCAL] setLines - Comando generado:", command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
