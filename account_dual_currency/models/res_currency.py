@@ -73,6 +73,7 @@ class ResCurrency(models.Model):
 
     facturas_por_actualizar = fields.Boolean(compute="_facturas_por_actualizar")
     inverse_rate = fields.Float(string='Tasa Inversa', compute='_compute_inverse_rate', digits=(12, 4))
+    sincronizar = fields.Boolean(string="Sincronizar", default=False)
     # Pachacutec: DolarToday removido, solo se permite BCV.
     # server = fields.Selection([('bcv', 'BCV'), ('dolar_today', 'Dolar Today Promedio')], string='Servidor', default='bcv')
     act_productos = fields.Boolean(string="Actualizar Productos", default=False)
