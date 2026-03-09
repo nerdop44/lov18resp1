@@ -157,18 +157,18 @@ class AccountPayment(models.Model):
             if line['account_id'] == self.outstanding_account_id.id:
                 line['tax_today'] = self.tax_today
                 if currencies_are_different:
-                    line['debit'] = (line['amount_currency'] * self.tax_today) if line['debit'] else 0
-                    line['credit'] = (abs(line['amount_currency']) * self.tax_today) if line['credit'] else 0
+                    line['debit'] = (line.get('amount_currency', 0.0) * self.tax_today) if line.get('debit') else 0
+                    line['credit'] = (abs(line.get('amount_currency', 0.0)) * self.tax_today) if line.get('credit') else 0
             elif line['account_id'] == self.destination_account_id.id:
                 tasa_factura = self.env.context.get('tasa_factura', self.tax_today)
                 line['tax_today'] = tasa_factura if write_off_line_vals else self.tax_today
                 if currencies_are_different:
-                    line['debit'] = (line['amount_currency'] * line['tax_today']) if line['debit'] else 0
-                    line['credit'] = (abs(line['amount_currency']) * line['tax_today']) if line['credit'] else 0
+                    line['debit'] = (line.get('amount_currency', 0.0) * line['tax_today']) if line.get('debit') else 0
+                    line['credit'] = (abs(line.get('amount_currency', 0.0)) * line['tax_today']) if line.get('credit') else 0
             else:
                 continue
-            total_debit += line['debit']
-            total_credit += line['credit']
+            total_debit += line.get('debit', 0.0)
+            total_credit += line.get('credit', 0.0)
 
         payment_difference_handling = self._context.get('payment_difference_handling', False)
         if currencies_are_different and payment_difference_handling == 'open' and total_debit != total_credit:
