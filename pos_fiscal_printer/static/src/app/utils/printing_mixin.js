@@ -915,12 +915,12 @@ export const FiscalPrinterMixin = {
         this.order.lines
             .forEach((line) => {
                 let command = "";
-                const taxes = line.tax_ids || [];
-                console.warn("[FISCAL] setLines - Procesando línea:", line.product_id?.display_name, "Impuestos:", taxes.length);
+                const tax_records = (line.tax_ids || []).map(id => this.pos.models["account.tax"].get(id)).filter(t => t);
+                console.warn("[FISCAL] setLines - Registros de impuestos encontrados:", tax_records.length);
 
-                if (!(taxes.length) || taxes.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
+                if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
-                } else if (taxes.every((t) => t.x_tipo_alicuota === "general")) {
+                } else if (tax_records.every((t) => t.x_tipo_alicuota === "general")) {
                     command += (char === "GC") ? "d1" : "!";
                 } else {
                     command += (char === "GC") ? "d0" : " ";
@@ -939,10 +939,6 @@ export const FiscalPrinterMixin = {
                 qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(12, "0") : qEnt.padStart(5, "0");
 
                 command += pEnt + pDec + qEnt + qDec;
-
-                if (line.product_id?.default_code) {
-                    command += `|${line.product_id.default_code}|`;
-                }
 
                 command += sanitize(line.product_id?.display_name || "");
                 console.warn("[FISCAL] setLines - Comando generado:", command);
