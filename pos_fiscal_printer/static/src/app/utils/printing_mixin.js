@@ -842,13 +842,13 @@ export const FiscalPrinterMixin = {
         const client = this.order.partner_id || {};
         console.warn("[FISCAL] setHeader - Cliente:", client.name, "RIF:", client.vat);
         if (payload) {
-            this.printerCommands.push("iF*" + payload.invoiceNumber.padStart(11, "0"));
-            this.printerCommands.push("iD*" + payload.date);
-            this.printerCommands.push("iI*" + payload.printerCode);
+            this.printerCommands.push("iF" + payload.invoiceNumber.padStart(11, "0"));
+            this.printerCommands.push("iD" + payload.date);
+            this.printerCommands.push("iI" + payload.printerCode);
         }
 
-        this.printerCommands.push("iR*" + (client.vat || "No tiene"));
-        this.printerCommands.push("iS*" + sanitize(client.name || "Cliente Contado"));
+        this.printerCommands.push("iR" + (client.vat || "No tiene"));
+        this.printerCommands.push("iS" + sanitize(client.name || "Cliente Contado"));
 
         this.printerCommands.push("i00Teléfono: " + (client.phone || "No tiene"));
         this.printerCommands.push("i01Dirección: " + sanitize(client.street || "No tiene"));
@@ -915,16 +915,23 @@ export const FiscalPrinterMixin = {
         this.order.lines
             .forEach((line) => {
                 let command = "";
-                const tax_records = (line.tax_ids || []).map(id => this.pos.models["account.tax"].get(id)).filter(t => t);
-                console.warn("[FISCAL] setLines - Registros de impuestos encontrados:", tax_records.length);
+                let tax_records = [];
+                if (line.tax_ids && line.tax_ids.length > 0) {
+                    tax_records = line.tax_ids.map(t => {
+                        if (typeof t === 'object') return t;
+                        return this.pos.models["account.tax"]?.get(t);
+                    }).filter(t => t && t.x_tipo_alicuota);
+                }
+                console.warn("[FISCAL] setLines - Registros de impuestos finales:", tax_records.length, tax_records);
 
                 if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
-                } else if (tax_records.every((t) => t.x_tipo_alicuota === "general")) {
+                } else if (tax_records.some((t) => t.x_tipo_alicuota === "general")) {
                     command += (char === "GC") ? "d1" : "!";
                 } else {
                     command += (char === "GC") ? "d0" : " ";
                 }
+                console.warn("[FISCAL] setLines - Tag impuesto seleccionado:", command);
 
                 let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
                 if (line.discount > 0) {
