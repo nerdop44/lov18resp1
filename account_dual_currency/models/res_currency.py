@@ -73,9 +73,8 @@ class ResCurrency(models.Model):
 
     facturas_por_actualizar = fields.Boolean(compute="_facturas_por_actualizar")
     inverse_rate = fields.Float(string='Tasa Inversa', compute='_compute_inverse_rate', digits=(12, 4))
-    sincronizar = fields.Boolean(string="Sincronizar", default=False)
-    server = fields.Selection([('bcv', 'BCV'), ('dolar_today', 'Dolar Today Promedio')], string='Servidor',
-                              default='bcv')
+    # Pachacutec: DolarToday removido, solo se permite BCV.
+    # server = fields.Selection([('bcv', 'BCV'), ('dolar_today', 'Dolar Today Promedio')], string='Servidor', default='bcv')
     act_productos = fields.Boolean(string="Actualizar Productos", default=False)
 
     @api.depends('rate_ids.rate', 'rate')
@@ -273,29 +272,12 @@ class ResCurrency(models.Model):
         else:
             return False
 
-    def get_dolar_today_promedio(self):
-        url = "https://s3.amazonaws.com/dolartoday/data.json"
-        try:
-            response = requests.get(url, timeout=10)
-            if response.status_code == 200:
-                data_json = response.json()
-                usd = float(data_json['USD']['transferencia'])
-                eur = float(data_json['EUR']['transferencia'])
-                if self.name == 'USD':
-                    return usd
-                elif self.name == 'EUR':
-                    return eur
-            return False
-        except:
-            return False
+    # Pachacutec: get_dolar_today_promedio removido.
 
     def actualizar_tasa(self):
         for rec in self:
-            nueva_tasa_bcv = 0
-            if rec.server == 'bcv':
-                nueva_tasa_bcv = rec.get_bcv()
-            elif rec.server == 'dolar_today':
-                nueva_tasa_bcv = rec.get_dolar_today_promedio()
+            # Pachacutec: Forzamos BCV directamente.
+            nueva_tasa_bcv = rec.get_bcv()
 
             if nueva_tasa_bcv:
                 channel_id = self.env.ref('account_dual_currency.trm_channel')
@@ -325,8 +307,8 @@ class ResCurrency(models.Model):
 
                     if nueva:
                         channel_id.message_post(
-                            body="Tasa de cambio actualizada para %s (%s): %s (en %s), servidor %s a las %s." % (
-                                rec.name, c.name, odoo_rate, c.currency_id.name, rec.server,
+                            body="Tasa de cambio actualizada para %s (%s): %s (en %s), BCV a las %s." % (
+                                rec.name, c.name, odoo_rate, c.currency_id.name,
                                 datetime.strftime(fields.Datetime.context_timestamp(self, datetime.now()),
                                                   "%d-%m-%Y %H:%M:%S")),
                             message_type='notification',

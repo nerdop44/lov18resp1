@@ -21,7 +21,6 @@
                  <xpath expr="//field[@name='active']" position="after">
                      <field name="sincronizar"/>
                      <field name="facturas_por_actualizar" invisible="1"/>
-                     <field name="server" invisible="not sincronizar" required="sincronizar"/>
                      <field name="act_productos" invisible="not sincronizar"/>
                 </xpath>
 
