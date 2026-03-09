@@ -728,17 +728,18 @@ class PosSession(models.Model):
         split_cash_receivable_vals = []
         for payment, amounts in split_receivables_cash.items():
             journal_id = payment.payment_method_id.journal_id.id
+            amount = amounts['amount'] if (payment.payment_method_id.currency_id == self.company_id.currency_id or not payment.payment_method_id.currency_id) else amounts['amount'] * self.config_id.show_currency_rate
             split_cash_statement_line_vals.append(
                 self._get_split_statement_line_vals(
                     journal_id,
-                    amounts['amount'] if (payment.payment_method_id.currency_id == self.company_id.currency_id or not payment.payment_method_id.currency_id) else amounts['amount'] * self.config_id.show_currency_rate,
+                    amount,
                     payment
                 )
             )
             split_cash_receivable_vals.append(
                 self._get_split_receivable_vals(
                     payment,
-                    amounts['amount'] if (payment.payment_method_id.currency_id == self.company_id.currency_id or not payment.payment_method_id.currency_id) else amounts['amount'] * self.config_id.show_currency_rate,
+                    amount,
                     amounts['amount_converted']
                 )
             )
@@ -747,17 +748,18 @@ class PosSession(models.Model):
         combine_cash_receivable_vals = []
         for payment_method, amounts in combine_receivables_cash.items():
             if not float_is_zero(amounts['amount'], precision_rounding=self.currency_id.rounding):
+                amount = amounts['amount'] if (payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else amounts['amount'] * self.config_id.show_currency_rate
                 combine_cash_statement_line_vals.append(
                     self._get_combine_statement_line_vals(
                         payment_method.journal_id.id,
-                        amounts['amount'] if (payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else amounts['amount'] * self.config_id.show_currency_rate,
+                        amount,
                         payment_method
                     )
                 )
                 combine_cash_receivable_vals.append(
                     self._get_combine_receivable_vals(
                         payment_method,
-                        amounts['amount'] if (payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else amounts['amount'] * self.config_id.show_currency_rate,
+                        amount,
                         amounts['amount_converted']
                     )
                 )
