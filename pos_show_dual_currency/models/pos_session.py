@@ -723,14 +723,25 @@ class PosSession(models.Model):
         split_receivables_cash = data.get('split_receivables_cash')
         combine_receivables_cash = data.get('combine_receivables_cash')
 
+        # === PACHACUTEC DIAGNOSTIC v56 ===
+        _logger.warning("[DIAG-CASH] Session: %s | show_currency_rate: %s | company_currency: %s | session_currency: %s",
+            self.name, self.config_id.show_currency_rate,
+            self.company_id.currency_id.name, self.currency_id.name)
+
         # handle split cash payments
         split_cash_statement_line_vals = []
         split_cash_receivable_vals = []
         for payment, amounts in split_receivables_cash.items():
             journal_id = payment.payment_method_id.journal_id.id
+            pm_currency = payment.payment_method_id.currency_id
+            uses_rate = not (pm_currency == self.company_id.currency_id or not pm_currency)
+            _logger.warning("[DIAG-CASH SPLIT] pm: %s | pm_currency: %s | uses_rate: %s | raw_amount: %.10f | raw_amount_converted: %.10f",
+                payment.payment_method_id.name, pm_currency.name if pm_currency else 'None',
+                uses_rate, amounts['amount'], amounts['amount_converted'])
             amount = float_round(amounts['amount'] if (payment.payment_method_id.currency_id == self.company_id.currency_id or not payment.payment_method_id.currency_id) else amounts['amount'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
             # Pachacutec v55: also round amount_converted so _debit_amounts assigns a clean debit/credit value
             amount_converted = float_round(amounts['amount_converted'], precision_rounding=self.company_id.currency_id.rounding)
+            _logger.warning("[DIAG-CASH SPLIT] ROUNDED => amount: %.6f | amount_converted: %.6f", amount, amount_converted)
             split_cash_statement_line_vals.append(
                 self._get_split_statement_line_vals(
                     journal_id,
@@ -750,9 +761,15 @@ class PosSession(models.Model):
         combine_cash_receivable_vals = []
         for payment_method, amounts in combine_receivables_cash.items():
             if not float_is_zero(amounts['amount'], precision_rounding=self.currency_id.rounding):
+                pm_currency = payment_method.currency_id
+                uses_rate = not (pm_currency == self.company_id.currency_id or not pm_currency)
+                _logger.warning("[DIAG-CASH COMBINE] pm: %s | pm_currency: %s | uses_rate: %s | raw_amount: %.10f | raw_amount_converted: %.10f",
+                    payment_method.name, pm_currency.name if pm_currency else 'None',
+                    uses_rate, amounts['amount'], amounts['amount_converted'])
                 amount = float_round(amounts['amount'] if (payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else amounts['amount'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
                 # Pachacutec v55: also round amount_converted so _debit_amounts assigns a clean debit/credit value
                 amount_converted = float_round(amounts['amount_converted'], precision_rounding=self.company_id.currency_id.rounding)
+                _logger.warning("[DIAG-CASH COMBINE] ROUNDED => amount: %.6f | amount_converted: %.6f", amount, amount_converted)
                 combine_cash_statement_line_vals.append(
                     self._get_combine_statement_line_vals(
                         payment_method.journal_id.id,
@@ -777,10 +794,37 @@ class PosSession(models.Model):
         split_cash_statement_lines = BankStatementLine.create(split_cash_statement_line_vals).mapped(
             'move_id.line_ids').filtered(lambda line: line.account_id.account_type == 'asset_receivable')
 
+        # === DIAGNÓSTICO: volcar debit/credit de las líneas del statement de CAJA SPLIT ===
+        for sl in split_cash_statement_lines:
+            stmt_move = sl.move_id
+            _logger.warning("[DIAG-CASH SPLIT STMT LINE] move_id: %s | line: %s | debit: %.10f | credit: %.10f | balance: %.10f | amount_currency: %.10f",
+                stmt_move.id, sl.name, sl.debit, sl.credit, sl.balance, sl.amount_currency)
+        for stmv in split_cash_statement_lines.mapped('move_id'):
+            total_bal = sum(stmv.line_ids.mapped('balance'))
+            _logger.warning("[DIAG-CASH SPLIT STMT MOVE] move_id: %s | SUM(balance) RAW: %.15f", stmv.id, total_bal)
+
         combine_cash_statement_lines = BankStatementLine.create(combine_cash_statement_line_vals).mapped(
             'move_id.line_ids').filtered(lambda line: line.account_id.account_type == 'asset_receivable')
+
+        # === DIAGNÓSTICO: volcar debit/credit de las líneas del statement de CAJA COMBINE ===
+        for sl in combine_cash_statement_lines:
+            stmt_move = sl.move_id
+            _logger.warning("[DIAG-CASH COMBINE STMT LINE] move_id: %s | line: %s | debit: %.10f | credit: %.10f | balance: %.10f | amount_currency: %.10f",
+                stmt_move.id, sl.name, sl.debit, sl.credit, sl.balance, sl.amount_currency)
+        for stmv in combine_cash_statement_lines.mapped('move_id'):
+            total_bal = sum(stmv.line_ids.mapped('balance'))
+            _logger.warning("[DIAG-CASH COMBINE STMT MOVE] move_id: %s | SUM(balance) RAW: %.15f", stmv.id, total_bal)
+
         split_cash_receivable_lines = MoveLine.create(split_cash_receivable_vals)
         combine_cash_receivable_lines = MoveLine.create(combine_cash_receivable_vals)
+
+        # === DIAGNÓSTICO: volcar debit/credit del move principal de sesión ===
+        main_move = self.move_id
+        _logger.warning("[DIAG-CASH SESSION MOVE] move_id: %s | SUM(balance) RAW: %.15f",
+            main_move.id, sum(main_move.line_ids.mapped('balance')))
+        for ml in main_move.line_ids:
+            _logger.warning("[DIAG-CASH SESSION MOVE LINE] id: %s | acc: %s | debit: %.10f | credit: %.10f | balance: %.10f",
+                ml.id, ml.account_id.code, ml.debit, ml.credit, ml.balance)
 
         data.update(
             {'split_cash_statement_lines': split_cash_statement_lines,
@@ -799,12 +843,18 @@ class PosSession(models.Model):
         payment_method_to_receivable_lines = {}
         payment_to_receivable_lines = {}
         for payment_method, amounts in combine_receivables_bank.items():
+            pm_currency = payment_method.currency_id
+            uses_rate = not (pm_currency == self.company_id.currency_id or not pm_currency)
+            _logger.warning("[DIAG-BANK COMBINE] pm: %s | pm_currency: %s | uses_rate: %s | raw_amount: %.10f | raw_amount_converted: %.10f",
+                payment_method.name, pm_currency.name if pm_currency else 'None',
+                uses_rate, amounts['amount'], amounts['amount_converted'])
             amount = float_round(amounts['amount'] if (
                         payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else \
             amounts['amount'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
             amount_converted = float_round(amounts['amount_converted'] if (
                         payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else \
                 amounts['amount_converted'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
+            _logger.warning("[DIAG-BANK COMBINE] ROUNDED => amount: %.6f | amount_converted: %.6f", amount, amount_converted)
             
             # Pachacutec: Generate the receivable line with the CALCULATED amount to ensure balance
             combine_receivable_line = MoveLine.create(self._get_combine_receivable_vals(payment_method, amount, amount_converted))
@@ -812,15 +862,27 @@ class PosSession(models.Model):
             amounts['amount'] = amount
             amounts['amount_converted'] = amount_converted
             payment_receivable_line = self._create_combine_account_payment(payment_method, amounts, diff_amount=bank_payment_method_diffs.get(payment_method.id) or 0)
+
+            # === DIAGNÓSTICO BANCO COMBINE ===
+            for prl in payment_receivable_line:
+                _logger.warning("[DIAG-BANK COMBINE PAYMENT LINE] move: %s | acc: %s | debit: %.10f | credit: %.10f | balance: %.10f",
+                    prl.move_id.id, prl.account_id.code, prl.debit, prl.credit, prl.balance)
+
             payment_method_to_receivable_lines[payment_method] = combine_receivable_line | payment_receivable_line
 
         for payment, amounts in split_receivables_bank.items():
+            pm_currency = payment.currency_id
+            uses_rate = not (pm_currency == self.company_id.currency_id or not pm_currency)
+            _logger.warning("[DIAG-BANK SPLIT] pm: %s | pm_currency: %s | uses_rate: %s | raw_amount: %.10f | raw_amount_converted: %.10f",
+                payment.payment_method_id.name, pm_currency.name if pm_currency else 'None',
+                uses_rate, amounts['amount'], amounts['amount_converted'])
             amount = float_round(amounts['amount'] if (
                     payment.currency_id == self.company_id.currency_id or not payment.currency_id) else \
                 amounts['amount'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
             amount_converted = float_round(amounts['amount_converted'] if (
                     payment.currency_id == self.company_id.currency_id or not payment.currency_id) else \
                 amounts['amount_converted'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
+            _logger.warning("[DIAG-BANK SPLIT] ROUNDED => amount: %.6f | amount_converted: %.6f", amount, amount_converted)
                 
             # Pachacutec: Generate the receivable line with the CALCULATED amount to ensure balance
             split_receivable_line = MoveLine.create(self._get_split_receivable_vals(payment, amount, amount_converted))
@@ -836,6 +898,12 @@ class PosSession(models.Model):
         data['payment_method_to_receivable_lines'] = payment_method_to_receivable_lines
         data['payment_to_receivable_lines'] = payment_to_receivable_lines
         data['online_payment_to_receivable_lines'] = {}
-        print('data para linea en banco', data)
+        # === DIAGNÓSTICO FINAL MOVE SESIÓN ===
+        main_move = self.move_id
+        _logger.warning("[DIAG-BANK FINAL SESSION MOVE] move_id: %s | SUM(balance) RAW: %.15f",
+            main_move.id, sum(main_move.line_ids.mapped('balance')))
+        for ml in main_move.line_ids:
+            _logger.warning("[DIAG-BANK MOVE LINE] id: %s | acc: %s | debit: %.10f | credit: %.10f | balance: %.10f | amount_currency: %.10f",
+                ml.id, ml.account_id.code, ml.debit, ml.credit, ml.balance, ml.amount_currency)
         return data
 
