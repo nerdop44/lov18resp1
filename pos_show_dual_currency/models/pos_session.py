@@ -729,6 +729,8 @@ class PosSession(models.Model):
         for payment, amounts in split_receivables_cash.items():
             journal_id = payment.payment_method_id.journal_id.id
             amount = float_round(amounts['amount'] if (payment.payment_method_id.currency_id == self.company_id.currency_id or not payment.payment_method_id.currency_id) else amounts['amount'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
+            # Pachacutec v55: also round amount_converted so _debit_amounts assigns a clean debit/credit value
+            amount_converted = float_round(amounts['amount_converted'], precision_rounding=self.company_id.currency_id.rounding)
             split_cash_statement_line_vals.append(
                 self._get_split_statement_line_vals(
                     journal_id,
@@ -740,7 +742,7 @@ class PosSession(models.Model):
                 self._get_split_receivable_vals(
                     payment,
                     amount,
-                    amounts['amount_converted']
+                    amount_converted
                 )
             )
         # handle combine cash payments
@@ -749,6 +751,8 @@ class PosSession(models.Model):
         for payment_method, amounts in combine_receivables_cash.items():
             if not float_is_zero(amounts['amount'], precision_rounding=self.currency_id.rounding):
                 amount = float_round(amounts['amount'] if (payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else amounts['amount'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
+                # Pachacutec v55: also round amount_converted so _debit_amounts assigns a clean debit/credit value
+                amount_converted = float_round(amounts['amount_converted'], precision_rounding=self.company_id.currency_id.rounding)
                 combine_cash_statement_line_vals.append(
                     self._get_combine_statement_line_vals(
                         payment_method.journal_id.id,
@@ -760,7 +764,7 @@ class PosSession(models.Model):
                     self._get_combine_receivable_vals(
                         payment_method,
                         amount,
-                        amounts['amount_converted']
+                        amount_converted
                     )
                 )
 
