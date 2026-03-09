@@ -935,8 +935,8 @@ export const FiscalPrinterMixin = {
                 let [pEnt, pDec] = price.split(",");
                 let [qEnt, qDec] = qty.split(",");
 
-                pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(14, "0") : pEnt.padStart(8, "0");
-                qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(14, "0") : qEnt.padStart(5, "0");
+                pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(12, "0") : pEnt.padStart(8, "0");
+                qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(12, "0") : qEnt.padStart(5, "0");
 
                 command += pEnt + pDec + qEnt + qDec;
 
