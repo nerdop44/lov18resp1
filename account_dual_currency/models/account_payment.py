@@ -157,14 +157,14 @@ class AccountPayment(models.Model):
             if line['account_id'] == self.outstanding_account_id.id:
                 line['tax_today'] = self.tax_today
                 if currencies_are_different:
-                    line['debit'] = (line.get('amount_currency', 0.0) * self.tax_today) if line.get('debit') else 0
-                    line['credit'] = (abs(line.get('amount_currency', 0.0)) * self.tax_today) if line.get('credit') else 0
+                    line['debit'] = float_round(line.get('amount_currency', 0.0) * self.tax_today, precision_digits=2) if line.get('debit') else 0.0
+                    line['credit'] = float_round(abs(line.get('amount_currency', 0.0)) * self.tax_today, precision_digits=2) if line.get('credit') else 0.0
             elif line['account_id'] == self.destination_account_id.id:
                 tasa_factura = self.env.context.get('tasa_factura', self.tax_today)
                 line['tax_today'] = tasa_factura if write_off_line_vals else self.tax_today
                 if currencies_are_different:
-                    line['debit'] = (line.get('amount_currency', 0.0) * line['tax_today']) if line.get('debit') else 0
-                    line['credit'] = (abs(line.get('amount_currency', 0.0)) * line['tax_today']) if line.get('credit') else 0
+                    line['debit'] = float_round(line.get('amount_currency', 0.0) * line['tax_today'], precision_digits=2) if line.get('debit') else 0.0
+                    line['credit'] = float_round(abs(line.get('amount_currency', 0.0)) * line['tax_today'], precision_digits=2) if line.get('credit') else 0.0
             else:
                 continue
             total_debit += line.get('debit', 0.0)
@@ -189,7 +189,23 @@ class AccountPayment(models.Model):
                     if self.payment_type == 'outbound':
                         r['debit'] = counterpart
                         r['balance'] = counterpart
+        
+        # Pachacutec: Forzar balance exacto para evitar "The entry is not balanced" en Odoo 18
+        if res and currencies_are_different:
+            total_debit = sum(l.get('debit', 0.0) for l in res)
+            total_credit = sum(l.get('credit', 0.0) for l in res)
+            diff = float_round(total_debit - total_credit, precision_digits=2)
+            if diff != 0:
+                # Ajustar la línea de liquidez (outstanding_account_id) para absorber la diferencia de redondeo
+                for l in res:
+                    if l['account_id'] == self.outstanding_account_id.id:
+                        if l.get('debit'):
+                            l['debit'] = float_round(l['debit'] - diff, precision_digits=2)
+                        elif l.get('credit'):
+                            l['credit'] = float_round(l['credit'] + diff, precision_digits=2)
+                        break
         return res
+
 
     @api.model
     def _get_trigger_fields_to_synchronize(self):
