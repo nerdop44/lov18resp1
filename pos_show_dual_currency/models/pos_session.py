@@ -793,28 +793,32 @@ class PosSession(models.Model):
         payment_method_to_receivable_lines = {}
         payment_to_receivable_lines = {}
         for payment_method, amounts in combine_receivables_bank.items():
-
-            combine_receivable_line = MoveLine.create(self._get_combine_receivable_vals(payment_method, amounts['amount'], amounts['amount_converted']))
             amount = amounts['amount'] if (
                         payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else \
             amounts['amount'] * self.config_id.show_currency_rate
             amount_converted = amounts['amount_converted'] if (
                         payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else \
             amounts['amount_converted'] * self.config_id.show_currency_rate
+            
+            # Pachacutec: Generate the receivable line with the CALCULATED amount to ensure balance
+            combine_receivable_line = MoveLine.create(self._get_combine_receivable_vals(payment_method, amount, amount_converted))
+            
             amounts['amount'] = amount
             amounts['amount_converted'] = amount_converted
             payment_receivable_line = self._create_combine_account_payment(payment_method, amounts, diff_amount=bank_payment_method_diffs.get(payment_method.id) or 0)
             payment_method_to_receivable_lines[payment_method] = combine_receivable_line | payment_receivable_line
 
         for payment, amounts in split_receivables_bank.items():
-
-            split_receivable_line = MoveLine.create(self._get_split_receivable_vals(payment, amounts['amount'], amounts['amount_converted']))
             amount = amounts['amount'] if (
                     payment.currency_id == self.company_id.currency_id or not payment.currency_id) else \
                 amounts['amount'] * self.config_id.show_currency_rate
             amount_converted = amounts['amount_converted'] if (
                     payment.currency_id == self.company_id.currency_id or not payment.currency_id) else \
                 amounts['amount_converted'] * self.config_id.show_currency_rate
+                
+            # Pachacutec: Generate the receivable line with the CALCULATED amount to ensure balance
+            split_receivable_line = MoveLine.create(self._get_split_receivable_vals(payment, amount, amount_converted))
+            
             amounts['amount'] = amount
             amounts['amount_converted'] = amount_converted
             payment_receivable_line = self._create_split_account_payment(payment, amounts)
