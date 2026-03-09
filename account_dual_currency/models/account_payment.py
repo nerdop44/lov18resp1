@@ -159,12 +159,14 @@ class AccountPayment(models.Model):
                 if currencies_are_different:
                     line['debit'] = float_round(line.get('amount_currency', 0.0) * self.tax_today, precision_digits=2) if line.get('debit') else 0.0
                     line['credit'] = float_round(abs(line.get('amount_currency', 0.0)) * self.tax_today, precision_digits=2) if line.get('credit') else 0.0
+                    line['balance'] = float_round(line['debit'] - line['credit'], precision_digits=2)
             elif line['account_id'] == self.destination_account_id.id:
                 tasa_factura = self.env.context.get('tasa_factura', self.tax_today)
                 line['tax_today'] = tasa_factura if write_off_line_vals else self.tax_today
                 if currencies_are_different:
                     line['debit'] = float_round(line.get('amount_currency', 0.0) * line['tax_today'], precision_digits=2) if line.get('debit') else 0.0
                     line['credit'] = float_round(abs(line.get('amount_currency', 0.0)) * line['tax_today'], precision_digits=2) if line.get('credit') else 0.0
+                    line['balance'] = float_round(line['debit'] - line['credit'], precision_digits=2)
             else:
                 continue
             total_debit += line.get('debit', 0.0)
@@ -203,6 +205,7 @@ class AccountPayment(models.Model):
                             l['debit'] = float_round(l['debit'] - diff, precision_digits=2)
                         elif l.get('credit'):
                             l['credit'] = float_round(l['credit'] + diff, precision_digits=2)
+                        l['balance'] = float_round(l.get('debit', 0.0) - l.get('credit', 0.0), precision_digits=2)
                         break
         return res
 
