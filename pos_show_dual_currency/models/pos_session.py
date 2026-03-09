@@ -511,6 +511,71 @@ class PosSession(models.Model):
                 session.cash_register_total_entry_encoding_ref = 0.0
                 session.cash_register_balance_end_ref = 0.0
                 session.cash_register_difference_ref = 0.0
+    def _validate_session(self, balancing_account=False, amount_to_balance=0, bank_payment_method_diffs=None):
+        """
+        Pachacutec v58: Override de _validate_session para corregir el descuadre IGTF.
+        El IGTF se cobra en los pagos (recibibles) pero su crédito de ventas no siempre
+        se genera correctamente, causando 'The entry is not balanced'.
+        Llamamos _fix_igtf_imbalance_in_session_move() DESPUÉS de _create_account_move
+        y ANTES del _check_balanced.
+        """
+        bank_payment_method_diffs = bank_payment_method_diffs or {}
+        self.ensure_one()
+        data = {}
+        sudo = self.env.user.has_group('point_of_sale.group_pos_user')
+        if self.get_session_orders().filtered(lambda o: o.state != 'cancel') or self.sudo().statement_line_ids:
+            self.cash_real_transaction = sum(self.sudo().statement_line_ids.mapped('amount'))
+            if self.state == 'closed':
+                raise UserError(_('This session is already closed.'))
+            self._check_if_no_draft_orders()
+            self._check_invoices_are_posted()
+            cash_difference_before_statements = self.cash_register_difference
+            if self.update_stock_at_closing:
+                self._create_picking_at_end_of_session()
+                self._get_closed_orders().filtered(lambda o: not o.is_total_cost_computed)._compute_total_cost_at_session_closing(self.picking_ids.move_ids)
+            try:
+                with self.env.cr.savepoint():
+                    data = self.with_company(self.company_id).with_context(check_move_validity=False, skip_invoice_sync=True)._create_account_move(balancing_account, amount_to_balance, bank_payment_method_diffs)
+            except AccessError as e:
+                if sudo:
+                    data = self.sudo().with_company(self.company_id).with_context(check_move_validity=False, skip_invoice_sync=True)._create_account_move(balancing_account, amount_to_balance, bank_payment_method_diffs)
+                else:
+                    raise e
+
+            # === Pachacutec v58: Corrección del descuadre IGTF ANTES de _check_balanced ===
+            self._fix_igtf_imbalance_in_session_move()
+
+            balance = sum(self.move_id.line_ids.mapped('balance'))
+            try:
+                with self.move_id._check_balanced({'records': self.move_id.sudo()}):
+                    pass
+            except UserError:
+                self.env.cr.rollback()
+                return self._close_session_action(balance)
+
+            self.sudo()._post_statement_difference(cash_difference_before_statements)
+            if self.move_id.line_ids:
+                self.move_id.sudo().with_company(self.company_id)._post()
+                self.env['pos.order'].search([('session_id', '=', self.id), ('state', '=', 'paid')]).write({'state': 'done'})
+            else:
+                self.move_id.sudo().unlink()
+            self.sudo().with_company(self.company_id)._reconcile_account_move_lines(data)
+        else:
+            self.sudo()._post_statement_difference(self.cash_register_difference)
+
+        if self.config_id.order_edit_tracking:
+            from markupsafe import Markup
+            edited_orders = self.get_session_orders().filtered(lambda o: o.is_edited)
+            if len(edited_orders) > 0:
+                body = _(
+                    "Edited order(s) during the session:%s",
+                    Markup("<br/><ul>%s</ul>") % Markup().join(Markup("<li>%s</li>") % order._get_html_link() for order in edited_orders)
+                )
+                self.message_post(body=body)
+
+        self.picking_ids.move_ids.sudo()._trigger_scheduler()
+        self.write({'state': 'closed'})
+        return {}
 
     def close_session_from_ui_ref(self, bank_payment_method_diff_pairs=None):
         bank_payment_method_diffs = dict(bank_payment_method_diff_pairs or [])
