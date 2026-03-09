@@ -7,7 +7,7 @@ from itertools import groupby
 
 from odoo import api, fields, models, _, Command
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tools import float_is_zero, float_compare
+from odoo.tools import float_is_zero, float_compare, float_round
 from odoo.osv.expression import AND, OR
 from odoo.service.common import exp_version
 
@@ -728,7 +728,7 @@ class PosSession(models.Model):
         split_cash_receivable_vals = []
         for payment, amounts in split_receivables_cash.items():
             journal_id = payment.payment_method_id.journal_id.id
-            amount = amounts['amount'] if (payment.payment_method_id.currency_id == self.company_id.currency_id or not payment.payment_method_id.currency_id) else amounts['amount'] * self.config_id.show_currency_rate
+            amount = float_round(amounts['amount'] if (payment.payment_method_id.currency_id == self.company_id.currency_id or not payment.payment_method_id.currency_id) else amounts['amount'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
             split_cash_statement_line_vals.append(
                 self._get_split_statement_line_vals(
                     journal_id,
@@ -748,7 +748,7 @@ class PosSession(models.Model):
         combine_cash_receivable_vals = []
         for payment_method, amounts in combine_receivables_cash.items():
             if not float_is_zero(amounts['amount'], precision_rounding=self.currency_id.rounding):
-                amount = amounts['amount'] if (payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else amounts['amount'] * self.config_id.show_currency_rate
+                amount = float_round(amounts['amount'] if (payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else amounts['amount'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
                 combine_cash_statement_line_vals.append(
                     self._get_combine_statement_line_vals(
                         payment_method.journal_id.id,
@@ -795,12 +795,12 @@ class PosSession(models.Model):
         payment_method_to_receivable_lines = {}
         payment_to_receivable_lines = {}
         for payment_method, amounts in combine_receivables_bank.items():
-            amount = amounts['amount'] if (
+            amount = float_round(amounts['amount'] if (
                         payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else \
-            amounts['amount'] * self.config_id.show_currency_rate
-            amount_converted = amounts['amount_converted'] if (
+            amounts['amount'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
+            amount_converted = float_round(amounts['amount_converted'] if (
                         payment_method.currency_id == self.company_id.currency_id or not payment_method.currency_id) else \
-            amounts['amount_converted'] * self.config_id.show_currency_rate
+                amounts['amount_converted'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
             
             # Pachacutec: Generate the receivable line with the CALCULATED amount to ensure balance
             combine_receivable_line = MoveLine.create(self._get_combine_receivable_vals(payment_method, amount, amount_converted))
@@ -811,12 +811,12 @@ class PosSession(models.Model):
             payment_method_to_receivable_lines[payment_method] = combine_receivable_line | payment_receivable_line
 
         for payment, amounts in split_receivables_bank.items():
-            amount = amounts['amount'] if (
+            amount = float_round(amounts['amount'] if (
                     payment.currency_id == self.company_id.currency_id or not payment.currency_id) else \
-                amounts['amount'] * self.config_id.show_currency_rate
-            amount_converted = amounts['amount_converted'] if (
+                amounts['amount'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
+            amount_converted = float_round(amounts['amount_converted'] if (
                     payment.currency_id == self.company_id.currency_id or not payment.currency_id) else \
-                amounts['amount_converted'] * self.config_id.show_currency_rate
+                amounts['amount_converted'] * self.config_id.show_currency_rate, precision_rounding=self.currency_id.rounding)
                 
             # Pachacutec: Generate the receivable line with the CALCULATED amount to ensure balance
             split_receivable_line = MoveLine.create(self._get_split_receivable_vals(payment, amount, amount_converted))
