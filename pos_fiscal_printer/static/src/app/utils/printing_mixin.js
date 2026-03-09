@@ -863,37 +863,29 @@ export const FiscalPrinterMixin = {
 
         const paymentlines = this.order.payment_ids;
         if (es_nota) {
-            if (paymentlines.filter((p) => p.amount < 0).every((p) => p.isForeignExchange) && aplicar_igtf) {
-                this.printerCommands.push("122");
-            } else {
-                paymentlines.filter((p) => p.amount < 0).forEach((payment, i, array) => {
-                    const printer_code = payment.payment_method_id?.x_printer_code || '01';
-                    if ((i + 1) === array.length && array.length === 1) {
-                        this.printerCommands.push("1" + printer_code);
-                    } else {
-                        let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
-                        let [entero, decimal] = amountStr.split(",");
-                        entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
-                        this.printerCommands.push("2" + printer_code + entero + decimal);
-                    }
-                });
-            }
+            paymentlines.filter((p) => p.amount < 0).forEach((payment, i, array) => {
+                const printer_code = payment.payment_method_id?.x_printer_code || '01';
+                if ((i + 1) === array.length && array.length === 1) {
+                    this.printerCommands.push("1" + printer_code);
+                } else {
+                    let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
+                    let [entero, decimal] = amountStr.split(",");
+                    entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
+                    this.printerCommands.push("2" + printer_code + entero + decimal);
+                }
+            });
         } else {
-            if (paymentlines.filter((p) => p.amount > 0).every((p) => p.isForeignExchange) && aplicar_igtf) {
-                this.printerCommands.push("122");
-            } else {
-                paymentlines.filter((p) => p.amount > 0).forEach((payment, i, array) => {
-                    const printer_code = payment.payment_method_id?.x_printer_code || '01';
-                    if ((i + 1) === array.length && array.length === 1) {
-                        this.printerCommands.push("1" + printer_code);
-                    } else {
-                        let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
-                        let [entero, decimal] = amountStr.split(",");
-                        entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
-                        this.printerCommands.push("2" + printer_code + entero + decimal);
-                    }
-                });
-            }
+            paymentlines.filter((p) => p.amount > 0).forEach((payment, i, array) => {
+                const printer_code = payment.payment_method_id?.x_printer_code || '01';
+                if ((i + 1) === array.length && array.length === 1) {
+                    this.printerCommands.push("1" + printer_code);
+                } else {
+                    let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
+                    let [entero, decimal] = amountStr.split(",");
+                    entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
+                    this.printerCommands.push("2" + printer_code + entero + decimal);
+                }
+            });
         }
 
         if (aplicar_igtf) {
@@ -913,7 +905,6 @@ export const FiscalPrinterMixin = {
 
     setLines(char) {
         this.order.lines
-            .filter((l) => !l.x_is_igtf_line)
             .forEach((line) => {
                 let command = "";
                 const taxes = line.tax_ids || [];
@@ -928,7 +919,7 @@ export const FiscalPrinterMixin = {
 
                 let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
                 if (line.discount > 0) {
-                    price = (line.get_all_prices(1).priceWithoutTaxBeforeDiscount).toFixed(2).replace(".", ",");
+                    price = (line.get_all_prices().priceWithoutTaxBeforeDiscount / line.qty).toFixed(2).replace(".", ",");
                 }
                 let qty = (Math.abs(line.qty)).toFixed(3).replace(".", ",");
 
