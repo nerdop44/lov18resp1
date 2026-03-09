@@ -622,6 +622,12 @@ class PosSession(models.Model):
                 else:
                     raise e
 
+            # === Pachacutec v57: Corrección del descuadre IGTF ===
+            # El IGTF se cobra en los pagos (recibibles) pero su línea de crédito
+            # a veces no se genera correctamente en _create_non_reconciliable_move_lines.
+            # Detectamos el descuadre y lo compensamos con una línea de crédito directa.
+            self._fix_igtf_imbalance_in_session_move()
+
             try:
                 balance = sum(self.move_id.line_ids.mapped('balance'))
                 with self.move_id._check_balanced({'records': self.move_id.sudo()}):
@@ -638,6 +644,88 @@ class PosSession(models.Model):
         else:
             self.sudo()._post_statement_difference_usd(self.cash_register_difference_ref)
         return True
+
+    def _fix_igtf_imbalance_in_session_move(self):
+        """
+        Pachacutec v57: Detecta y corrige el descuadre IGTF en el move de sesión POS.
+
+        El IGTF se cobra en los pagos (aumenta los recibibles/débitos), pero su
+        línea de crédito de ventas no siempre se genera correctamente en
+        _create_non_reconciliable_move_lines. Esto causa 'The entry is not balanced'.
+
+        Este método:
+        1. Calcula el balance actual del move de sesión
+        2. Si hay un descuadre positivo (más débitos que créditos):
+           a. Verifica si coincide con el total IGTF de las órdenes cerradas
+           b. Si sí, agrega una línea de crédito en la cuenta de ingresos IGTF
+        """
+        move = self.move_id
+        if not move:
+            return
+
+        current_balance = sum(move.line_ids.mapped('balance'))
+        _logger.warning("[IGTF-FIX] move_id: %s | balance actual: %.10f", move.id, current_balance)
+
+        # Solo actuar si hay un descuadre positivo (más débitos que créditos)
+        if float_is_zero(current_balance, precision_rounding=self.currency_id.rounding):
+            _logger.warning("[IGTF-FIX] El move ya está balanceado, no se requiere corrección.")
+            return
+
+        # Calcular el total IGTF de todas las órdenes cerradas no facturadas
+        closed_orders = self._get_closed_orders()
+        total_igtf = sum(
+            order.x_igtf_amount
+            for order in closed_orders
+            if not order.is_invoiced and order.x_igtf_amount
+        )
+        total_igtf_rounded = float_round(total_igtf, precision_rounding=self.currency_id.rounding)
+
+        _logger.warning("[IGTF-FIX] Total IGTF órdenes cerradas: %.6f | Descuadre move: %.6f",
+            total_igtf_rounded, current_balance)
+
+        # El descuadre debe coincidir (o aproximarse) al total IGTF
+        if float_is_zero(total_igtf_rounded, precision_rounding=self.currency_id.rounding):
+            _logger.warning("[IGTF-FIX] No hay IGTF total en las órdenes, no se corrige el descuadre.")
+            return
+
+        # Verificar que el descuadre se debe al IGTF (tolerancia del 1% para redondeos)
+        diff_vs_igtf = abs(current_balance - total_igtf_rounded)
+        tolerance = max(0.05, total_igtf_rounded * 0.01)
+        if diff_vs_igtf > tolerance:
+            _logger.warning("[IGTF-FIX] Descuadre (%.6f) no coincide con IGTF (%.6f). Diff=%.6f > tolerancia=%.6f. No se aplica corrección de IGTF.",
+                current_balance, total_igtf_rounded, diff_vs_igtf, tolerance)
+            return
+
+        # Obtener cuenta de ingresos del producto IGTF
+        igtf_product = self.config_id.x_igtf_product_id
+        if not igtf_product:
+            _logger.warning("[IGTF-FIX] No hay producto IGTF configurado en el POS, no se puede crear línea de crédito.")
+            return
+
+        product_accounts = igtf_product._get_product_accounts()
+        igtf_account = igtf_product.property_account_income_id or product_accounts.get('income')
+        if not igtf_account:
+            _logger.warning("[IGTF-FIX] Producto IGTF '%s' no tiene cuenta de ingresos. No se puede crear línea de crédito.", igtf_product.name)
+            return
+
+        _logger.warning("[IGTF-FIX] Creando línea de crédito IGTF: cuenta=%s | monto=%.6f",
+            igtf_account.code, current_balance)
+
+        # Crear la línea de crédito IGTF directamente en el move de sesión
+        MoveLine = self.env['account.move.line'].with_context(
+            check_move_validity=False, skip_invoice_sync=True)
+        MoveLine.create({
+            'move_id': move.id,
+            'account_id': igtf_account.id,
+            'name': 'IGTF - Corrección de balance',
+            'debit': 0.0,
+            'credit': current_balance,  # crédito = descuadre positivo
+            'amount_currency': -current_balance,
+            'currency_id': self.currency_id.id,
+        })
+        new_balance = sum(move.line_ids.mapped('balance'))
+        _logger.warning("[IGTF-FIX] Balance POST-corrección: %.10f", new_balance)
+
 
     def action_pos_session_validate_ref(self, balancing_account=False, amount_to_balance=0,
                                         bank_payment_method_diffs=None):
