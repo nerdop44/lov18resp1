@@ -842,13 +842,13 @@ export const FiscalPrinterMixin = {
         const client = this.order.partner_id || {};
         console.warn("[FISCAL] setHeader - Cliente:", client.name, "RIF:", client.vat);
         if (payload) {
-            this.printerCommands.push("iF" + payload.invoiceNumber.padStart(11, "0"));
-            this.printerCommands.push("iD" + payload.date);
-            this.printerCommands.push("iI" + payload.printerCode);
+            this.printerCommands.push("iF*" + payload.invoiceNumber.padStart(11, "0"));
+            this.printerCommands.push("iD*" + payload.date);
+            this.printerCommands.push("iI*" + payload.printerCode);
         }
 
-        this.printerCommands.push("iR" + (client.vat || "No tiene"));
-        this.printerCommands.push("iS" + sanitize(client.name || "Cliente Contado"));
+        this.printerCommands.push("iR*" + (client.vat || "No tiene"));
+        this.printerCommands.push("iS*" + sanitize(client.name || "Cliente Contado"));
 
         this.printerCommands.push("i00Teléfono: " + (client.phone || "No tiene"));
         this.printerCommands.push("i01Dirección: " + sanitize(client.street || "No tiene"));
@@ -906,7 +906,6 @@ export const FiscalPrinterMixin = {
 
     printFiscal() {
         this.setHeader();
-        this.printerCommands.push("GF"); // Pachacutec: Apertura factura fiscal requerida
         this.setLines("GF");
         this.setTotal();
     },
@@ -919,30 +918,28 @@ export const FiscalPrinterMixin = {
                 let tax_records = [];
                 console.warn("[FISCAL] setLines - Depurando lnea:", line);
                 
-                // Nivel 1: tax_details (Odoo 18 style)
-                const all_prices = typeof line.get_all_prices === "function" ? line.get_all_prices() : {};
-                const tax_details = all_prices.tax_details || [];
-                if (tax_details.length > 0) {
-                    tax_records = tax_details.map(t => {
-                        const taxId = t.tax?.id || t.id;
+                // Estrategia Odoo 18: Buscar impuestos por cualquier va técnica posible
+                const potential_taxes = [
+                    ...(line.taxes || []),
+                    ...(line.tax_ids || []),
+                    ...(line.taxes_id || []),
+                    ...(line.product_id?.taxes_id || [])
+                ];
+
+                if (potential_taxes.length > 0) {
+                    tax_records = potential_taxes.map(t => {
+                        const taxId = typeof t === 'object' ? (t.id || t.tax?.id) : t;
                         return this.pos.models["account.tax"]?.get(taxId);
-                    });
-                }
-                // Nivel 2: taxes_id directos o backup (Odoo 18 models)
-                const lineTaxes = line.tax_ids || line.taxes_id || [];
-                if ((!tax_records || tax_records.length === 0) && lineTaxes.length > 0) {
-                    tax_records = lineTaxes.map(id => {
-                        const taxId = typeof id === 'object' ? id.id : id;
-                        return this.pos.models["account.tax"]?.get(taxId);
-                    });
-                }
-                // Nivel 3: product.taxes_id (Fallback final)
-                if ((!tax_records || tax_records.length === 0) && line.product_id?.taxes_id && line.product_id?.taxes_id.length > 0) {
-                    tax_records = line.product_id.taxes_id.map(id => this.pos.models["account.tax"]?.get(id));
+                    }).filter(t => t && t.x_tipo_alicuota);
                 }
 
-                tax_records = (tax_records || []).filter(t => t && t.x_tipo_alicuota);
-                console.warn("[FISCAL] setLines - Registros de impuestos finales (v18):", tax_records.length, tax_records);
+                // Fallback final: Si sigue vaco pero el producto claramente tiene IVA en su base
+                if (tax_records.length === 0 && line.product_id?.taxes_id) {
+                    tax_records = line.product_id.taxes_id.map(id => this.pos.models["account.tax"]?.get(id)).filter(t => t);
+                }
+
+                tax_records = [...new Set(tax_records)].filter(t => t && t.x_tipo_alicuota);
+                console.warn("[FISCAL] setLines - Registros de impuestos finales (v19):", tax_records.length, tax_records);
 
                 if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
@@ -1001,7 +998,6 @@ export const FiscalPrinterMixin = {
         const { confirmed, payload } = await this.env.services.dialog.add(NotaCreditoPopUp);
         if (!confirmed) return false;
         this.setHeader(payload);
-        this.printerCommands.push("GC"); // Pachacutec: Apertura nota de crédito requerida
         this.setLines("GC");
         this.setTotal();
         return true;
