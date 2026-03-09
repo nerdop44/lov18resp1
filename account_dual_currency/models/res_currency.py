@@ -157,14 +157,9 @@ class ResCurrency(models.Model):
             """
             self.env.cr.execute(query_tmpl, (tasa,))
             
-            # Nota: Odoo 18 maneja variantes. Si no hay list_price_usd en variantes, heredan del template.
-            # Si existen, actualizamos también variantes.
-            query_prod = """
-                UPDATE product_product 
-                SET lst_price = list_price_usd * %s 
-                WHERE list_price_usd > 0
-            """
-            self.env.cr.execute(query_prod, (tasa,))
+            # Nota: Odoo 18 maneja variantes. Las variantes heredan list_price de product_template.
+            # El campo lst_price no existe en la tabla product_product, por lo que esta consulta es redundante y errónea.
+            # Pachacutec: Remoción de query_prod para evitar RPC_ERROR.
             
             _logger.info(">>>>>>>> Pachacutec: Precios actualizados vía SQL.")
 
@@ -232,7 +227,8 @@ class ResCurrency(models.Model):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
         }
         try:
-            req = requests.get(url, headers=headers, verify=False, timeout=10)
+            # Pachacutec: Incrementamos timeout a 25s para mejorar resiliencia al BCV
+            req = requests.get(url, headers=headers, verify=False, timeout=25)
         except Exception as e:
             return False
 
