@@ -906,6 +906,7 @@ export const FiscalPrinterMixin = {
 
     printFiscal() {
         this.setHeader();
+        this.printerCommands.push("GF"); // Pachacutec: Apertura factura fiscal requerida
         this.setLines("GF");
         this.setTotal();
     },
@@ -916,6 +917,8 @@ export const FiscalPrinterMixin = {
             .forEach((line) => {
                 let command = "";
                 let tax_records = [];
+                console.warn("[FISCAL] setLines - Depurando lnea:", line);
+                
                 // Nivel 1: tax_details (Odoo 18 style)
                 const all_prices = typeof line.get_all_prices === "function" ? line.get_all_prices() : {};
                 const tax_details = all_prices.tax_details || [];
@@ -925,17 +928,21 @@ export const FiscalPrinterMixin = {
                         return this.pos.models["account.tax"]?.get(taxId);
                     });
                 }
-                // Nivel 2: tax_ids directos (Odoo 17/18 backup)
-                if ((!tax_records || tax_records.length === 0) && line.tax_ids && line.tax_ids.length > 0) {
-                    tax_records = line.tax_ids.map(id => this.pos.models["account.tax"]?.get(id));
+                // Nivel 2: taxes_id directos o backup (Odoo 18 models)
+                const lineTaxes = line.tax_ids || line.taxes_id || [];
+                if ((!tax_records || tax_records.length === 0) && lineTaxes.length > 0) {
+                    tax_records = lineTaxes.map(id => {
+                        const taxId = typeof id === 'object' ? id.id : id;
+                        return this.pos.models["account.tax"]?.get(taxId);
+                    });
                 }
-                // Nivel 3: taxes_id del producto (Fallback extremo)
+                // Nivel 3: product.taxes_id (Fallback final)
                 if ((!tax_records || tax_records.length === 0) && line.product_id?.taxes_id && line.product_id?.taxes_id.length > 0) {
                     tax_records = line.product_id.taxes_id.map(id => this.pos.models["account.tax"]?.get(id));
                 }
 
                 tax_records = (tax_records || []).filter(t => t && t.x_tipo_alicuota);
-                console.warn("[FISCAL] setLines - Registros de impuestos finales (v17):", tax_records.length, tax_records);
+                console.warn("[FISCAL] setLines - Registros de impuestos finales (v18):", tax_records.length, tax_records);
 
                 if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
@@ -994,6 +1001,7 @@ export const FiscalPrinterMixin = {
         const { confirmed, payload } = await this.env.services.dialog.add(NotaCreditoPopUp);
         if (!confirmed) return false;
         this.setHeader(payload);
+        this.printerCommands.push("GC"); // Pachacutec: Apertura nota de crédito requerida
         this.setLines("GC");
         this.setTotal();
         return true;
