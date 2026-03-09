@@ -916,13 +916,17 @@ export const FiscalPrinterMixin = {
             .forEach((line) => {
                 let command = "";
                 let tax_records = [];
-                if (line.tax_ids && line.tax_ids.length > 0) {
-                    tax_records = line.tax_ids.map(t => {
-                        if (typeof t === 'object') return t;
-                        return this.pos.models["account.tax"]?.get(t);
+                const all_prices = typeof line.get_all_prices === "function" ? line.get_all_prices() : {};
+                const tax_details = all_prices.tax_details || [];
+                
+                if (tax_details.length > 0) {
+                    tax_records = tax_details.map(t => {
+                        const taxId = t.tax?.id || t.id;
+                        return this.pos.models["account.tax"]?.get(taxId);
                     }).filter(t => t && t.x_tipo_alicuota);
                 }
-                console.warn("[FISCAL] setLines - Registros de impuestos finales:", tax_records.length, tax_records);
+                
+                console.warn("[FISCAL] setLines - Registros de impuestos finales (tax_details):", tax_records.length, tax_records);
 
                 if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
@@ -931,6 +935,7 @@ export const FiscalPrinterMixin = {
                 } else {
                     command += (char === "GC") ? "d0" : " ";
                 }
+                console.warn("[FISCAL] setLines - Tag impuesto seleccionado:", command);
                 console.warn("[FISCAL] setLines - Tag impuesto seleccionado:", command);
 
                 let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
@@ -942,10 +947,8 @@ export const FiscalPrinterMixin = {
                 let [pEnt, pDec] = price.split(",");
                 let [qEnt, qDec] = qty.split(",");
 
-                pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(12, "0") : pEnt.padStart(8, "0");
-                qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(12, "0") : qEnt.padStart(5, "0");
-
                 command += pEnt + pDec + qEnt + qDec;
+                command += " "; // Pachacutec: Espacio separador requerido por buffer HKA
 
                 command += sanitize(line.product_id?.display_name || "");
                 console.warn("[FISCAL] setLines - Comando generado:", command);
