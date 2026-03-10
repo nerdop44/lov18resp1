@@ -937,11 +937,11 @@ export const FiscalPrinterMixin = {
                 console.warn("[FISCAL] setLines - Impuestos resueltos (v22):", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
 
                 if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
-                    command += (char === "G1") ? "d0" : " ";
+                    command += (char === "GC") ? "d0" : " ";
                 } else if (tax_records.some((t) => t.x_tipo_alicuota === "general")) {
-                    command += (char === "G1") ? "d1" : "!";
+                    command += (char === "GC") ? "d1" : "!";
                 } else {
-                    command += (char === "G1") ? "d0" : " ";
+                    command += (char === "GC") ? "d0" : " ";
                 }
 
                 let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
@@ -953,9 +953,9 @@ export const FiscalPrinterMixin = {
                 let [pEnt, pDec] = price.split(",");
                 let [qEnt, qDec] = qty.split(",");
 
-                // Pachacutec: Espejo exacto de v16 (Padding 10+8)
-                pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(12, "0") : pEnt.padStart(8, "0");
-                qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(12, "0") : qEnt.padStart(5, "0");
+                // Pachacutec: Mirror exacto de v16 padding
+                pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(14, "0") : pEnt.padStart(8, "0");
+                qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(14, "0") : qEnt.padStart(5, "0");
 
                 command += pEnt + pDec + qEnt + qDec;
 
@@ -998,7 +998,7 @@ export const FiscalPrinterMixin = {
         const { confirmed, payload } = await this.env.services.dialog.add(NotaCreditoPopUp);
         if (!confirmed) return false;
         this.setHeader(payload);
-        this.setLines("G1");
+        this.setLines("GC");
         this.setTotal();
         return true;
     }
