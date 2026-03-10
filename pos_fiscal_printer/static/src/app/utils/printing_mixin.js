@@ -847,7 +847,8 @@ export const FiscalPrinterMixin = {
             this.printerCommands.push("iI*" + payload.printerCode);
         }
 
-        this.printerCommands.push("iR*" + (client.vat || "No tiene"));
+        const vat = client.vat || client.rif || "No tiene";
+        this.printerCommands.push("iR*" + vat);
         this.printerCommands.push("iS*" + sanitize(client.name || "Cliente Contado"));
 
         this.printerCommands.push("i00Teléfono: " + (client.phone || "No tiene"));
@@ -916,30 +917,25 @@ export const FiscalPrinterMixin = {
             .forEach((line) => {
                 let command = "";
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Depurando lnea:", line);
+                console.warn("[FISCAL] setLines - Depurando lnea Odoo 18:", line);
                 
-                // Estrategia Odoo 18: Buscar impuestos por cualquier va técnica posible
-                const potential_taxes = [
-                    ...(line.taxes || []),
-                    ...(line.tax_ids || []),
-                    ...(line.taxes_id || []),
-                    ...(line.product_id?.taxes_id || [])
-                ];
+                // Resolución agresiva de impuestos para Odoo 18 (Probando múltiples vías)
+                let tax_ids = [];
+                if (line.tax_ids) tax_ids = line.tax_ids;
+                else if (line.taxes_id) tax_ids = line.taxes_id;
+                else if (line.product_id && line.product_id.taxes_id) tax_ids = line.product_id.taxes_id;
 
-                if (potential_taxes.length > 0) {
-                    tax_records = potential_taxes.map(t => {
-                        const taxId = typeof t === 'object' ? (t.id || t.tax?.id) : t;
-                        return this.pos.models["account.tax"]?.get(taxId);
+                if (tax_ids && !Array.isArray(tax_ids)) tax_ids = [tax_ids];
+                
+                if (tax_ids && tax_ids.length > 0) {
+                    tax_records = tax_ids.map(t => {
+                        const id = typeof t === 'object' ? t.id : t;
+                        return this.pos.models["account.tax"]?.get(id);
                     }).filter(t => t && t.x_tipo_alicuota);
                 }
 
-                // Fallback final: Si sigue vaco pero el producto claramente tiene IVA en su base
-                if (tax_records.length === 0 && line.product_id?.taxes_id) {
-                    tax_records = line.product_id.taxes_id.map(id => this.pos.models["account.tax"]?.get(id)).filter(t => t);
-                }
-
-                tax_records = [...new Set(tax_records)].filter(t => t && t.x_tipo_alicuota);
-                console.warn("[FISCAL] setLines - Registros de impuestos finales (v19):", tax_records.length, tax_records);
+                tax_records = [...new Set(tax_records)];
+                console.warn("[FISCAL] setLines - Registros de impuestos finales (v20):", tax_records.length, tax_records);
 
                 if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
@@ -959,8 +955,9 @@ export const FiscalPrinterMixin = {
                 let [pEnt, pDec] = price.split(",");
                 let [qEnt, qDec] = qty.split(",");
 
-                pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(12, "0") : pEnt.padStart(8, "0");
-                qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(12, "0") : qEnt.padStart(5, "0");
+                // Pachacutec: Ajuste de padding a 8 y 5 dgitos (Protocolo HKA 2.0 / 62+23)
+                pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(12, "0") : pEnt.padStart(6, "0");
+                qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(12, "0") : qEnt.padStart(2, "0");
 
                 command += pEnt + pDec + qEnt + qDec;
 
