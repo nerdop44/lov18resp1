@@ -917,42 +917,38 @@ export const FiscalPrinterMixin = {
             .forEach((line) => {
                 let command = "";
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Depurando lnea v25 (Nuclear Resolution):", line);
+                console.warn("[FISCAL] setLines - Depurando lnea v26 (Super Nuclear Resolution):", line);
                 
                 try {
-                    // Intento 1: Método standard del modelo (si existe en Odoo 18 Proxy)
-                    if (typeof line.get_taxes === 'function') {
-                        tax_records = line.get_taxes() || [];
-                    }
+                    // Resolución multivinivel para Odoo 18 (Proxy/Collection safe)
+                    let tax_ids_raw = [];
                     
-                    // Intento 2: Atributos directos de la lnea (Proxy scan)
-                    if (tax_records.length === 0) {
-                        const raw_ids = line.tax_ids || line.taxes_id || [];
-                        const tax_ids = Array.isArray(raw_ids) ? raw_ids : (raw_ids ? [raw_ids] : []);
-                        tax_records = tax_ids.map(tid => {
-                            const id = typeof tid === 'object' ? (tid.id || tid) : tid;
-                            return this.pos.models["account.tax"]?.get(id);
-                        }).filter(t => t);
-                    }
+                    // 1. Intentar desde la línea (taxes_id o tax_ids según versión)
+                    const l_taxes = line.taxes_id || line.tax_ids || [];
+                    if (l_taxes.records) tax_ids_raw = l_taxes.records.map(r => r.id);
+                    else if (Array.isArray(l_taxes)) tax_ids_raw = l_taxes.map(t => typeof t === 'object' ? t.id : t);
                     
-                    // Intento 3: Atributos del producto (Fallback crtico)
-                    if (tax_records.length === 0 && line.product_id) {
-                        const prod = line.product_id;
-                        const p_raw_ids = prod.taxes_id || [];
-                        const p_tax_ids = Array.isArray(p_raw_ids) ? p_raw_ids : [p_raw_ids];
-                        tax_records = p_tax_ids.map(id => this.pos.models["account.tax"]?.get(id)).filter(t => t);
+                    // 2. Fallback al producto si la línea no tiene (muy común en POS)
+                    if (tax_ids_raw.length === 0 && line.product_id) {
+                        const p_taxes = line.product_id.taxes_id || [];
+                        if (p_taxes.records) tax_ids_raw = p_taxes.records.map(r => r.id);
+                        else if (Array.isArray(p_taxes)) tax_ids_raw = p_taxes.map(t => typeof t === 'object' ? t.id : t);
                     }
+
+                    // 3. Obtener registros finales del modelo local
+                    tax_records = (tax_ids_raw || []).map(id => this.pos.models["account.tax"]?.get(id)).filter(t => t);
+                    
                 } catch (e) {
-                    console.error("[FISCAL] Error en resolución nuclear v25:", e);
+                    console.error("[FISCAL] Error en resolución v26:", e);
                 }
 
-                // Filtrar solo los que tengan tipo de alícuota
-                tax_records = tax_records.filter(t => t && t.x_tipo_alicuota);
-                console.warn("[FISCAL] setLines - Impuestos resueltos (v25):", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
+                // Filtrar por tipo de alícuota para determinar el tag
+                const effective_taxes = tax_records.filter(t => t && t.x_tipo_alicuota);
+                console.warn("[FISCAL] setLines - Impuestos efectivos (v26):", effective_taxes.length, effective_taxes.map(t => t.x_tipo_alicuota));
 
-                if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
+                if (!(effective_taxes.length) || effective_taxes.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
-                } else if (tax_records.some((t) => t.x_tipo_alicuota === "general")) {
+                } else if (effective_taxes.some((t) => t.x_tipo_alicuota === "general")) {
                     command += (char === "GC") ? "d1" : "!";
                 } else {
                     command += (char === "GC") ? "d0" : " ";
