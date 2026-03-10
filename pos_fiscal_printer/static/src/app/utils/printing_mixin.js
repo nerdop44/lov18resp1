@@ -917,24 +917,24 @@ export const FiscalPrinterMixin = {
             .forEach((line) => {
                 let command = "";
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Depurando lnea v22 (v16 mirror):", line);
+                console.warn("[FISCAL] setLines - Depurando lnea v24 (Odoo 18 Robust):", line);
                 
-                // Resolución balanceada (Odoo 18 Proxy Safe)
-                const tax_ids = line.tax_ids || line.taxes_id || [];
-                if (tax_ids.length > 0) {
+                // Resolución de impuestos Odoo 18 (Pachacutec v24)
+                let tax_ids = [];
+                try {
+                    // Extraer IDs de cualquier posible contenedor (Proxy de Odoo 18)
+                    const raw_ids = line.tax_ids || line.taxes_id || line.product_id?.taxes_id || [];
+                    tax_ids = Array.isArray(raw_ids) ? raw_ids : [raw_ids];
+                    
                     tax_records = tax_ids.map(tid => {
-                        const id = typeof tid === 'object' ? tid.id : tid;
+                        const id = typeof tid === 'object' ? (tid.id || tid) : tid;
                         return this.pos.models["account.tax"]?.get(id);
-                    }).filter(t => t);
+                    }).filter(t => t && t.x_tipo_alicuota);
+                } catch (e) {
+                    console.error("Error resolviendo impuestos en v24:", e);
                 }
 
-                // Fallback a producto si no hay en la línea
-                if (tax_records.length === 0 && line.product_id?.taxes_id) {
-                    tax_records = line.product_id.taxes_id.map(id => this.pos.models["account.tax"]?.get(id)).filter(t => t);
-                }
-
-                tax_records = tax_records.filter(t => t && t.x_tipo_alicuota);
-                console.warn("[FISCAL] setLines - Impuestos resueltos (v22):", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
+                console.warn("[FISCAL] setLines - Impuestos resueltos (v24):", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
 
                 if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
@@ -957,15 +957,15 @@ export const FiscalPrinterMixin = {
                 pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(14, "0") : pEnt.padStart(8, "0");
                 qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(14, "0") : qEnt.padStart(5, "0");
 
-                command += pEnt + pDec + qEnt + qDec;
+                command += pEnt + pDec + qEnt + qDec + " "; // Pachacutec: Espacio separador crtico
 
-                // Añadir pipes en código de producto (v16 style)
+                // Añadir código de producto sin pipes (v24 clean)
                 if (line.product_id?.default_code) {
-                    command += "|" + line.product_id.default_code + "|";
+                    command += line.product_id.default_code + " ";
                 }
 
-                command += sanitize(line.product_id?.display_name || "");
-                console.warn("[FISCAL] setLines - Comando v22 final:", command);
+                command += sanitize(line.product_id?.display_name || "").substring(0, 36);
+                console.warn("[FISCAL] setLines - Comando v24 final:", command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
