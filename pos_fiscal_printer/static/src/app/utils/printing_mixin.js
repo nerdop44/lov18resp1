@@ -907,7 +907,7 @@ export const FiscalPrinterMixin = {
 
     printFiscal() {
         this.setHeader();
-        this.printerCommands.push("G0"); // Pachacutec: Apertura explícita de factura
+        this.printerCommands.unshift("7"); // Pachacutec: Anulación preventiva por si hay documento abierto
         this.setLines("GF");
         this.setTotal();
     },
@@ -918,33 +918,31 @@ export const FiscalPrinterMixin = {
             .forEach((line) => {
                 let command = "";
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Depurando lnea v28 (Spread Resolution):", line);
+                console.warn("[FISCAL] setLines - Depurando lnea v29 (Intersection Resolution):", line);
+                console.warn("[FISCAL] line keys:", Object.keys(line));
                 
                 try {
-                    // Spread Operator para "desenvolver" Proxies/Collections de Odoo 18
-                    let tax_ids_raw = [];
+                    // Pachacutec: v29 - Resolución por intersección cruzada sobre Pos Models
+                    const pos_taxes = this.pos.models["account.tax"]?.getAll() || [];
+                    const line_tax_ids = new Set();
                     
-                    // 1. Extraer IDs de la línea
-                    if (line.tax_ids) {
-                        tax_ids_raw = [...line.tax_ids].map(t => typeof t === 'object' ? (t.id || t) : t);
-                    }
-                    
-                    // 2. Fallback al producto si es necesario
-                    if (tax_ids_raw.length === 0 && line.product_id?.taxes_id) {
-                        tax_ids_raw = [...line.product_id.taxes_id].map(t => typeof t === 'object' ? (t.id || t) : t);
-                    }
+                    // Escaneo omnidireccional de fuentes de impuestos
+                    [line.tax_ids, line.taxes_id, line.product_id?.taxes_id].forEach(src => {
+                        if (!src) return;
+                        if (src.records) src.records.forEach(r => line_tax_ids.add(r.id));
+                        else if (Array.isArray(src)) src.forEach(t => line_tax_ids.add(typeof t === 'object' ? t.id : t));
+                        else if (typeof src === 'object') {
+                            // Intento de iteración o búsqueda en colección Proxy
+                            pos_taxes.forEach(t => { try { if (src.has?.(t.id) || src.includes?.(t.id)) line_tax_ids.add(t.id); } catch(err){} });
+                        }
+                    });
 
-                    // 3. Resolución final con log de auditoría
-                    tax_records = tax_ids_raw
-                        .filter(id => id)
-                        .map(id => this.pos.models["account.tax"]?.get(id))
-                        .filter(t => t && t.x_tipo_alicuota);
-                    
+                    tax_records = pos_taxes.filter(t => line_tax_ids.has(t.id) && t.x_tipo_alicuota);
                 } catch (e) {
-                    console.error("[FISCAL] Fallo en Spread Resolution v28:", e);
+                    console.error("[FISCAL] Fallo en Intersection Resolution v29:", e);
                 }
 
-                console.warn("[FISCAL] setLines - Impuestos Spread (v28):", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
+                console.warn("[FISCAL] setLines - Impuestos Intersection (v29):", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
 
                 if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
