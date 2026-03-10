@@ -917,34 +917,45 @@ export const FiscalPrinterMixin = {
             .forEach((line) => {
                 let command = "";
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Depurando lnea v26 (Super Nuclear Resolution):", line);
+                console.warn("[FISCAL] setLines - Depurando lnea v27 (Omni Resolution):", line);
                 
                 try {
-                    // Resolución multivinivel para Odoo 18 (Proxy/Collection safe)
+                    // Resolución Omnidireccional para Odoo 18 Proxy Safe
                     let tax_ids_raw = [];
                     
-                    // 1. Intentar desde la línea (taxes_id o tax_ids según versión)
-                    const l_taxes = line.taxes_id || line.tax_ids || [];
-                    if (l_taxes.records) tax_ids_raw = l_taxes.records.map(r => r.id);
-                    else if (Array.isArray(l_taxes)) tax_ids_raw = l_taxes.map(t => typeof t === 'object' ? t.id : t);
-                    
-                    // 2. Fallback al producto si la línea no tiene (muy común en POS)
-                    if (tax_ids_raw.length === 0 && line.product_id) {
-                        const p_taxes = line.product_id.taxes_id || [];
-                        if (p_taxes.records) tax_ids_raw = p_taxes.records.map(r => r.id);
-                        else if (Array.isArray(p_taxes)) tax_ids_raw = p_taxes.map(t => typeof t === 'object' ? t.id : t);
+                    // 1. Extraer de line.tax_ids (Común en v18)
+                    const l_tax_ids = line.tax_ids;
+                    if (l_tax_ids) {
+                        if (Array.isArray(l_tax_ids)) tax_ids_raw = l_tax_ids;
+                        else if (l_tax_ids.records) tax_ids_raw = l_tax_ids.records.map(r => r.id);
+                        else if (typeof l_tax_ids === 'object') {
+                            // Intento de conversión forzada de Proxy o Collection
+                            tax_ids_raw = Array.from(l_tax_ids).map(t => typeof t === 'object' ? t.id : t);
+                        }
                     }
 
-                    // 3. Obtener registros finales del modelo local
-                    tax_records = (tax_ids_raw || []).map(id => this.pos.models["account.tax"]?.get(id)).filter(t => t);
+                    // 2. Fallback a product.taxes_id si sigue vacío
+                    if (tax_ids_raw.length === 0 && line.product_id) {
+                        const p_taxes = line.product_id.taxes_id;
+                        if (p_taxes) {
+                            if (Array.isArray(p_taxes)) tax_ids_raw = p_taxes;
+                            else if (p_taxes.records) tax_ids_raw = p_taxes.records.map(r => r.id);
+                        }
+                    }
+
+                    // 3. Resolución final contra Pos Models
+                    tax_records = tax_ids_raw
+                        .filter(id => id)
+                        .map(id => this.pos.models["account.tax"]?.get(id))
+                        .filter(t => t);
                     
                 } catch (e) {
-                    console.error("[FISCAL] Error en resolución v26:", e);
+                    console.error("[FISCAL] Fallo crítico en Omni Resolution v27:", e);
                 }
 
-                // Filtrar por tipo de alícuota para determinar el tag
+                // Auditoría de impuestos filtrados
                 const effective_taxes = tax_records.filter(t => t && t.x_tipo_alicuota);
-                console.warn("[FISCAL] setLines - Impuestos efectivos (v26):", effective_taxes.length, effective_taxes.map(t => t.x_tipo_alicuota));
+                console.warn("[FISCAL] setLines - Impuestos Omni (v27):", effective_taxes.length, effective_taxes.map(t => t.x_tipo_alicuota));
 
                 if (!(effective_taxes.length) || effective_taxes.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
