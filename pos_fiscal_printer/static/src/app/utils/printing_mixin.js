@@ -907,7 +907,8 @@ export const FiscalPrinterMixin = {
 
     printFiscal() {
         this.setHeader();
-        this.setLines("GF");
+        this.printerCommands.push("G0"); // Pachacutec: Apertura factura (HKA G0)
+        this.setLines("G0");
         this.setTotal();
     },
 
@@ -917,34 +918,44 @@ export const FiscalPrinterMixin = {
             .forEach((line) => {
                 let command = "";
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Depurando lnea Odoo 18:", line);
+                console.warn("[FISCAL] setLines - Depurando lnea Odoo 18 (v21):", line);
                 
-                // Resolución agresiva de impuestos para Odoo 18 (Probando múltiples vías)
-                let tax_ids = [];
-                if (line.tax_ids) tax_ids = line.tax_ids;
-                else if (line.taxes_id) tax_ids = line.taxes_id;
-                else if (line.product_id && line.product_id.taxes_id) tax_ids = line.product_id.taxes_id;
+                // Resolución ultra-agresiva de impuestos (v21)
+                const getTax = (id) => this.pos.models["account.tax"]?.get(id);
+                
+                let taxes_raw = [];
+                if (line.tax_ids) taxes_raw = line.tax_ids;
+                else if (line.taxes_id) taxes_raw = line.taxes_id;
+                else if (line.product_id?.taxes_id) taxes_raw = line.product_id.taxes_id;
 
-                if (tax_ids && !Array.isArray(tax_ids)) tax_ids = [tax_ids];
+                if (taxes_raw && !Array.isArray(taxes_raw)) taxes_raw = [taxes_raw];
                 
-                if (tax_ids && tax_ids.length > 0) {
-                    tax_records = tax_ids.map(t => {
-                        const id = typeof t === 'object' ? t.id : t;
-                        return this.pos.models["account.tax"]?.get(id);
-                    }).filter(t => t && t.x_tipo_alicuota);
+                // Si encontramos IDs, obtener registros
+                if (taxes_raw && taxes_raw.length > 0) {
+                    tax_records = taxes_raw.map(t => {
+                        const tid = typeof t === 'object' ? (t.id || t.tax?.id) : t;
+                        return getTax(tid);
+                    }).filter(t => t);
                 }
 
-                tax_records = [...new Set(tax_records)];
-                console.warn("[FISCAL] setLines - Registros de impuestos finales (v20):", tax_records.length, tax_records);
+                // Si an no hay nada, inspeccionar producto a través de la caché global
+                if (tax_records.length === 0 && line.product_id) {
+                    const prod = this.pos.models["product.product"]?.get(line.product_id.id || line.product_id);
+                    if (prod?.taxes_id) {
+                        tax_records = prod.taxes_id.map(id => getTax(id)).filter(t => t);
+                    }
+                }
+
+                tax_records = [...new Set(tax_records)].filter(t => t && t.x_tipo_alicuota);
+                console.warn("[FISCAL] setLines - Impuestos encontrados (v21):", tax_records.length, tax_records.map(t => t.name));
 
                 if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
-                    command += (char === "GC") ? "d0" : " ";
+                    command += (char === "G1") ? "d0" : " ";
                 } else if (tax_records.some((t) => t.x_tipo_alicuota === "general")) {
-                    command += (char === "GC") ? "d1" : "!";
+                    command += (char === "G1") ? "d1" : "!";
                 } else {
-                    command += (char === "GC") ? "d0" : " ";
+                    command += (char === "G1") ? "d0" : " ";
                 }
-                console.warn("[FISCAL] setLines - Tag impuesto seleccionado:", command);
 
                 let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
                 if (line.discount > 0) {
@@ -955,13 +966,11 @@ export const FiscalPrinterMixin = {
                 let [pEnt, pDec] = price.split(",");
                 let [qEnt, qDec] = qty.split(",");
 
-                // Pachacutec: Ajuste de padding a 8 y 5 dgitos (Protocolo HKA 2.0 / 62+23)
-                pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(12, "0") : pEnt.padStart(6, "0");
-                qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(12, "0") : qEnt.padStart(2, "0");
+                // Pachacutec: Restauración a 10+8 dgitos (Standard HKA)
+                pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(12, "0") : pEnt.padStart(8, "0");
+                qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(12, "0") : qEnt.padStart(5, "0");
 
-                command += pEnt + pDec + qEnt + qDec;
-
-                command += sanitize(line.product_id?.display_name || "");
+                command += pEnt + pDec + qEnt + qDec + sanitize(line.product_id?.display_name || "");
                 console.warn("[FISCAL] setLines - Comando generado:", command);
                 this.printerCommands.push(command);
 
@@ -995,7 +1004,8 @@ export const FiscalPrinterMixin = {
         const { confirmed, payload } = await this.env.services.dialog.add(NotaCreditoPopUp);
         if (!confirmed) return false;
         this.setHeader(payload);
-        this.setLines("GC");
+        this.printerCommands.push("G1"); // Pachacutec: Apertura nota de crédito (HKA G1)
+        this.setLines("G1");
         this.setTotal();
         return true;
     }
