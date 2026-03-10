@@ -907,8 +907,7 @@ export const FiscalPrinterMixin = {
 
     printFiscal() {
         this.setHeader();
-        this.printerCommands.push("G0"); // Pachacutec: Apertura factura (HKA G0)
-        this.setLines("G0");
+        this.setLines("GF");
         this.setTotal();
     },
 
@@ -918,36 +917,24 @@ export const FiscalPrinterMixin = {
             .forEach((line) => {
                 let command = "";
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Depurando lnea Odoo 18 (v21):", line);
+                console.warn("[FISCAL] setLines - Depurando lnea v22 (v16 mirror):", line);
                 
-                // Resolución ultra-agresiva de impuestos (v21)
-                const getTax = (id) => this.pos.models["account.tax"]?.get(id);
-                
-                let taxes_raw = [];
-                if (line.tax_ids) taxes_raw = line.tax_ids;
-                else if (line.taxes_id) taxes_raw = line.taxes_id;
-                else if (line.product_id?.taxes_id) taxes_raw = line.product_id.taxes_id;
-
-                if (taxes_raw && !Array.isArray(taxes_raw)) taxes_raw = [taxes_raw];
-                
-                // Si encontramos IDs, obtener registros
-                if (taxes_raw && taxes_raw.length > 0) {
-                    tax_records = taxes_raw.map(t => {
-                        const tid = typeof t === 'object' ? (t.id || t.tax?.id) : t;
-                        return getTax(tid);
+                // Resolución balanceada (Odoo 18 Proxy Safe)
+                const tax_ids = line.tax_ids || line.taxes_id || [];
+                if (tax_ids.length > 0) {
+                    tax_records = tax_ids.map(tid => {
+                        const id = typeof tid === 'object' ? tid.id : tid;
+                        return this.pos.models["account.tax"]?.get(id);
                     }).filter(t => t);
                 }
 
-                // Si an no hay nada, inspeccionar producto a través de la caché global
-                if (tax_records.length === 0 && line.product_id) {
-                    const prod = this.pos.models["product.product"]?.get(line.product_id.id || line.product_id);
-                    if (prod?.taxes_id) {
-                        tax_records = prod.taxes_id.map(id => getTax(id)).filter(t => t);
-                    }
+                // Fallback a producto si no hay en la línea
+                if (tax_records.length === 0 && line.product_id?.taxes_id) {
+                    tax_records = line.product_id.taxes_id.map(id => this.pos.models["account.tax"]?.get(id)).filter(t => t);
                 }
 
-                tax_records = [...new Set(tax_records)].filter(t => t && t.x_tipo_alicuota);
-                console.warn("[FISCAL] setLines - Impuestos encontrados (v21):", tax_records.length, tax_records.map(t => t.name));
+                tax_records = tax_records.filter(t => t && t.x_tipo_alicuota);
+                console.warn("[FISCAL] setLines - Impuestos resueltos (v22):", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
 
                 if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "G1") ? "d0" : " ";
@@ -966,12 +953,19 @@ export const FiscalPrinterMixin = {
                 let [pEnt, pDec] = price.split(",");
                 let [qEnt, qDec] = qty.split(",");
 
-                // Pachacutec: Restauración a 10+8 dgitos (Standard HKA)
+                // Pachacutec: Espejo exacto de v16 (Padding 10+8)
                 pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(12, "0") : pEnt.padStart(8, "0");
                 qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(12, "0") : qEnt.padStart(5, "0");
 
-                command += pEnt + pDec + qEnt + qDec + sanitize(line.product_id?.display_name || "");
-                console.warn("[FISCAL] setLines - Comando generado:", command);
+                command += pEnt + pDec + qEnt + qDec;
+
+                // Añadir pipes en código de producto (v16 style)
+                if (line.product_id?.default_code) {
+                    command += "|" + line.product_id.default_code + "|";
+                }
+
+                command += sanitize(line.product_id?.display_name || "");
+                console.warn("[FISCAL] setLines - Comando v22 final:", command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
@@ -1004,7 +998,6 @@ export const FiscalPrinterMixin = {
         const { confirmed, payload } = await this.env.services.dialog.add(NotaCreditoPopUp);
         if (!confirmed) return false;
         this.setHeader(payload);
-        this.printerCommands.push("G1"); // Pachacutec: Apertura nota de crédito (HKA G1)
         this.setLines("G1");
         this.setTotal();
         return true;
