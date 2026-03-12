@@ -928,13 +928,24 @@ export const FiscalPrinterMixin = {
 
                 console.warn("[FISCAL] setLines - Impuestos Strict (v31):", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
 
-                if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
-                    command += (char === "GC") ? "d0" : " ";
-                } else if (tax_records.some((t) => t.x_tipo_alicuota === "general")) {
-                    command += (char === "GC") ? "d1" : "!";
+                // Pachacutec: v34 - Resolución ultra-simplificada para Odoo 18
+                // Si el producto tiene cualquier impuesto asociado que no sea exento, FORZAMOS '!'
+                let tag = (char === "GC") ? "d0" : " "; // Default exento
+                
+                if (tax_records.length > 0) {
+                    const has_general = tax_records.some(t => t.x_tipo_alicuota === 'general');
+                    if (has_general) {
+                        tag = (char === "GC") ? "d1" : "!";
+                    }
                 } else {
-                    command += (char === "GC") ? "d0" : " ";
+                    // Pachacutec: v34 - Fallback final: si el producto tiene taxes_id en base, asumimos general para no perder IVA
+                    const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
+                    if (product?.taxes_id?.length > 0 || (product?.taxes_id?.records && product.taxes_id.records.length > 0)) {
+                        tag = (char === "GC") ? "d1" : "!";
+                        console.warn("[FISCAL] setLines - IVA Forzado por presencia de impuestos en producto.");
+                    }
                 }
+                command += tag;
 
                 let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
                 if (line.discount > 0) {
@@ -952,11 +963,17 @@ export const FiscalPrinterMixin = {
                 command += pEnt + pDec + qEnt + qDec;
 
                 // Añadir código de producto CON PIPES (v16 style)
-                if (line.product_id?.default_code) {
-                    command += "|" + line.product_id.default_code + "|";
+                let prod_code = line.product_id?.default_code || "";
+                if (!prod_code && typeof line.product_id === 'object') {
+                    // Odoo 18 Proxy fallback
+                    prod_code = line.product_id.records?.[0]?.default_code || "";
+                }
+                
+                if (prod_code) {
+                    command += "|" + prod_code + "|";
                 }
 
-                command += sanitize(line.product_id?.display_name || "");
+                command += sanitize(line.product_id?.display_name || line.product_name || "");
                 console.warn("[FISCAL] setLines - Comando v25 final:", command);
                 this.printerCommands.push(command);
 
