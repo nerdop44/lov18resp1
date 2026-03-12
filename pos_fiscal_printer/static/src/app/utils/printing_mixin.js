@@ -330,9 +330,9 @@ export const FiscalPrinterMixin = {
         this.printerCommands = ["S1"];
         this.printerCommands = this.printerCommands.map(toBytes);
         console.log("Escribiendo S1", this.printerCommands);
-        for (const command in this.printerCommands) {
+        for (const command of this.printerCommands) {
             await new Promise(
-                (res) => setTimeout(() => res(this.writer.write(this.printerCommands[command])), TIME)
+                (res) => setTimeout(() => res(this.writer.write(command)), TIME)
             );
         }
         window.clearTimeout(this.timeout);
@@ -514,10 +514,19 @@ export const FiscalPrinterMixin = {
     async actionPrint() {
         if (this.pos.config.connection_type === "api") {
             return this.printViaApi();
-        } else {
+        }
+
+        if (this.printing_lock) {
+            console.warn("[FISCAL] Bloqueo de concurrencia activo. Esperando...");
+            return;
+        }
+        this.printing_lock = true;
+        try {
             const result = await this.setPort();
             if (!result) return;
-            this.write();
+            await this.write();
+        } finally {
+            this.printing_lock = false;
         }
     },
 
@@ -900,12 +909,18 @@ export const FiscalPrinterMixin = {
                 try {
                     // Pachacutec: v32 - Resolución Nuclear buscando en múltiples campos de Odoo 18
                     const tax_ids = [];
-                    const line_data = line.records ? line.records[0] : line; // Odoo 18 Proxy safe
+                    // Pachacutec: v35 - Guardas ultra-seguras para Proxys de Odoo 18
+                    if (!line) return;
+                    const line_data = line.records ? line.records[0] : (line.tax_ids ? line : null);
                     
-                    if (line_data.tax_ids?.records) {
-                        line_data.tax_ids.records.forEach(r => tax_ids.push(r.id || r));
-                    } else if (Array.isArray(line_data.tax_ids)) {
-                        line_data.tax_ids.forEach(t => tax_ids.push(typeof t === 'object' ? t.id : t));
+                    if (line_data) {
+                        if (line_data.tax_ids?.records) {
+                            line_data.tax_ids.records.forEach(r => tax_ids.push(r.id || r));
+                        } else if (Array.isArray(line_data.tax_ids)) {
+                            line_data.tax_ids.forEach(t => tax_ids.push(typeof t === 'object' ? t.id : t));
+                        }
+                    } else {
+                        console.warn("[FISCAL] No se pudo resolver line_data para impuestos.");
                     }
 
                     // Fallback al producto
