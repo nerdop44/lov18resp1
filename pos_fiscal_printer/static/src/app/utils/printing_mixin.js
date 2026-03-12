@@ -862,46 +862,48 @@ export const FiscalPrinterMixin = {
 
     setTotal() {
         console.warn("[FISCAL] setTotal - Inicio");
-        this.printerCommands.push("3");
+        this.printerCommands.push("3"); // Subtotal
+
         const aplicar_igtf = this.pos.config.aplicar_igtf;
-        const es_nota = this.order.lines.some((l) => Boolean(l.refunded_orderline_id));
+        const has_divisas = this.order.payment_ids.some(p => p.payment_method_id?.x_is_foreign_exchange);
+        
+        // Pachacutec: v31 - El comando 199 (IGTF) debe enviarse ANTES de los pagos para que la impresora sepa que vienen cobros en divisas
+        if (aplicar_igtf && has_divisas) {
+            console.warn("[FISCAL] setTotal - Aplicando comando 199 (IGTF) previa a pagos");
+            this.printerCommands.push("199");
+        }
 
         const paymentlines = this.order.payment_ids;
-        console.warn("[FISCAL] setTotal - Pagos:", paymentlines.length, "Aplicar IGTF:", aplicar_igtf);
+        console.warn("[FISCAL] setTotal - Pagos:", paymentlines.length, "Divisas detectadas:", has_divisas);
+        
+        const processPayments = (filterFn) => {
+            paymentlines.filter(filterFn).forEach((payment, i, array) => {
+                const printer_code = payment.payment_method_id?.x_printer_code || '01';
+                if ((i + 1) === array.length && array.length === 1) {
+                    this.printerCommands.push("1" + printer_code);
+                } else {
+                    let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
+                    let [entero, decimal] = amountStr.split(",");
+                    entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
+                    this.printerCommands.push("2" + printer_code + entero + decimal);
+                }
+            });
+        };
+
+        const es_nota = this.order.lines.some((l) => Boolean(l.refunded_orderline_id));
         if (es_nota) {
-            paymentlines.filter((p) => p.amount < 0).forEach((payment, i, array) => {
-                const printer_code = payment.payment_method_id?.x_printer_code || '01';
-                if ((i + 1) === array.length && array.length === 1) {
-                    this.printerCommands.push("1" + printer_code);
-                } else {
-                    let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
-                    let [entero, decimal] = amountStr.split(",");
-                    entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
-                    this.printerCommands.push("2" + printer_code + entero + decimal);
-                }
-            });
+            processPayments(p => p.amount < 0);
         } else {
-            paymentlines.filter((p) => p.amount > 0).forEach((payment, i, array) => {
-                const printer_code = payment.payment_method_id?.x_printer_code || '01';
-                if ((i + 1) === array.length && array.length === 1) {
-                    this.printerCommands.push("1" + printer_code);
-                } else {
-                    let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
-                    let [entero, decimal] = amountStr.split(",");
-                    entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
-                    this.printerCommands.push("2" + printer_code + entero + decimal);
-                }
-            });
+            processPayments(p => p.amount > 0);
         }
 
-        if (aplicar_igtf) {
-            console.warn("[FISCAL] setTotal - Añadiendo comando 199");
-            this.printerCommands.push("199");
-        } else {
-            if (this.printerCommands[this.printerCommands.length - 1] !== '101') {
-                this.printerCommands.push("101");
-            }
+        // Pachacutec: v31 - Asegurar que el último comando sea un cierre 1XX si algo falló en la lógica anterior
+        const lastCmd = this.printerCommands[this.printerCommands.length - 1];
+        if (!lastCmd || lastCmd.length !== 3 || !lastCmd.startsWith("1")) {
+            console.warn("[FISCAL] setTotal - Forzando cierre 101");
+            this.printerCommands.push("101");
         }
+
         console.warn("[FISCAL] setTotal - Comandos finales:", this.printerCommands);
     },
 
@@ -918,32 +920,44 @@ export const FiscalPrinterMixin = {
             .forEach((line) => {
                 let command = "";
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Depurando lnea v30 (Model Resolution):", line);
+                console.warn("[FISCAL] setLines - Depurando lnea v31 (Strict Resolution):", line);
                 
                 try {
-                    // Pachacutec: v30 - Resolución forzada buscando en modelos base
-                    const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
+                    // Pachacutec: v31 - Resolución de impuestos blindada para Odoo 18 Proxies
+                    const tax_ids = [];
                     
-                    // Extraer los IDs de impuestos (pueden venir de la línea o del producto)
-                    const raw_ids = [];
-                    if (line.tax_ids?.records) line.tax_ids.records.forEach(r => raw_ids.push(r.id));
-                    else if (Array.isArray(line.tax_ids)) line.tax_ids.forEach(id => raw_ids.push(id.id || id));
+                    // 1. Intentar obtener IDs de la línea directamente (records collection)
+                    if (line.tax_ids?.records) {
+                        line.tax_ids.records.forEach(r => tax_ids.push(r.id));
+                    } else if (Array.isArray(line.tax_ids)) {
+                        line.tax_ids.forEach(id => tax_ids.push(typeof id === 'object' ? id.id : id));
+                    }
                     
-                    if (raw_ids.length === 0 && product?.taxes_id) {
-                        if (product.taxes_id.records) product.taxes_id.records.forEach(r => raw_ids.push(r.id));
-                        else if (Array.isArray(product.taxes_id)) product.taxes_id.forEach(id => raw_ids.push(id.id || id));
+                    // 2. Fallback a taxes_id (algunas variantes de v18)
+                    if (tax_ids.length === 0 && line.taxes_id) {
+                        if (line.taxes_id.records) line.taxes_id.records.forEach(r => tax_ids.push(r.id));
+                        else if (Array.isArray(line.taxes_id)) line.taxes_id.forEach(id => tax_ids.push(typeof id === 'object' ? id.id : id));
                     }
 
-                    // Resolver contra Pos Models
-                    tax_records = (raw_ids || [])
+                    // 3. Fallback al producto base si sigue vacío
+                    if (tax_ids.length === 0 && line.product_id) {
+                        const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
+                        const p_taxes = product?.taxes_id;
+                        if (p_taxes?.records) p_taxes.records.forEach(r => tax_ids.push(r.id));
+                        else if (Array.isArray(p_taxes)) p_taxes.forEach(id => tax_ids.push(typeof id === 'object' ? id.id : id));
+                    }
+
+                    // Resolver registros contra Pos Models
+                    tax_records = [...new Set(tax_ids)] // Únicos
+                        .filter(id => id)
                         .map(id => this.pos.models["account.tax"]?.get(id))
                         .filter(t => t && t.x_tipo_alicuota);
                     
                 } catch (e) {
-                    console.error("[FISCAL] Fallo en Model Resolution v30:", e);
+                    console.error("[FISCAL] Fallo en Strict Resolution v31:", e);
                 }
 
-                console.warn("[FISCAL] setLines - Impuestos Model (v30):", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
+                console.warn("[FISCAL] setLines - Impuestos Strict (v31):", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
 
                 if (!(tax_records.length) || tax_records.every((t) => (t.x_tipo_alicuota || "exento") === "exento")) {
                     command += (char === "GC") ? "d0" : " ";
