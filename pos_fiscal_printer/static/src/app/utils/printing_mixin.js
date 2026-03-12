@@ -185,21 +185,8 @@ export const FiscalPrinterMixin = {
                                 leer = false;
                                 await this.reader.releaseLock();
                                 this.reader = false;
-                                await new Promise(
-                                    (res) => setTimeout(() => res(), 100)
-                                );
-                                this.writer = this.port.writable.getWriter();
-                                var comando_desbloqueo = ["7"];
-                                var comando_desbloqueo = comando_desbloqueo.map(toBytes);
-                                for (const command of comando_desbloqueo) {
-                                    await new Promise(
-                                        (res) => setTimeout(() => res(this.writer.write(command)), 150)
-                                    );
-                                }
-                                await this.writer.releaseLock();
-                                this.writer = false;
-                                this.printing = false;
-                                return true;
+                                // Pachacutec: v33 - Eliminado desbloqueo automático '7' para evitar ruido en logs
+                                return false;
                             }
                         } else {
                             leer = false;
@@ -222,26 +209,16 @@ export const FiscalPrinterMixin = {
                     if (esperando > 20) {
                         await this.reader.releaseLock();
                         this.reader = false;
-                        var comando_desbloqueo = ["7"];
-                        var comando_desbloqueo = comando_desbloqueo.map(toBytes);
-                        this.writer = this.port.writable.getWriter();
-                        for (const command of comando_desbloqueo) {
-                            await new Promise(
-                                (res) => setTimeout(() => res(this.writer.write(command)), 150)
-                            );
-                        }
-                        await this.writer.releaseLock();
-                        this.writer = false;
+                        // Pachacutec: v33 - Eliminado desbloqueo automático '7' por timeout
+                        console.error("[FISCAL] Timeout esperando respuesta de impresora");
                         this.printing = false;
-                        return true;
+                        return false;
                     }
                 } catch (error) {
                     console.log("Error al leer puerto");
                     console.error(error);
                     leer = false;
-                    var comando_desbloqueo = ["7"];
-                    var comando_desbloqueo_cod = comando_desbloqueo.map(toBytes);
-                    // No release here as it's finally handled
+                    // Pachacutec: v33 - Eliminada anulación '7' en catch para evitar errores si la impresora está cerrada
                     return false;
                 } finally {
                     if (this.reader) {
