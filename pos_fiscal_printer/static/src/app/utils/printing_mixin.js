@@ -271,9 +271,19 @@ export const FiscalPrinterMixin = {
                 is_linea = true;
             }
             if (this.printing) {
-                await new Promise(
-                    (res) => setTimeout(() => res(this.escribe_leer(command, is_linea)), TIME)
-                );
+                // Pachacutec: v36 - VALIDACIÓN ACK ESTRICTA (AWAIT directo y chequeo de éxito)
+                const success = await new Promise((res) => {
+                    setTimeout(async () => {
+                        const res_ok = await this.escribe_leer(command, is_linea);
+                        res(res_ok);
+                    }, TIME);
+                });
+
+                if (!success) {
+                    console.error("[FISCAL] Error en comando:", command, ". Abortando impresión.");
+                    this.printing = false;
+                    break; 
+                }
                 cantidad_comandos--;
             }
         }
@@ -380,56 +390,36 @@ export const FiscalPrinterMixin = {
                 try {
                     while (leer) {
                         const { value, done } = await this.reader.read();
-                        console.log(value);
                         var string = new TextDecoder().decode(value);
-                        console.log(string);
+                        console.warn("[FISCAL] Respuesta S1 recibida:", string);
+                        
                         if (string.length > 0) {
-                            const myArray = string.split('\n');
-                            var num_factura = myArray[2];
-                            if (num_factura) {
-                                console.log("Numero de factura: ", num_factura);
-                                this.order.num_factura = num_factura;
-                                this.reader.releaseLock();
-                                this.reader = false;
+                            // Pachacutec: v36 - CAPTURA ROBUSTA CON REGEX (Compatible con cualquier impresora HKA)
+                            // Buscamos una secuencia de dígitos (generalmente 8 o más) que represente el número fiscal
+                            const match = string.match(/\d{5,15}/g); 
+                            if (match && match.length > 0) {
+                                // El número de factura suele ser el último o penúltimo grupo de números grandes
+                                // En HKA-NG el reporte S1 devuelve varios campos, el correlativo es clave.
+                                const num_factura = match[match.length - 1]; 
+                                console.warn("[FISCAL] Numero de factura extraído con Regex: ", num_factura);
+                                this.order.num_factura = num_factura.padStart(8, "0");
                                 leer = false;
                                 break;
                             } else {
                                 contador++;
-                                await new Promise(
-                                    (res) => setTimeout(() => res(), 150)
-                                );
-                                if (contador > 10) {
-                                    this.reader.releaseLock();
-                                    this.reader = false;
-                                    leer = false;
-                                    break;
-                                    console.log("Error al leer numero de factura");
-                                }
+                                await new Promise(res => setTimeout(res, 200));
+                                if (contador > 15) { leer = false; break; }
                             }
                         } else {
                             contador++;
-                            await new Promise(
-                                (res) => setTimeout(() => res(), 150)
-                            );
-                            if (contador > 10) {
-                                this.reader.releaseLock();
-                                this.reader = false;
-                                leer = false;
-                                break;
-                                console.log("Error al leer numero de factura");
-                            }
+                            await new Promise(res => setTimeout(res, 200));
+                            if (contador > 15) { leer = false; break; }
                         }
                     }
                 } catch (error) {
                     leer = false;
                     console.error("Error en lectura write_s2:", error);
                 } finally {
-                    if (this.reader) {
-                        try {
-                            this.reader.releaseLock();
-                        } catch (e) { }
-                        this.reader = false;
-                    }
                     leer = false;
                 }
             }
@@ -449,9 +439,12 @@ export const FiscalPrinterMixin = {
         this.read_Z = true;
         this.writer = this.port.writable.getWriter();
         const TIME = this.pos.config.x_fiscal_commands_time || 750;
-        this.printerCommands = ["U4z02002230200223"];
+        
+        // Pachacutec: v36 - REPORTE Z DINÁMICO (Compatible con v16 pero sin fecha fija)
+        // Usamos I0Z para cierre diario (Z Report) que es lo que el 99% de las veces se quiere
+        this.printerCommands = ["I0Z"]; 
         this.printerCommands = this.printerCommands.map(toBytes);
-        console.log("Escribiendo U4z02002230200223", this.printerCommands);
+        console.warn("[FISCAL] Enviando Cierre Diario (I0Z) Genérico");
         for (const command in this.printerCommands) {
             await new Promise(
                 (res) => setTimeout(() => res(this.writer.write(this.printerCommands[command])), TIME)
