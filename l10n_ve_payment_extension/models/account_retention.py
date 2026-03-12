@@ -26,6 +26,19 @@ class AccountRetention(models.Model):
     base_currency_is_vef = fields.Boolean(
         default=lambda self: self.env.company.currency_id == self.env.ref("base.VEF"),
     )
+    vef_currency_id = fields.Many2one(
+        "res.currency",
+        string="Moneda VEF",
+        compute="_compute_vef_currency_id",
+        help="Technical field for XML views that require the VEF currency object",
+    )
+
+    def _compute_vef_currency_id(self):
+        vef = self.env["res.currency"].search(
+            [("name", "in", ["VEF", "VES", "Bs.F"])], limit=1
+        )
+        for record in self:
+            record.vef_currency_id = vef
 
     company_id = fields.Many2one(
         "res.company",

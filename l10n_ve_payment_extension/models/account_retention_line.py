@@ -155,8 +155,13 @@ class AccountRetentionLine(models.Model):
             self.iva_amount = tax_totals.get('amount_tax', 0.0) 
             self.foreign_iva_amount = tax_totals.get('foreign_amount_tax', self.iva_amount) 
 
-            self.foreign_currency_rate = invoice.foreign_rate or 1.0
-
+            # Fallback robusto para la tasa
+            rate = invoice.foreign_rate or 1.0
+            if rate <= 1.0 and invoice.currency_id.name not in ['VEF', 'VES']:
+                if hasattr(invoice.company_id, 'currency_id_dif') and invoice.company_id.currency_id_dif:
+                    rate = invoice.company_id.currency_id_dif.inverse_rate or 1.0
+            
+            self.foreign_currency_rate = rate
             self.is_retention_client = invoice.move_type in ('out_invoice', 'out_refund', 'out_debit')
             self.invoice_type = invoice.move_type
 

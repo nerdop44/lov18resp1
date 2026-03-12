@@ -85,7 +85,7 @@ class AccountPaymentIgtf(models.Model):
                     payment.igtf_amount = payment_amount * (payment.igtf_percentage / 100)
 
     def _prepare_move_line_default_vals(
-        self, write_off_line_vals=None, force_balance=None
+        self, write_off_line_vals=None
     ):
         """Prepare values to create a new account.move.line for a payment.
         this method adds the igtf in the move line values to be created depending on the payment type

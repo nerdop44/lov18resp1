@@ -120,10 +120,13 @@ class AccountMoveLine(models.Model):
             line.name = line.move_id.name
         return res
 
-    @api.depends("price_unit", "foreign_inverse_rate")
+    @api.depends("price_unit", "foreign_inverse_rate", "currency_id", "foreign_currency_id")
     def _compute_foreign_price(self):
         for line in self:
-            line.foreign_price = line.price_unit * line.foreign_inverse_rate
+            if line.currency_id and line.foreign_currency_id and line.currency_id == line.foreign_currency_id:
+                line.foreign_price = line.price_unit
+            else:
+                line.foreign_price = line.price_unit * line.foreign_inverse_rate
 
     @api.depends("foreign_price", "quantity", "discount", "tax_ids", "price_unit")
     def _compute_foreign_subtotal(self):
