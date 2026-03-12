@@ -866,50 +866,47 @@ export const FiscalPrinterMixin = {
 
         const aplicar_igtf = this.pos.config.aplicar_igtf;
         const has_divisas = this.order.payment_ids.some(p => p.payment_method_id?.x_is_foreign_exchange);
-        
-        // Pachacutec: v31 - El comando 199 (IGTF) debe enviarse ANTES de los pagos para que la impresora sepa que vienen cobros en divisas
-        if (aplicar_igtf && has_divisas) {
-            console.warn("[FISCAL] setTotal - Aplicando comando 199 (IGTF) previa a pagos");
-            this.printerCommands.push("199");
-        }
+        const use_igtf_closing = aplicar_igtf && has_divisas;
 
         const paymentlines = this.order.payment_ids;
-        console.warn("[FISCAL] setTotal - Pagos:", paymentlines.length, "Divisas detectadas:", has_divisas);
+        console.warn("[FISCAL] setTotal - Pagos:", paymentlines.length, "Cierre IGTF (199):", use_igtf_closing);
         
-        const processPayments = (filterFn) => {
-            paymentlines.filter(filterFn).forEach((payment, i, array) => {
-                const printer_code = payment.payment_method_id?.x_printer_code || '01';
-                if ((i + 1) === array.length && array.length === 1) {
-                    this.printerCommands.push("1" + printer_code);
-                } else {
-                    let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
-                    let [entero, decimal] = amountStr.split(",");
-                    entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
-                    this.printerCommands.push("2" + printer_code + entero + decimal);
-                }
-            });
-        };
-
         const es_nota = this.order.lines.some((l) => Boolean(l.refunded_orderline_id));
-        if (es_nota) {
-            processPayments(p => p.amount < 0);
-        } else {
-            processPayments(p => p.amount > 0);
-        }
+        const active_payments = es_nota ? paymentlines.filter(p => p.amount < 0) : paymentlines.filter(p => p.amount > 0);
 
-        // Pachacutec: v31 - Asegurar que el último comando sea un cierre 1XX si algo falló en la lógica anterior
-        const lastCmd = this.printerCommands[this.printerCommands.length - 1];
-        if (!lastCmd || lastCmd.length !== 3 || !lastCmd.startsWith("1")) {
-            console.warn("[FISCAL] setTotal - Forzando cierre 101");
-            this.printerCommands.push("101");
+        active_payments.forEach((payment, i, array) => {
+            const printer_code = payment.payment_method_id?.x_printer_code || '01';
+            const is_last = (i + 1) === array.length;
+            
+            // Pachacutec: v32 - Si usamos cierre IGTF (199), TODOS los pagos deben enviarse con código 2 (parcial)
+            if (is_last && !use_igtf_closing) {
+                this.printerCommands.push("1" + printer_code);
+            } else {
+                let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
+                let [entero, decimal] = amountStr.split(",");
+                entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
+                this.printerCommands.push("2" + printer_code + entero + decimal);
+            }
+        });
+
+        // Pachacutec: v32 - El comando 199 CERRARÁ la factura si se detectaron divisas
+        if (use_igtf_closing) {
+            console.warn("[FISCAL] setTotal - Enviando cierre 199 (IGTF)");
+            this.printerCommands.push("199");
+        } else {
+            // Cierre preventivo 101 si no hay pagos o el último no cerró
+            const lastCmd = this.printerCommands[this.printerCommands.length - 1];
+            if (!lastCmd || lastCmd.length !== 3 || !lastCmd.startsWith("1")) {
+                this.printerCommands.push("101");
+            }
         }
 
         console.warn("[FISCAL] setTotal - Comandos finales:", this.printerCommands);
     },
 
     printFiscal() {
+        this.printerCommands.push("GF"); // Pachacutec: Apertura explícita de Factura Fiscal exigida por HKA-NG
         this.setHeader();
-        // Pachacutec: v30 - Removidos G0/7 para volver a la simplicidad de v16 que funcionaba
         this.setLines("GF");
         this.setTotal();
     },
@@ -917,30 +914,25 @@ export const FiscalPrinterMixin = {
     setLines(char) {
         console.warn("[FISCAL] setLines - Inicio con char:", char);
         this.order.lines
+            .filter(line => !line.x_is_igtf_line) // Pachacutec: No enviar líneas de IGTF, el comando 199 se encarga
             .forEach((line) => {
                 let command = "";
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Depurando lnea v31 (Strict Resolution):", line);
+                console.warn("[FISCAL] setLines - Depurando lnea v32 (Nuclear Resolution):", line);
                 
                 try {
-                    // Pachacutec: v31 - Resolución de impuestos blindada para Odoo 18 Proxies
+                    // Pachacutec: v32 - Resolución Nuclear buscando en múltiples campos de Odoo 18
                     const tax_ids = [];
+                    const line_data = line.records ? line.records[0] : line; // Odoo 18 Proxy safe
                     
-                    // 1. Intentar obtener IDs de la línea directamente (records collection)
-                    if (line.tax_ids?.records) {
-                        line.tax_ids.records.forEach(r => tax_ids.push(r.id));
-                    } else if (Array.isArray(line.tax_ids)) {
-                        line.tax_ids.forEach(id => tax_ids.push(typeof id === 'object' ? id.id : id));
-                    }
-                    
-                    // 2. Fallback a taxes_id (algunas variantes de v18)
-                    if (tax_ids.length === 0 && line.taxes_id) {
-                        if (line.taxes_id.records) line.taxes_id.records.forEach(r => tax_ids.push(r.id));
-                        else if (Array.isArray(line.taxes_id)) line.taxes_id.forEach(id => tax_ids.push(typeof id === 'object' ? id.id : id));
+                    if (line_data.tax_ids?.records) {
+                        line_data.tax_ids.records.forEach(r => tax_ids.push(r.id || r));
+                    } else if (Array.isArray(line_data.tax_ids)) {
+                        line_data.tax_ids.forEach(t => tax_ids.push(typeof t === 'object' ? t.id : t));
                     }
 
-                    // 3. Fallback al producto base si sigue vacío
-                    if (tax_ids.length === 0 && line.product_id) {
+                    // Fallback al producto
+                    if (tax_ids.length === 0) {
                         const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
                         const p_taxes = product?.taxes_id;
                         if (p_taxes?.records) p_taxes.records.forEach(r => tax_ids.push(r.id));
