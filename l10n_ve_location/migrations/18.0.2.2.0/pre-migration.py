@@ -1,9 +1,8 @@
 
 def migrate(cr, version):
-    # 1. Función de Limpieza de Huérfanos
-    # Borra registros duplicados que NO tengan XML ID y NO tengan socios vinculados en res_partner.
+    # --- SANEAMIENTO QUIRÚRGICO DE GEOGRAFÍA (V47) ---
     
-    # Limpieza de Parroquias (Nivel 3)
+    # 1. Limpieza de Parroquias Huérfanas
     cr.execute("""
         DELETE FROM res_country_parish
         WHERE id IN (
@@ -16,14 +15,12 @@ def migrate(cr, version):
                 HAVING COUNT(*) > 1
             ) dup ON p.code = dup.code AND p.municipality_id = dup.municipality_id
             WHERE p.id != dup.keep_id
-            -- No borrar si tiene socios
             AND NOT EXISTS (SELECT 1 FROM res_partner WHERE parish_id = p.id)
-            -- No borrar si tiene XML ID (external ID)
             AND NOT EXISTS (SELECT 1 FROM ir_model_data WHERE model = 'res.country.parish' AND res_id = p.id)
         );
     """)
 
-    # Limpieza de Municipios (Nivel 2)
+    # 2. Limpieza de Municipios Huérfanos
     cr.execute("""
         DELETE FROM res_country_municipality
         WHERE id IN (
@@ -42,7 +39,7 @@ def migrate(cr, version):
         );
     """)
 
-    # Limpieza de Estados (Nivel 1)
+    # 3. Limpieza de Estados Huérfanos
     cr.execute("""
         DELETE FROM res_country_state
         WHERE id IN (
@@ -61,15 +58,15 @@ def migrate(cr, version):
         );
     """)
 
-    # 2. Adopción Atómica Unificada (V46.1)
-    # Una vez limpio, asociamos los registros sobrevivientes a los XML IDs oficiales.
+    # --- ADOPCIÓN ATÓMICA UNIFICADA (V47) ---
+    # Usamos DISTINCT ON para blindar contra cualquier duplicado remanente que tenga vínculos.
     
     # Estados
     cr.execute("""
         INSERT INTO ir_model_data (name, module, model, res_id, noupdate)
         SELECT DISTINCT ON (row_num) 'res_country_state_' || sub.row_num, 'l10n_ve_location', 'res.country.state', sub.id, false
         FROM (
-            SELECT id, row_number() OVER (ORDER BY id) as row_num 
+            SELECT id, row_number() OVER (ORDER BY id ASC) as row_num 
             FROM res_country_state 
             WHERE country_id = (SELECT id FROM res_country WHERE code = 'VE')
             AND code IN ('DC', 'AM', 'AZ', 'AP', 'AR', 'BA', 'BO', 'CB', 'CJ', 'DA', 'FC', 'GR', 'LR', 'MD', 'MR', 'MN', 'NE', 'PT', 'SC', 'TC', 'TR', 'VA', 'YC', 'ZU', 'DF')
@@ -91,11 +88,11 @@ def migrate(cr, version):
     # Parroquias
     cr.execute("""
         INSERT INTO ir_model_data (name, module, model, res_id, noupdate)
-        SELECT DISTINCT ON (m.code) 'res_country_parish_' || (m.code::int), 'l10n_ve_location', 'res.country.parish', m.id, false
+        SELECT DISTINCT ON (m.code::int) 'res_country_parish_' || (m.code::int), 'l10n_ve_location', 'res.country.parish', m.id, false
         FROM res_country_parish m
         JOIN res_country_municipality mun ON m.municipality_id = mun.id
         WHERE mun.country_id = (SELECT id FROM res_country WHERE code = 'VE')
         AND m.code ~ '^[0-9]+$'
-        ORDER BY m.code, m.id ASC
+        ORDER BY m.code::int, m.id ASC
         ON CONFLICT (module, name) DO UPDATE SET res_id = EXCLUDED.res_id;
     """)
