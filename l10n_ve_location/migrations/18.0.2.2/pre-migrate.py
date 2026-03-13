@@ -1660,7 +1660,7 @@ VE_PARISHES = [
 ]
 
 def migrate(cr, version):
-    _logger.error("!!! STARTING THE GLOBAL REINFORCED HAMMER (V26) !!!")
+    _logger.error("!!! STARTING THE GLOBAL SURGICAL HAMMER (V27) !!!")
     
     cr.execute("SELECT id FROM res_country WHERE code='VE' LIMIT 1")
     ve_country = cr.fetchone()
@@ -1673,61 +1673,72 @@ def migrate(cr, version):
         if not s: return ''
         return s.lower().replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').strip()
 
-    # 1. PHYSICAL NORMALIZATION AND PREVENTIVE DE-DUPLICATION
-    cr.execute("UPDATE res_country_state SET code = REPLACE(code, 'L-', '') WHERE country_id = %s AND code LIKE 'L-%%'", (ve_id,))
-    _logger.error("SUPER HAMMER V26: Normalized state codes")
+    ve_states_canonical = [
+        ('Distrito Capital', 'DC'), ('Amazonas', 'AM'), ('Anzoátegui', 'AN'),
+        ('Apure', 'AP'), ('Aragua', 'AR'), ('Barinas', 'BA'),
+        ('Bolívar', 'BO'), ('Carabobo', 'CA'), ('Cojedes', 'CO'),
+        ('Delta Amacuro', 'DA'), ('Falcón', 'FA'), ('Guárico', 'GU'),
+        ('Lara', 'LA'), ('Mérida', 'ME'), ('Miranda', 'MI'),
+        ('Monagas', 'MO'), ('Nueva Esparta', 'NE'), ('Portuguesa', 'PO'),
+        ('Sucre', 'SU'), ('Táchira', 'TA'), ('Trujillo', 'TR'),
+        ('Vargas', 'VA'), ('Yaracuy', 'YA'), ('Zulia', 'ZU'),
+        ('Dependencias Federales', 'DF')
+    ]
 
-    # 2. GLOBAL DE-DUPLICATION BY NAME AND CODE
-    cr.execute("SELECT id, name, code FROM res_country_state WHERE country_id = %s ORDER BY id ASC", (ve_id,))
-    all_states = cr.fetchall()
-    seen_states = {} # {clean_name: master_id}
-    
-    for state_id, name, code in all_states:
+    # 1. SURGICAL STATE CLEANUP AND MERGE
+    for name, clean_code in ve_states_canonical:
         c_name = clean_string(name)
-        if c_name in seen_states:
-            master_id = seen_states[c_name]
-            other_id = state_id
-            _logger.error("SUPER HAMMER V26: Duplicate state found by name %s (%s). Merging %s into %s", name, code, other_id, master_id)
+        # Find all candidates by name or code (prefixed or not)
+        cr.execute("""
+            SELECT id, name, code FROM res_country_state 
+            WHERE country_id = %s 
+            AND (name ILIKE %s OR code = %s OR code = %s)
+            ORDER BY id ASC
+        """, (ve_id, name, clean_code, 'L-' + clean_code))
+        candidates = cr.fetchall()
+        
+        if not candidates:
+            _logger.error("SUPER HAMMER V27: State %s not found. Should be created by data files later.", name)
+            continue
             
-            # Reassign data
-            cr.execute("UPDATE res_partner SET state_id = %s WHERE state_id = %s", (master_id, other_id))
-            cr.execute("UPDATE res_company SET state_id = %s WHERE state_id = %s", (master_id, other_id))
-            cr.execute("UPDATE res_bank SET state_id = %s WHERE state_id = %s", (master_id, other_id))
-            
-            # Reassign municipalities rel
-            cr.execute("""
-                DELETE FROM res_country_municipality_res_country_state_rel 
-                WHERE res_country_state_id = %s 
-                AND res_country_municipality_id IN (
-                    SELECT res_country_municipality_id FROM res_country_municipality_res_country_state_rel WHERE res_country_state_id = %s
-                )
-            """, (other_id, master_id))
-            cr.execute("UPDATE res_country_municipality_res_country_state_rel SET res_country_state_id = %s WHERE res_country_state_id = %s", (master_id, other_id))
-            
-            # Delete duplicate
-            cr.execute("DELETE FROM res_country_state WHERE id = %s", (other_id,))
-        else:
-            seen_states[c_name] = state_id
+        master_id = candidates[0][0]
+        other_ids = [c[0] for c in candidates[1:]]
+        
+        if other_ids:
+            _logger.error("SUPER HAMMER V27: Merging duplicates for %s into Master ID %s. Others: %s", name, master_id, other_ids)
+            for other_id in other_ids:
+                # Reassign data
+                cr.execute("UPDATE res_partner SET state_id = %s WHERE state_id = %s", (master_id, other_id))
+                cr.execute("UPDATE res_company SET state_id = %s WHERE state_id = %s", (master_id, other_id))
+                cr.execute("UPDATE res_bank SET state_id = %s WHERE state_id = %s", (master_id, other_id))
+                
+                # Reassign municipalities rel (avoiding duplicates in rel table)
+                cr.execute("""
+                    DELETE FROM res_country_municipality_res_country_state_rel 
+                    WHERE res_country_state_id = %s 
+                    AND res_country_municipality_id IN (
+                        SELECT res_country_municipality_id FROM res_country_municipality_res_country_state_rel WHERE res_country_state_id = %s
+                    )
+                """, (other_id, master_id))
+                cr.execute("UPDATE res_country_municipality_res_country_state_rel SET res_country_state_id = %s WHERE res_country_state_id = %s", (master_id, other_id))
+                
+                # Delete duplicate
+                cr.execute("DELETE FROM res_country_state WHERE id = %s", (other_id,))
+
+        # 2. ENSURE MASTER HAS CLEAN CODE (No L- prefix)
+        cr.execute("""
+            UPDATE res_country_state SET code = %s WHERE id = %s
+        """, (clean_code, master_id))
+
+    _logger.error("SUPER HAMMER V27: State cleanup and merge finished.")
 
     # 3. PURGE ir_model_data FOR ALL RE-BINDING
     cr.execute("DELETE FROM ir_model_data WHERE module = 'l10n_ve_location' AND model IN ('res.country.state', 'res.country.municipality', 'res.country.parish')")
 
     # 4. BIND STATES (GLOBAL XMLID CHECK)
-    ve_states_data = {
-        'res_country_state_1': 'Distrito Capital', 'res_country_state_2': 'Amazonas', 'res_country_state_3': 'Anzoátegui',
-        'res_country_state_4': 'Apure', 'res_country_state_5': 'Aragua', 'res_country_state_6': 'Barinas',
-        'res_country_state_7': 'Bolívar', 'res_country_state_8': 'Carabobo', 'res_country_state_9': 'Cojedes',
-        'res_country_state_10': 'Delta Amacuro', 'res_country_state_11': 'Falcón', 'res_country_state_12': 'Guárico',
-        'res_country_state_13': 'Lara', 'res_country_state_14': 'Mérida', 'res_country_state_15': 'Miranda',
-        'res_country_state_16': 'Monagas', 'res_country_state_17': 'Nueva Esparta', 'res_country_state_18': 'Portuguesa',
-        'res_country_state_19': 'Sucre', 'res_country_state_20': 'Táchira', 'res_country_state_21': 'Trujillo',
-        'res_country_state_22': 'Vargas', 'res_country_state_23': 'Yaracuy', 'res_country_state_24': 'Zulia',
-        'res_country_state_25': 'Dependencias Federales'
-    }
-
-    for xmlid, name in ve_states_data.items():
-        clean_name = clean_string(name)
-        cr.execute("SELECT id FROM res_country_state WHERE country_id = %s AND (name ILIKE %s OR name ILIKE %s) ORDER BY id ASC LIMIT 1", (ve_id, name, clean_name))
+    for i, (name, clean_code) in enumerate(ve_states_canonical, 1):
+        xmlid = f'res_country_state_{i}'
+        cr.execute("SELECT id FROM res_country_state WHERE country_id = %s AND code = %s LIMIT 1", (ve_id, clean_code))
         res = cr.fetchone()
         if res:
             cr.execute("""
@@ -1767,4 +1778,4 @@ def migrate(cr, version):
                 ON CONFLICT (module, name) DO UPDATE SET res_id = EXCLUDED.res_id
             """, (xmlid, res[0]))
 
-    _logger.error("!!! GLOBAL REINFORCED HAMMER (V26) COMPLETED SUCCESSFULLY !!!")
+    _logger.error("!!! GLOBAL SURGICAL HAMMER (V27) COMPLETED SUCCESSFULLY !!!")
