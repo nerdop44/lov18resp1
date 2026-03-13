@@ -28,6 +28,10 @@ class AccountMove(models.Model):
                                       default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')],
                                                                                            limit=1), )
 
+    # Campos de compatibilidad (Alias para evitar errores de validación de vista)
+    currency_vef_id = fields.Many2one("res.currency", related="currency_id_dif", string="Moneda VEF (Compatibilidad)")
+    vef_currency_id = fields.Many2one("res.currency", related="currency_id_dif", string="Moneda VEF (Compatibilidad 2)")
+
     acuerdo_moneda = fields.Boolean(string="Acuerdo de Factura Bs.", default=False)
 
     tax_today = fields.Float(string="Tasa de Factura", store=True,

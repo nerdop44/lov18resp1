@@ -21,6 +21,11 @@ class AccountMoveLine(models.Model):
                                  compute="_credit_usd", readonly=False)
     tax_today = fields.Float(related="move_id.tax_today", store=True, string="Tasa del Asiento")
     currency_id_dif = fields.Many2one("res.currency", related="move_id.currency_id_dif", store=True)
+
+    # Campos de compatibilidad (Alias para evitar errores de validación de vista)
+    currency_vef_id = fields.Many2one("res.currency", related="currency_id_dif", string="Moneda VEF (Compatibilidad)")
+    vef_currency_id = fields.Many2one("res.currency", related="currency_id_dif", string="Moneda VEF (Compatibilidad 2)")
+
     price_unit_usd = fields.Monetary(currency_field='currency_id_dif', string='Precio $', store=True,
                                      compute='_price_unit_usd', readonly=False)
     price_subtotal_usd = fields.Monetary(currency_field='currency_id_dif', string='SubTotal $', store=True,
