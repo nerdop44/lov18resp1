@@ -167,74 +167,58 @@ export const FiscalPrinterMixin = {
                 try {
                     const { value, done } = await this.reader.read();
                     if (value.byteLength >= 1) {
-                        console.log("Respuesta de comando: ");
-                        console.log(value);
-                        console.log("Respuesta detallada: ");
-                        console.log(value[0]);
-                        if (true) {
-                            if (value[0] == 6) {
-                                leer = false;
-                                console.log("Finalizanda lectura");
-                                console.log("comando aceptado");
-                                await this.reader.releaseLock();
-                                this.reader = false;
-
-                                return true;
-                            } else {
-                                console.log("Comando no reconocido");
-                                leer = false;
-                                await this.reader.releaseLock();
-                                this.reader = false;
-                                // Pachacutec: v33 - Eliminado desbloqueo automático '7' para evitar ruido en logs
-                                return false;
-                            }
-                        } else {
+                        console.log("Respuesta de comando: ", value, " Byte 0: ", value[0]);
+                        
+                        if (value[0] == 6) {
+                            console.log("Comando aceptado (ACK)");
                             leer = false;
-                            console.log("Finalizanda lectura");
-                            console.log("comando aceptado");
+                            await this.reader.releaseLock();
+                            this.reader = false;
+                            return true;
+                        } else {
+                            console.error("[FISCAL] Impresora devolvió NAK. Intentando reset (7)...");
+                            leer = false;
                             await this.reader.releaseLock();
                             this.reader = false;
 
-                            return true;
+                            // Pachacutec: v37 - Reintroducción controlada del comando '7' (Reset)
+                            const reset_cmd = toBytes("7");
+                            if (this.port.writable) {
+                                this.writer = this.port.writable.getWriter();
+                                try {
+                                    await this.writer.write(reset_cmd);
+                                    console.warn("[FISCAL] Reset '7' enviado.");
+                                } catch (e) {
+                                    console.error("[FISCAL] Error enviando Reset '7'", e);
+                                } finally {
+                                    await this.writer.releaseLock();
+                                    this.writer = false;
+                                }
+                            }
+                            return false; 
                         }
-
                     } else {
-                        console.log("No hay datos");
-                        //esperar 150ms
+                        console.log("No hay datos...");
                         esperando++;
-                        await new Promise(
-                            (res) => setTimeout(() => res(), 200)
-                        );
+                        await new Promise(res => setTimeout(res, 200));
                     }
                     if (esperando > 20) {
-                        await this.reader.releaseLock();
-                        this.reader = false;
-                        // Pachacutec: v33 - Eliminado desbloqueo automático '7' por timeout
-                        console.error("[FISCAL] Timeout esperando respuesta de impresora");
+                        console.error("[FISCAL] Timeout esperando respuesta");
                         this.printing = false;
-                        return false;
+                        leer = false;
+                        break;
                     }
                 } catch (error) {
-                    console.log("Error al leer puerto");
-                    console.error(error);
+                    console.error("Error al leer puerto:", error);
                     leer = false;
-                    // Pachacutec: v33 - Eliminada anulación '7' en catch para evitar errores si la impresora está cerrada
-                    return false;
                 } finally {
                     if (this.reader) {
-                        try {
-                            await this.reader.releaseLock();
-                        } catch (e) { console.warn("Error releasing reader lock:", e); }
+                        try { await this.reader.releaseLock(); } catch (e) { }
                         this.reader = false;
-                    }
-                    if (this.writer) {
-                        try {
-                            await this.writer.releaseLock();
-                        } catch (e) { console.warn("Error releasing writer lock:", e); }
-                        this.writer = false;
                     }
                 }
             }
+            return false;
         } else {
             console.log("Error signals CTS: ", signals);
             await this.writer.releaseLock();
@@ -423,11 +407,20 @@ export const FiscalPrinterMixin = {
                     leer = false;
                 }
             }
-            await this.orm.call(
-                'pos.order',
-                'set_num_factura',
-                [this.order.id, this.order.name, this.order.num_factura]
-            );
+
+            // Pachacutec: v37 - Persistencia garantizada del estado 'impresa'
+            if (this.order.num_factura) {
+                console.warn("[FISCAL] Marcando orden como impresa permanentemente.");
+                this.order.impresa = true;
+                
+                await this.orm.call(
+                    'pos.order',
+                    'set_num_factura',
+                    [this.order.id, this.order.name, this.order.num_factura]
+                );
+            } else {
+                console.error("[FISCAL] Imposible marcar como impresa: número de factura no recibido.");
+            }
 
         }
 
@@ -443,13 +436,18 @@ export const FiscalPrinterMixin = {
         // Pachacutec: v36 - REPORTE Z DINÁMICO (Compatible con v16 pero sin fecha fija)
         // Usamos I0Z para cierre diario (Z Report) que es lo que el 99% de las veces se quiere
         this.printerCommands = ["I0Z"]; 
-        this.printerCommands = this.printerCommands.map(toBytes);
-        console.warn("[FISCAL] Enviando Cierre Diario (I0Z) Genérico");
-        for (const command in this.printerCommands) {
-            await new Promise(
-                (res) => setTimeout(() => res(this.writer.write(this.printerCommands[command])), TIME)
-            );
+        const command = this.printerCommands[0];
+        
+        // Pachacutec: v37 - VALIDACIÓN DE REPORTE (Usando escribe_leer para detectar errores)
+        if (this.writer) { await this.writer.releaseLock(); this.writer = false; }
+        
+        const success = await this.escribe_leer(command, false);
+        if (!success) {
+            console.error("[FISCAL] Error al solicitar Reporte Z.");
+            this.read_Z = false;
+            return;
         }
+
         window.clearTimeout(this.timeout);
         this.printerCommands = [];
         this.writer.releaseLock();

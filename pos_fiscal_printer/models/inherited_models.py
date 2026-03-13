@@ -71,7 +71,8 @@ class PosSession(models.Model):
         result['search_params']['fields'].extend([
             'x_fiscal_command_parity',
             'x_fiscal_command_baudrate',
-            'x_fiscal_printer_id'
+            'x_fiscal_printer_id',
+            'x_fiscal_printer_code'
         ])
         return result
 
