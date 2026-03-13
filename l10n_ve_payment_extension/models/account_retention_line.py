@@ -23,6 +23,7 @@ class AccountRetentionLine(models.Model):
     state = fields.Selection(related="retention_id.state")
     company_currency_id = fields.Many2one(related="retention_id.company_currency_id")
     foreign_currency_id = fields.Many2one(related="retention_id.foreign_currency_id")
+    vef_currency_id = fields.Many2one(related="retention_id.vef_currency_id", store=True)
     retention_id = fields.Many2one("account.retention", string="Retention", ondelete="cascade")
     invoice_type = fields.Selection(
         selection=[
@@ -67,8 +68,12 @@ class AccountRetentionLine(models.Model):
 #    retention_amount = fields.Float(
 #        digits="Tasa", compute="_compute_retention_amount", store=True, readonly=False
 #    )
-    foreign_retention_amount = fields.Float(
-        digits="Tasa", compute="_compute_retention_amount", store=True, readonly=False
+    foreign_retention_amount = fields.Monetary(
+        string="Monto Retenido (Bs.)",
+        currency_field="vef_currency_id", 
+        compute="_compute_retention_amount", 
+        store=True, 
+        readonly=False
     )
 
     payment_concept_id = fields.Many2one(
@@ -121,13 +126,23 @@ class AccountRetentionLine(models.Model):
     )
 
     # Montos en VEF (Bs.) — Regla universal venezolana
-    foreign_invoice_amount = fields.Float(
-        string="Base Imponible (Bs.)", compute="_compute_amounts", store=True, readonly=False
+    foreign_invoice_amount = fields.Monetary(
+        string="Base Imponible (Bs.)", 
+        currency_field="vef_currency_id",
+        compute="_compute_amounts", 
+        store=True, 
+        readonly=False
     )
-    foreign_invoice_total = fields.Float(string="Total Factura (Bs.)")
-    foreign_iva_amount = fields.Float(string="IVA (Bs.)")
-    foreign_currency_rate = fields.Float(string="Tasa (Extensión de Pago)")
-    foreign_currency_inverse_rate = fields.Float(string="Inverse Rate")
+    foreign_invoice_total = fields.Monetary(
+        string="Total Factura (Bs.)",
+        currency_field="vef_currency_id"
+    )
+    foreign_iva_amount = fields.Monetary(
+        string="IVA (Bs.)",
+        currency_field="vef_currency_id"
+    )
+    foreign_currency_rate = fields.Float(string="Tasa de Retención", digits=(12, 4))
+    foreign_currency_inverse_rate = fields.Float(string="Inverse Rate", digits=(12, 4))
 
     # Después de la definición de tus fields (campos) y antes de tus @api.depends o @api.onchange existentes.
     # Por ejemplo, puedes ponerlo después de 'foreign_currency_rate = fields.Float(string="Rate")'
@@ -155,11 +170,14 @@ class AccountRetentionLine(models.Model):
             self.iva_amount = tax_totals.get('amount_tax', 0.0) 
             self.foreign_iva_amount = tax_totals.get('foreign_amount_tax', self.iva_amount) 
 
-            # Fallback robusto para la tasa
-            rate = invoice.foreign_rate or 1.0
-            if rate <= 1.0 and invoice.currency_id.name not in ['VEF', 'VES']:
-                if hasattr(invoice.company_id, 'currency_id_dif') and invoice.company_id.currency_id_dif:
-                    rate = invoice.company_id.currency_id_dif.inverse_rate or 1.0
+            # Fallback robusto para la tasa: Priorizar fecha de la retención
+            retention_date = self.retention_id.date or fields.Date.context_today(self)
+            rate = invoice.currency_id._get_conversion_rate(
+                invoice.currency_id,
+                self.vef_currency_id,
+                self.company_id,
+                retention_date
+            ) or invoice.foreign_rate or 1.0
             
             self.foreign_currency_rate = rate
             self.is_retention_client = invoice.move_type in ('out_invoice', 'out_refund', 'out_debit')
@@ -243,12 +261,18 @@ class AccountRetentionLine(models.Model):
             # =====================================================================
             # REGLA UNIVERSAL VENEZOLANA: montos siempre en VEF para retenciones
             # =====================================================================
-            vef_currency = self.env.company.currency_foreign_id
+            vef_currency = record.vef_currency_id
             invoice_currency = record.move_id.currency_id
-            invoice_is_in_vef = (vef_currency and invoice_currency == vef_currency) or (
-                not vef_currency and invoice_currency == self.env.company.currency_id
-            )
-            foreign_rate = record.move_id.foreign_rate or 1.0
+            invoice_is_in_vef = (vef_currency and invoice_currency == vef_currency)
+            
+            # Tasa a la fecha de la retención
+            retention_date = record.retention_id.date or fields.Date.context_today(record)
+            foreign_rate = invoice_currency._get_conversion_rate(
+                invoice_currency,
+                vef_currency,
+                record.company_id,
+                retention_date
+            ) or record.move_id.foreign_rate or 1.0
 
             # Montos en moneda empresa
             amount_untaxed_company = tax_totals.get('base_amount_currency', tax_totals.get('base_amount', 0.0))

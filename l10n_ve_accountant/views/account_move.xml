@@ -34,10 +34,10 @@
 								<field name="iva_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
 								<field name="retention_amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef" />
 								<!-- Foreign Amounts -->
-								<field name="foreign_invoice_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef" />
-								<field name="foreign_iva_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef" />
-								<field name="foreign_invoice_total" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef" />
-								<field name="foreign_retention_amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef" />
+								<field name="foreign_invoice_amount" widget="monetary" options="{'currency_field': 'vef_currency_id'}" column_invisible="parent.base_currency_is_vef" />
+								<field name="foreign_iva_amount" widget="monetary" options="{'currency_field': 'vef_currency_id'}" column_invisible="parent.base_currency_is_vef" />
+								<field name="foreign_invoice_total" widget="monetary" options="{'currency_field': 'vef_currency_id'}" column_invisible="parent.base_currency_is_vef" />
+								<field name="foreign_retention_amount" widget="monetary" options="{'currency_field': 'vef_currency_id'}" column_invisible="parent.base_currency_is_vef" />
 								<field name="foreign_currency_rate" optional="hide"/>
 								<field name="state"/>
 							</list>
@@ -53,16 +53,16 @@
 								<field name="name"/>
 								<field name="payment_concept_id"/>
 								<field name="invoice_total" force_save="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" readonly="1" column_invisible="not parent.base_currency_is_vef"/>
-								<field name="foreign_invoice_total" force_save="1" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="1" column_invisible="parent.base_currency_is_vef"/>
+								<field name="foreign_invoice_total" force_save="1" widget="monetary" options="{'currency_field': 'vef_currency_id'}" readonly="1" column_invisible="parent.base_currency_is_vef"/>
 								<field name="invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef"/>
-								<field name="foreign_invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
+								<field name="foreign_invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'vef_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
 								<field name="related_pay_from" force_save="1" readonly="1" />
 								<field name="related_percentage_tax_base" force_save="1" readonly="1" />
 								<field name="related_percentage_fees" force_save="1" readonly="1" />
 								<field name="related_amount_subtract_fees" force_save="1" readonly="1" />
 								<field name="foreign_currency_rate" force_save="1" readonly="1" optional="hide" />
 								<field name="retention_amount" force_save="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" readonly="1" column_invisible="not parent.base_currency_is_vef"/>
-								<field name="foreign_retention_amount" widget="monetary" force_save="1" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
+								<field name="foreign_retention_amount" widget="monetary" force_save="1" options="{'currency_field': 'vef_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
 								<field name="state"/>
 							</list>
 						</field>
@@ -76,9 +76,9 @@
 								<field name="invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'company_currency_id'}" column_invisible="not parent.base_currency_is_vef"/>
 								<field name="invoice_total" force_save="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" readonly="1" column_invisible="not parent.base_currency_is_vef"/>
 								<field name="retention_amount" force_save="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" readonly="1" column_invisible="not parent.base_currency_is_vef"/>
-								<field name="foreign_invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
-								<field name="foreign_invoice_total" force_save="1" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="1" column_invisible="parent.base_currency_is_vef"/>
-								<field name="foreign_retention_amount" widget="monetary" force_save="1" options="{'currency_field': 'foreign_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
+								<field name="foreign_invoice_amount" force_save="1" string="Invoice Amount" widget="monetary" options="{'currency_field': 'vef_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
+								<field name="foreign_invoice_total" force_save="1" widget="monetary" options="{'currency_field': 'vef_currency_id'}" readonly="1" column_invisible="parent.base_currency_is_vef"/>
+								<field name="foreign_retention_amount" widget="monetary" force_save="1" options="{'currency_field': 'vef_currency_id'}" column_invisible="parent.base_currency_is_vef"/>
 								<field name="foreign_currency_rate" force_save="1" readonly="1" optional="hide" />
 								<field name="state" force_save="1"/>
 							</list>

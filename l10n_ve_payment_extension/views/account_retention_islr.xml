@@ -40,19 +40,19 @@
 									<field name="payment_concept_id" force_save="1"/>
 									<field name="is_retention_client" column_invisible="True"/>
 									<!-- Montos siempre en VEF (Bs.) — Regla universal de retenciones venezolanas -->
-									<field name="foreign_invoice_total" force_save="1" string="Total Factura (Bs.)" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="1"/>
-									<field name="foreign_invoice_amount" force_save="1" string="Base Imponible (Bs.)" widget="monetary" options="{'currency_field': 'foreign_currency_id'}"/>
+									<field name="foreign_invoice_total" force_save="1" string="Total Factura (Bs.)" widget="monetary" options="{'currency_field': 'vef_currency_id'}" readonly="1"/>
+									<field name="foreign_invoice_amount" force_save="1" string="Base Imponible (Bs.)" widget="monetary" options="{'currency_field': 'vef_currency_id'}"/>
 									<field name="related_pay_from" force_save="1" readonly="1" column_invisible="parent.type == 'out_invoice'"/>
 									<field name="related_percentage_tax_base" force_save="1" readonly="1" />
 									<field name="related_percentage_fees" force_save="1" readonly="1" />
 									<field name="related_amount_subtract_fees" force_save="1" readonly="1" />
 									<field name="foreign_currency_rate" force_save="1" readonly="1" optional="hide" string="Tasa de Retención"/>
-									<field name="foreign_retention_amount" force_save="1" string="Monto Retenido (Bs.)" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="parent.type == 'in_invoice'"/>
+									<field name="foreign_retention_amount" force_save="1" string="Monto Retenido (Bs.)" widget="monetary" options="{'currency_field': 'vef_currency_id'}" readonly="parent.type == 'in_invoice'"/>
 								</list>
 							</field>
 							<group col="2" colspan="2">
-								<field name="foreign_total_invoice_amount" widget="monetary" string="Total Facturado (Bs.)" options="{'currency_field': 'foreign_currency_id'}" />
-								<field name="foreign_total_retention_amount" widget="monetary" string="Total Retenido (Bs.)" options="{'currency_field': 'foreign_currency_id'}" />
+								<field name="foreign_total_invoice_amount" widget="monetary" string="Total Facturado (Bs.)" options="{'currency_field': 'vef_currency_id'}" />
+								<field name="foreign_total_retention_amount" widget="monetary" string="Total Retenido (Bs.)" options="{'currency_field': 'vef_currency_id'}" />
 							</group>
 						</page>
 						<page name="Payments" string="Pagos">

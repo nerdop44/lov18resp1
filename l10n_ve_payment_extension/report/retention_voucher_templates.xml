@@ -230,64 +230,34 @@
                                 <span>--</span>
                             </t>
                         </div>
-                        `<!-- Total Compras Incluyendo el IVA -->
-                        <div class="" style="width:7%">
+                                                <div class="" style="width:7%">
                             <span>
-				<t t-if="foreign_currency_is_vef">
-                                    <t t-esc="line.foreign_invoice_total"
-                                       t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_total" t-value="total_amount_total+str(line.foreign_invoice_total)"/>
-			    	</t>
-				<t t-else="">
-                                    <t t-esc="line.invoice_total"
-                                       t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_total" t-value="total_amount_total+str(line.invoice_total)"/>
-				</t>
+                                <t t-esc="line.foreign_invoice_total"
+                                   t-options='{"widget": "float", "precision": get_digits}'/>
+                                <t t-set="total_amount_total" t-value="total_amount_total+str(line.foreign_invoice_total)"/>
                             </span>
                         </div>
 
-                        <!-- sin derecho a Crédito IVA -->
                         <div class="" style="width:7%">
-			    <t t-if="foreign_currency_is_vef">
-				<t t-set="amount_except"
-				   t-value="sum(line.move_id.invoice_line_ids.filtered(lambda l: l.tax_ids.amount == 0).mapped('foreign_subtotal'))"/>
-			    </t>
-			    <t t-else="">
-				<t t-set="amount_except"
-				   t-value="sum(line.move_id.invoice_line_ids.filtered(lambda l: l.tax_ids.amount == 0).mapped('price_subtotal'))"/>
-			    </t>
+                            <t t-set="amount_except"
+                               t-value="sum(line.move_id.invoice_line_ids.filtered(lambda l: l.tax_ids.amount == 0).mapped('foreign_subtotal'))"/>
                             <span t-esc="amount_except"
                                   t-options='{"widget": "float", "precision": get_digits}'/>
                             <t t-set="amount_except" t-value="total_amount_amount_except + amount_except"/>
                         </div>
 
 
-                        <!-- Base Imponible -->
                         <div class="" style="width:10%">
-			    <t t-if="foreign_currency_is_vef">
-				<t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
-				    <span t-esc="-line.foreign_invoice_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="invoice_amount" t-value="float(invoice_amount - line.foreign_invoice_amount)"/>
-				</t>
-				<t t-else="">
-				    <span t-esc="line.foreign_invoice_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="invoice_amount" t-value="float(invoice_amount + line.foreign_invoice_amount) "/>
-				</t>
-			    </t>
-			    <t t-else="">
-				<t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
-				    <span t-esc="-line.invoice_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="invoice_amount" t-value="float(invoice_amount - line.invoice_amount)"/>
-				</t>
-				<t t-else="">
-				    <span t-esc="line.invoice_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="invoice_amount" t-value="float(invoice_amount + line.invoice_amount)"/>
-				</t>
-			    </t>
+                            <t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
+                                <span t-esc="-line.foreign_invoice_amount"
+                                      t-options='{"widget": "float", "precision": get_digits}'/>
+                                <t t-set="invoice_amount" t-value="float(invoice_amount - line.foreign_invoice_amount)"/>
+                            </t>
+                            <t t-else="">
+                                <span t-esc="line.foreign_invoice_amount"
+                                      t-options='{"widget": "float", "precision": get_digits}'/>
+                                <t t-set="invoice_amount" t-value="float(invoice_amount + line.foreign_invoice_amount) "/>
+                            </t>
                         </div>
 
                         <!-- % Alic -->
@@ -299,61 +269,31 @@
                             <span t-esc="line.related_percentage_tax_base"/>
                         </div>
 
-                        <!-- Impuesto IVA -->
                         <div class="" style="width:10%">
-			    <t t-if="foreign_currency_is_vef">
-				<t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
-				    <span t-esc="-line.foreign_iva_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_tax" t-value="float(total_amount_tax - line.foreign_iva_amount)"/>
-				</t>
-				<t t-else="">
-				    <span t-esc="line.foreign_iva_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_tax" t-value="float(total_amount_tax + line.foreign_iva_amount) "/>
-				</t>
-			    </t>
-			    <t t-else="">
-				<t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
-				    <span t-esc="-line.iva_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_tax" t-value="float(total_amount_tax - line.iva_amount)"/>
-				</t>
-				<t t-else="">
-				    <span t-esc="line.iva_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_tax" t-value="float(total_amount_tax + line.iva_amount) "/>
-				</t>
-			    </t>
+                            <t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
+                                <span t-esc="-line.foreign_iva_amount"
+                                      t-options='{"widget": "float", "precision": get_digits}'/>
+                                <t t-set="total_amount_tax" t-value="float(total_amount_tax - line.foreign_iva_amount)"/>
+                            </t>
+                            <t t-else="">
+                                <span t-esc="line.foreign_iva_amount"
+                                      t-options='{"widget": "float", "precision": get_digits}'/>
+                                <t t-set="total_amount_tax" t-value="float(total_amount_tax + line.foreign_iva_amount) "/>
+                            </t>
                         </div>
 
-                        <!-- IVA Retenido -->
                         <div class="" style="width:10%">
-			    <t t-if="foreign_currency_is_vef">
-				<t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
-				    <span t-esc="-line.foreign_retention_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_to_pay" t-value="float(total_amount_to_pay - line.foreign_retention_amount)"/>
-				</t>
-				<t t-else="">
-				    <span t-esc="line.foreign_retention_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_to_pay" t-value="float(total_amount_to_pay + line.foreign_retention_amount) "/>
-				</t>
-			    </t>
-			    <t t-else="">
-				<t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
-				    <span t-esc="-line.retention_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_to_pay" t-value="float(total_amount_to_pay - line.retention_amount)"/>
-				</t>
-				<t t-else="">
-				    <span t-esc="line.retention_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_to_pay" t-value="float(total_amount_to_pay + line.retention_amount) "/>
-				</t>
-			    </t>
-			</div>
+                            <t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
+                                <span t-esc="-line.foreign_retention_amount"
+                                      t-options='{"widget": "float", "precision": get_digits}'/>
+                                <t t-set="total_amount_to_pay" t-value="float(total_amount_to_pay - line.foreign_retention_amount)"/>
+                            </t>
+                            <t t-else="">
+                                <span t-esc="line.foreign_retention_amount"
+                                      t-options='{"widget": "float", "precision": get_digits}'/>
+                                <t t-set="total_amount_to_pay" t-value="float(total_amount_to_pay + line.foreign_retention_amount) "/>
+                            </t>
+                        </div>
                     </div>
                 </t>
             </div>
@@ -624,35 +564,18 @@
                         <div style="width:15%">
                             <span t-esc="line.payment_concept_id.name">--</span>
                         </div>
-                        <!-- Total Factura -->
                         <div style="width:15%">
-			    <t t-if="foreign_currency_is_vef">
-                            	<span t-field="line.foreign_invoice_total"
-                                      t-options='{"widget": "float", "precision": get_digits}'>
-                                    --
-                            	</span>
-		    	    </t>
-			    <t t-else="">
-                            	<span t-field="line.invoice_total"
-                                      t-options='{"widget": "float", "precision": get_digits}'>
-                                    --
-                            	</span>
-		    	    </t>
+                            <span t-field="line.foreign_invoice_total"
+                                  t-options='{"widget": "float", "precision": get_digits}'>
+                                --
+                            </span>
                         </div>
                         <!-- Base de Retención -->
                         <div style="width:15%">
-			    <t t-if="foreign_currency_is_vef">
-                            	<span t-field="line.foreign_invoice_amount"
-                                      t-options='{"widget": "float", "precision": get_digits}'>
-                                    --
-                        	</span>
-			    </t>
-			    <t t-else="">
-                            	<span t-field="line.invoice_amount"
-                                      t-options='{"widget": "float", "precision": get_digits}'>
-                                    --
-                        	</span>
-			    </t>
+                            <span t-field="line.foreign_invoice_amount"
+                                  t-options='{"widget": "float", "precision": get_digits}'>
+                                --
+                            </span>
                         </div>
                         <!-- Tarifa de Retención -->
                         <div style="width:5%">
@@ -664,33 +587,17 @@
 			    <span t-field="line.related_amount_subtract_fees"
 				  t-options='{"widget": "float", "precision": 2}'/>
                         </div>
-                        <!-- imp Retenido -->
-                        <t t-set="retention_amount" t-value="0"/>
                         <div style="width:15%">
-			    <t t-if="foreign_currency_is_vef">
-				<t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
-				    <span t-esc="-line.foreign_retention_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="imp" t-value="float(imp - line.foreign_retention_amount)"/>
-				</t>
-				<t t-else="">
-				    <span t-esc="line.foreign_retention_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="imp" t-value="float(imp + line.foreign_retention_amount) "/>
-				</t>
-			    </t>
-			    <t t-else="">
-				<t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
-				    <span t-esc="-line.retention_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="imp" t-value="float(imp - line.retention_amount)"/>
-				</t>
-				<t t-else="">
-				    <span t-esc="line.retention_amount"
-					  t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="imp" t-value="float(imp + line.retention_amount) "/>
-				</t>
-			    </t>
+                            <t t-if="line.move_id.move_type in ('in_refund', 'out_refund')">
+                                <span t-esc="-line.foreign_retention_amount"
+                                      t-options='{"widget": "float", "precision": get_digits}'/>
+                                <t t-set="imp" t-value="float(imp - line.foreign_retention_amount)"/>
+                            </t>
+                            <t t-else="">
+                                <span t-esc="line.foreign_retention_amount"
+                                      t-options='{"widget": "float", "precision": get_digits}'/>
+                                <t t-set="imp" t-value="float(imp + line.foreign_retention_amount) "/>
+                            </t>
                         </div>
                     </div>
                 </t>

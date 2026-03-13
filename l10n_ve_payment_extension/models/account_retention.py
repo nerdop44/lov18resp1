@@ -30,13 +30,18 @@ class AccountRetention(models.Model):
         "res.currency",
         string="Moneda VEF",
         compute="_compute_vef_currency_id",
+        store=True,
         help="Technical field for XML views that require the VEF currency object",
     )
 
+    @api.depends("company_id")
     def _compute_vef_currency_id(self):
         vef = self.env["res.currency"].search(
-            [("name", "in", ["VEF", "VES", "Bs.F"])], limit=1
+            [("name", "in", ["VES", "VEF", "Bs.F"])], limit=1
         )
+        if not vef:
+             # Fallback: buscar por país si no hay por nombre
+             vef = self.env.ref("base.VE", raise_if_not_found=False).currency_id
         for record in self:
             record.vef_currency_id = vef
 
@@ -144,17 +149,22 @@ class AccountRetention(models.Model):
         help="Retained Amount Total",
     )
 
-    foreign_total_invoice_amount = fields.Float(
+    foreign_total_invoice_amount = fields.Monetary(
         string="Total Facturado (Bs.)",
+        currency_field="vef_currency_id",
         compute="_compute_totals",
         help="Total base imponible en VEF",
         store=True,
     )
-    foreign_total_iva_amount = fields.Float(
-        string="Total IVA (Bs.)", compute="_compute_totals", store=True
+    foreign_total_iva_amount = fields.Monetary(
+        string="Total IVA (Bs.)", 
+        currency_field="vef_currency_id",
+        compute="_compute_totals", 
+        store=True
     )
-    foreign_total_retention_amount = fields.Float(
+    foreign_total_retention_amount = fields.Monetary(
         string="Total Retenido (Bs.)",
+        currency_field="vef_currency_id",
         compute="_compute_totals",
         store=True,
         help="Total monto retenido en VEF",
@@ -608,8 +618,8 @@ class AccountRetention(models.Model):
             if move.move_type in ("in_refund", "out_refund"):
                 payment_type = "inbound" if partner_type == "supplier" else "outbound"
 
-            # Moneda del pago: VEF (Regla universal venezolana)
-            currency_vef = self.env.company.currency_foreign_id
+            # Moneda del pago: Bolívares (Estandarización Universal)
+            currency_vef = self.vef_currency_id
             # Monto en VEF
             total_retention_vef = sum(lines.mapped("foreign_retention_amount"))
             # Tasa
@@ -1341,7 +1351,7 @@ class AccountRetention(models.Model):
                     "foreign_rate": line.move_id.foreign_rate,
                     "foreign_inverse_rate": line.move_id.foreign_inverse_rate,
                     "retention_line_ids": [(4, line.id)],
-                    "currency_id": self.env.user.company_id.currency_id.id,
+                    "currency_id": self.vef_currency_id.id,
                     'amount': line.retention_amount, # <--- AÑADE ESTA LÍNEA
                     'payment_concept_id': line.payment_concept_id.id if line.payment_concept_id else False, # <--- AÑADE ESTA LÍNEA
                     'date': self.date_accounting, # <--- AÑADE ESTA LÍNEA
@@ -1534,8 +1544,7 @@ class AccountRetention(models.Model):
             tax_totals = invoice_id.tax_totals
 
             # Identificar el VEF como moneda objetivo de retención
-            # Se asume que company.currency_foreign_id es VEF (configurado por el módulo)
-            vef_currency = self.env.company.currency_foreign_id
+            vef_currency = self.vef_currency_id
             invoice_currency = invoice_id.currency_id
 
             # Tasa de la factura (moneda empresa → VEF)
