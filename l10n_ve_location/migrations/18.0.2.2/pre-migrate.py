@@ -1660,7 +1660,7 @@ VE_PARISHES = [
 ]
 
 def migrate(cr, version):
-    _logger.error("!!! STARTING THE FINAL DEFENSIVE HAMMER (V28) !!!")
+    _logger.error("!!! STARTING THE DEEP GEOGRAPHIC HAMMER (V29) !!!")
     
     cr.execute("SELECT id FROM res_country WHERE code='VE' LIMIT 1")
     ve_country = cr.fetchone()
@@ -1692,9 +1692,8 @@ def migrate(cr, version):
         ('Dependencias Federales', 'DF')
     ]
 
-    # 1. SURGICAL STATE CLEANUP AND MERGE (DEFENSIVE)
+    # 1. DEEP STATE CLEANUP AND MERGE
     for name, clean_code in ve_states_canonical:
-        # Find all candidates by name or code (prefixed or not)
         cr.execute("""
             SELECT id FROM res_country_state 
             WHERE country_id = %s 
@@ -1710,41 +1709,48 @@ def migrate(cr, version):
         other_ids = candidates[1:]
         
         if other_ids:
-            _logger.error("SUPER HAMMER V28: Merging duplicates for %s into Master ID %s. Others: %s", name, master_id, other_ids)
+            _logger.error("SUPER HAMMER V29: Merging deep dependencies for %s into Master ID %s. Others: %s", name, master_id, other_ids)
             for other_id in other_ids:
-                # Reassign res_partner (Essential)
+                # A. Reassign res_partner
                 cr.execute("UPDATE res_partner SET state_id = %s WHERE state_id = %s", (master_id, other_id))
                 
-                # Reassign res_company (Only if column exists - Odoo 18 usually doesn't have it)
+                # B. Reassign res_country_municipality (THE CRITICAL MISSING LINK)
+                if column_exists('res_country_municipality', 'state_id'):
+                    cr.execute("UPDATE res_country_municipality SET state_id = %s WHERE state_id = %s", (master_id, other_id))
+                
+                # C. Reassign res_country_parish (Defensive)
+                if column_exists('res_country_parish', 'state_id'):
+                    cr.execute("UPDATE res_country_parish SET state_id = %s WHERE state_id = %s", (master_id, other_id))
+                
+                # D. Reassign res_company
                 if column_exists('res_company', 'state_id'):
                     cr.execute("UPDATE res_company SET state_id = %s WHERE state_id = %s", (master_id, other_id))
                 
-                # Reassign res_bank (Only if column exists)
+                # E. Reassign res_bank
                 if column_exists('res_bank', 'state_id'):
                     cr.execute("UPDATE res_bank SET state_id = %s WHERE state_id = %s", (master_id, other_id))
                 
-                # Reassign municipalities rel (avoiding duplicates in rel table)
-                cr.execute("""
-                    DELETE FROM res_country_municipality_res_country_state_rel 
-                    WHERE res_country_state_id = %s 
-                    AND res_country_municipality_id IN (
-                        SELECT res_country_municipality_id FROM res_country_municipality_res_country_state_rel WHERE res_country_state_id = %s
-                    )
-                """, (other_id, master_id))
-                cr.execute("UPDATE res_country_municipality_res_country_state_rel SET res_country_state_id = %s WHERE res_country_state_id = %s", (master_id, other_id))
+                # F. Reassign municipalities M2M rel
+                if column_exists('res_country_municipality_res_country_state_rel', 'res_country_state_id'):
+                    cr.execute("""
+                        DELETE FROM res_country_municipality_res_country_state_rel 
+                        WHERE res_country_state_id = %s 
+                        AND res_country_municipality_id IN (
+                            SELECT res_country_municipality_id FROM res_country_municipality_res_country_state_rel WHERE res_country_state_id = %s
+                        )
+                    """, (other_id, master_id))
+                    cr.execute("UPDATE res_country_municipality_res_country_state_rel SET res_country_state_id = %s WHERE res_country_state_id = %s", (master_id, other_id))
                 
-                # Delete duplicate
+                # G. Final deletion of the ghost state
                 cr.execute("DELETE FROM res_country_state WHERE id = %s", (other_id,))
 
-        # 2. ENSURE MASTER HAS CLEAN CODE (No L- prefix)
-        cr.execute("""
-            UPDATE res_country_state SET code = %s WHERE id = %s
-        """, (clean_code, master_id))
+        # 2. ENSURE MASTER HAS CLEAN CODE
+        cr.execute("UPDATE res_country_state SET code = %s WHERE id = %s", (clean_code, master_id))
 
-    # 3. PURGE ir_model_data (PREVENT DUPLICATE XMLIDs)
+    # 3. PURGE ir_model_data
     cr.execute("DELETE FROM ir_model_data WHERE module = 'l10n_ve_location' AND model IN ('res.country.state', 'res.country.municipality', 'res.country.parish')")
 
-    # 4. RE-BIND STATES
+    # 4. RE-BIND DATA (IDEMPOTENT)
     for i, (name, clean_code) in enumerate(ve_states_canonical, 1):
         xmlid = f'res_country_state_{i}'
         cr.execute("SELECT id FROM res_country_state WHERE country_id = %s AND code = %s LIMIT 1", (ve_id, clean_code))
@@ -1756,7 +1762,6 @@ def migrate(cr, version):
                 ON CONFLICT (module, name) DO UPDATE SET res_id = EXCLUDED.res_id
             """, (xmlid, res[0]))
 
-    # 5. RE-BIND MUNICIPALITIES (SKIP IF ALREADY BOUND CORRECTLY)
     for xmlid, name, state_xmlid in VE_MUNICIPALITIES:
         cr.execute("""
             SELECT m.id FROM res_country_municipality m
@@ -1772,7 +1777,6 @@ def migrate(cr, version):
                 ON CONFLICT (module, name) DO UPDATE SET res_id = EXCLUDED.res_id
             """, (xmlid, res[0]))
 
-    # 6. RE-BIND PARISHES
     for xmlid, name, muni_xmlid in VE_PARISHES:
         cr.execute("""
             SELECT p.id FROM res_country_parish p
@@ -1787,4 +1791,4 @@ def migrate(cr, version):
                 ON CONFLICT (module, name) DO UPDATE SET res_id = EXCLUDED.res_id
             """, (xmlid, res[0]))
 
-    _logger.error("!!! FINAL DEFENSIVE HAMMER (V28) COMPLETED SUCCESSFULLY !!!")
+    _logger.error("!!! DEEP GEOGRAPHIC HAMMER (V29) COMPLETED SUCCESSFULLY !!!")
