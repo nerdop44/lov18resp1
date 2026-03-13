@@ -42,6 +42,9 @@ class AccountFiscalyearClosing(models.Model):
         readonly=True,
         states={"draft": [("readonly", False)]},
     )
+    date_start = fields.Date(string="Start Date", readonly=True)
+    date_end = fields.Date(string="End Date", readonly=True)
+    date_opening = fields.Date(string="Opening Move Date", readonly=True)
     check_draft_moves = fields.Boolean(
         readonly=True,
         states={"draft": [("readonly", False)]},
