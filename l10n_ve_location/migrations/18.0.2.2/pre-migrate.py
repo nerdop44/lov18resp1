@@ -1659,8 +1659,8 @@ VE_PARISHES = [
     ('res_country_parish_1319', 'Santos Marquina', 'res_country_municipality_171'),
 ]
 
-def migrate(cr, installed_version):
-    _logger.error("!!! STARTING THE GLOBAL REINFORCED HAMMER (V24) !!!")
+def migrate(cr, version):
+    _logger.error("!!! STARTING THE GLOBAL REINFORCED HAMMER (V26) !!!")
     
     cr.execute("SELECT id FROM res_country WHERE code='VE' LIMIT 1")
     ve_country = cr.fetchone()
@@ -1675,7 +1675,7 @@ def migrate(cr, installed_version):
 
     # 1. PHYSICAL NORMALIZATION AND PREVENTIVE DE-DUPLICATION
     cr.execute("UPDATE res_country_state SET code = REPLACE(code, 'L-', '') WHERE country_id = %s AND code LIKE 'L-%%'", (ve_id,))
-    _logger.error("SUPER HAMMER V24: Normalized state codes")
+    _logger.error("SUPER HAMMER V26: Normalized state codes")
 
     # 2. GLOBAL DE-DUPLICATION BY NAME AND CODE
     cr.execute("SELECT id, name, code FROM res_country_state WHERE country_id = %s ORDER BY id ASC", (ve_id,))
@@ -1687,7 +1687,7 @@ def migrate(cr, installed_version):
         if c_name in seen_states:
             master_id = seen_states[c_name]
             other_id = state_id
-            _logger.error("SUPER HAMMER V24: Duplicate state found by name %s (%s). Merging %s into %s", name, code, other_id, master_id)
+            _logger.error("SUPER HAMMER V26: Duplicate state found by name %s (%s). Merging %s into %s", name, code, other_id, master_id)
             
             # Reassign data
             cr.execute("UPDATE res_partner SET state_id = %s WHERE state_id = %s", (master_id, other_id))
@@ -1767,4 +1767,4 @@ def migrate(cr, installed_version):
                 ON CONFLICT (module, name) DO UPDATE SET res_id = EXCLUDED.res_id
             """, (xmlid, res[0]))
 
-    _logger.error("!!! GLOBAL REINFORCED HAMMER (V24) COMPLETED SUCCESSFULLY !!!")
+    _logger.error("!!! GLOBAL REINFORCED HAMMER (V26) COMPLETED SUCCESSFULLY !!!")
