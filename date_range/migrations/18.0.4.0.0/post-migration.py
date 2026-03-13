@@ -1,8 +1,12 @@
-from openupgradelib import openupgrade
+try:
+    from openupgradelib import openupgrade
+except ImportError:
+    openupgrade = None
 
 
-@openupgrade.migrate()
 def migrate(env, version):
+    if not openupgrade:
+        return
     if openupgrade.table_exists(env.cr, "date_range_res_company_rel"):
         openupgrade.logged_query(
             env.cr,
