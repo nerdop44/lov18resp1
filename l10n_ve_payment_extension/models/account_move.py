@@ -84,10 +84,11 @@ class AccountMoveRetention(models.Model):
                 move.invoice_date = move.date
 
     def _compute_currency_fields(self):
+        vef_currency = self.env.ref("base.VEF", raise_if_not_found=False) or \
+                       self.env.ref("base.VES", raise_if_not_found=False) or \
+                       self.env["res.currency"].search([("name", "in", ["VES", "VEF"])], limit=1)
         for retention in self:
-            retention.base_currency_is_vef = self.env.company.currency_id == self.env.ref(
-                "base.VEF"
-            )
+            retention.base_currency_is_vef = vef_currency and self.env.company.currency_id == vef_currency
 
     def action_post(self):
         """

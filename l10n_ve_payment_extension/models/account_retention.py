@@ -36,12 +36,20 @@ class AccountRetention(models.Model):
 
     @api.depends("company_id")
     def _compute_vef_currency_id(self):
+        # 1. Intentar buscar por nombre estándar
         vef = self.env["res.currency"].search(
             [("name", "in", ["VES", "VEF", "Bs.F"])], limit=1
         )
         if not vef:
-             # Fallback: buscar por país si no hay por nombre
-             vef = self.env.ref("base.VE", raise_if_not_found=False).currency_id
+             # 2. Intentar buscar por país (minúsculas - estándar Odoo 17+)
+             country_ve = self.env.ref("base.ve", raise_if_not_found=False)
+             if not country_ve:
+                 # 3. Intentar buscar por país (mayúsculas - legado o variaciones)
+                 country_ve = self.env.ref("base.VE", raise_if_not_found=False)
+             
+             if country_ve:
+                 vef = country_ve.currency_id
+        
         for record in self:
             record.vef_currency_id = vef
 

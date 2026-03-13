@@ -317,7 +317,10 @@ class AccountRetentionLine(models.Model):
                 
     @api.depends("invoice_amount", "foreign_invoice_amount", "foreign_currency_rate")
     def _compute_amounts(self):
-        base_currency_is_vef = self.env.company.currency_id == self.env.ref("base.VEF")
+        vef_currency = self.env.ref("base.VEF", raise_if_not_found=False) or \
+                       self.env.ref("base.VES", raise_if_not_found=False) or \
+                       self.env["res.currency"].search([("name", "in", ["VES", "VEF"])], limit=1)
+        base_currency_is_vef = vef_currency and self.env.company.currency_id == vef_currency
         if not base_currency_is_vef:
             for record in self:
                 if not record.move_id:
@@ -463,7 +466,10 @@ class AccountRetentionLine(models.Model):
             if record.retention_amount == 0 and record.foreign_retention_amount == 0:
                 raise ValidationError(_("You cannot create a retention line with a zero retention amount."))
 
-            is_vef_the_base_currency = self.env.company.currency_id == self.env.ref("base.VEF")
+            vef_currency = self.env.ref("base.VEF", raise_if_not_found=False) or \
+                           self.env.ref("base.VES", raise_if_not_found=False) or \
+                           self.env["res.currency"].search([("name", "in", ["VES", "VEF"])], limit=1)
+            is_vef_the_base_currency = vef_currency and self.env.company.currency_id == vef_currency
             is_client_retention = record.retention_id and record.retention_id.type == "out_invoice"
 
             if (is_vef_the_base_currency and is_client_retention and record.move_id
