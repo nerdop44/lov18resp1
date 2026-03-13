@@ -1,12 +1,15 @@
+from odoo import api, SUPERUSER_ID
+
 try:
     from openupgradelib import openupgrade
 except ImportError:
     openupgrade = None
 
 
-def migrate(env, version):
+def migrate(cr, version):
     if not openupgrade:
         return
+    env = api.Environment(cr, SUPERUSER_ID, {})
     if openupgrade.table_exists(env.cr, "date_range_res_company_rel"):
         openupgrade.logged_query(
             env.cr,
