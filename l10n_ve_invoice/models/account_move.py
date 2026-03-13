@@ -26,32 +26,6 @@ class AccountMove(models.Model):
 
     next_installment_date = fields.Date(compute="_compute_next_installment_date")
 
-    # INICIO DE LAS MODIFICACIONES SUGERIDAS PARA RELACIONAR CON account.retention.line
-    retention_iva_line_ids = fields.One2many(
-        'account.retention.line',
-        'move_id',
-        string='Retenciones de IVA',
-        domain=[('type_retention', '=', 'iva')],
-        readonly=True,
-        copy=False,
-    )
-    retention_islr_line_ids = fields.One2many(
-        'account.retention.line',
-        'move_id',
-        string='Retenciones de ISLR',
-        domain=[('type_retention', '=', 'islr')],
-        readonly=True,
-        copy=False,
-    )
-    retention_municipal_line_ids = fields.One2many(
-        'account.retention.line',
-        'move_id',
-        string='Retenciones Municipales',
-        domain=[('type_retention', '=', 'municipal')],
-        readonly=True,
-        copy=False,
-    )
-    # FIN DE LAS MODIFICACIONES SUGERIDAS
    
     @api.constrains("correlative", "journal_id.is_contingency")
     def _check_correlative(self):
