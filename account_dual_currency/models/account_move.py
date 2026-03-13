@@ -323,8 +323,8 @@ class AccountMove(models.Model):
         'line_ids.full_reconcile_id','tax_today')
     def _compute_amount(self):
         for move in self:
-            self.env.context = dict(self.env.context, tasa_factura=move.tax_today, calcular_dual_currency=True)
-            super(AccountMove, self)._compute_amount()
+            move_ctx = move.with_context(tasa_factura=move.tax_today, calcular_dual_currency=True)
+            super(AccountMove, move_ctx)._compute_amount()
             total_residual = 0.0
             total = 0.0
             for line in move.line_ids:
@@ -339,7 +339,6 @@ class AccountMove(models.Model):
                         total_residual += line.amount_residual_usd
             move.amount_residual_usd = total_residual
             move.amount_total_signed_usd = abs(total) if move.move_type == 'entry' else -total
-        self.env.context = dict(self.env.context, tasa_factura=None, calcular_dual_currency=False)
 
     @api.depends(
         'tax_totals',
@@ -348,14 +347,26 @@ class AccountMove(models.Model):
     def _amount_all_usd(self):
         for rec in self:
             if rec.is_invoice(include_receipts=True) and rec.tax_totals:
-                amount_untaxed = rec.tax_totals.get('amount_untaxed', 0)
+                # Odoo 18 usa una estructura de tax_totals diferente (summary)
+                # Intentamos obtener montos del formato nuevo primero, luego del legado
+                amount_untaxed = rec.tax_totals.get('amount_untaxed')
+                if amount_untaxed is None:
+                    # Formato legado o alternativo
+                    amount_untaxed = rec.tax_totals.get('base_amount_currency', 0)
+                
                 amount_tax = 0
-                for product, income in rec.tax_totals.get('groups_by_subtotal', {}).items():
-                    ###print(product, income)
-                    for l in income:
-                        amount_tax += l.get('tax_group_amount', 0)
+                if 'groups_by_subtotal' in rec.tax_totals:
+                    for product, income in rec.tax_totals.get('groups_by_subtotal', {}).items():
+                        for l in income:
+                            amount_tax += l.get('tax_group_amount', 0)
+                else:
+                    # Formato Odoo 18 summary
+                    amount_tax = rec.tax_totals.get('tax_amount_currency', 0)
 
-                amount_total = rec.tax_totals.get('amount_total', 0)
+                amount_total = rec.tax_totals.get('amount_total')
+                if amount_total is None:
+                    amount_total = rec.tax_totals.get('total_amount_currency', 0)
+
                 if rec.currency_id != self.env.company.currency_id:
                     rec.amount_untaxed_usd = rec.amount_untaxed
                     rec.amount_tax_usd = rec.amount_tax

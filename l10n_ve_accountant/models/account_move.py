@@ -146,18 +146,8 @@ class AccountMove(models.Model):
             rec.base_currency_is_vef = (rec.company_id.currency_id == vef_currency)
     # === FIN DE LA MODIFICACIÓN PARA base_currency_is_vef ===
 
-    _sql_constraints = [
-        (
-            "unique_name",
-            "",
-            "Another entry with the same name already exists.",
-        ),
-        (
-            "unique_name_ve",
-            "",
-            "Another entry with the same name already exists.",
-        ),
-    ]
+    # _sql_constraints eliminados porque se gestionan manualmente en _auto_init para permitir índices parciales
+    _sql_constraints = []
 
     detailed_amounts = fields.Binary(compute="_compute_detailed_amounts")
 
