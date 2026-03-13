@@ -1660,7 +1660,7 @@ VE_PARISHES = [
 ]
 
 def migrate(cr, version):
-    _logger.error("!!! STARTING THE DEEP GEOGRAPHIC HAMMER (V29) !!!")
+    _logger.error("!!! STARTING THE ATOMIC GEOGRAPHIC HAMMER (V30) !!!")
     
     cr.execute("SELECT id FROM res_country WHERE code='VE' LIMIT 1")
     ve_country = cr.fetchone()
@@ -1668,10 +1668,6 @@ def migrate(cr, version):
         _logger.error("VENEZUELA NOT FOUND")
         return
     ve_id = ve_country[0]
-
-    def clean_string(s):
-        if not s: return ''
-        return s.lower().replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').strip()
 
     def column_exists(table, column):
         cr.execute("""
@@ -1692,7 +1688,7 @@ def migrate(cr, version):
         ('Dependencias Federales', 'DF')
     ]
 
-    # 1. DEEP STATE CLEANUP AND MERGE
+    # 1. ATOMIC STATE CLEANUP AND MERGE
     for name, clean_code in ve_states_canonical:
         cr.execute("""
             SELECT id FROM res_country_state 
@@ -1709,28 +1705,21 @@ def migrate(cr, version):
         other_ids = candidates[1:]
         
         if other_ids:
-            _logger.error("SUPER HAMMER V29: Merging deep dependencies for %s into Master ID %s. Others: %s", name, master_id, other_ids)
+            _logger.error("SUPER HAMMER V30: Merging ATOMIC dependencies for %s into Master ID %s. Others: %s", name, master_id, other_ids)
             for other_id in other_ids:
-                # A. Reassign res_partner
-                cr.execute("UPDATE res_partner SET state_id = %s WHERE state_id = %s", (master_id, other_id))
+                # LIST OF ALL POTENTIAL TABLES WITH state_id
+                target_tables = [
+                    'res_partner', 'res_company', 'res_bank', 
+                    'res_country_municipality', 'res_country_parish', 
+                    'res_country_city', 'res_country_neighborhood'
+                ]
                 
-                # B. Reassign res_country_municipality (THE CRITICAL MISSING LINK)
-                if column_exists('res_country_municipality', 'state_id'):
-                    cr.execute("UPDATE res_country_municipality SET state_id = %s WHERE state_id = %s", (master_id, other_id))
+                for table in target_tables:
+                    if column_exists(table, 'state_id'):
+                        cr.execute(f"UPDATE {table} SET state_id = %s WHERE state_id = %s", (master_id, other_id))
                 
-                # C. Reassign res_country_parish (Defensive)
-                if column_exists('res_country_parish', 'state_id'):
-                    cr.execute("UPDATE res_country_parish SET state_id = %s WHERE state_id = %s", (master_id, other_id))
-                
-                # D. Reassign res_company
-                if column_exists('res_company', 'state_id'):
-                    cr.execute("UPDATE res_company SET state_id = %s WHERE state_id = %s", (master_id, other_id))
-                
-                # E. Reassign res_bank
-                if column_exists('res_bank', 'state_id'):
-                    cr.execute("UPDATE res_bank SET state_id = %s WHERE state_id = %s", (master_id, other_id))
-                
-                # F. Reassign municipalities M2M rel
+                # SPECIAL HANDLING FOR OTHER GEOGRAPHIC DATA LINKS
+                # Municipality-State M2M Rel
                 if column_exists('res_country_municipality_res_country_state_rel', 'res_country_state_id'):
                     cr.execute("""
                         DELETE FROM res_country_municipality_res_country_state_rel 
@@ -1741,7 +1730,7 @@ def migrate(cr, version):
                     """, (other_id, master_id))
                     cr.execute("UPDATE res_country_municipality_res_country_state_rel SET res_country_state_id = %s WHERE res_country_state_id = %s", (master_id, other_id))
                 
-                # G. Final deletion of the ghost state
+                # FINAL DELETION (Now safe from FK violations)
                 cr.execute("DELETE FROM res_country_state WHERE id = %s", (other_id,))
 
         # 2. ENSURE MASTER HAS CLEAN CODE
@@ -1750,7 +1739,7 @@ def migrate(cr, version):
     # 3. PURGE ir_model_data
     cr.execute("DELETE FROM ir_model_data WHERE module = 'l10n_ve_location' AND model IN ('res.country.state', 'res.country.municipality', 'res.country.parish')")
 
-    # 4. RE-BIND DATA (IDEMPOTENT)
+    # 4. RE-BIND DATA (IDEMPOTENT CREATION/UPDATE)
     for i, (name, clean_code) in enumerate(ve_states_canonical, 1):
         xmlid = f'res_country_state_{i}'
         cr.execute("SELECT id FROM res_country_state WHERE country_id = %s AND code = %s LIMIT 1", (ve_id, clean_code))
@@ -1791,4 +1780,4 @@ def migrate(cr, version):
                 ON CONFLICT (module, name) DO UPDATE SET res_id = EXCLUDED.res_id
             """, (xmlid, res[0]))
 
-    _logger.error("!!! DEEP GEOGRAPHIC HAMMER (V29) COMPLETED SUCCESSFULLY !!!")
+    _logger.error("!!! ATOMIC GEOGRAPHIC HAMMER (V30) COMPLETED SUCCESSFULLY !!!")
