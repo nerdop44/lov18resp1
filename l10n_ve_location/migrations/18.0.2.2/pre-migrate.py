@@ -1660,7 +1660,7 @@ VE_PARISHES = [
 ]
 
 def migrate(cr, version):
-    _logger.error("!!! STARTING THE GLOBAL SURGICAL HAMMER (V27) !!!")
+    _logger.error("!!! STARTING THE FINAL DEFENSIVE HAMMER (V28) !!!")
     
     cr.execute("SELECT id FROM res_country WHERE code='VE' LIMIT 1")
     ve_country = cr.fetchone()
@@ -1672,6 +1672,13 @@ def migrate(cr, version):
     def clean_string(s):
         if not s: return ''
         return s.lower().replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').strip()
+
+    def column_exists(table, column):
+        cr.execute("""
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = %s AND column_name = %s
+        """, (table, column))
+        return bool(cr.fetchone())
 
     ve_states_canonical = [
         ('Distrito Capital', 'DC'), ('Amazonas', 'AM'), ('Anzoátegui', 'AN'),
@@ -1685,32 +1692,36 @@ def migrate(cr, version):
         ('Dependencias Federales', 'DF')
     ]
 
-    # 1. SURGICAL STATE CLEANUP AND MERGE
+    # 1. SURGICAL STATE CLEANUP AND MERGE (DEFENSIVE)
     for name, clean_code in ve_states_canonical:
-        c_name = clean_string(name)
         # Find all candidates by name or code (prefixed or not)
         cr.execute("""
-            SELECT id, name, code FROM res_country_state 
+            SELECT id FROM res_country_state 
             WHERE country_id = %s 
             AND (name ILIKE %s OR code = %s OR code = %s)
             ORDER BY id ASC
         """, (ve_id, name, clean_code, 'L-' + clean_code))
-        candidates = cr.fetchall()
+        candidates = [c[0] for c in cr.fetchall()]
         
         if not candidates:
-            _logger.error("SUPER HAMMER V27: State %s not found. Should be created by data files later.", name)
             continue
             
-        master_id = candidates[0][0]
-        other_ids = [c[0] for c in candidates[1:]]
+        master_id = candidates[0]
+        other_ids = candidates[1:]
         
         if other_ids:
-            _logger.error("SUPER HAMMER V27: Merging duplicates for %s into Master ID %s. Others: %s", name, master_id, other_ids)
+            _logger.error("SUPER HAMMER V28: Merging duplicates for %s into Master ID %s. Others: %s", name, master_id, other_ids)
             for other_id in other_ids:
-                # Reassign data
+                # Reassign res_partner (Essential)
                 cr.execute("UPDATE res_partner SET state_id = %s WHERE state_id = %s", (master_id, other_id))
-                cr.execute("UPDATE res_company SET state_id = %s WHERE state_id = %s", (master_id, other_id))
-                cr.execute("UPDATE res_bank SET state_id = %s WHERE state_id = %s", (master_id, other_id))
+                
+                # Reassign res_company (Only if column exists - Odoo 18 usually doesn't have it)
+                if column_exists('res_company', 'state_id'):
+                    cr.execute("UPDATE res_company SET state_id = %s WHERE state_id = %s", (master_id, other_id))
+                
+                # Reassign res_bank (Only if column exists)
+                if column_exists('res_bank', 'state_id'):
+                    cr.execute("UPDATE res_bank SET state_id = %s WHERE state_id = %s", (master_id, other_id))
                 
                 # Reassign municipalities rel (avoiding duplicates in rel table)
                 cr.execute("""
@@ -1730,12 +1741,10 @@ def migrate(cr, version):
             UPDATE res_country_state SET code = %s WHERE id = %s
         """, (clean_code, master_id))
 
-    _logger.error("SUPER HAMMER V27: State cleanup and merge finished.")
-
-    # 3. PURGE ir_model_data FOR ALL RE-BINDING
+    # 3. PURGE ir_model_data (PREVENT DUPLICATE XMLIDs)
     cr.execute("DELETE FROM ir_model_data WHERE module = 'l10n_ve_location' AND model IN ('res.country.state', 'res.country.municipality', 'res.country.parish')")
 
-    # 4. BIND STATES (GLOBAL XMLID CHECK)
+    # 4. RE-BIND STATES
     for i, (name, clean_code) in enumerate(ve_states_canonical, 1):
         xmlid = f'res_country_state_{i}'
         cr.execute("SELECT id FROM res_country_state WHERE country_id = %s AND code = %s LIMIT 1", (ve_id, clean_code))
@@ -1747,7 +1756,7 @@ def migrate(cr, version):
                 ON CONFLICT (module, name) DO UPDATE SET res_id = EXCLUDED.res_id
             """, (xmlid, res[0]))
 
-    # 5. BIND MUNICIPALITIES (REINFORCED)
+    # 5. RE-BIND MUNICIPALITIES (SKIP IF ALREADY BOUND CORRECTLY)
     for xmlid, name, state_xmlid in VE_MUNICIPALITIES:
         cr.execute("""
             SELECT m.id FROM res_country_municipality m
@@ -1763,7 +1772,7 @@ def migrate(cr, version):
                 ON CONFLICT (module, name) DO UPDATE SET res_id = EXCLUDED.res_id
             """, (xmlid, res[0]))
 
-    # 6. BIND PARISHES (REINFORCED)
+    # 6. RE-BIND PARISHES
     for xmlid, name, muni_xmlid in VE_PARISHES:
         cr.execute("""
             SELECT p.id FROM res_country_parish p
@@ -1778,4 +1787,4 @@ def migrate(cr, version):
                 ON CONFLICT (module, name) DO UPDATE SET res_id = EXCLUDED.res_id
             """, (xmlid, res[0]))
 
-    _logger.error("!!! GLOBAL SURGICAL HAMMER (V27) COMPLETED SUCCESSFULLY !!!")
+    _logger.error("!!! FINAL DEFENSIVE HAMMER (V28) COMPLETED SUCCESSFULLY !!!")
