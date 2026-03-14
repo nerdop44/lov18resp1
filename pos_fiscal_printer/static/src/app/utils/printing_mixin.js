@@ -886,7 +886,6 @@ export const FiscalPrinterMixin = {
     },
 
     printFiscal() {
-        this.printerCommands.push("GF"); // Pachacutec: Apertura explícita de Factura Fiscal exigida por HKA-NG
         this.setHeader();
         this.setLines("GF");
         this.setTotal();
@@ -1011,7 +1010,6 @@ export const FiscalPrinterMixin = {
     async printNotaCredito() {
         const { confirmed, payload } = await this.env.services.dialog.add(NotaCreditoPopUp);
         if (!confirmed) return false;
-        this.printerCommands.push("GC"); // Apertura de Nota de Crédito
         this.setHeader(payload);
         this.setLines("GC");
         this.setTotal();
