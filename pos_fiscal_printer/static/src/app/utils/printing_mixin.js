@@ -981,7 +981,7 @@ export const FiscalPrinterMixin = {
                 
                 let prod_code = line.product_id?.default_code;
                 if (prod_code) {
-                    command += "|" + prod_code + "|";
+                    command += prod_code + " ";
                 }
                 command += sanitize(line.product_id?.display_name || line.product_name || "Producto");
 
