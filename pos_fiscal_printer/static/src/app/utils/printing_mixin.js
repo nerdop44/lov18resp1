@@ -869,14 +869,16 @@ export const FiscalPrinterMixin = {
             const printer_code = payment.payment_method_id?.x_printer_code || '01';
             const is_last = (i + 1) === array.length;
             
-            // Pachacutec: v32 - Si usamos cierre IGTF (199), TODOS los pagos deben enviarse con código 2 (parcial)
+            let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",").replace(",", "");
+            let monto = amountStr.padStart(10, "0"); // v57 - Monto 10 dígitos (Pachacutec)
+
+            // Pachacutec: v57 - Enviar monto incluso en el comando de cierre (1) para asegurar impresión
             if (is_last && !use_igtf_closing) {
-                this.printerCommands.push("1" + printer_code);
+                console.warn("[FISCAL] v57 - Enviando Pago Final con Monto:", "1" + printer_code + monto);
+                this.printerCommands.push("1" + printer_code + monto);
             } else {
-                let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",");
-                let [entero, decimal] = amountStr.split(",");
-                entero = this.pos.config.flag_21 === '30' ? entero.padStart(15, "0") : entero.padStart(10, "0");
-                this.printerCommands.push("2" + printer_code + entero + decimal);
+                console.warn("[FISCAL] v57 - Enviando Pago Parcial:", "2" + printer_code + monto);
+                this.printerCommands.push("2" + printer_code + monto);
             }
         });
 
@@ -958,10 +960,12 @@ export const FiscalPrinterMixin = {
                             .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota || t.amount !== undefined || t.attr?.amount !== undefined)); 
                         
                         if (tax_records.length === 0) {
-                            console.error("[FISCAL] v53 - FALLO CRÍTICO: No se hallaron impuestos en el modelo para IDs:", tax_ids);
-                            console.warn("[FISCAL] v53 - IDs en DataStore:", tax_model.getAll().map(t => t.id).join(", "));
+                            console.error("[FISCAL] v57 - FALLO CRÍTICO: No se hallaron impuestos en el modelo para IDs:", tax_ids);
+                            // Log profundo de todo el DataStore de impuestos
+                            const all_taxes = tax_model.getAll();
+                            console.warn("[FISCAL] v57 - DataStore completo:", JSON.stringify(all_taxes.map(t => ({id: t.id, name: t.display_name, amount: t.amount}))));
                         } else {
-                            console.warn("[FISCAL] v53 - Impuestos cargados:", tax_records.length);
+                            console.warn("[FISCAL] v57 - Impuestos cargados:", tax_records.length);
                         }
                     } else {
                         console.error("[FISCAL] v53 - DataStore 'account.tax' NO EXISTE!");
