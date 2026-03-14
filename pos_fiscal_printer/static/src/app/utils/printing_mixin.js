@@ -10,11 +10,13 @@ const CHAR_MAP = {
 };
 const EXPRESSION = new RegExp(`[${Object.keys(CHAR_MAP).join("")}]`, "g");
 
-export function sanitize(string) {
+// Pachacutec: v52 - cleanText solo para campos de texto (no para comandos)
+export function cleanText(string) {
     if (!string) return "";
-    // v51 - Sanitización extrema: Solo caracteres básicos y sin pipes
     const clean = string.replace(EXPRESSION, (char) => CHAR_MAP[char] || char);
-    return clean.replace(/[|!@#$%^&*()_+={}\[\]:;"'<>,.?\/\\~`]/g, " ").substring(0, 36).trim();
+    // Solo removemos caracteres que REALMENTE rompen el protocolo HKA en campos de texto
+    // Mantenemos *, !, | porque aquí solo entran nombres, pero por si acaso los escapamos
+    return clean.replace(/[|*!]/g, " ").substring(0, 36).trim();
 }
 
 export function toBytes(command) {
@@ -253,8 +255,8 @@ export const FiscalPrinterMixin = {
 
         const TIME = this.pos.config.x_fiscal_commands_time || 750;
         this.printing = true;
-        this.printerCommands = this.printerCommands.map(sanitize);
-        console.log("Comandos: ", this.printerCommands);
+        // Pachacutec: v52 - ELIMINADA sanitización global que borraba '!', '*', '|'
+        console.log("Comandos a enviar: ", this.printerCommands);
         var cantidad_comandos = this.printerCommands.length;
         for (const command of this.printerCommands) {
             var is_linea = false;
@@ -666,7 +668,7 @@ export const FiscalPrinterMixin = {
             showConfirmButton: false,
         });
 
-        const commands = this.printerCommands.map(sanitize);
+        const commands = this.printerCommands; // v52 - No mas map(sanitize) aqui
         console.warn("[FISCAL] printViaApi - Comandos a enviar:", commands);
 
         var body = JSON.stringify({
@@ -838,10 +840,10 @@ export const FiscalPrinterMixin = {
         else vat = prefix + vat; // v51 - Remover guion '-' para compatibilidad HKA directa
 
         this.printerCommands.push("iR*" + vat);
-        this.printerCommands.push("iS*" + sanitize(client.name || "Cliente Contado"));
+        this.printerCommands.push("iS*" + cleanText(client.name || "Cliente Contado"));
 
         this.printerCommands.push("i00Teléfono: " + (client.phone || "No tiene"));
-        this.printerCommands.push("i01Dirección: " + sanitize(client.street || "No tiene"));
+        this.printerCommands.push("i01Dirección: " + cleanText(client.street || "No tiene"));
         this.printerCommands.push("i02Email: " + (client.email || "No tiene"));
         if (this.order.pos_reference) {
             this.printerCommands.push("i03Ref: " + this.order.pos_reference);
@@ -940,25 +942,28 @@ export const FiscalPrinterMixin = {
                     // Resolver contra el modelo global de POS (DataStore en v18)
                     const tax_model = this.pos.models["account.tax"];
                     if (tax_model) {
-                        // v51 - Búsqueda robusta (Number vs String ID)
+                        // v52 - Búsqueda ultra-robusta (Number vs String ID vs find)
                         tax_records = tax_ids
                             .map(id => {
-                                let rec = tax_model.get(id) || tax_model.get(String(id));
+                                // En v18 a veces el get(551) falla si el ID es '551' o viceversa
+                                let rec = tax_model.get(id) || tax_model.get(String(id)) || tax_model.get(Number(id));
                                 if (!rec) {
-                                    // Búsqueda por iteración como último recurso
-                                    rec = tax_model.getAll().find(t => t.id == id || (t.attr && t.attr.id == id));
+                                    // Búsqueda por iteración manual (DataStore fallback)
+                                    rec = tax_model.getAll().find(t => String(t.id) === String(id));
                                 }
                                 return rec;
                             })
                             .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota));
                         
                         if (tax_records.length === 0) {
-                            console.error("[FISCAL] v51 - FALLO TOTAL de carga de impuestos en DataStore para IDs:", tax_ids);
+                            console.error("[FISCAL] v52 - FALLO CRÍTICO: No se hallaron impuestos en el modelo para IDs:", tax_ids);
+                            // Log de ayuda para Pachacutec
+                            console.warn("[FISCAL] v52 - IDs en DataStore:", tax_model.getAll().map(t => t.id).join(", "));
                         } else {
-                            console.warn("[FISCAL] v51 - Registros cargados exitosamente:", tax_records.length);
+                            console.warn("[FISCAL] v52 - Impuestos cargados:", tax_records.length);
                         }
                     } else {
-                        console.error("[FISCAL] v51 - DataStore 'account.tax' no encontrado!");
+                        console.error("[FISCAL] v52 - DataStore 'account.tax' NO EXISTE!");
                     }
                     
                 } catch (e) {
@@ -1005,9 +1010,9 @@ export const FiscalPrinterMixin = {
                 
                 let prod_code = line.product_id?.default_code;
                 if (prod_code) {
-                    command += "|" + prod_code + "|";
+                    command += "|" + cleanText(prod_code) + "|";
                 }
-                command += sanitize(line.product_id?.display_name || line.product_name || "Producto");
+                command += cleanText(line.product_id?.display_name || line.product_name || "Producto");
 
                 console.warn("[FISCAL] v49 - Comando Final (Pachacutec):", command);
                 this.printerCommands.push(command);
@@ -1026,7 +1031,7 @@ export const FiscalPrinterMixin = {
     printNoFiscal() {
         this.order.lines
             .forEach((line) => {
-                const name = sanitize(line.product_id?.display_name || "");
+                const name = cleanText(line.product_id?.display_name || "");
                 const code = line.product_id?.default_code || "";
                 this.printerCommands.push(`80 ${name} [${code}]`);
                 this.printerCommands.push(`80*x${line.qty} ${(line.get_price_with_tax()).toFixed(2)}`);
