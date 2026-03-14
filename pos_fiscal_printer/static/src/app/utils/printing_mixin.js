@@ -10,7 +10,7 @@ const CHAR_MAP = {
 };
 const EXPRESSION = new RegExp(`[${Object.keys(CHAR_MAP).join("")}]`, "g");
 
-// Pachacutec: v60 - cleanText radical para ASCII 850 (sin tildes ni eñes)
+// Pachacutec: v61 - cleanText radical para ASCII 850 (UpperCase, sin tildes)
 export function cleanText(string) {
     if (!string) return "";
     try {
@@ -18,17 +18,19 @@ export function cleanText(string) {
         let clean = string.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         // Casos especiales (ñ, Ñ)
         clean = clean.replace(/ñ/g, "n").replace(/Ñ/g, "N");
+        // Convertir a Mayúsculas (Requerimiento HKA v61)
+        clean = clean.toUpperCase();
         // Removemos cualquier carácter que no sea ASCII imprimible (32-126)
         clean = clean.replace(/[^\x20-\x7E]/g, "");
         // Removemos caracteres prohibidos del protocolo
         return clean.replace(/[|*!]/g, " ").trim();
     } catch (e) {
         console.error("Error en cleanText:", e);
-        return string.replace(/[^\x20-\x7E]/g, "").replace(/[|*!]/g, " ").trim();
+        return string.toUpperCase().replace(/[^\x20-\x7E]/g, "").replace(/[|*!]/g, " ").trim();
     }
 }
 
-// Pachacutec: v60 - Checksum HKA Factory (Sumatoria bytes + Offset 64)
+// Pachacutec: v61 - Checksum HKA Factory (Sumatoria bytes + Offset 64 + Overflow check)
 export function toBytes(command) {
     const rawBytes = Array.from(encoder.encode(command));
     rawBytes.push(3); // ETX (End of Text)
@@ -38,9 +40,11 @@ export function toBytes(command) {
         sum += b;
     }
     
-    // Pachacutec: v60 - Lógica Crítica: (Sumatoria % 256) + 64
-    const checksum = (sum % 256) + 64;
-    rawBytes.push(checksum % 256);
+    // Pachacutec: v61 - Lógica Crítica: ((Sumatoria % 256) + 64) y control de desbordamiento
+    let checksum = (sum % 256) + 64;
+    if (checksum >= 256) checksum -= 256;
+    
+    rawBytes.push(checksum);
     rawBytes.unshift(2); // STX (Start of Text)
     
     return new Uint8Array(rawBytes);
@@ -1034,11 +1038,11 @@ export const FiscalPrinterMixin = {
                 qEnt = qEnt.padStart(5, "0");
 
                 // v55 - NUEVO FORMATO REORDENADO: ! + Descripción(40) + Precio(10) + Cantidad(8) + Tasa(1)
-                let base_command = "!"; // Según investigación: El comando es !
-                let description = cleanText(line.product_id?.display_name || line.product_name || "Producto").padEnd(40, " ");
+                let base_command = "!"; // Pachacutec: v61 - Comando de venta
+                let description = cleanText(line.product_id?.display_name || line.product_name || "Producto").substring(0, 40).padEnd(40, " ");
                 let price = pEnt + pDec; // 8 + 2 = 10
                 let quantity = qEnt + qDec; // 5 + 3 = 8
-                let tax_char = tag; // Tasa según mapeo v55 (", #, $, !)
+                let tax_char = tag; // Tasa fiscal final
                 
                 let command = base_command + description + price + quantity + tax_char;
                 
