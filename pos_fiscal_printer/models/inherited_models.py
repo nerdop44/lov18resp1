@@ -68,47 +68,67 @@ class PosSession(models.Model):
  
     @api.model
     def _get_pos_config_loader_params(self):
-        params = super()._get_pos_config_loader_params()
-        params['search_params']['fields'].extend([
+        return self._loader_params_pos_config()
+
+    @api.model
+    def _loader_params_pos_config(self):
+        result = super()._get_pos_config_loader_params() if hasattr(super(), '_get_pos_config_loader_params') else super()._loader_params_pos_config()
+        result['search_params']['fields'].extend([
             'x_fiscal_command_parity',
             'x_fiscal_command_baudrate',
             'x_fiscal_printer_id',
             'x_fiscal_printer_code'
         ])
-        return params
+        return result
 
     @api.model
     def _get_res_company_loader_params(self):
-        params = super()._get_res_company_loader_params()
-        params['search_params']['fields'].extend([
+        return self._loader_params_res_company()
+
+    @api.model
+    def _loader_params_res_company(self):
+        result = super()._get_res_company_loader_params() if hasattr(super(), '_get_res_company_loader_params') else super()._loader_params_res_company()
+        result['search_params']['fields'].extend([
             'vat',
             'street',
             'city',
             'phone'
         ])
-        return params
+        return result
 
     @api.model
     def _get_pos_payment_method_loader_params(self):
-        params = super()._get_pos_payment_method_loader_params()
-        params['search_params']['fields'].extend([
+        return self._loader_params_pos_payment_method()
+
+    @api.model
+    def _loader_params_pos_payment_method(self):
+        result = super()._get_pos_payment_method_loader_params() if hasattr(super(), '_get_pos_payment_method_loader_params') else super()._loader_params_pos_payment_method()
+        result['search_params']['fields'].extend([
             "x_printer_code",
             "x_igtf_percentage",
             "x_is_foreign_exchange",
         ])
-        return params
+        return result
 
     @api.model
     def _get_account_tax_loader_params(self):
-        params = super()._get_account_tax_loader_params()
-        params['search_params']['fields'].append('x_tipo_alicuota')
-        return params
+        return self._loader_params_account_tax()
+
+    @api.model
+    def _loader_params_account_tax(self):
+        result = super()._get_account_tax_loader_params() if hasattr(super(), '_get_account_tax_loader_params') else super()._loader_params_account_tax()
+        result['search_params']['fields'].append('x_tipo_alicuota')
+        return result
 
     @api.model
     def _get_res_partner_loader_params(self):
-        params = super()._get_res_partner_loader_params()
-        params['search_params']['fields'].extend(['company_type', 'prefix_vat'])
-        return params
+        return self._loader_params_res_partner()
+
+    @api.model
+    def _loader_params_res_partner(self):
+        result = super()._get_res_partner_loader_params() if hasattr(super(), '_get_res_partner_loader_params') else super()._loader_params_res_partner()
+        result['search_params']['fields'].extend(['company_type', 'prefix_vat'])
+        return result
 
 class AccountTax(models.Model):
     _inherit = "account.tax"

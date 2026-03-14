@@ -11,7 +11,10 @@ const CHAR_MAP = {
 const EXPRESSION = new RegExp(`[${Object.keys(CHAR_MAP).join("")}]`, "g");
 
 export function sanitize(string) {
-    return string.replace(EXPRESSION, (char) => CHAR_MAP[char]);
+    if (!string) return "";
+    // v51 - Sanitización extrema: Solo caracteres básicos y sin pipes
+    const clean = string.replace(EXPRESSION, (char) => CHAR_MAP[char] || char);
+    return clean.replace(/[|!@#$%^&*()_+={}\[\]:;"'<>,.?\/\\~`]/g, " ").substring(0, 36).trim();
 }
 
 export function toBytes(command) {
@@ -832,7 +835,7 @@ export const FiscalPrinterMixin = {
         const raw_vat = client.vat || client.rif || "";
         let vat = raw_vat.replace(/[^0-9]/g, ""); // Solo números
         if (!vat) vat = "No tiene";
-        else vat = prefix + "-" + vat;
+        else vat = prefix + vat; // v51 - Remover guion '-' para compatibilidad HKA directa
 
         this.printerCommands.push("iR*" + vat);
         this.printerCommands.push("iS*" + sanitize(client.name || "Cliente Contado"));
@@ -937,16 +940,25 @@ export const FiscalPrinterMixin = {
                     // Resolver contra el modelo global de POS (DataStore en v18)
                     const tax_model = this.pos.models["account.tax"];
                     if (tax_model) {
+                        // v51 - Búsqueda robusta (Number vs String ID)
                         tax_records = tax_ids
-                            .map(id => tax_model.get(id))
+                            .map(id => {
+                                let rec = tax_model.get(id) || tax_model.get(String(id));
+                                if (!rec) {
+                                    // Búsqueda por iteración como último recurso
+                                    rec = tax_model.getAll().find(t => t.id == id || (t.attr && t.attr.id == id));
+                                }
+                                return rec;
+                            })
                             .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota));
                         
                         if (tax_records.length === 0) {
-                            console.error("[FISCAL] v50 - No se encontraron registros de impuestos en DataStore para IDs:", tax_ids);
-                            console.warn("[FISCAL] v50 - Contenido parcial DataStore:", tax_model.getAll?.()?.slice(0, 5));
+                            console.error("[FISCAL] v51 - FALLO TOTAL de carga de impuestos en DataStore para IDs:", tax_ids);
+                        } else {
+                            console.warn("[FISCAL] v51 - Registros cargados exitosamente:", tax_records.length);
                         }
                     } else {
-                        console.error("[FISCAL] v50 - DataStore 'account.tax' no encontrado!");
+                        console.error("[FISCAL] v51 - DataStore 'account.tax' no encontrado!");
                     }
                     
                 } catch (e) {
