@@ -10,42 +10,44 @@ const CHAR_MAP = {
 };
 const EXPRESSION = new RegExp(`[${Object.keys(CHAR_MAP).join("")}]`, "g");
 
-// Pachacutec: v61 - cleanText radical para ASCII 850 (UpperCase, sin tildes)
+// Pachacutec: v62 - cleanText RADICAL para ASCII 850 (NFD + UpperCase)
 export function cleanText(string) {
     if (!string) return "";
     try {
-        // Normalizamos para separar tildes y luego las eliminamos
-        let clean = string.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        // Casos especiales (ñ, Ñ)
+        // 1. Normalización NFD para separar combinados (tildes, etc)
+        let clean = string.normalize("NFD");
+        // 2. Eliminar todas las marcas de acentuación (Combining Diacritical Marks)
+        clean = clean.replace(/[\u0300-\u036f]/g, "");
+        // 3. Casos especiales manuales (ñ, Ñ) por si acaso el NFD no los cubrió como queremos
         clean = clean.replace(/ñ/g, "n").replace(/Ñ/g, "N");
-        // Convertir a Mayúsculas (Requerimiento HKA v61)
+        // 4. Convertir a MAYÚSCULAS (Requerimiento estricto HKA)
         clean = clean.toUpperCase();
-        // Removemos cualquier carácter que no sea ASCII imprimible (32-126)
+        // 5. Filtrar solo caracteres ASCII imprimibles [32-126]
         clean = clean.replace(/[^\x20-\x7E]/g, "");
-        // Removemos caracteres prohibidos del protocolo
-        return clean.replace(/[|*!]/g, " ").trim();
+        // 6. Remover delimitadores prohibidos (!, |, *)
+        return clean.replace(/[!|*]/g, " ").trim();
     } catch (e) {
-        console.error("Error en cleanText:", e);
-        return string.toUpperCase().replace(/[^\x20-\x7E]/g, "").replace(/[|*!]/g, " ").trim();
+        console.error("Error en cleanText v62:", e);
+        return String(string).toUpperCase().replace(/[^\x20-\x7E]/g, "").trim();
     }
 }
 
-// Pachacutec: v61 - Checksum HKA Factory (Sumatoria bytes + Offset 64 + Overflow check)
+// Pachacutec: v62 - Checksum IMPRIMIBLE HKA Factory (v62)
 export function toBytes(command) {
     const rawBytes = Array.from(encoder.encode(command));
-    rawBytes.push(3); // ETX (End of Text)
+    rawBytes.push(3); // ETX
     
     let sum = 0;
     for (const b of rawBytes) {
         sum += b;
     }
     
-    // Pachacutec: v61 - Lógica Crítica: ((Sumatoria % 256) + 64) y control de desbordamiento
-    let checksum = (sum % 256) + 64;
-    if (checksum >= 256) checksum -= 256;
+    // Pachacutec: v62 - Lógica para evitar caracteres de control (como el 14 que falló)
+    // El offset de 64 asegura que el checksum siempre esté en el rango imprimible [64, 127]
+    const checksum = ((sum % 256) % 64) + 64;
     
     rawBytes.push(checksum);
-    rawBytes.unshift(2); // STX (Start of Text)
+    rawBytes.unshift(2); // STX
     
     return new Uint8Array(rawBytes);
 }
