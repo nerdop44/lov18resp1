@@ -894,42 +894,52 @@ export const FiscalPrinterMixin = {
             .filter(line => !line.x_is_igtf_line)
             .forEach((line) => {
                 let tax_records = [];
+                console.warn("[FISCAL] setLines - Procesando línea:", line.product_id?.display_name || "Producto");
+                
                 try {
-                    // Pachacutec: v38 - Resolución Directa de Impuestos Odoo 18
-                    const tax_ids = [];
+                    // Pachacutec: v40 - Resolución Ultra-Robusta Odoo 18
+                    let tax_ids = [];
                     const raw_taxes = line.tax_ids;
+                    console.log("[FISCAL] raw_taxes debug:", raw_taxes);
                     
                     if (raw_taxes) {
                         if (Array.isArray(raw_taxes)) {
-                            raw_taxes.forEach(t => tax_ids.push(typeof t === 'object' ? t.id : t));
+                            tax_ids = raw_taxes.map(t => Number(typeof t === 'object' ? t.id : t));
                         } else if (raw_taxes.records) {
-                            raw_taxes.records.forEach(r => tax_ids.push(r.id));
+                            tax_ids = raw_taxes.records.map(r => Number(r.id));
                         }
                     }
 
-                    // Pachacutec: v39 - Fallback a impuestos del producto si la línea está vacía
+                    // Fallback a producto si tax_ids sigue vacío
                     if (tax_ids.length === 0 && line.product_id) {
                         const product = this.pos.models["product.product"]?.get(line.product_id.id || line.product_id);
                         const p_taxes = product?.taxes_id;
+                        console.log("[FISCAL] Fallback a producto taxes:", p_taxes);
                         if (p_taxes) {
-                            if (Array.isArray(p_taxes)) p_taxes.forEach(id => tax_ids.push(id));
-                            else if (p_taxes.records) p_taxes.records.forEach(r => tax_ids.push(r.id));
+                            if (Array.isArray(p_taxes)) tax_ids = p_taxes.map(id => Number(id));
+                            else if (p_taxes.records) tax_ids = p_taxes.records.map(r => Number(r.id));
                         }
                     }
+
+                    console.warn("[FISCAL] tax_ids normalizados:", tax_ids);
 
                     // Resolver contra el modelo global de POS
                     tax_records = [...new Set(tax_ids)]
                         .filter(id => id)
-                        .map(id => this.pos.models["account.tax"]?.get(id))
+                        .map(id => {
+                            const tax = this.pos.models["account.tax"]?.get(id);
+                            console.log(`[FISCAL] Resolviendo Tax ${id}:`, tax);
+                            return tax;
+                        })
                         .filter(t => t && t.x_tipo_alicuota);
                     
                 } catch (e) {
-                    console.error("[FISCAL] Error resolviendo impuestos en v39:", e);
+                    console.error("[FISCAL] Error crítico en resolución v40:", e);
                 }
 
-                console.warn("[FISCAL] setLines - Impuestos detectados:", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
+                console.warn("[FISCAL] setLines - Tax Records resueltos:", tax_records.length);
 
-                // Pachacutec: v39 - Determinación de Carácter Fiscal (Fix Sintaxis)
+                // Pachacutec: v40 - Determinación de Carácter Fiscal con Lógica de "Bulto"
                 let tag = (char === "GC") ? "d0" : " "; // Default exento
                 
                 if (tax_records.length > 0) {
@@ -940,9 +950,14 @@ export const FiscalPrinterMixin = {
                     if (has_general) tag = (char === "GC") ? "d1" : "!";
                     else if (has_reducido) tag = (char === "GC") ? "d2" : '"';
                     else if (has_adicional) tag = (char === "GC") ? "d3" : "#";
+                } 
+                // Pachacutec: v40 - "Detección de Bulto": si hay IDs pero no se resolvieron alícuotas, ASUMIMOS GENERAL para seguridad fiscal
+                else if (line.tax_ids?.length > 0 || (line.tax_ids?.records && line.tax_ids.records.length > 0)) {
+                    console.warn("[FISCAL] Detección de Bulto: Impuestos presentes pero no resueltos. Forzando General (!)");
+                    tag = (char === "GC") ? "d1" : "!";
                 }
 
-                // Cálculo de precios y cantidades al estilo v16 (fiel a loc_v16)
+                // Cálculo de precios y cantidades al estilo v16
                 let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
                 if (line.discount > 0) {
                     price = (line.get_all_prices().priceWithoutTaxBeforeDiscount / line.qty).toFixed(2).replace(".", ",");
@@ -952,18 +967,17 @@ export const FiscalPrinterMixin = {
                 let [pEnt, pDec] = price.split(",");
                 let [qEnt, qDec] = qty.split(",");
 
-                // Padding según flag_21 (estándar v16)
                 pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(14, "0") : pEnt.padStart(8, "0");
                 qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(14, "0") : qEnt.padStart(5, "0");
 
                 let command = tag + pEnt + pDec + qEnt + qDec;
 
-                // Añadir código de producto CON PIPES (v16 style)
+                // Código con PIPES (v16 style)
                 let prod_code = line.product_id?.default_code || line.product_id?.id || "000";
                 command += "|" + prod_code + "|";
                 command += sanitize(line.product_id?.display_name || line.product_name || "Producto");
 
-                console.warn("[FISCAL] setLines - Comando final:", command);
+                console.warn("[FISCAL] setLines - Comando v40 final:", command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
