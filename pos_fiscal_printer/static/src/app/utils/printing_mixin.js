@@ -950,7 +950,8 @@ export const FiscalPrinterMixin = {
                                     rec = tax_model.getAll().find(t => String(t.id) === String(id));
                                 }
                                 if (rec) {
-                                    console.warn("[FISCAL] v53 - Impuesto encontrado:", id, " Data:", JSON.stringify(rec));
+                                    // v54 - Log SEGURO (evitar circularidad)
+                                    console.warn("[FISCAL] v54 - Impuesto encontrado:", id, " Tipo:", (rec.x_tipo_alicuota || rec.attr?.x_tipo_alicuota));
                                 }
                                 return rec;
                             })
@@ -1000,22 +1001,26 @@ export const FiscalPrinterMixin = {
                 let priceStr = (unitPrice || 0).toFixed(2).replace(".", ",");
                 let qtyStr = (Math.abs(line.qty || 0)).toFixed(3).replace(".", ",");
 
-                let [pEnt, pDec] = priceStr.split(",");
-                let [qEnt, qDec] = qtyStr.split(",");
+                let pDec = priceStr.split(",")[1];
+                let qDec = qtyStr.split(",")[1];
+                let pEnt = priceStr.split(",")[0];
+                let qEnt = qtyStr.split(",")[0];
 
                 pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(14, "0") : pEnt.padStart(8, "0");
                 qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(14, "0") : qEnt.padStart(5, "0");
 
-                let command = tag + pEnt + pDec + qEnt + qDec;
+                // v54 - NUEVO FORMATO RECOMENDADO: ! + Descripción(40) + Precio(10) + Cantidad(8) + Tasa(1)
+                // Usamos '!' como comando base de item (o ' ' para exento)
+                let base_command = (tag === " ") ? " " : "!";
+                let description = cleanText(line.product_id?.display_name || line.product_name || "Producto").padEnd(40, " ");
+                let price = pEnt + pDec;
+                let quantity = qEnt + qDec;
+                let tax_char = tag; // Usamos el tag detectado (!, ", #, ' ') como indicador de tasa al final
                 
-                let prod_code = line.product_id?.default_code;
-                // Pachacutec: v53 - ELIMINAR pipes por compatibilidad (v48 success)
-                if (prod_code) {
-                    command += " " + cleanText(prod_code) + " ";
-                }
-                command += cleanText(line.product_id?.display_name || line.product_name || "Producto");
-
-                console.warn("[FISCAL] v49 - Comando Final (Pachacutec):", command);
+                let command = base_command + description + price + quantity + tax_char;
+                
+                // Pachacutec: v54 - Log del comando final reordenado
+                console.warn("[FISCAL] v54 - Comando Final REORDENADO:", command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
