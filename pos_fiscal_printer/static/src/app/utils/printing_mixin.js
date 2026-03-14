@@ -869,15 +869,15 @@ export const FiscalPrinterMixin = {
             const printer_code = payment.payment_method_id?.x_printer_code || '01';
             const is_last = (i + 1) === array.length;
             
-            let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", ",").replace(",", "");
-            let monto = amountStr.padStart(10, "0"); // v57 - Monto 10 dígitos (Pachacutec)
+            let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", "").replace(",", "");
+            let monto = amountStr.padStart(12, "0"); // v59 - Monto 12 dígitos (Pachacutec)
 
-            // Pachacutec: v57 - Enviar monto incluso en el comando de cierre (1) para asegurar impresión
+            // Pachacutec: v59 - Cierre con monto de 12 dígitos para asegurar corte (Pachacutec)
             if (is_last && !use_igtf_closing) {
-                console.warn("[FISCAL] v57 - Enviando Pago Final con Monto:", "1" + printer_code + monto);
+                console.warn("[FISCAL] v59 - Enviando Pago Final con Monto:", "1" + printer_code + monto);
                 this.printerCommands.push("1" + printer_code + monto);
             } else {
-                console.warn("[FISCAL] v57 - Enviando Pago Parcial:", "2" + printer_code + monto);
+                console.warn("[FISCAL] v59 - Enviando Pago Parcial:", "2" + printer_code + monto);
                 this.printerCommands.push("2" + printer_code + monto);
             }
         });
@@ -887,9 +887,10 @@ export const FiscalPrinterMixin = {
             console.warn("[FISCAL] setTotal - Enviando cierre 199 (IGTF)");
             this.printerCommands.push("199");
         } else {
-            // Cierre preventivo 101 si no hay pagos o el último no cerró
+            // v59 - Cierre preventivo 101 solo si no hay un comando de cierre ya emitido
             const lastCmd = this.printerCommands[this.printerCommands.length - 1];
-            if (!lastCmd || lastCmd.length !== 3 || !lastCmd.startsWith("1")) {
+            const isClosing = lastCmd && lastCmd.startsWith("1") && lastCmd.length >= 3;
+            if (!isClosing) {
                 this.printerCommands.push("101");
             }
         }
