@@ -893,12 +893,12 @@ export const FiscalPrinterMixin = {
         this.order.lines
             .filter(line => !line.x_is_igtf_line)
             .forEach((line) => {
+                // Pachacutec: v42 - Declaración de variables con ámbito correcto
+                let tax_ids = [];
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Procesando línea:", line.product_id?.display_name || "Producto");
-                
+
                 try {
                     // Pachacutec: v41 - Resolución Ultra-Segura Odoo 18
-                    let tax_ids = [];
                     const raw_taxes = line.tax_ids;
                     
                     if (raw_taxes) {
@@ -924,15 +924,15 @@ export const FiscalPrinterMixin = {
 
                     // Limpieza e IDs únicos
                     tax_ids = [...new Set(tax_ids)].filter(id => id);
-                    console.warn("[FISCAL] tax_ids normalizados (v41):", tax_ids);
+                    console.warn("[FISCAL] tax_ids normalizados (v42):", tax_ids);
 
-                    // Resolver contra el modelo global de POS (Intento de obtener x_tipo_alicuota)
+                    // Resolver contra el modelo global de POS
                     tax_records = tax_ids
                         .map(id => this.pos.models["account.tax"]?.get(id))
                         .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota));
                     
                 } catch (e) {
-                    console.error("[FISCAL] Error crítico en setLines v41:", e);
+                    console.error("[FISCAL] Error crítico en setLines v42:", e);
                 }
 
                 // Pachacutec: v41 - Determinación de Carácter Fiscal (Seguro Social)
