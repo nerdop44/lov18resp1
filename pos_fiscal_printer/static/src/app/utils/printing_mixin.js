@@ -10,21 +10,40 @@ const CHAR_MAP = {
 };
 const EXPRESSION = new RegExp(`[${Object.keys(CHAR_MAP).join("")}]`, "g");
 
-// Pachacutec: v52 - cleanText solo para campos de texto (no para comandos)
+// Pachacutec: v60 - cleanText radical para ASCII 850 (sin tildes ni eñes)
 export function cleanText(string) {
     if (!string) return "";
-    const clean = string.replace(EXPRESSION, (char) => CHAR_MAP[char] || char);
-    // Solo removemos caracteres que REALMENTE rompen el protocolo HKA en campos de texto
-    // Mantenemos *, !, | porque aquí solo entran nombres, pero por si acaso los escapamos
-    return clean.replace(/[|*!]/g, " ").substring(0, 36).trim();
+    try {
+        // Normalizamos para separar tildes y luego las eliminamos
+        let clean = string.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        // Casos especiales (ñ, Ñ)
+        clean = clean.replace(/ñ/g, "n").replace(/Ñ/g, "N");
+        // Removemos cualquier carácter que no sea ASCII imprimible (32-126)
+        clean = clean.replace(/[^\x20-\x7E]/g, "");
+        // Removemos caracteres prohibidos del protocolo
+        return clean.replace(/[|*!]/g, " ").trim();
+    } catch (e) {
+        console.error("Error en cleanText:", e);
+        return string.replace(/[^\x20-\x7E]/g, "").replace(/[|*!]/g, " ").trim();
+    }
 }
 
+// Pachacutec: v60 - Checksum HKA Factory (Sumatoria bytes + Offset 64)
 export function toBytes(command) {
-    const commands = Array.from(encoder.encode(command));
-    commands.push(3);
-    commands.push(commands.reduce((prev, curr) => prev ^ curr, 0));
-    commands.unshift(2);
-    return new Uint8Array(commands);
+    const rawBytes = Array.from(encoder.encode(command));
+    rawBytes.push(3); // ETX (End of Text)
+    
+    let sum = 0;
+    for (const b of rawBytes) {
+        sum += b;
+    }
+    
+    // Pachacutec: v60 - Lógica Crítica: (Sumatoria % 256) + 64
+    const checksum = (sum % 256) + 64;
+    rawBytes.push(checksum % 256);
+    rawBytes.unshift(2); // STX (Start of Text)
+    
+    return new Uint8Array(rawBytes);
 }
 
 // FiscalPrinterMixin as a plain object with methods only.
@@ -840,13 +859,13 @@ export const FiscalPrinterMixin = {
         else vat = prefix + vat; // v51 - Remover guion '-' para compatibilidad HKA directa
 
         this.printerCommands.push("iR*" + vat);
-        this.printerCommands.push("iS*" + cleanText(client.name || "Cliente Contado"));
+        this.printerCommands.push("iS*" + cleanText(client.name || "Cliente Contado").substring(0, 40));
 
-        this.printerCommands.push("i00Teléfono: " + (client.phone || "No tiene"));
-        this.printerCommands.push("i01Dirección: " + cleanText(client.street || "No tiene"));
-        this.printerCommands.push("i02Email: " + (client.email || "No tiene"));
+        this.printerCommands.push("i00Teléfono: " + cleanText(client.phone || "No tiene"));
+        this.printerCommands.push("i01Dirección: " + cleanText(client.street || "No tiene").substring(0, 40));
+        this.printerCommands.push("i02Email: " + cleanText(client.email || "No tiene"));
         if (this.order.pos_reference) {
-            this.printerCommands.push("i03Ref: " + this.order.pos_reference);
+            this.printerCommands.push("i03Ref: " + cleanText(this.order.pos_reference));
         }
         console.warn("[FISCAL] setHeader - Comandos actuales:", this.printerCommands);
     },
