@@ -891,68 +891,42 @@ export const FiscalPrinterMixin = {
     setLines(char) {
         console.warn("[FISCAL] setLines - Inicio con char:", char);
         this.order.lines
-            .filter(line => !line.x_is_igtf_line) // Pachacutec: No enviar líneas de IGTF, el comando 199 se encarga
+            .filter(line => !line.x_is_igtf_line)
             .forEach((line) => {
-                let command = "";
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Depurando lnea v32 (Nuclear Resolution):", line);
+                console.warn("[FISCAL] setLines - Procesando línea:", line.product_id?.display_name || "Producto");
                 
                 try {
-                    // Pachacutec: v32 - Resolución Nuclear buscando en múltiples campos de Odoo 18
+                    // Pachacutec: v38 - Resolución Directa de Impuestos Odoo 18
+                    // Obtenemos los IDs directamente del Proxy de la línea
                     const tax_ids = [];
-                    // Pachacutec: v35 - Guardas ultra-seguras para Proxys de Odoo 18
-                    if (!line) return;
-                    const line_data = line.records ? line.records[0] : (line.tax_ids ? line : null);
+                    const raw_taxes = line.tax_ids;
                     
-                    if (line_data) {
-                        if (line_data.tax_ids?.records) {
-                            line_data.tax_ids.records.forEach(r => tax_ids.push(r.id || r));
-                        } else if (Array.isArray(line_data.tax_ids)) {
-                            line_data.tax_ids.forEach(t => tax_ids.push(typeof t === 'object' ? t.id : t));
+                    if (raw_taxes) {
+                        if (Array.isArray(raw_taxes)) {
+                            raw_taxes.forEach(t => tax_ids.push(typeof t === 'object' ? t.id : t));
+                        } else if (raw_taxes.records) {
+                            raw_taxes.records.forEach(r => tax_ids.push(r.id));
                         }
-                    } else {
-                        console.warn("[FISCAL] No se pudo resolver line_data para impuestos.");
                     }
 
-                    // Fallback al producto
-                    if (tax_ids.length === 0) {
-                        const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
-                        const p_taxes = product?.taxes_id;
-                        if (p_taxes?.records) p_taxes.records.forEach(r => tax_ids.push(r.id));
-                        else if (Array.isArray(p_taxes)) p_taxes.forEach(id => tax_ids.push(typeof id === 'object' ? id.id : id));
-                    }
-
-                    // Resolver registros contra Pos Models
-                    tax_records = [...new Set(tax_ids)] // Únicos
+                    // Resolver contra el modelo global de POS
+                    tax_records = [...new Set(tax_ids)]
                         .filter(id => id)
                         .map(id => this.pos.models["account.tax"]?.get(id))
                         .filter(t => t && t.x_tipo_alicuota);
                     
                 } catch (e) {
-                    console.error("[FISCAL] Fallo en Strict Resolution v31:", e);
+                    console.error("[FISCAL] Error resolviendo impuestos en v38:", e);
                 }
 
-                console.warn("[FISCAL] setLines - Impuestos Strict (v31):", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
+                console.warn("[FISCAL] setLines - Impuestos detectados:", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
 
-                // Pachacutec: v34 - Resolución ultra-simplificada para Odoo 18
-                // Si el producto tiene cualquier impuesto asociado que no sea exento, FORZAMOS '!'
+                // Pachacutec: v38 - Determinación de Carácter Fiscal
                 let tag = (char === "GC") ? "d0" : " "; // Default exento
                 
                 if (tax_records.length > 0) {
                     const has_general = tax_records.some(t => t.x_tipo_alicuota === 'general');
-                    if (has_general) {
-                        tag = (char === "GC") ? "d1" : "!";
-                    }
-                } else {
-                    // Pachacutec: v34 - Fallback final: si el producto tiene taxes_id en base, asumimos general para no perder IVA
-                    const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
-                    if (product?.taxes_id?.length > 0 || (product?.taxes_id?.records && product.taxes_id.records.length > 0)) {
-                        tag = (char === "GC") ? "d1" : "!";
-                        console.warn("[FISCAL] setLines - IVA Forzado por presencia de impuestos en producto.");
-                    }
-                }
-                command += tag;
-
                 let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
                 if (line.discount > 0) {
                     price = (line.get_all_prices().priceWithoutTaxBeforeDiscount / line.qty).toFixed(2).replace(".", ",");
