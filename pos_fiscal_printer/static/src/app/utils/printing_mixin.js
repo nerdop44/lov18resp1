@@ -90,7 +90,7 @@ export const FiscalPrinterMixin = {
         }
     },
 
-    async escribe_leer(command, is_linea) {
+    async escribe_leer(command, is_linea, is_retry = false) {
         if (!this.port) return false;
         var comando_cod = toBytes(command);
         console.log("Escribiendo comando: ");
