@@ -951,15 +951,12 @@ export const FiscalPrinterMixin = {
                     const has_reducido = tax_records.some(t => (t.x_tipo_alicuota === 'reducido' || t.attr?.x_tipo_alicuota === 'reducido'));
                     const has_adicional = tax_records.some(t => (t.x_tipo_alicuota === 'adicional' || t.attr?.x_tipo_alicuota === 'adicional'));
 
+                    console.warn("[FISCAL] Tipos detectados:", {general: has_general, reducido: has_reducido, adicional: has_adicional});
+
                     if (has_general) tag = (char === "GC") ? "d1" : "!";
                     else if (has_reducido) tag = (char === "GC") ? "d2" : '"';
                     else if (has_adicional) tag = (char === "GC") ? "d3" : "#";
                 } 
-                // Pachacutec: v41 - "Detección de Bulto INFALIBLE": Si tenemos IDs de impuestos, es GRAVADO (!)
-                else if (tax_ids.length > 0) {
-                    console.warn("[FISCAL] v41 - Detección de Bulto activada (ids detectados). Forzando !");
-                    tag = (char === "GC") ? "d1" : "!";
-                }
 
                 // Cálculo de precios y cantidades (v16 alignment)
                 let unitPrice = line.get_unit_display_price ? line.get_unit_display_price() : (line.price_unit || 0);
@@ -981,11 +978,11 @@ export const FiscalPrinterMixin = {
                 
                 let prod_code = line.product_id?.default_code;
                 if (prod_code) {
-                    command += prod_code + " ";
+                    command += "|" + prod_code + "|";
                 }
                 command += sanitize(line.product_id?.display_name || line.product_name || "Producto");
 
-                console.warn("[FISCAL] v41 - Comando Final:", command);
+                console.warn("[FISCAL] v49 - Comando Final (Pachacutec):", command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
