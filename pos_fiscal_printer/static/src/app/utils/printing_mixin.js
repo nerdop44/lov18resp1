@@ -32,22 +32,22 @@ export function cleanText(string) {
     }
 }
 
-// Pachacutec: v62 - Checksum IMPRIMIBLE HKA Factory (v62)
+// Pachacutec: v63 - Checksum HKA Factory EXACTO (Sumatoria + 64)
 export function toBytes(command) {
     const rawBytes = Array.from(encoder.encode(command));
-    rawBytes.push(3); // ETX
+    rawBytes.push(3); // ETX (End of Text)
     
     let sum = 0;
     for (const b of rawBytes) {
         sum += b;
     }
     
-    // Pachacutec: v62 - Lógica para evitar caracteres de control (como el 14 que falló)
-    // El offset de 64 asegura que el checksum siempre esté en el rango imprimible [64, 127]
-    const checksum = ((sum % 256) % 64) + 64;
-    
-    rawBytes.push(checksum);
-    rawBytes.unshift(2); // STX
+    // Pachacutec: v63 - Lógica Estándar: ((Sumatoria % 256) + 64) % 256
+    let checksum = (sum % 256) + 64;
+    // La suma de 64 garantiza que el checksum no sea un carácter de control [0-31]
+    // Pero si el resultado desborda 255, aplicamos MOD 256
+    rawBytes.push(checksum % 256);
+    rawBytes.unshift(2); // STX (Start of Text)
     
     return new Uint8Array(rawBytes);
 }
@@ -867,11 +867,12 @@ export const FiscalPrinterMixin = {
         this.printerCommands.push("iR*" + vat);
         this.printerCommands.push("iS*" + cleanText(client.name || "Cliente Contado").substring(0, 40));
 
-        this.printerCommands.push("i00Teléfono: " + cleanText(client.phone || "No tiene"));
-        this.printerCommands.push("i01Dirección: " + cleanText(client.street || "No tiene").substring(0, 40));
-        this.printerCommands.push("i02Email: " + cleanText(client.email || "No tiene"));
+        // Pachacutec: v63 - Eliminar tildes en prefijos ("Teléfono" -> "TEL:", "Dirección" -> "DIR:")
+        this.printerCommands.push("i00TEL: " + cleanText(client.phone || "No tiene"));
+        this.printerCommands.push("i01DIR: " + cleanText(client.street || "No tiene").substring(0, 40));
+        this.printerCommands.push("i02MAIL: " + cleanText(client.email || "No tiene"));
         if (this.order.pos_reference) {
-            this.printerCommands.push("i03Ref: " + cleanText(this.order.pos_reference));
+            this.printerCommands.push("i03REF: " + cleanText(this.order.pos_reference));
         }
         console.warn("[FISCAL] setHeader - Comandos actuales:", this.printerCommands);
     },
