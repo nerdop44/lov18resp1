@@ -32,22 +32,25 @@ export function cleanText(string) {
     }
 }
 
-// Pachacutec: v63 - Checksum HKA Factory EXACTO (Sumatoria + 64)
+// Pachacutec: v64 - Checksum HKA Factory HEX ASCII (2 Bytes)
 export function toBytes(command) {
     const rawBytes = Array.from(encoder.encode(command));
-    rawBytes.push(3); // ETX (End of Text)
+    rawBytes.push(3); // ETX
     
     let sum = 0;
     for (const b of rawBytes) {
         sum += b;
     }
     
-    // Pachacutec: v63 - Lógica Estándar: ((Sumatoria % 256) + 64) % 256
-    let checksum = (sum % 256) + 64;
-    // La suma de 64 garantiza que el checksum no sea un carácter de control [0-31]
-    // Pero si el resultado desborda 255, aplicamos MOD 256
-    rawBytes.push(checksum % 256);
-    rawBytes.unshift(2); // STX (Start of Text)
+    // Pachacutec: v64 - Lógica HEX ASCII: (suma % 256) -> String HEX -> 2 Bytes ASCII
+    let ck = (sum % 256);
+    let hex = ck.toString(16).toUpperCase().padStart(2, '0');
+    
+    // Convertimos los 2 caracteres HEX a sus respectivos bytes ASCII
+    const hexBytes = Array.from(encoder.encode(hex));
+    rawBytes.push(...hexBytes);
+    
+    rawBytes.unshift(2); // STX
     
     return new Uint8Array(rawBytes);
 }
@@ -866,10 +869,9 @@ export const FiscalPrinterMixin = {
 
         this.printerCommands.push("iR*" + vat);
         this.printerCommands.push("iS*" + cleanText(client.name || "Cliente Contado").substring(0, 40));
-
-        // Pachacutec: v63 - Eliminar tildes en prefijos ("Teléfono" -> "TEL:", "Dirección" -> "DIR:")
-        this.printerCommands.push("i00TEL: " + cleanText(client.phone || "No tiene"));
-        this.printerCommands.push("i01DIR: " + cleanText(client.street || "No tiene").substring(0, 40));
+        // Pachacutec: v64 - Limpieza ABSOLUTA de tildes y prefijos (Sin "Teléfono")
+        this.printerCommands.push("i00TELEFONO: " + cleanText(client.phone || "No tiene"));
+        this.printerCommands.push("i01DIRECCION: " + cleanText(client.street || "No tiene").substring(0, 40));
         this.printerCommands.push("i02MAIL: " + cleanText(client.email || "No tiene"));
         if (this.order.pos_reference) {
             this.printerCommands.push("i03REF: " + cleanText(this.order.pos_reference));
