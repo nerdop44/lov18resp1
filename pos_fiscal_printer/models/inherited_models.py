@@ -102,7 +102,7 @@ class PosSession(models.Model):
 
     def _loader_params_res_partner(self):
         result = super()._loader_params_res_partner()
-        result['search_params']['fields'].append('company_type')
+        result['search_params']['fields'].extend(['company_type', 'prefix_vat'])
         return result
 
 class AccountTax(models.Model):

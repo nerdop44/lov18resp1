@@ -828,7 +828,12 @@ export const FiscalPrinterMixin = {
             this.printerCommands.push("iI*" + payload.printerCode);
         }
 
-        const vat = client.vat || client.rif || "No tiene";
+        const prefix = client.prefix_vat || "V";
+        const raw_vat = client.vat || client.rif || "";
+        let vat = raw_vat.replace(/[^0-9]/g, ""); // Solo números
+        if (!vat) vat = "No tiene";
+        else vat = prefix + "-" + vat;
+
         this.printerCommands.push("iR*" + vat);
         this.printerCommands.push("iS*" + sanitize(client.name || "Cliente Contado"));
 
@@ -974,8 +979,10 @@ export const FiscalPrinterMixin = {
 
                 let command = tag + pEnt + pDec + qEnt + qDec;
                 
-                let prod_code = line.product_id?.default_code || line.product_id?.id || "000";
-                command += "|" + prod_code + "|";
+                let prod_code = line.product_id?.default_code;
+                if (prod_code) {
+                    command += "|" + prod_code + "|";
+                }
                 command += sanitize(line.product_id?.display_name || line.product_name || "Producto");
 
                 console.warn("[FISCAL] v41 - Comando Final:", command);
