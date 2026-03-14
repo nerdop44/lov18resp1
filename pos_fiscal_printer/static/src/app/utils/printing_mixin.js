@@ -32,25 +32,28 @@ export function cleanText(string) {
     }
 }
 
-// Pachacutec: v64 - Checksum HKA Factory HEX ASCII (2 Bytes)
+// Pachacutec: v65 - Checksum HKA Factory HEX ASCII (2 Bytes) - SIN ETX en la suma
 export function toBytes(command) {
     const rawBytes = Array.from(encoder.encode(command));
-    rawBytes.push(3); // ETX
     
+    // Pachacutec: v65 - Sumar bytes del comando ANTES de añadir el ETX (3)
     let sum = 0;
     for (const b of rawBytes) {
         sum += b;
     }
     
-    // Pachacutec: v64 - Lógica HEX ASCII: (suma % 256) -> String HEX -> 2 Bytes ASCII
+    // Lógica HEX ASCII: (suma % 256) -> String HEX -> 2 Bytes ASCII
     let ck = (sum % 256);
     let hex = ck.toString(16).toUpperCase().padStart(2, '0');
     
-    // Convertimos los 2 caracteres HEX a sus respectivos bytes ASCII
+    // Añadimos ETX (3) después de la suma de los datos
+    rawBytes.push(3);
+    
+    // Convertimos los 2 caracteres HEX a sus respectivos bytes ASCII y los añadimos
     const hexBytes = Array.from(encoder.encode(hex));
     rawBytes.push(...hexBytes);
     
-    rawBytes.unshift(2); // STX
+    rawBytes.unshift(2); // STX (2) al inicio
     
     return new Uint8Array(rawBytes);
 }
