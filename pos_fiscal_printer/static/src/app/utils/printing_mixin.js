@@ -942,28 +942,28 @@ export const FiscalPrinterMixin = {
                     // Resolver contra el modelo global de POS (DataStore en v18)
                     const tax_model = this.pos.models["account.tax"];
                     if (tax_model) {
-                        // v52 - Búsqueda ultra-robusta (Number vs String ID vs find)
+                        // v53 - Búsqueda ultra-robusta con LOG completo
                         tax_records = tax_ids
                             .map(id => {
-                                // En v18 a veces el get(551) falla si el ID es '551' o viceversa
                                 let rec = tax_model.get(id) || tax_model.get(String(id)) || tax_model.get(Number(id));
                                 if (!rec) {
-                                    // Búsqueda por iteración manual (DataStore fallback)
                                     rec = tax_model.getAll().find(t => String(t.id) === String(id));
+                                }
+                                if (rec) {
+                                    console.warn("[FISCAL] v53 - Impuesto encontrado:", id, " Data:", JSON.stringify(rec));
                                 }
                                 return rec;
                             })
-                            .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota));
+                            .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota || t.attr?.x_tax_type)); // Agregue x_tax_type por si acaso
                         
                         if (tax_records.length === 0) {
-                            console.error("[FISCAL] v52 - FALLO CRÍTICO: No se hallaron impuestos en el modelo para IDs:", tax_ids);
-                            // Log de ayuda para Pachacutec
-                            console.warn("[FISCAL] v52 - IDs en DataStore:", tax_model.getAll().map(t => t.id).join(", "));
+                            console.error("[FISCAL] v53 - FALLO CRÍTICO: No se hallaron impuestos en el modelo para IDs:", tax_ids);
+                            console.warn("[FISCAL] v53 - IDs en DataStore:", tax_model.getAll().map(t => t.id).join(", "));
                         } else {
-                            console.warn("[FISCAL] v52 - Impuestos cargados:", tax_records.length);
+                            console.warn("[FISCAL] v53 - Impuestos cargados:", tax_records.length);
                         }
                     } else {
-                        console.error("[FISCAL] v52 - DataStore 'account.tax' NO EXISTE!");
+                        console.error("[FISCAL] v53 - DataStore 'account.tax' NO EXISTE!");
                     }
                     
                 } catch (e) {
@@ -1009,8 +1009,9 @@ export const FiscalPrinterMixin = {
                 let command = tag + pEnt + pDec + qEnt + qDec;
                 
                 let prod_code = line.product_id?.default_code;
+                // Pachacutec: v53 - ELIMINAR pipes por compatibilidad (v48 success)
                 if (prod_code) {
-                    command += "|" + cleanText(prod_code) + "|";
+                    command += " " + cleanText(prod_code) + " ";
                 }
                 command += cleanText(line.product_id?.display_name || line.product_name || "Producto");
 

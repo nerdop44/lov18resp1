@@ -129,7 +129,6 @@ class PosSession(models.Model):
         result = super()._get_res_partner_loader_params() if hasattr(super(), '_get_res_partner_loader_params') else super()._loader_params_res_partner()
         result['search_params']['fields'].extend(['company_type', 'prefix_vat'])
         return result
-
 class AccountTax(models.Model):
     _inherit = "account.tax"
 
@@ -139,6 +138,16 @@ class AccountTax(models.Model):
         ("reducido", "Reducido"),
         ("adicional", "Adicional"),
     ], "Tipo de alícuota", default="general")
+
+    @api.model
+    def _get_pos_ui_account_tax(self, params):
+        """ Pachacutec: Odoo 18 Force load x_tipo_alicuota """
+        taxes = super()._get_pos_ui_account_tax(params)
+        # Asegurar que el campo sea visible incluso en proxies reactivos
+        for tax in taxes:
+            if isinstance(tax, dict):
+                tax['x_tipo_alicuota'] = tax.get('x_tipo_alicuota', 'general')
+        return taxes
 
 class PosConfig(models.Model):
     _inherit = "pos.config"
