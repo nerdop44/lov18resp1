@@ -181,7 +181,7 @@ export const FiscalPrinterMixin = {
                             await this.reader.releaseLock();
                             this.reader = false;
 
-                            // Pachacutec: v37 - Reintroducción controlada del comando '7' (Reset)
+                            // Pachacutec: v37/v43 - Reset '7' y Reintento Controlado
                             const reset_cmd = toBytes("7");
                             if (this.port.writable) {
                                 this.writer = this.port.writable.getWriter();
@@ -194,6 +194,13 @@ export const FiscalPrinterMixin = {
                                     await this.writer.releaseLock();
                                     this.writer = false;
                                 }
+                            }
+                            
+                            // Pachacutec: v43 - REINTENTO ÚNICO (Evita bucle infinito)
+                            if (!is_retry) {
+                                console.warn("[FISCAL] v43 - Reintentando comando tras Reset 7...");
+                                await new Promise(res => setTimeout(res, 500)); // Espera a que el reset haga efecto
+                                return await this.escribe_leer(command, is_linea, true);
                             }
                             return false; 
                         }
@@ -221,12 +228,9 @@ export const FiscalPrinterMixin = {
             return false;
         } else {
             console.log("Error signals CTS: ", signals);
-            await this.writer.releaseLock();
-            this.writer = false;
             this.printing = false;
             return false;
         }
-
     },
 
     async write() {
