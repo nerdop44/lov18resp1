@@ -117,7 +117,7 @@ class PosSession(models.Model):
     @api.model
     def _loader_params_account_tax(self):
         result = super()._get_account_tax_loader_params() if hasattr(super(), '_get_account_tax_loader_params') else super()._loader_params_account_tax()
-        result['search_params']['fields'].append('x_tipo_alicuota')
+        result['search_params']['fields'].extend(['x_tipo_alicuota', 'amount'])
         return result
 
     @api.model

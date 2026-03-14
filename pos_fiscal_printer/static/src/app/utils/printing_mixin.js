@@ -950,8 +950,8 @@ export const FiscalPrinterMixin = {
                                     rec = tax_model.getAll().find(t => String(t.id) === String(id));
                                 }
                                 if (rec) {
-                                    // v54 - Log SEGURO (evitar circularidad)
-                                    console.warn("[FISCAL] v54 - Impuesto encontrado:", id, " Tipo:", (rec.x_tipo_alicuota || rec.attr?.x_tipo_alicuota));
+                                    // v55 - Log SEGURO (evitar circularidad)
+                                    console.warn("[FISCAL] v55 - Impuesto:", id, " Tipo:", (rec.x_tipo_alicuota || rec.attr?.x_tipo_alicuota), " Amount:", rec.amount);
                                 }
                                 return rec;
                             })
@@ -975,20 +975,24 @@ export const FiscalPrinterMixin = {
                 let tag = (char === "GC") ? "d0" : " "; // Default exento
                 
                 if (tax_records.length > 0) {
-                    const has_general = tax_records.some(t => (t.x_tipo_alicuota === 'general' || t.attr?.x_tipo_alicuota === 'general'));
-                    const has_reducido = tax_records.some(t => (t.x_tipo_alicuota === 'reducido' || t.attr?.x_tipo_alicuota === 'reducido'));
-                    const has_adicional = tax_records.some(t => (t.x_tipo_alicuota === 'adicional' || t.attr?.x_tipo_alicuota === 'adicional'));
+                    const first_tax = tax_records[0];
+                    const type = first_tax.x_tipo_alicuota || first_tax.attr?.x_tipo_alicuota;
+                    // v55 - Uso de amount como respaldo (IVA 16% es General)
+                    const amount = first_tax.amount !== undefined ? first_tax.amount : (first_tax.attr?.amount || 0);
 
-                    console.warn("[FISCAL] Tipos detectados:", {general: has_general, reducido: has_reducido, adicional: has_adicional});
+                    console.warn("[FISCAL] v55 - Analizando Tax:", {type, amount});
 
-                    if (has_general) tag = (char === "GC") ? "d1" : "!";
-                    else if (has_reducido) tag = (char === "GC") ? "d2" : '"';
-                    else if (has_adicional) tag = (char === "GC") ? "d3" : "#";
+                    if (type === 'general' || amount === 16) tag = '"'; // Según investigación: " = 16%
+                    else if (type === 'reducido' || amount === 8 || amount === 12) tag = '#';
+                    else if (type === 'adicional' || amount === 31) tag = '$';
+                    else tag = '!'; // Según investigación: ! al final = Exento
                 } 
-                // Pachacutec: v50 - Failsafe: Si hay IDs pero no records, es probablemente IVA 16% (!)
+                // Pachacutec: v50 - Failsafe: Si hay IDs pero no records, es probablemente IVA 16% (")
                 else if (tax_ids.length > 0) {
-                    console.warn("[FISCAL] v50 - Failsafe Activado: IDs presentes pero records vacíos. Usando '!'");
-                    tag = (char === "GC") ? "d1" : "!";
+                    console.warn("[FISCAL] v55 - Failsafe: IDs presentes pero records vacíos. Usando '\"' (16%)");
+                    tag = '"';
+                } else {
+                    tag = '!'; // Exento
                 }
 
                 // Cálculo de precios y cantidades (v16 alignment)
@@ -1006,16 +1010,15 @@ export const FiscalPrinterMixin = {
                 let pEnt = priceStr.split(",")[0];
                 let qEnt = qtyStr.split(",")[0];
 
-                pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(14, "0") : pEnt.padStart(8, "0");
-                qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(14, "0") : qEnt.padStart(5, "0");
+                pEnt = pEnt.padStart(8, "0");
+                qEnt = qEnt.padStart(5, "0");
 
-                // v54 - NUEVO FORMATO RECOMENDADO: ! + Descripción(40) + Precio(10) + Cantidad(8) + Tasa(1)
-                // Usamos '!' como comando base de item (o ' ' para exento)
-                let base_command = (tag === " ") ? " " : "!";
+                // v55 - NUEVO FORMATO REORDENADO: ! + Descripción(40) + Precio(10) + Cantidad(8) + Tasa(1)
+                let base_command = "!"; // Según investigación: El comando es !
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto").padEnd(40, " ");
-                let price = pEnt + pDec;
-                let quantity = qEnt + qDec;
-                let tax_char = tag; // Usamos el tag detectado (!, ", #, ' ') como indicador de tasa al final
+                let price = pEnt + pDec; // 8 + 2 = 10
+                let quantity = qEnt + qDec; // 5 + 3 = 8
+                let tax_char = tag; // Tasa según mapeo v55 (", #, $, !)
                 
                 let command = base_command + description + price + quantity + tax_char;
                 
