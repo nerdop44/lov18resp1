@@ -944,31 +944,27 @@ export const FiscalPrinterMixin = {
                     // Resolver contra el modelo global de POS (DataStore en v18)
                     const tax_model = this.pos.models["account.tax"];
                     if (tax_model) {
-                        // v53 - Búsqueda ultra-robusta con LOG completo
+                        // Pachacutec: v58 - Acceso Estricto a Modelo Reactivo Odoo 18
                         tax_records = tax_ids
                             .map(id => {
-                                let rec = tax_model.get(id) || tax_model.get(String(id)) || tax_model.get(Number(id));
-                                if (!rec) {
-                                    rec = tax_model.getAll().find(t => String(t.id) === String(id));
-                                }
+                                const rec = tax_model.get(id);
                                 if (rec) {
-                                    // v55 - Log SEGURO (evitar circularidad)
-                                    console.warn("[FISCAL] v55 - Impuesto:", id, " Tipo:", (rec.x_tipo_alicuota || rec.attr?.x_tipo_alicuota), " Amount:", rec.amount);
+                                    console.warn("[FISCAL] v58 - Impuesto Detectado:", id, " Amount:", rec.amount);
                                 }
                                 return rec;
                             })
-                            .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota || t.amount !== undefined || t.attr?.amount !== undefined)); 
+                            .filter(t => t); 
                         
                         if (tax_records.length === 0) {
-                            console.error("[FISCAL] v57 - FALLO CRÍTICO: No se hallaron impuestos en el modelo para IDs:", tax_ids);
-                            // Log profundo de todo el DataStore de impuestos
-                            const all_taxes = tax_model.getAll();
-                            console.warn("[FISCAL] v57 - DataStore completo:", JSON.stringify(all_taxes.map(t => ({id: t.id, name: t.display_name, amount: t.amount}))));
-                        } else {
-                            console.warn("[FISCAL] v57 - Impuestos cargados:", tax_records.length);
+                            console.error("[FISCAL] v58 - FALLO CRÍTICO: No se hallaron impuestos para IDs:", tax_ids);
+                            // Log de emergencia para depurar el DataStore
+                            try {
+                                const all_ids = tax_model.getAll().map(t => t.id);
+                                console.warn("[FISCAL] v58 - IDs disponibles en account.tax:", all_ids.join(", "));
+                            } catch(e) {}
                         }
                     } else {
-                        console.error("[FISCAL] v53 - DataStore 'account.tax' NO EXISTE!");
+                        console.error("[FISCAL] v58 - DataStore 'account.tax' NO EXISTE!");
                     }
                     
                 } catch (e) {
