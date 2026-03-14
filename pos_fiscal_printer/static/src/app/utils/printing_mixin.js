@@ -934,13 +934,23 @@ export const FiscalPrinterMixin = {
                     tax_ids = [...new Set(tax_ids)].filter(id => id);
                     console.warn("[FISCAL] tax_ids normalizados (v42):", tax_ids);
 
-                    // Resolver contra el modelo global de POS
-                    tax_records = tax_ids
-                        .map(id => this.pos.models["account.tax"]?.get(id))
-                        .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota));
+                    // Resolver contra el modelo global de POS (DataStore en v18)
+                    const tax_model = this.pos.models["account.tax"];
+                    if (tax_model) {
+                        tax_records = tax_ids
+                            .map(id => tax_model.get(id))
+                            .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota));
+                        
+                        if (tax_records.length === 0) {
+                            console.error("[FISCAL] v50 - No se encontraron registros de impuestos en DataStore para IDs:", tax_ids);
+                            console.warn("[FISCAL] v50 - Contenido parcial DataStore:", tax_model.getAll?.()?.slice(0, 5));
+                        }
+                    } else {
+                        console.error("[FISCAL] v50 - DataStore 'account.tax' no encontrado!");
+                    }
                     
                 } catch (e) {
-                    console.error("[FISCAL] Error crítico en setLines v42:", e);
+                    console.error("[FISCAL] Error crítico en setLines v50:", e);
                 }
 
                 // Pachacutec: v41 - Determinación de Carácter Fiscal (Seguro Social)
@@ -957,6 +967,11 @@ export const FiscalPrinterMixin = {
                     else if (has_reducido) tag = (char === "GC") ? "d2" : '"';
                     else if (has_adicional) tag = (char === "GC") ? "d3" : "#";
                 } 
+                // Pachacutec: v50 - Failsafe: Si hay IDs pero no records, es probablemente IVA 16% (!)
+                else if (tax_ids.length > 0) {
+                    console.warn("[FISCAL] v50 - Failsafe Activado: IDs presentes pero records vacíos. Usando '!'");
+                    tag = (char === "GC") ? "d1" : "!";
+                }
 
                 // Cálculo de precios y cantidades (v16 alignment)
                 let unitPrice = line.get_unit_display_price ? line.get_unit_display_price() : (line.price_unit || 0);
