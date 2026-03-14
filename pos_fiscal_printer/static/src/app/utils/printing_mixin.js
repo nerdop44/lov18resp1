@@ -894,8 +894,6 @@ export const FiscalPrinterMixin = {
             .filter(line => !line.x_is_igtf_line)
             .forEach((line) => {
                 let tax_records = [];
-                console.warn("[FISCAL] setLines - Procesando línea:", line.product_id?.display_name || "Producto");
-                
                 try {
                     // Pachacutec: v38 - Resolución Directa de Impuestos Odoo 18
                     const tax_ids = [];
@@ -909,6 +907,16 @@ export const FiscalPrinterMixin = {
                         }
                     }
 
+                    // Pachacutec: v39 - Fallback a impuestos del producto si la línea está vacía
+                    if (tax_ids.length === 0 && line.product_id) {
+                        const product = this.pos.models["product.product"]?.get(line.product_id.id || line.product_id);
+                        const p_taxes = product?.taxes_id;
+                        if (p_taxes) {
+                            if (Array.isArray(p_taxes)) p_taxes.forEach(id => tax_ids.push(id));
+                            else if (p_taxes.records) p_taxes.records.forEach(r => tax_ids.push(r.id));
+                        }
+                    }
+
                     // Resolver contra el modelo global de POS
                     tax_records = [...new Set(tax_ids)]
                         .filter(id => id)
@@ -916,12 +924,12 @@ export const FiscalPrinterMixin = {
                         .filter(t => t && t.x_tipo_alicuota);
                     
                 } catch (e) {
-                    console.error("[FISCAL] Error resolviendo impuestos en v38:", e);
+                    console.error("[FISCAL] Error resolviendo impuestos en v39:", e);
                 }
 
                 console.warn("[FISCAL] setLines - Impuestos detectados:", tax_records.length, tax_records.map(t => t.x_tipo_alicuota));
 
-                // Pachacutec: v38 - Determinación de Carácter Fiscal
+                // Pachacutec: v39 - Determinación de Carácter Fiscal (Fix Sintaxis)
                 let tag = (char === "GC") ? "d0" : " "; // Default exento
                 
                 if (tax_records.length > 0) {
