@@ -897,16 +897,18 @@ export const FiscalPrinterMixin = {
                 console.warn("[FISCAL] setLines - Procesando línea:", line.product_id?.display_name || "Producto");
                 
                 try {
-                    // Pachacutec: v40 - Resolución Ultra-Robusta Odoo 18
+                    // Pachacutec: v41 - Resolución Ultra-Segura Odoo 18
                     let tax_ids = [];
                     const raw_taxes = line.tax_ids;
-                    console.log("[FISCAL] raw_taxes debug:", raw_taxes);
                     
                     if (raw_taxes) {
                         if (Array.isArray(raw_taxes)) {
                             tax_ids = raw_taxes.map(t => Number(typeof t === 'object' ? t.id : t));
                         } else if (raw_taxes.records) {
                             tax_ids = raw_taxes.records.map(r => Number(r.id));
+                        } else if (typeof raw_taxes === 'object' && raw_taxes !== null) {
+                            // Caso Proxy de record único o set
+                            tax_ids = (raw_taxes.id) ? [Number(raw_taxes.id)] : [];
                         }
                     }
 
@@ -914,70 +916,66 @@ export const FiscalPrinterMixin = {
                     if (tax_ids.length === 0 && line.product_id) {
                         const product = this.pos.models["product.product"]?.get(line.product_id.id || line.product_id);
                         const p_taxes = product?.taxes_id;
-                        console.log("[FISCAL] Fallback a producto taxes:", p_taxes);
                         if (p_taxes) {
                             if (Array.isArray(p_taxes)) tax_ids = p_taxes.map(id => Number(id));
                             else if (p_taxes.records) tax_ids = p_taxes.records.map(r => Number(r.id));
                         }
                     }
 
-                    console.warn("[FISCAL] tax_ids normalizados:", tax_ids);
+                    // Limpieza e IDs únicos
+                    tax_ids = [...new Set(tax_ids)].filter(id => id);
+                    console.warn("[FISCAL] tax_ids normalizados (v41):", tax_ids);
 
-                    // Resolver contra el modelo global de POS
-                    tax_records = [...new Set(tax_ids)]
-                        .filter(id => id)
-                        .map(id => {
-                            const tax = this.pos.models["account.tax"]?.get(id);
-                            console.log(`[FISCAL] Resolviendo Tax ${id}:`, tax);
-                            return tax;
-                        })
-                        .filter(t => t && t.x_tipo_alicuota);
+                    // Resolver contra el modelo global de POS (Intento de obtener x_tipo_alicuota)
+                    tax_records = tax_ids
+                        .map(id => this.pos.models["account.tax"]?.get(id))
+                        .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota));
                     
                 } catch (e) {
-                    console.error("[FISCAL] Error crítico en resolución v40:", e);
+                    console.error("[FISCAL] Error crítico en setLines v41:", e);
                 }
 
-                console.warn("[FISCAL] setLines - Tax Records resueltos:", tax_records.length);
-
-                // Pachacutec: v40 - Determinación de Carácter Fiscal con Lógica de "Bulto"
+                // Pachacutec: v41 - Determinación de Carácter Fiscal (Seguro Social)
                 let tag = (char === "GC") ? "d0" : " "; // Default exento
                 
                 if (tax_records.length > 0) {
-                    const has_general = tax_records.some(t => t.x_tipo_alicuota === 'general');
-                    const has_reducido = tax_records.some(t => t.x_tipo_alicuota === 'reducido');
-                    const has_adicional = tax_records.some(t => t.x_tipo_alicuota === 'adicional');
+                    const has_general = tax_records.some(t => (t.x_tipo_alicuota === 'general' || t.attr?.x_tipo_alicuota === 'general'));
+                    const has_reducido = tax_records.some(t => (t.x_tipo_alicuota === 'reducido' || t.attr?.x_tipo_alicuota === 'reducido'));
+                    const has_adicional = tax_records.some(t => (t.x_tipo_alicuota === 'adicional' || t.attr?.x_tipo_alicuota === 'adicional'));
 
                     if (has_general) tag = (char === "GC") ? "d1" : "!";
                     else if (has_reducido) tag = (char === "GC") ? "d2" : '"';
                     else if (has_adicional) tag = (char === "GC") ? "d3" : "#";
                 } 
-                // Pachacutec: v40 - "Detección de Bulto": si hay IDs pero no se resolvieron alícuotas, ASUMIMOS GENERAL para seguridad fiscal
-                else if (line.tax_ids?.length > 0 || (line.tax_ids?.records && line.tax_ids.records.length > 0)) {
-                    console.warn("[FISCAL] Detección de Bulto: Impuestos presentes pero no resueltos. Forzando General (!)");
+                // Pachacutec: v41 - "Detección de Bulto INFALIBLE": Si tenemos IDs de impuestos, es GRAVADO (!)
+                else if (tax_ids.length > 0) {
+                    console.warn("[FISCAL] v41 - Detección de Bulto activada (ids detectados). Forzando !");
                     tag = (char === "GC") ? "d1" : "!";
                 }
 
-                // Cálculo de precios y cantidades al estilo v16
-                let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
-                if (line.discount > 0) {
-                    price = (line.get_all_prices().priceWithoutTaxBeforeDiscount / line.qty).toFixed(2).replace(".", ",");
+                // Cálculo de precios y cantidades (v16 alignment)
+                let unitPrice = line.get_unit_display_price ? line.get_unit_display_price() : (line.price_unit || 0);
+                if (line.get_all_prices) {
+                    const all_prices = line.get_all_prices();
+                    unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
-                let qty = (Math.abs(line.qty)).toFixed(3).replace(".", ",");
 
-                let [pEnt, pDec] = price.split(",");
-                let [qEnt, qDec] = qty.split(",");
+                let priceStr = (unitPrice || 0).toFixed(2).replace(".", ",");
+                let qtyStr = (Math.abs(line.qty || 0)).toFixed(3).replace(".", ",");
+
+                let [pEnt, pDec] = priceStr.split(",");
+                let [qEnt, qDec] = qtyStr.split(",");
 
                 pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(14, "0") : pEnt.padStart(8, "0");
                 qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(14, "0") : qEnt.padStart(5, "0");
 
                 let command = tag + pEnt + pDec + qEnt + qDec;
-
-                // Código con PIPES (v16 style)
+                
                 let prod_code = line.product_id?.default_code || line.product_id?.id || "000";
                 command += "|" + prod_code + "|";
                 command += sanitize(line.product_id?.display_name || line.product_name || "Producto");
 
-                console.warn("[FISCAL] setLines - Comando v40 final:", command);
+                console.warn("[FISCAL] v41 - Comando Final:", command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
@@ -1009,6 +1007,7 @@ export const FiscalPrinterMixin = {
     async printNotaCredito() {
         const { confirmed, payload } = await this.env.services.dialog.add(NotaCreditoPopUp);
         if (!confirmed) return false;
+        this.printerCommands.push("GC"); // Apertura de Nota de Crédito
         this.setHeader(payload);
         this.setLines("GC");
         this.setTotal();
