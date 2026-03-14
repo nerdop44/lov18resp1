@@ -898,7 +898,6 @@ export const FiscalPrinterMixin = {
                 
                 try {
                     // Pachacutec: v38 - Resolución Directa de Impuestos Odoo 18
-                    // Obtenemos los IDs directamente del Proxy de la línea
                     const tax_ids = [];
                     const raw_taxes = line.tax_ids;
                     
@@ -927,6 +926,15 @@ export const FiscalPrinterMixin = {
                 
                 if (tax_records.length > 0) {
                     const has_general = tax_records.some(t => t.x_tipo_alicuota === 'general');
+                    const has_reducido = tax_records.some(t => t.x_tipo_alicuota === 'reducido');
+                    const has_adicional = tax_records.some(t => t.x_tipo_alicuota === 'adicional');
+
+                    if (has_general) tag = (char === "GC") ? "d1" : "!";
+                    else if (has_reducido) tag = (char === "GC") ? "d2" : '"';
+                    else if (has_adicional) tag = (char === "GC") ? "d3" : "#";
+                }
+
+                // Cálculo de precios y cantidades al estilo v16 (fiel a loc_v16)
                 let price = (line.get_price_without_tax() / line.qty).toFixed(2).replace(".", ",");
                 if (line.discount > 0) {
                     price = (line.get_all_prices().priceWithoutTaxBeforeDiscount / line.qty).toFixed(2).replace(".", ",");
@@ -936,25 +944,18 @@ export const FiscalPrinterMixin = {
                 let [pEnt, pDec] = price.split(",");
                 let [qEnt, qDec] = qty.split(",");
 
-                // Pachacutec: Mirror v16 padding (8+2 enteros/decimales y 5+3 qty)
+                // Padding según flag_21 (estándar v16)
                 pEnt = this.pos.config.flag_21 === '30' ? pEnt.padStart(14, "0") : pEnt.padStart(8, "0");
                 qEnt = this.pos.config.flag_21 === '30' ? qEnt.padStart(14, "0") : qEnt.padStart(5, "0");
 
-                command += pEnt + pDec + qEnt + qDec;
+                let command = tag + pEnt + pDec + qEnt + qDec;
 
                 // Añadir código de producto CON PIPES (v16 style)
-                let prod_code = line.product_id?.default_code || "";
-                if (!prod_code && typeof line.product_id === 'object') {
-                    // Odoo 18 Proxy fallback
-                    prod_code = line.product_id.records?.[0]?.default_code || "";
-                }
-                
-                if (prod_code) {
-                    command += "|" + prod_code + "|";
-                }
+                let prod_code = line.product_id?.default_code || line.product_id?.id || "000";
+                command += "|" + prod_code + "|";
+                command += sanitize(line.product_id?.display_name || line.product_name || "Producto");
 
-                command += sanitize(line.product_id?.display_name || line.product_name || "");
-                console.warn("[FISCAL] setLines - Comando v25 final:", command);
+                console.warn("[FISCAL] setLines - Comando final:", command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
