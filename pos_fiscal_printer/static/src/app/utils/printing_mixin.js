@@ -955,7 +955,7 @@ export const FiscalPrinterMixin = {
                                 }
                                 return rec;
                             })
-                            .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota || t.attr?.x_tax_type)); // Agregue x_tax_type por si acaso
+                            .filter(t => t && (t.x_tipo_alicuota || t.attr?.x_tipo_alicuota || t.amount !== undefined || t.attr?.amount !== undefined)); 
                         
                         if (tax_records.length === 0) {
                             console.error("[FISCAL] v53 - FALLO CRÍTICO: No se hallaron impuestos en el modelo para IDs:", tax_ids);
@@ -985,14 +985,14 @@ export const FiscalPrinterMixin = {
                     if (type === 'general' || amount === 16) tag = '"'; // Según investigación: " = 16%
                     else if (type === 'reducido' || amount === 8 || amount === 12) tag = '#';
                     else if (type === 'adicional' || amount === 31) tag = '$';
-                    else tag = '!'; // Según investigación: ! al final = Exento
+                    else tag = ' '; // Según investigación: Espacio = Exento
                 } 
-                // Pachacutec: v50 - Failsafe: Si hay IDs pero no records, es probablemente IVA 16% (")
+                // Pachacutec: v56 - Failsafe: Si hay IDs pero no records, usar espacio (Exento) por seguridad
                 else if (tax_ids.length > 0) {
-                    console.warn("[FISCAL] v55 - Failsafe: IDs presentes pero records vacíos. Usando '\"' (16%)");
-                    tag = '"';
+                    console.warn("[FISCAL] v56 - Failsafe: IDs presentes pero records vacíos. Usando ' ' (Exento)");
+                    tag = ' ';
                 } else {
-                    tag = '!'; // Exento
+                    tag = ' '; // Exento
                 }
 
                 // Cálculo de precios y cantidades (v16 alignment)
