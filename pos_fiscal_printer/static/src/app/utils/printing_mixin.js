@@ -189,18 +189,30 @@ export const FiscalPrinterMixin = {
             }
 
             var esperando = 0;
+            var responseData = [];
             while (leer) {
                 try {
                     const { value, done } = await this.reader.read();
-                    if (value.byteLength >= 1) {
+                    if (value && value.byteLength >= 1) {
                         console.log("Respuesta de comando: ", value, " Byte 0: ", value[0]);
+                        
+                        // Si es un comando de status (S1, S2, S3), la impresora responde con STX (2) + DATA + ETX (3) + LRC
+                        if (command.length === 2 && command.startsWith("S") && value[0] === 2) {
+                            responseData = Array.from(value);
+                            console.log("[FISCAL] v74 - Respuesta Status detectada:", responseData);
+                            leer = false;
+                            await this.reader.releaseLock();
+                            this.reader = false;
+                            return responseData; // Devolvemos la trama completa
+                        }
+
                         if (value[0] == 6) {
                             console.log("Comando aceptado (ACK)");
                             leer = false;
                             await this.reader.releaseLock();
                             this.reader = false;
                             return true;
-                        } else {
+                        } else if (value[0] == 21) {
                             console.error("[FISCAL] Impresora devolvió NAK.");
                             leer = false;
                             await this.reader.releaseLock();
@@ -282,6 +294,15 @@ export const FiscalPrinterMixin = {
                     this.printing = false;
                     break; 
                 }
+
+                // Pachacutec: v74 - Sincronización vía Status S2
+                // Si el comando enviado fue "S2", el 'success' contiene la trama de respuesta.
+                if (command === "S2" && Array.isArray(success)) {
+                    console.log("[FISCAL] v74 - Analizando Status S2 para sincronizar montos...");
+                    // El Manual v8.5.0 indica que S2 devuelve montos acumulados.
+                    // Aquí podríamos inyectar lógica para ajustar el siguiente comando de pago si hay discrepancia.
+                }
+
                 cantidad_comandos--;
             }
         }
@@ -880,15 +901,15 @@ export const FiscalPrinterMixin = {
             const printer_code = payment.payment_method_id?.x_printer_code || '01';
             const is_last = (i + 1) === array.length;
             
-            // Pachacutec: v71 - Montos con padding de 8 dígitos para trama de 14 bytes (STX+11+ETX+XOR)
+            // Pachacutec: v74 - Montos con padding de 10 dígitos (según Manual v8.5.0)
             let amountRaw = Math.round(Math.abs(payment.amount) * 100).toString();
-            let monto = amountRaw.padStart(8, "0").slice(-8);
+            let monto = amountRaw.padStart(10, "0").slice(-10);
 
             if (is_last && !use_igtf_closing) {
-                console.warn("[FISCAL] v71 - Pago Final (11 chars):", "1" + printer_code + monto);
+                console.warn("[FISCAL] v74 - Pago Final (13 chars):", "1" + printer_code + monto);
                 this.printerCommands.push("1" + printer_code + monto);
             } else {
-                console.warn("[FISCAL] v71 - Pago Parcial (11 chars):", "2" + printer_code + monto);
+                console.warn("[FISCAL] v74 - Pago Parcial (13 chars):", "2" + printer_code + monto);
                 this.printerCommands.push("2" + printer_code + monto);
             }
         });
@@ -902,7 +923,8 @@ export const FiscalPrinterMixin = {
             const lastCmd = this.printerCommands[this.printerCommands.length - 1];
             const isClosing = lastCmd && lastCmd.startsWith("1") && lastCmd.length >= 3;
             if (!isClosing) {
-                this.printerCommands.push("101");
+                // v74 - Comando de cierre 101 ahora con padding para consistencia (Trama de 16 bytes)
+                this.printerCommands.push("101" + "0".padStart(10, "0"));
             }
         }
 
@@ -1014,19 +1036,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v71 - Simetría 58 (Firmware Físico HKA)
-                // Estructura !: Comando(1) + Desc(40) + Precio(8) + Cant(8) + Tasa(1) = 58 caracteres.
-                let price = String(Math.round((unitPrice || 0) * 100)).padStart(8, '0').slice(-8);
+                // Pachacutec: v74 - Protocolo HKA v8.5.0 Estricto
+                // Estructura !: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(40)] = 59 caracteres.
+                let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
-                let base_command = "!"; 
-                let description = cleanText(line.product_id?.display_name || line.product_name || "Producto").substring(0, 40).padEnd(40, " ");
-                let tax_char = tag; 
+                let base_command = tag; // Identificador de Tasa ( !, ", # o Espacio)
+                let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
+                    .replace(/[^A-Z0-9 ]/gi, "") // Purificación radical (solo A-Z, 0-9)
+                    .substring(0, 40).padEnd(40, " ");
                 
-                let command = base_command + description + price + quantity + tax_char;
+                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción(40)]
+                let command = base_command + price + quantity + description;
                 
-                // Pachacutec: v73 - Cuerpo exacto de 58 caracteres (61 bytes totales con XOR 1-byte)
-                console.warn("[FISCAL] v73 - Línea (!):", command, "Largo:", command.length);
+                // Trama Total: STX + 59 chars + ETX + XOR = 62 bytes.
+                console.warn("[FISCAL] v74 - Línea v8.5.0:", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
