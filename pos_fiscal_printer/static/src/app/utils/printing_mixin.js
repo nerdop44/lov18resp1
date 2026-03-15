@@ -10,25 +10,20 @@ const CHAR_MAP = {
 };
 const EXPRESSION = new RegExp(`[${Object.keys(CHAR_MAP).join("")}]`, "g");
 
-// Pachacutec: v66 - cleanText RADICAL (NFD + UpperCase) - Idéntico a v16
+// Pachacutec: v67 - cleanText RADICAL (NFD + UpperCase) - Preservando espacios
 export function cleanText(string) {
     if (!string) return "";
     try {
-        // Normalización NFD para separar marcas de acentuación
         let clean = string.normalize("NFD");
-        // Eliminar Combining Diacritical Marks (tildes, cedillas, etc.)
         clean = clean.replace(/[\u0300-\u036f]/g, "");
-        // Casos especiales (ñ, Ñ)
         clean = clean.replace(/ñ/g, "n").replace(/Ñ/g, "N");
-        // Forzar Mayúsculas total
         clean = clean.toUpperCase();
-        // Filtrar a ASCII imprimible [32-126]
         clean = clean.replace(/[^\x20-\x7E]/g, "");
-        // Remover delimitadores de protocolo
-        return clean.replace(/[!|*]/g, " ").trim();
+        // Pachacutec: v67 - Eliminar .trim() para que el padding de 40 sea exacto
+        return clean.replace(/[!|*]/g, " ");
     } catch (e) {
-        console.error("Error en cleanText v66:", e);
-        return String(string).toUpperCase().replace(/[^\x20-\x7E]/g, "").trim();
+        console.error("Error en cleanText v67:", e);
+        return String(string).toUpperCase().replace(/[^\x20-\x7E]/g, "");
     }
 }
 
@@ -849,7 +844,12 @@ export const FiscalPrinterMixin = {
     },
 
     setHeader(payload) {
-        const client = this.order.partner_id || {};
+        const client = payload || this.order.get_partner() || { name: "Cliente Contado", vat: "00000000" };
+        
+        // Pachacutec: v67 - Secuencia de Escape (0x07) al inicio para limpiar estado NAK previo
+        this.printerCommands.push(String.fromCharCode(7));
+        
+        let vat = client.vat || client.identification_id || "00000000";
         console.warn("[FISCAL] setHeader - Cliente:", client.name, "RIF:", client.vat);
         if (payload) {
             this.printerCommands.push("iF*" + payload.invoiceNumber.padStart(11, "0"));
@@ -859,11 +859,11 @@ export const FiscalPrinterMixin = {
 
         const prefix = client.prefix_vat || "V";
         const raw_vat = client.vat || client.rif || "";
-        let vat = raw_vat.replace(/[^0-9]/g, ""); // Solo números
-        if (!vat) vat = "No tiene";
-        else vat = prefix + vat; // v51 - Remover guion '-' para compatibilidad HKA directa
+        let vat_cleaned = raw_vat.replace(/[^0-9]/g, ""); // Solo números
+        if (!vat_cleaned) vat_cleaned = "No tiene";
+        else vat_cleaned = prefix + vat_cleaned; // v51 - Remover guion '-' para compatibilidad HKA directa
 
-        this.printerCommands.push("iR*" + vat);
+        this.printerCommands.push("iR*" + vat_cleaned);
         this.printerCommands.push("iS*" + cleanText(client.name || "Cliente Contado").substring(0, 40));
         // Pachacutec: v64 - Limpieza ABSOLUTA de tildes y prefijos (Sin "Teléfono")
         this.printerCommands.push("i00TELEFONO: " + cleanText(client.phone || "No tiene"));
@@ -893,15 +893,15 @@ export const FiscalPrinterMixin = {
             const printer_code = payment.payment_method_id?.x_printer_code || '01';
             const is_last = (i + 1) === array.length;
             
-            let amountStr = (Math.abs(payment.amount) || 0).toFixed(2).replace(".", "").replace(",", "");
-            let monto = amountStr.padStart(12, "0"); // v59 - Monto 12 dígitos (Pachacutec)
+            // Pachacutec: v67 - Montos ENTEROS PUROS y cuerpo exacto de 15 caracteres
+            let amountRaw = Math.round(Math.abs(payment.amount) * 100).toString();
+            let monto = amountRaw.padStart(12, "0").slice(-12);
 
-            // Pachacutec: v59 - Cierre con monto de 12 dígitos para asegurar corte (Pachacutec)
             if (is_last && !use_igtf_closing) {
-                console.warn("[FISCAL] v59 - Enviando Pago Final con Monto:", "1" + printer_code + monto);
+                console.warn("[FISCAL] v67 - Pago Final (15 chars):", "1" + printer_code + monto);
                 this.printerCommands.push("1" + printer_code + monto);
             } else {
-                console.warn("[FISCAL] v59 - Enviando Pago Parcial:", "2" + printer_code + monto);
+                console.warn("[FISCAL] v67 - Pago Parcial (15 chars):", "2" + printer_code + monto);
                 this.printerCommands.push("2" + printer_code + monto);
             }
         });
@@ -1027,28 +1027,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                let priceStr = (unitPrice || 0).toFixed(2).replace(".", ",");
-                let qtyStr = (Math.abs(line.qty || 0)).toFixed(3).replace(".", ",");
+                // Pachacutec: v67 - Enteros Puros (Sin puntos ni comas)
+                let priceRaw = Math.round((unitPrice || 0) * 100).toString();
+                let qtyRaw = Math.round(Math.abs(line.qty || 0) * 1000).toString();
 
-                let pDec = priceStr.split(",")[1];
-                let qDec = qtyStr.split(",")[1];
-                let pEnt = priceStr.split(",")[0];
-                let qEnt = qtyStr.split(",")[0];
-
-                pEnt = pEnt.padStart(8, "0");
-                qEnt = qEnt.padStart(5, "0");
-
-                // v55 - NUEVO FORMATO REORDENADO: ! + Descripción(40) + Precio(10) + Cantidad(8) + Tasa(1)
-                let base_command = "!"; // Pachacutec: v61 - Comando de venta
+                let price = priceRaw.padStart(10, "0").slice(-10); // 10 dígitos (8i+2d)
+                let quantity = qtyRaw.padStart(8, "0").slice(-8); // 8 dígitos (5i+3d)
+                
+                let base_command = "!"; 
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto").substring(0, 40).padEnd(40, " ");
-                let price = pEnt + pDec; // 8 + 2 = 10
-                let quantity = qEnt + qDec; // 5 + 3 = 8
-                let tax_char = tag; // Tasa fiscal final
+                let tax_char = tag; 
                 
                 let command = base_command + description + price + quantity + tax_char;
                 
-                // Pachacutec: v54 - Log del comando final reordenado
-                console.warn("[FISCAL] v54 - Comando Final REORDENADO:", command);
+                // Pachacutec: v67 - Cuerpo exacto de 60 caracteres
+                console.warn("[FISCAL] v67 - Línea (!):", command, "Largo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
