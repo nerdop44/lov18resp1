@@ -28,8 +28,8 @@ export function cleanText(string) {
 }
 
 // Pachacutec: v66 - Restauración Estricta XOR v16 (1 solo byte de Checksum)
-// Pachacutec: v72 - Checksum Hexadecimal ASCII (2 bytes)
-// Requisito final HKA para evitar caracteres de control (<32) en el checksum.
+// Pachacutec: v73 - Restauración XOR Binario (1 solo byte)
+// Requisito final HKA: 1 solo byte binario para el checksum.
 export function toBytes(command) {
     const rawBytes = Array.from(encoder.encode(command));
     
@@ -39,10 +39,8 @@ export function toBytes(command) {
     // 2. Calculamos XOR bit a bit de todos los bytes (Command + ETX)
     let checksum = rawBytes.reduce((prev, curr) => prev ^ curr, 0);
     
-    // 3. Convertimos el XOR a Hexadecimal ASCII de 2 dígitos (ej: 9 -> "09")
-    let hexCS = checksum.toString(16).toUpperCase().padStart(2, '0');
-    rawBytes.push(hexCS.charCodeAt(0));
-    rawBytes.push(hexCS.charCodeAt(1));
+    // 3. Añadimos el ÚNICO byte del checksum al final (Sin offset, sin Hex ASCII)
+    rawBytes.push(checksum);
     
     // 4. Añadimos STX (2) al inicio
     rawBytes.unshift(2);
@@ -1027,8 +1025,8 @@ export const FiscalPrinterMixin = {
                 
                 let command = base_command + description + price + quantity + tax_char;
                 
-                // Pachacutec: v71 - Cuerpo exacto de 58 caracteres (61 bytes totales)
-                console.warn("[FISCAL] v71 - Línea (!):", command, "Largo:", command.length);
+                // Pachacutec: v73 - Cuerpo exacto de 58 caracteres (61 bytes totales con XOR 1-byte)
+                console.warn("[FISCAL] v73 - Línea (!):", command, "Largo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
