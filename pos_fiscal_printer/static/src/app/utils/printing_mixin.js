@@ -846,8 +846,7 @@ export const FiscalPrinterMixin = {
     setHeader(payload) {
         const client = payload || this.order.get_partner() || { name: "Cliente Contado", vat: "00000000" };
         
-        // Pachacutec: v67 - Secuencia de Escape (0x07) al inicio para limpiar estado NAK previo
-        this.printerCommands.push(String.fromCharCode(7));
+        // Pachacutec: v68 - ELIMINADO Escape 0x07 (Rechazado con NAK). Regreso a estructura v66.
         
         let vat = client.vat || client.identification_id || "00000000";
         console.warn("[FISCAL] setHeader - Cliente:", client.name, "RIF:", client.vat);
