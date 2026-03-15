@@ -1036,21 +1036,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v74 - Protocolo HKA v8.5.0 Estricto
-                // Estructura !: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(40)] = 59 caracteres.
+                // Pachacutec: v75 - Simetría 56 (Trama 59 bytes totales)
+                // Estructura !: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(37)] = 56 caracteres.
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
                 let base_command = tag; // Identificador de Tasa ( !, ", # o Espacio)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
                     .replace(/[^A-Z0-9 ]/gi, "") // Purificación radical (solo A-Z, 0-9)
-                    .substring(0, 40).padEnd(40, " ");
+                    .substring(0, 37).padEnd(37, " "); // Calibración v75: 37 espacios
                 
-                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción(40)]
+                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción(37)]
                 let command = base_command + price + quantity + description;
                 
-                // Trama Total: STX + 59 chars + ETX + XOR = 62 bytes.
-                console.warn("[FISCAL] v74 - Línea v8.5.0:", command, "Largo Cuerpo:", command.length);
+                // Trama Total: STX + 56 chars + ETX + XOR = 59 bytes.
+                console.warn("[FISCAL] v75 - Línea (56 chars):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
