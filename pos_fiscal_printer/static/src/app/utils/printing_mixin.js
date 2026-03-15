@@ -28,6 +28,8 @@ export function cleanText(string) {
 }
 
 // Pachacutec: v66 - Restauración Estricta XOR v16 (1 solo byte de Checksum)
+// Pachacutec: v72 - Checksum Hexadecimal ASCII (2 bytes)
+// Requisito final HKA para evitar caracteres de control (<32) en el checksum.
 export function toBytes(command) {
     const rawBytes = Array.from(encoder.encode(command));
     
@@ -37,14 +39,10 @@ export function toBytes(command) {
     // 2. Calculamos XOR bit a bit de todos los bytes (Command + ETX)
     let checksum = rawBytes.reduce((prev, curr) => prev ^ curr, 0);
     
-    // Pachacutec: v69 - Protección contra caracteres de control (< 32).
-    // Si el XOR es un carácter de control, le sumamos 64 (0x40) para llevarlo a rango imprimible.
-    if (checksum < 32) {
-        checksum += 64;
-    }
-    
-    // 3. Añadimos el ÚNICO byte del checksum al final
-    rawBytes.push(checksum);
+    // 3. Convertimos el XOR a Hexadecimal ASCII de 2 dígitos (ej: 9 -> "09")
+    let hexCS = checksum.toString(16).toUpperCase().padStart(2, '0');
+    rawBytes.push(hexCS.charCodeAt(0));
+    rawBytes.push(hexCS.charCodeAt(1));
     
     // 4. Añadimos STX (2) al inicio
     rawBytes.unshift(2);
