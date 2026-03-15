@@ -198,7 +198,6 @@ export const FiscalPrinterMixin = {
                     const { value, done } = await this.reader.read();
                     if (value.byteLength >= 1) {
                         console.log("Respuesta de comando: ", value, " Byte 0: ", value[0]);
-                        
                         if (value[0] == 6) {
                             console.log("Comando aceptado (ACK)");
                             leer = false;
@@ -206,32 +205,10 @@ export const FiscalPrinterMixin = {
                             this.reader = false;
                             return true;
                         } else {
-                            console.error("[FISCAL] Impresora devolvió NAK. Intentando reset (7)...");
+                            console.error("[FISCAL] Impresora devolvió NAK.");
                             leer = false;
                             await this.reader.releaseLock();
                             this.reader = false;
-
-                            // Pachacutec: v37/v43 - Reset '7' y Reintento Controlado
-                            const reset_cmd = toBytes("7");
-                            if (this.port.writable) {
-                                this.writer = this.port.writable.getWriter();
-                                try {
-                                    await this.writer.write(reset_cmd);
-                                    console.warn("[FISCAL] Reset '7' enviado.");
-                                } catch (e) {
-                                    console.error("[FISCAL] Error enviando Reset '7'", e);
-                                } finally {
-                                    await this.writer.releaseLock();
-                                    this.writer = false;
-                                }
-                            }
-                            
-                            // Pachacutec: v43 - REINTENTO ÚNICO (Evita bucle infinito)
-                            if (!is_retry) {
-                                console.warn("[FISCAL] v43 - Reintentando comando tras Reset 7...");
-                                await new Promise(res => setTimeout(res, 500)); // Espera a que el reset haga efecto
-                                return await this.escribe_leer(command, is_linea, true);
-                            }
                             return false; 
                         }
                     } else {
@@ -298,7 +275,14 @@ export const FiscalPrinterMixin = {
                 });
 
                 if (!success) {
-                    console.error("[FISCAL] Error en comando:", command, ". Abortando impresión.");
+                    // Pachacutec: v70 - Tolerancia a NAK en encabezados opcionales (i00-i03)
+                    if (command.substring(0, 2) === "i0") {
+                        console.warn("[FISCAL] v70 - Encabezado opcional falló (NAK), continuando factura...", command);
+                        cantidad_comandos--; // Descontamos para que la cuenta final sea 0 si todo lo demás pasa
+                        continue;
+                    }
+
+                    console.error("[FISCAL] Error en comando MANDATORIO:", command, ". Abortando impresión.");
                     this.printing = false;
                     break; 
                 }
@@ -870,12 +854,14 @@ export const FiscalPrinterMixin = {
 
         this.printerCommands.push("iR*" + vat_cleaned);
         this.printerCommands.push("iS*" + cleanText(client.name || "Cliente Contado").substring(0, 40));
-        // Pachacutec: v64 - Limpieza ABSOLUTA de tildes y prefijos (Sin "Teléfono")
-        this.printerCommands.push("i00TELEFONO: " + cleanText(client.phone || "No tiene"));
-        this.printerCommands.push("i01DIRECCION: " + cleanText(client.street || "No tiene").substring(0, 40));
-        this.printerCommands.push("i02MAIL: " + cleanText(client.email || "No tiene"));
+        
+        // Pachacutec: v70 - Limitación estricta de 20 caracteres para encabezados opcionales.
+        this.printerCommands.push("i00TLF: " + cleanText(client.phone || "No tiene").substring(0, 20));
+        this.printerCommands.push("i01DIR: " + cleanText(client.street || "No tiene").substring(0, 20));
+        this.printerCommands.push("i02MAIL: " + cleanText(client.email || "No tiene").substring(0, 20));
+        
         if (this.order.pos_reference) {
-            this.printerCommands.push("i03REF: " + cleanText(this.order.pos_reference));
+            this.printerCommands.push("i03REF: " + cleanText(this.order.pos_reference).substring(0, 20));
         }
         console.warn("[FISCAL] setHeader - Comandos actuales:", this.printerCommands);
     },
