@@ -1016,10 +1016,10 @@ export const FiscalPrinterMixin = {
 
                     console.warn("[FISCAL] v55 - Analizando Tax:", {type, amount});
 
-                    if (type === 'general' || amount === 16) tag = '"'; // Según investigación: " = 16%
-                    else if (type === 'reducido' || amount === 8 || amount === 12) tag = '#';
-                    else if (type === 'adicional' || amount === 31) tag = '$';
-                    else tag = ' '; // Según investigación: Espacio = Exento
+                    if (type === 'general' || amount === 16) tag = '!'; // v77: ! = 16% (General)
+                    else if (type === 'reducido' || amount === 8 || amount === 12) tag = '"';
+                    else if (type === 'adicional' || amount === 31) tag = '#';
+                    else tag = ' '; // Espacio = Exento
                 } 
                 // Pachacutec: v56 - Failsafe: Si hay IDs pero no records, usar espacio (Exento) por seguridad
                 else if (tax_ids.length > 0) {
@@ -1036,10 +1036,10 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v76 - Protocolo Trama Corta (54 bytes totales)
+                // Pachacutec: v77 - Calibración de Tasa (!) y Precisión (2 decimales)
                 // Estructura: [Tasa(1)] + [Precio(8)] + [Cantidad(5)] + [Descripción(37)] = 51 caracteres.
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(8, '0').slice(-8);
-                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(5, '0').slice(-5);
+                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 100)).padStart(5, '0').slice(-5);
                 
                 let base_command = tag; // Identificador de Tasa ( !, ", # o Espacio)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
@@ -1050,7 +1050,7 @@ export const FiscalPrinterMixin = {
                 let command = base_command + price + quantity + description;
                 
                 // Trama Total: STX(1) + 51 body + ETX(1) + XOR(1) = 54 bytes.
-                console.warn("[FISCAL] v76 - Línea (51 chars):", command, "Largo Cuerpo:", command.length);
+                console.warn("[FISCAL] v77 - Línea (51 chars):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
