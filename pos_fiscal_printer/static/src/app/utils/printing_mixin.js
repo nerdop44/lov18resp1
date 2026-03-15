@@ -10,50 +10,43 @@ const CHAR_MAP = {
 };
 const EXPRESSION = new RegExp(`[${Object.keys(CHAR_MAP).join("")}]`, "g");
 
-// Pachacutec: v62 - cleanText RADICAL para ASCII 850 (NFD + UpperCase)
+// Pachacutec: v66 - cleanText RADICAL (NFD + UpperCase) - Idéntico a v16
 export function cleanText(string) {
     if (!string) return "";
     try {
-        // 1. Normalización NFD para separar combinados (tildes, etc)
+        // Normalización NFD para separar marcas de acentuación
         let clean = string.normalize("NFD");
-        // 2. Eliminar todas las marcas de acentuación (Combining Diacritical Marks)
+        // Eliminar Combining Diacritical Marks (tildes, cedillas, etc.)
         clean = clean.replace(/[\u0300-\u036f]/g, "");
-        // 3. Casos especiales manuales (ñ, Ñ) por si acaso el NFD no los cubrió como queremos
+        // Casos especiales (ñ, Ñ)
         clean = clean.replace(/ñ/g, "n").replace(/Ñ/g, "N");
-        // 4. Convertir a MAYÚSCULAS (Requerimiento estricto HKA)
+        // Forzar Mayúsculas total
         clean = clean.toUpperCase();
-        // 5. Filtrar solo caracteres ASCII imprimibles [32-126]
+        // Filtrar a ASCII imprimible [32-126]
         clean = clean.replace(/[^\x20-\x7E]/g, "");
-        // 6. Remover delimitadores prohibidos (!, |, *)
+        // Remover delimitadores de protocolo
         return clean.replace(/[!|*]/g, " ").trim();
     } catch (e) {
-        console.error("Error en cleanText v62:", e);
+        console.error("Error en cleanText v66:", e);
         return String(string).toUpperCase().replace(/[^\x20-\x7E]/g, "").trim();
     }
 }
 
-// Pachacutec: v65 - Checksum HKA Factory HEX ASCII (2 Bytes) - SIN ETX en la suma
+// Pachacutec: v66 - Restauración Estricta XOR v16 (1 solo byte de Checksum)
 export function toBytes(command) {
     const rawBytes = Array.from(encoder.encode(command));
     
-    // Pachacutec: v65 - Sumar bytes del comando ANTES de añadir el ETX (3)
-    let sum = 0;
-    for (const b of rawBytes) {
-        sum += b;
-    }
-    
-    // Lógica HEX ASCII: (suma % 256) -> String HEX -> 2 Bytes ASCII
-    let ck = (sum % 256);
-    let hex = ck.toString(16).toUpperCase().padStart(2, '0');
-    
-    // Añadimos ETX (3) después de la suma de los datos
+    // 1. Añadimos ETX (3) al final del comando
     rawBytes.push(3);
     
-    // Convertimos los 2 caracteres HEX a sus respectivos bytes ASCII y los añadimos
-    const hexBytes = Array.from(encoder.encode(hex));
-    rawBytes.push(...hexBytes);
+    // 2. Calculamos XOR bit a bit de todos los bytes (Command + ETX)
+    const checksum = rawBytes.reduce((prev, curr) => prev ^ curr, 0);
     
-    rawBytes.unshift(2); // STX (2) al inicio
+    // 3. Añadimos el ÚNICO byte del checksum al final
+    rawBytes.push(checksum);
+    
+    // 4. Añadimos STX (2) al inicio
+    rawBytes.unshift(2);
     
     return new Uint8Array(rawBytes);
 }
