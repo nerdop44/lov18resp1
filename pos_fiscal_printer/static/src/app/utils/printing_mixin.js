@@ -1036,21 +1036,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v77 - Calibración de Tasa (!) y Precisión (2 decimales)
-                // Estructura: [Tasa(1)] + [Precio(8)] + [Cantidad(5)] + [Descripción(37)] = 51 caracteres.
+                // Pachacutec: v78 - Calibración Crítica: Cantidad (8-3) y Descripción (34)
+                // Estructura: [Tasa(1)] + [Precio(8)] + [Cantidad(8)] + [Descripción(34)] = 51 caracteres.
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(8, '0').slice(-8);
-                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 100)).padStart(5, '0').slice(-5);
+                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
-                let base_command = tag; // Identificador de Tasa ( !, ", # o Espacio)
+                let base_command = tag; // Identificador de Tasa ( !)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
                     .replace(/[^A-Z0-9 ]/gi, "") 
-                    .substring(0, 37).padEnd(37, " "); 
+                    .substring(0, 34).padEnd(34, " "); // Compensación v78: 34 espacios
                 
-                // DATA: [Tasa] + [Precio(8)] + [Cantidad(5)] + [Descripción(37)]
+                // DATA: [Tasa] + [Precio(8)] + [Cantidad(8)] + [Descripción(34)]
                 let command = base_command + price + quantity + description;
                 
                 // Trama Total: STX(1) + 51 body + ETX(1) + XOR(1) = 54 bytes.
-                console.warn("[FISCAL] v77 - Línea (51 chars):", command, "Largo Cuerpo:", command.length);
+                console.warn("[FISCAL] v78 - Línea (51 chars):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
