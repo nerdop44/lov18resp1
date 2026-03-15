@@ -899,19 +899,13 @@ export const FiscalPrinterMixin = {
 
         active_payments.forEach((payment, i, array) => {
             const printer_code = payment.payment_method_id?.x_printer_code || '01';
-            const is_last = (i + 1) === array.length;
             
-            // Pachacutec: v79 - Montos con padding de 10 dígitos para Modelo Z1F
+            // Pachacutec: v80 - Todos los pagos con prefijo '2' y monto de 10 dígitos (Z1F Alignment)
             let amountRaw = Math.round(Math.abs(payment.amount) * 100).toString();
             let monto = amountRaw.padStart(10, "0").slice(-10);
 
-            if (is_last && !use_igtf_closing) {
-                console.warn("[FISCAL] v79 - Pago Final (13 chars):", "1" + printer_code + monto);
-                this.printerCommands.push("1" + printer_code + monto);
-            } else {
-                console.warn("[FISCAL] v79 - Pago Parcial (13 chars):", "2" + printer_code + monto);
-                this.printerCommands.push("2" + printer_code + monto);
-            }
+            console.warn("[FISCAL] v80 - Pago (13 chars):", "2" + printer_code + monto);
+            this.printerCommands.push("2" + printer_code + monto);
         });
 
         // Pachacutec: v32 - El comando 199 CERRARÁ la factura si se detectaron divisas
@@ -1036,21 +1030,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v79 - Alineación Física Z1F (Factura Real)
-                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(5)] + [Descripción(37)] = 53 caracteres.
+                // Pachacutec: v80 - Calibración 8-3 (Cant 8/3, Desc 34)
+                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(34)] = 53 caracteres.
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
-                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 100)).padStart(5, '0').slice(-5);
+                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
                 let base_command = tag; // Identificador de Tasa ( !)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
                     .replace(/[^A-Z0-9 ]/gi, "") 
-                    .substring(0, 37).padEnd(37, " "); 
+                    .substring(0, 34).padEnd(34, " "); // Compensación v80: 34 espacios
                 
-                // DATA: [Tasa] + [Precio(10)] + [Cantidad(5)] + [Descripción(37)]
+                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción(34)]
                 let command = base_command + price + quantity + description;
                 
                 // Trama Total: STX(1) + 53 body + ETX(1) + XOR(1) = 56 bytes.
-                console.warn("[FISCAL] v79 - Línea (53 chars):", command, "Largo Cuerpo:", command.length);
+                console.warn("[FISCAL] v80 - Línea (53 chars):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
