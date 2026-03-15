@@ -884,15 +884,15 @@ export const FiscalPrinterMixin = {
             const printer_code = payment.payment_method_id?.x_printer_code || '01';
             const is_last = (i + 1) === array.length;
             
-            // Pachacutec: v67 - Montos ENTEROS PUROS y cuerpo exacto de 15 caracteres
+            // Pachacutec: v71 - Montos con padding de 8 dígitos para trama de 14 bytes (STX+11+ETX+XOR)
             let amountRaw = Math.round(Math.abs(payment.amount) * 100).toString();
-            let monto = amountRaw.padStart(12, "0").slice(-12);
+            let monto = amountRaw.padStart(8, "0").slice(-8);
 
             if (is_last && !use_igtf_closing) {
-                console.warn("[FISCAL] v67 - Pago Final (15 chars):", "1" + printer_code + monto);
+                console.warn("[FISCAL] v71 - Pago Final (11 chars):", "1" + printer_code + monto);
                 this.printerCommands.push("1" + printer_code + monto);
             } else {
-                console.warn("[FISCAL] v67 - Pago Parcial (15 chars):", "2" + printer_code + monto);
+                console.warn("[FISCAL] v71 - Pago Parcial (11 chars):", "2" + printer_code + monto);
                 this.printerCommands.push("2" + printer_code + monto);
             }
         });
@@ -1018,10 +1018,10 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v69 - Calibración de Cantidad y Precios (Enteros Puros)
-                // Estructura !: Comando(1) + Desc(40) + Precio(10) + Cant(10) + Tasa(1) = 62 caracteres.
-                let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
-                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(10, '0').slice(-10);
+                // Pachacutec: v71 - Simetría 58 (Firmware Físico HKA)
+                // Estructura !: Comando(1) + Desc(40) + Precio(8) + Cant(8) + Tasa(1) = 58 caracteres.
+                let price = String(Math.round((unitPrice || 0) * 100)).padStart(8, '0').slice(-8);
+                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
                 let base_command = "!"; 
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto").substring(0, 40).padEnd(40, " ");
@@ -1029,8 +1029,8 @@ export const FiscalPrinterMixin = {
                 
                 let command = base_command + description + price + quantity + tax_char;
                 
-                // Pachacutec: v69 - Cuerpo exacto de 62 caracteres
-                console.warn("[FISCAL] v69 - Línea (!):", command, "Largo:", command.length);
+                // Pachacutec: v71 - Cuerpo exacto de 58 caracteres (61 bytes totales)
+                console.warn("[FISCAL] v71 - Línea (!):", command, "Largo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
