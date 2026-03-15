@@ -901,15 +901,15 @@ export const FiscalPrinterMixin = {
             const printer_code = payment.payment_method_id?.x_printer_code || '01';
             const is_last = (i + 1) === array.length;
             
-            // Pachacutec: v74 - Montos con padding de 10 dígitos (según Manual v8.5.0)
+            // Pachacutec: v76 - Montos con padding de 8 dígitos para Trama Corta (v71 logic)
             let amountRaw = Math.round(Math.abs(payment.amount) * 100).toString();
-            let monto = amountRaw.padStart(10, "0").slice(-10);
+            let monto = amountRaw.padStart(8, "0").slice(-8);
 
             if (is_last && !use_igtf_closing) {
-                console.warn("[FISCAL] v74 - Pago Final (13 chars):", "1" + printer_code + monto);
+                console.warn("[FISCAL] v76 - Pago Final (11 chars):", "1" + printer_code + monto);
                 this.printerCommands.push("1" + printer_code + monto);
             } else {
-                console.warn("[FISCAL] v74 - Pago Parcial (13 chars):", "2" + printer_code + monto);
+                console.warn("[FISCAL] v76 - Pago Parcial (11 chars):", "2" + printer_code + monto);
                 this.printerCommands.push("2" + printer_code + monto);
             }
         });
@@ -923,8 +923,8 @@ export const FiscalPrinterMixin = {
             const lastCmd = this.printerCommands[this.printerCommands.length - 1];
             const isClosing = lastCmd && lastCmd.startsWith("1") && lastCmd.length >= 3;
             if (!isClosing) {
-                // v74 - Comando de cierre 101 ahora con padding para consistencia (Trama de 16 bytes)
-                this.printerCommands.push("101" + "0".padStart(10, "0"));
+                // v76 - Comando de cierre 101 sin padding (Trama Corta)
+                this.printerCommands.push("101");
             }
         }
 
@@ -1036,21 +1036,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v75 - Simetría 56 (Trama 59 bytes totales)
-                // Estructura !: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(37)] = 56 caracteres.
-                let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
-                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
+                // Pachacutec: v76 - Protocolo Trama Corta (54 bytes totales)
+                // Estructura: [Tasa(1)] + [Precio(8)] + [Cantidad(5)] + [Descripción(37)] = 51 caracteres.
+                let price = String(Math.round((unitPrice || 0) * 100)).padStart(8, '0').slice(-8);
+                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(5, '0').slice(-5);
                 
                 let base_command = tag; // Identificador de Tasa ( !, ", # o Espacio)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
-                    .replace(/[^A-Z0-9 ]/gi, "") // Purificación radical (solo A-Z, 0-9)
-                    .substring(0, 37).padEnd(37, " "); // Calibración v75: 37 espacios
+                    .replace(/[^A-Z0-9 ]/gi, "") 
+                    .substring(0, 37).padEnd(37, " "); 
                 
-                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción(37)]
+                // DATA: [Tasa] + [Precio(8)] + [Cantidad(5)] + [Descripción(37)]
                 let command = base_command + price + quantity + description;
                 
-                // Trama Total: STX + 56 chars + ETX + XOR = 59 bytes.
-                console.warn("[FISCAL] v75 - Línea (56 chars):", command, "Largo Cuerpo:", command.length);
+                // Trama Total: STX(1) + 51 body + ETX(1) + XOR(1) = 54 bytes.
+                console.warn("[FISCAL] v76 - Línea (51 chars):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
