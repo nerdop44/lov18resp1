@@ -35,7 +35,13 @@ export function toBytes(command) {
     rawBytes.push(3);
     
     // 2. Calculamos XOR bit a bit de todos los bytes (Command + ETX)
-    const checksum = rawBytes.reduce((prev, curr) => prev ^ curr, 0);
+    let checksum = rawBytes.reduce((prev, curr) => prev ^ curr, 0);
+    
+    // Pachacutec: v69 - Protección contra caracteres de control (< 32).
+    // Si el XOR es un carácter de control, le sumamos 64 (0x40) para llevarlo a rango imprimible.
+    if (checksum < 32) {
+        checksum += 64;
+    }
     
     // 3. Añadimos el ÚNICO byte del checksum al final
     rawBytes.push(checksum);
@@ -1026,12 +1032,10 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v67 - Enteros Puros (Sin puntos ni comas)
-                let priceRaw = Math.round((unitPrice || 0) * 100).toString();
-                let qtyRaw = Math.round(Math.abs(line.qty || 0) * 1000).toString();
-
-                let price = priceRaw.padStart(10, "0").slice(-10); // 10 dígitos (8i+2d)
-                let quantity = qtyRaw.padStart(8, "0").slice(-8); // 8 dígitos (5i+3d)
+                // Pachacutec: v69 - Calibración de Cantidad y Precios (Enteros Puros)
+                // Estructura !: Comando(1) + Desc(40) + Precio(10) + Cant(10) + Tasa(1) = 62 caracteres.
+                let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
+                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(10, '0').slice(-10);
                 
                 let base_command = "!"; 
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto").substring(0, 40).padEnd(40, " ");
@@ -1039,8 +1043,8 @@ export const FiscalPrinterMixin = {
                 
                 let command = base_command + description + price + quantity + tax_char;
                 
-                // Pachacutec: v67 - Cuerpo exacto de 60 caracteres
-                console.warn("[FISCAL] v67 - Línea (!):", command, "Largo:", command.length);
+                // Pachacutec: v69 - Cuerpo exacto de 62 caracteres
+                console.warn("[FISCAL] v69 - Línea (!):", command, "Largo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
