@@ -30,16 +30,24 @@ export function cleanText(string) {
 // Pachacutec: v66 - Restauración Estricta XOR v16 (1 solo byte de Checksum)
 // Pachacutec: v73 - Restauración XOR Binario (1 solo byte)
 // Requisito final HKA: 1 solo byte binario para el checksum.
-// Pachacutec: v90 - Restauración Checksum (Excluyendo STX)
-// El LRC se calcula únicamente entre la DATA y el ETX (3).
+// Pachacutec: v92 - Verificación de Checksum y Caché
+// El LRC se calcula únicamente entre la DATA y el ETX (3), excluyendo STX (2).
 export function toBytes(command) {
-    const rawData = Array.from(encoder.encode(command));
-    
-    // Checksum: SOLO DATA + ETX (3) en el XOR.
-    const lrc = [...rawData, 3].reduce((prev, curr) => prev ^ curr, 0);
-    
-    // Trama final: [STX] + [DATA] + [ETX] + [LRC]
-    return new Uint8Array([2, ...rawData, 3, lrc]);
+    const encoder = new TextEncoder();
+    const dataBytes = Array.from(encoder.encode(command));
+    const ETX = 3;
+    const STX = 2;
+
+    // Calculamos el LRC: XOR de cada byte de la DATA y el ETX
+    let lrc = 0;
+    for (const byte of dataBytes) {
+        lrc ^= byte;
+    }
+    lrc ^= ETX; // El STX queda fuera de este bucle
+
+    // Retornamos la trama final
+    const finalFrame = [STX, ...dataBytes, ETX, lrc];
+    return new Uint8Array(finalFrame);
 }
 
 // FiscalPrinterMixin as a plain object with methods only.
@@ -867,12 +875,12 @@ export const FiscalPrinterMixin = {
         if (!vat_cleaned) vat_cleaned = "No tiene";
         else vat_cleaned = prefix + vat_cleaned;
 
-        // Pachacutec: v91 - Alineación Estricta Flag 21=00 (i01, i02, i03)
+        // Pachacutec: v92 - Verificación de Checksum (i01, i02, i03)
         // Secuencia correlativa ESTRICTA para asegurar apertura. i03 dispara.
         this.printerCommands.push("i01" + vat_cleaned);
         this.printerCommands.push("i02" + cleanText(client.name || "Cliente Contado").substring(0, 40));
         this.printerCommands.push("i03" + cleanText(client.street || "No tiene").substring(0, 40));
-        console.warn("[FISCAL] v91 - setHeader Comandos:", this.printerCommands);
+        console.warn("[FISCAL] v92 - setHeader Comandos:", this.printerCommands);
     },
 
     setTotal() {
@@ -1022,19 +1030,19 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v91 - Alineación Estricta Flag 21=00 (v16 Nativo)
+                // Pachacutec: v92 - Verificación de Checksum (v16 Nativo)
                 // Estructura: [Tag] + Precio(10) + Cantidad(8) + Descripción(30).
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
                 let base_command = tag; 
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
-                    .substring(0, 30); // v91: Sin padding para evitar buffer overflow y NAK
+                    .substring(0, 30); // v92: Sin padding para evitar buffer overflow y NAK
                 
                 // DATA: Tag + Precio(10) + Cantidad(8) + Descripción
                 let command = base_command + price + quantity + description;
                 
-                console.warn("[FISCAL] v91 - Línea (Alineación Estricta):", command, "Largo:", command.length);
+                console.warn("[FISCAL] v92 - Línea (Verificación LRC):", command, "Largo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
