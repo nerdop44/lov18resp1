@@ -264,10 +264,8 @@ export const FiscalPrinterMixin = {
             showConfirmButton: false,
         });
 
-        // Pachacutec: v86 - LIMPIEZA OBLIGATORIA (Sincronía v16)
-        // Se envía comando de anulación '7' para limpiar cualquier estado de error previo.
-        console.warn("[FISCAL] v86 - Limpieza inicial (Comando 7)");
-        await this.escribe_leer("7");
+        // ELIMINADO: v86 - Limpieza inicial (Comando 7)
+        // Se elimina en v87 porque causaba NAK innecesario en algunos equipos.
         
         const TIME = this.pos.config.x_fiscal_commands_time || 750;
         this.printing = true;
@@ -875,13 +873,12 @@ export const FiscalPrinterMixin = {
         if (!vat_cleaned) vat_cleaned = "No tiene";
         else vat_cleaned = prefix + vat_cleaned;
 
-        // Pachacutec: v84 - Encabezado Nativo HKA80 (i01, i02, i03)
-        // Se eliminan comandos con asteriscos (iR*, iS*).
-        // i03 (Dirección) actúa como el disparador MANDATORIO de apertura en HKA80.
+        // Pachacutec: v87 - Sincronía de Apertura Fiscal (i01, i02, i03)
+        // Secuencia correlativa ESTRICTA para asegurar apertura de factura.
+        // i01: RIF, i02: Nombre, i03: Dirección (Disparador).
         this.printerCommands.push("i01" + vat_cleaned);
-        this.printerCommands.push("i01" + cleanText(client.name || "Cliente Contado").substring(0, 40));
-        this.printerCommands.push("i02" + cleanText(client.street || "No tiene").substring(0, 40));
-        this.printerCommands.push("i03REF: " + cleanText(this.order.pos_reference || "Sin Ref").substring(0, 20));
+        this.printerCommands.push("i02" + cleanText(client.name || "Cliente Contado").substring(0, 40));
+        this.printerCommands.push("i03" + cleanText(client.street || "No tiene").substring(0, 40));
         console.warn("[FISCAL] setHeader - Comandos actuales:", this.printerCommands);
     },
 
@@ -1032,7 +1029,7 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v86 - Restauración v16 (Sincronía Nativa)
+                // Pachacutec: v87 - Restauración v16 Nativa (Trama Dinámica)
                 // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(30)] = Largo variable (~50).
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
@@ -1040,13 +1037,13 @@ export const FiscalPrinterMixin = {
                 let base_command = tag; // Identificador de Tasa ( !)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
                     .replace(/[^A-Z0-9 ]/gi, "") 
-                    .substring(0, 30); // v86: Restauración v16 - SIN padding para evitar desbordamiento
+                    .substring(0, 30); // v87: Restauración v16 - SIN padding para evitar buffer overflow
                 
                 // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción]
                 let command = base_command + price + quantity + description;
                 
-                // Trama v86: Termina naturalmente tras el nombre, evitando NAK de buffer.
-                console.warn("[FISCAL] v86 - Línea (Sincronía v16):", command, "Largo Cuerpo:", command.length);
+                // Trama v16: Termina naturalmente tras el nombre del producto.
+                console.warn("[FISCAL] v87 - Línea (Restauración v16):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
