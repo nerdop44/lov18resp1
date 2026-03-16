@@ -264,8 +264,10 @@ export const FiscalPrinterMixin = {
             showConfirmButton: false,
         });
 
-        // ELIMINADO: v81 - Desbloqueo inicial (Comando 7)
-        // Se elimina en v82 porque el log mostró que la Z1F devuelve NAK al comando 7
+        // Pachacutec: v86 - LIMPIEZA OBLIGATORIA (Sincronía v16)
+        // Se envía comando de anulación '7' para limpiar cualquier estado de error previo.
+        console.warn("[FISCAL] v86 - Limpieza inicial (Comando 7)");
+        await this.escribe_leer("7");
         
         const TIME = this.pos.config.x_fiscal_commands_time || 750;
         this.printing = true;
@@ -1030,21 +1032,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v85 - Protocolo Estricto 60 Bytes (Buffer HKA80)
-                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(37)] = 56 caracteres body.
+                // Pachacutec: v86 - Restauración v16 (Sincronía Nativa)
+                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(30)] = Largo variable (~50).
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
                 let base_command = tag; // Identificador de Tasa ( !)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
                     .replace(/[^A-Z0-9 ]/gi, "") 
-                    .substring(0, 37).padEnd(37, " "); // v85: Ajuste a 37 para no exceder buffer de 60 bytes
+                    .substring(0, 30); // v86: Restauración v16 - SIN padding para evitar desbordamiento
                 
-                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción(37)]
+                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción]
                 let command = base_command + price + quantity + description;
                 
-                // Trama Total: STX(1) + 56 body + ETX(1) + XOR(1) = 59 bytes (~60 bytes buffer).
-                console.warn("[FISCAL] v85 - Línea (Estricto 60B):", command, "Largo Cuerpo:", command.length);
+                // Trama v86: Termina naturalmente tras el nombre, evitando NAK de buffer.
+                console.warn("[FISCAL] v86 - Línea (Sincronía v16):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
