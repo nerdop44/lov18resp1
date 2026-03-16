@@ -1030,21 +1030,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v84 - Configuración Nativa HKA80 (Flag 21=00)
-                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(40)] = 59 caracteres body.
+                // Pachacutec: v85 - Protocolo Estricto 60 Bytes (Buffer HKA80)
+                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(37)] = 56 caracteres body.
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
                 let base_command = tag; // Identificador de Tasa ( !)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
                     .replace(/[^A-Z0-9 ]/gi, "") 
-                    .substring(0, 40).padEnd(40, " "); // v84: Padding de 40 para simetría HKA80
+                    .substring(0, 37).padEnd(37, " "); // v85: Ajuste a 37 para no exceder buffer de 60 bytes
                 
-                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción(40)]
+                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción(37)]
                 let command = base_command + price + quantity + description;
                 
-                // Trama Total: STX(1) + 59 body + ETX(1) + XOR(1) = 62 bytes.
-                console.warn("[FISCAL] v84 - Línea (Nativa HKA80):", command, "Largo Cuerpo:", command.length);
+                // Trama Total: STX(1) + 56 body + ETX(1) + XOR(1) = 59 bytes (~60 bytes buffer).
+                console.warn("[FISCAL] v85 - Línea (Estricto 60B):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
