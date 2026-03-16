@@ -76,12 +76,12 @@ class PurchaseOrder(models.Model):
                     continue
                 if not float_is_zero(line.qty_to_invoice, precision_digits=precision):
                     if pending_section:
-                        line_vals = pending_section._prepare_account_move_line()
+                        line_vals = pending_section._prepare_account_move_line(move=False)
                         line_vals.update({'sequence': sequence})
                         invoice_vals['invoice_line_ids'].append((0, 0, line_vals))
                         sequence += 1
                         pending_section = None
-                    line_vals = line._prepare_account_move_line()
+                    line_vals = line._prepare_account_move_line(move=False)
                     line_vals.update({'sequence': sequence})
                     invoice_vals['invoice_line_ids'].append((0, 0, line_vals))
                     sequence += 1
