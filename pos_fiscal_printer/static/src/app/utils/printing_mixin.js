@@ -73,9 +73,11 @@ export const FiscalPrinterMixin = {
                     port = await navigator.serial.requestPort();
                 }
 
-                const parity = this.pos.config.x_fiscal_command_parity || "even";
-                const baudRate = parseInt(this.pos.config.x_fiscal_command_baudrate) || 9600;
-                console.log("Configurando puerto - BaudRate:", baudRate, "Paridad:", parity);
+                // Pachacutec: v84 - FORZAR VELOCIDAD (HKA80 Self-Test)
+                // Se ignoran variables externas y se fuerzan 19200 baudios y paridad even.
+                const parity = "even";
+                const baudRate = 19200;
+                console.warn("[FISCAL] v84 - Forzando Puerto: 19200 baudios, Parity: Even");
 
                 try {
                     await port.open({
@@ -84,7 +86,7 @@ export const FiscalPrinterMixin = {
                         dataBits: 8,
                         stopBits: 1,
                     });
-                    console.log("Puerto abierto exitosamente.");
+                    console.log("Puerto abierto exitosamente a 19200.");
                 } catch (e) {
                     if (e.name === "InvalidStateError") {
                         console.log("El puerto ya estaba abierto. Continuando...");
@@ -871,15 +873,13 @@ export const FiscalPrinterMixin = {
         if (!vat_cleaned) vat_cleaned = "No tiene";
         else vat_cleaned = prefix + vat_cleaned;
 
-        // Pachacutec: v83 - Encabezado Universal Estándar (i00, i01, i02)
-        // Se eliminan iR*, iS* y comandos TLF/MAIL para máxima compatibilidad firmware.
-        this.printerCommands.push("i00" + vat_cleaned);
+        // Pachacutec: v84 - Encabezado Nativo HKA80 (i01, i02, i03)
+        // Se eliminan comandos con asteriscos (iR*, iS*).
+        // i03 (Dirección) actúa como el disparador MANDATORIO de apertura en HKA80.
+        this.printerCommands.push("i01" + vat_cleaned);
         this.printerCommands.push("i01" + cleanText(client.name || "Cliente Contado").substring(0, 40));
         this.printerCommands.push("i02" + cleanText(client.street || "No tiene").substring(0, 40));
-        
-        if (this.order.pos_reference) {
-            this.printerCommands.push("i03REF: " + cleanText(this.order.pos_reference).substring(0, 20));
-        }
+        this.printerCommands.push("i03REF: " + cleanText(this.order.pos_reference || "Sin Ref").substring(0, 20));
         console.warn("[FISCAL] setHeader - Comandos actuales:", this.printerCommands);
     },
 
@@ -1030,21 +1030,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v83 - Protocolo Universal HKA (54 Bytes)
-                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(5)] + [Descripción(35)] = 51 caracteres body.
+                // Pachacutec: v84 - Configuración Nativa HKA80 (Flag 21=00)
+                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(40)] = 59 caracteres body.
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
-                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 100)).padStart(5, '0').slice(-5);
+                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
                 let base_command = tag; // Identificador de Tasa ( !)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
                     .replace(/[^A-Z0-9 ]/gi, "") 
-                    .substring(0, 35).padEnd(35, " "); // v83: Simetría de 51 caracteres para trama de 54 bytes
+                    .substring(0, 40).padEnd(40, " "); // v84: Padding de 40 para simetría HKA80
                 
-                // DATA: [Tasa] + [Precio(10)] + [Cantidad(5)] + [Descripción(35)]
+                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción(40)]
                 let command = base_command + price + quantity + description;
                 
-                // Trama Total: STX(1) + 51 body + ETX(1) + XOR(1) = 54 bytes.
-                console.warn("[FISCAL] v83 - Línea (Protocolo Universal):", command, "Largo Cuerpo:", command.length);
+                // Trama Total: STX(1) + 59 body + ETX(1) + XOR(1) = 62 bytes.
+                console.warn("[FISCAL] v84 - Línea (Nativa HKA80):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
