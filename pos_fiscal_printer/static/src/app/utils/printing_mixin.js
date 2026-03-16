@@ -30,12 +30,13 @@ export function cleanText(string) {
 // Pachacutec: v66 - Restauración Estricta XOR v16 (1 solo byte de Checksum)
 // Pachacutec: v73 - Restauración XOR Binario (1 solo byte)
 // Requisito final HKA: 1 solo byte binario para el checksum.
+// Pachacutec: v90 - Restauración Checksum (Excluyendo STX)
+// El LRC se calcula únicamente entre la DATA y el ETX (3).
 export function toBytes(command) {
     const rawData = Array.from(encoder.encode(command));
     
-    // Pachacutec: v89 - Corrección Checksum (Resultado 9)
-    // El LRC debe incluir STX (2), DATA y ETX (3) en el XOR.
-    const lrc = [2, ...rawData, 3].reduce((prev, curr) => prev ^ curr, 0);
+    // Checksum: SOLO DATA + ETX (3) en el XOR.
+    const lrc = [...rawData, 3].reduce((prev, curr) => prev ^ curr, 0);
     
     // Trama final: [STX] + [DATA] + [ETX] + [LRC]
     return new Uint8Array([2, ...rawData, 3, lrc]);
@@ -866,12 +867,12 @@ export const FiscalPrinterMixin = {
         if (!vat_cleaned) vat_cleaned = "No tiene";
         else vat_cleaned = prefix + vat_cleaned;
 
-        // Pachacutec: v88 - Protocolo v16 Puro (i01, i02, i03)
+        // Pachacutec: v90 - Restauración v16 (i01, i02, i03)
         // Secuencia correlativa ESTRICTA para asegurar apertura. i03 dispara.
         this.printerCommands.push("i01" + vat_cleaned);
         this.printerCommands.push("i02" + cleanText(client.name || "Cliente Contado").substring(0, 40));
         this.printerCommands.push("i03" + cleanText(client.street || "No tiene").substring(0, 40));
-        console.warn("[FISCAL] v88 - setHeader Comandos:", this.printerCommands);
+        console.warn("[FISCAL] v90 - setHeader Comandos:", this.printerCommands);
     },
 
     setTotal() {
@@ -1021,7 +1022,7 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v88 - Protocolo v16 Puro (10-2 / 8-3 / Sin Padding)
+                // Pachacutec: v90 - Restauración Checksum y Trama Ligera
                 // Estructura: ! + Precio(10) + Cantidad(8) + Descripción.
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
@@ -1029,13 +1030,13 @@ export const FiscalPrinterMixin = {
                 let base_command = tag; // Identificador de Tasa ( !)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
                     .replace(/[^A-Z0-9 ]/gi, "") 
-                    .substring(0, 30); // v88: Sin padding, igual a v16 funcional
+                    .substring(0, 30); // v90: Sin padding, igual a v16 funcional
                 
                 // DATA: ! + Precio(10) + Cantidad(8) + Descripción
                 let command = base_command + price + quantity + description;
                 
                 // Trama v16: Termina naturalmente tras el nombre, sin espacios extras.
-                console.warn("[FISCAL] v88 - Línea (v16 Puro):", command, "Largo Cuerpo:", command.length);
+                console.warn("[FISCAL] v90 - Línea (Restauración Checksum):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
