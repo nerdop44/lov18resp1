@@ -262,11 +262,9 @@ export const FiscalPrinterMixin = {
             showConfirmButton: false,
         });
 
-        // Pachacutec: v81 - LIMPIEZA PREVENTIVA: Enviar comando de anulación al inicio
-        // Esto saca a la impresora de cualquier estado de error previo (NAK acumulados)
-        console.warn("[FISCAL] v81 - Desbloqueo inicial (Comando 7)");
-        await this.escribe_leer("7");
-
+        // ELIMINADO: v81 - Desbloqueo inicial (Comando 7)
+        // Se elimina en v82 porque el log mostró que la Z1F devuelve NAK al comando 7
+        
         const TIME = this.pos.config.x_fiscal_commands_time || 750;
         this.printing = true;
         // Pachacutec: v52 - ELIMINADA sanitización global que borraba '!', '*', '|'
@@ -1034,21 +1032,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v81 - Sincronía v16 (Cant 8/3, Precio 10, Desc 30 natural)
-                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(30...)]
+                // Pachacutec: v82 - Protocolo Nativo Z1F (Alineación con Factura Física)
+                // Estructura Nativa: [Tasa(1)] + [Precio(10)] + [Cantidad(5)] + [Descripción(37)] = 53 caracteres.
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
-                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
+                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 100)).padStart(5, '0').slice(-5);
                 
                 let base_command = tag; // Identificador de Tasa ( !)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
                     .replace(/[^A-Z0-9 ]/gi, "") 
-                    .substring(0, 30); // v81: Sin padEnd, termina naturalmente
+                    .substring(0, 37).padEnd(37, " "); // v82: Padding obligatorio para simetría Z1F
                 
-                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción]
+                // DATA: [Tasa] + [Precio(10)] + [Cantidad(5)] + [Descripción(37)]
                 let command = base_command + price + quantity + description;
                 
-                // Pachacutec: v81 - Trama natural (Largo variable)
-                console.warn("[FISCAL] v81 - Línea (Sincronía v16):", command, "Largo:", command.length);
+                // Trama Total Z1F: STX(1) + 53 body + ETX(1) + XOR(1) = 56 bytes.
+                console.warn("[FISCAL] v82 - Línea (Protocolo Nativo):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
