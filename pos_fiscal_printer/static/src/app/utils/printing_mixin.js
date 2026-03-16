@@ -262,6 +262,10 @@ export const FiscalPrinterMixin = {
             showConfirmButton: false,
         });
 
+        // Pachacutec: v81 - LIMPIEZA PREVENTIVA: Enviar comando de anulación al inicio
+        // Esto saca a la impresora de cualquier estado de error previo (NAK acumulados)
+        console.warn("[FISCAL] v81 - Desbloqueo inicial (Comando 7)");
+        await this.escribe_leer("7");
 
         const TIME = this.pos.config.x_fiscal_commands_time || 750;
         this.printing = true;
@@ -1030,21 +1034,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v80 - Calibración 8-3 (Cant 8/3, Desc 34)
-                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(34)] = 53 caracteres.
+                // Pachacutec: v81 - Sincronía v16 (Cant 8/3, Precio 10, Desc 30 natural)
+                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(8)] + [Descripción(30...)]
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
                 let base_command = tag; // Identificador de Tasa ( !)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
                     .replace(/[^A-Z0-9 ]/gi, "") 
-                    .substring(0, 34).padEnd(34, " "); // Compensación v80: 34 espacios
+                    .substring(0, 30); // v81: Sin padEnd, termina naturalmente
                 
-                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción(34)]
+                // DATA: [Tasa] + [Precio(10)] + [Cantidad(8)] + [Descripción]
                 let command = base_command + price + quantity + description;
                 
-                // Trama Total: STX(1) + 53 body + ETX(1) + XOR(1) = 56 bytes.
-                console.warn("[FISCAL] v80 - Línea (53 chars):", command, "Largo Cuerpo:", command.length);
+                // Pachacutec: v81 - Trama natural (Largo variable)
+                console.warn("[FISCAL] v81 - Línea (Sincronía v16):", command, "Largo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
