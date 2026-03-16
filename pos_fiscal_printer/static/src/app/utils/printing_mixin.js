@@ -31,21 +31,14 @@ export function cleanText(string) {
 // Pachacutec: v73 - Restauración XOR Binario (1 solo byte)
 // Requisito final HKA: 1 solo byte binario para el checksum.
 export function toBytes(command) {
-    const rawBytes = Array.from(encoder.encode(command));
+    const rawData = Array.from(encoder.encode(command));
     
-    // 1. Añadimos ETX (3) al final del comando
-    rawBytes.push(3);
+    // Pachacutec: v89 - Corrección Checksum (Resultado 9)
+    // El LRC debe incluir STX (2), DATA y ETX (3) en el XOR.
+    const lrc = [2, ...rawData, 3].reduce((prev, curr) => prev ^ curr, 0);
     
-    // 2. Calculamos XOR bit a bit de todos los bytes (Command + ETX)
-    let checksum = rawBytes.reduce((prev, curr) => prev ^ curr, 0);
-    
-    // 3. Añadimos el ÚNICO byte del checksum al final (Sin offset, sin Hex ASCII)
-    rawBytes.push(checksum);
-    
-    // 4. Añadimos STX (2) al inicio
-    rawBytes.unshift(2);
-    
-    return new Uint8Array(rawBytes);
+    // Trama final: [STX] + [DATA] + [ETX] + [LRC]
+    return new Uint8Array([2, ...rawData, 3, lrc]);
 }
 
 // FiscalPrinterMixin as a plain object with methods only.
