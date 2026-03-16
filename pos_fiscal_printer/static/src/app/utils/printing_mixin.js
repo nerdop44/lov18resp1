@@ -867,12 +867,12 @@ export const FiscalPrinterMixin = {
         if (!vat_cleaned) vat_cleaned = "No tiene";
         else vat_cleaned = prefix + vat_cleaned;
 
-        // Pachacutec: v90 - Restauración v16 (i01, i02, i03)
+        // Pachacutec: v91 - Alineación Estricta Flag 21=00 (i01, i02, i03)
         // Secuencia correlativa ESTRICTA para asegurar apertura. i03 dispara.
         this.printerCommands.push("i01" + vat_cleaned);
         this.printerCommands.push("i02" + cleanText(client.name || "Cliente Contado").substring(0, 40));
         this.printerCommands.push("i03" + cleanText(client.street || "No tiene").substring(0, 40));
-        console.warn("[FISCAL] v90 - setHeader Comandos:", this.printerCommands);
+        console.warn("[FISCAL] v91 - setHeader Comandos:", this.printerCommands);
     },
 
     setTotal() {
@@ -1022,21 +1022,19 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v90 - Restauración Checksum y Trama Ligera
-                // Estructura: ! + Precio(10) + Cantidad(8) + Descripción.
+                // Pachacutec: v91 - Alineación Estricta Flag 21=00 (v16 Nativo)
+                // Estructura: [Tag] + Precio(10) + Cantidad(8) + Descripción(30).
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
-                let base_command = tag; // Identificador de Tasa ( !)
+                let base_command = tag; 
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
-                    .replace(/[^A-Z0-9 ]/gi, "") 
-                    .substring(0, 30); // v90: Sin padding, igual a v16 funcional
+                    .substring(0, 30); // v91: Sin padding para evitar buffer overflow y NAK
                 
-                // DATA: ! + Precio(10) + Cantidad(8) + Descripción
+                // DATA: Tag + Precio(10) + Cantidad(8) + Descripción
                 let command = base_command + price + quantity + description;
                 
-                // Trama v16: Termina naturalmente tras el nombre, sin espacios extras.
-                console.warn("[FISCAL] v90 - Línea (Restauración Checksum):", command, "Largo Cuerpo:", command.length);
+                console.warn("[FISCAL] v91 - Línea (Alineación Estricta):", command, "Largo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
