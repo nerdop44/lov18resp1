@@ -30,20 +30,21 @@ export function cleanText(string) {
 // Pachacutec: v66 - Restauración Estricta XOR v16 (1 solo byte de Checksum)
 // Pachacutec: v73 - Restauración XOR Binario (1 solo byte)
 // Requisito final HKA: 1 solo byte binario para el checksum.
-// Pachacutec: v92 - Verificación de Checksum y Caché
-// El LRC se calcula únicamente entre la DATA y el ETX (3), excluyendo STX (2).
+// Pachacutec: v93 - Inclusión de STX en el cálculo del LRC
+// Se ha validado por log que el hardware requiere STX en el XOR para ACK.
 export function toBytes(command) {
     const encoder = new TextEncoder();
     const dataBytes = Array.from(encoder.encode(command));
     const ETX = 3;
     const STX = 2;
 
-    // Calculamos el LRC: XOR de cada byte de la DATA y el ETX
-    let lrc = 0;
+    // Calculamos el LRC: XOR de cada byte de la DATA, el ETX y el STX.
+    // Pachacutec: v93 - La inclusión de STX es necesaria para obtener el 9 (ACK).
+    let lrc = STX; 
     for (const byte of dataBytes) {
         lrc ^= byte;
     }
-    lrc ^= ETX; // El STX queda fuera de este bucle
+    lrc ^= ETX;
 
     // Retornamos la trama final
     const finalFrame = [STX, ...dataBytes, ETX, lrc];
