@@ -869,15 +869,13 @@ export const FiscalPrinterMixin = {
         const raw_vat = client.vat || client.rif || "";
         let vat_cleaned = raw_vat.replace(/[^0-9]/g, ""); // Solo números
         if (!vat_cleaned) vat_cleaned = "No tiene";
-        else vat_cleaned = prefix + vat_cleaned; // v51 - Remover guion '-' para compatibilidad HKA directa
+        else vat_cleaned = prefix + vat_cleaned;
 
-        this.printerCommands.push("iR*" + vat_cleaned);
-        this.printerCommands.push("iS*" + cleanText(client.name || "Cliente Contado").substring(0, 40));
-        
-        // Pachacutec: v70 - Limitación estricta de 20 caracteres para encabezados opcionales.
-        this.printerCommands.push("i00TLF: " + cleanText(client.phone || "No tiene").substring(0, 20));
-        this.printerCommands.push("i01DIR: " + cleanText(client.street || "No tiene").substring(0, 20));
-        this.printerCommands.push("i02MAIL: " + cleanText(client.email || "No tiene").substring(0, 20));
+        // Pachacutec: v83 - Encabezado Universal Estándar (i00, i01, i02)
+        // Se eliminan iR*, iS* y comandos TLF/MAIL para máxima compatibilidad firmware.
+        this.printerCommands.push("i00" + vat_cleaned);
+        this.printerCommands.push("i01" + cleanText(client.name || "Cliente Contado").substring(0, 40));
+        this.printerCommands.push("i02" + cleanText(client.street || "No tiene").substring(0, 40));
         
         if (this.order.pos_reference) {
             this.printerCommands.push("i03REF: " + cleanText(this.order.pos_reference).substring(0, 20));
@@ -1032,21 +1030,21 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v82 - Protocolo Nativo Z1F (Alineación con Factura Física)
-                // Estructura Nativa: [Tasa(1)] + [Precio(10)] + [Cantidad(5)] + [Descripción(37)] = 53 caracteres.
+                // Pachacutec: v83 - Protocolo Universal HKA (54 Bytes)
+                // Estructura: [Tasa(1)] + [Precio(10)] + [Cantidad(5)] + [Descripción(35)] = 51 caracteres body.
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 100)).padStart(5, '0').slice(-5);
                 
                 let base_command = tag; // Identificador de Tasa ( !)
                 let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
                     .replace(/[^A-Z0-9 ]/gi, "") 
-                    .substring(0, 37).padEnd(37, " "); // v82: Padding obligatorio para simetría Z1F
+                    .substring(0, 35).padEnd(35, " "); // v83: Simetría de 51 caracteres para trama de 54 bytes
                 
-                // DATA: [Tasa] + [Precio(10)] + [Cantidad(5)] + [Descripción(37)]
+                // DATA: [Tasa] + [Precio(10)] + [Cantidad(5)] + [Descripción(35)]
                 let command = base_command + price + quantity + description;
                 
-                // Trama Total Z1F: STX(1) + 53 body + ETX(1) + XOR(1) = 56 bytes.
-                console.warn("[FISCAL] v82 - Línea (Protocolo Nativo):", command, "Largo Cuerpo:", command.length);
+                // Trama Total: STX(1) + 51 body + ETX(1) + XOR(1) = 54 bytes.
+                console.warn("[FISCAL] v83 - Línea (Protocolo Universal):", command, "Largo Cuerpo:", command.length);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
