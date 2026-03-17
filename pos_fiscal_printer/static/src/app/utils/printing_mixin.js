@@ -1136,9 +1136,16 @@ export const FiscalPrinterMixin = {
     async checkFiscalStatus() {
         const response = await this.fetchStatusDiagnosis();
         if (response && response.length >= 6) {
+            const b1 = response[3];
+            const b2 = response[4];
             const misc_byte = response[5]; // Byte 3 (Misc)
+            
+            console.warn(`[FISCAL] v116 - STATUS B1: ${b1.toString(2).padStart(8, '0')} (Hex: ${b1.toString(16)})`);
+            console.warn(`[FISCAL] v116 - ERROR  B2: ${b2.toString(2).padStart(8, '0')} (Hex: ${b2.toString(16)})`);
+            console.warn(`[FISCAL] v116 - MISC   B3: ${misc_byte.toString(2).padStart(8, '0')} (Hex: ${misc_byte.toString(16)})`);
+
             if (misc_byte & 8) { // Bit 3 (00001000) = Z Report (+24h) Needed
-                console.error("[FISCAL] v114 - BLOQUEO DETECTADO: Reporte Z Requerido (+24h).");
+                console.error("[FISCAL] v116 - BLOQUEO DETECTADO: Reporte Z Requerido (+24h).");
                 return "Z_REQUIRED";
             }
         }
