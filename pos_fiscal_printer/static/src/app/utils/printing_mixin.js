@@ -27,6 +27,17 @@ export function cleanText(string) {
     }
 }
 
+// Pachacutec: v99 - Función Sanitize v16 Truth
+// Preserva el caso (TitleCase) de las descripciones para evitar NAK (21).
+export function sanitize(string) {
+    if (!string) return "";
+    return string.normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/ñ/g, "n").replace(/Ñ/g, "N")
+        .replace(/[!|*]/g, " ")
+        .replace(/[^\x20-\x7E]/g, "");
+}
+
 // Pachacutec: v66 - Restauración Estricta XOR v16 (1 solo byte de Checksum)
 // Pachacutec: v73 - Restauración XOR Binario (1 solo byte)
 // Requisito final HKA: 1 solo byte binario para el checksum.
@@ -1028,21 +1039,22 @@ export const FiscalPrinterMixin = {
 
                 // Pachacutec: v95 - Restauración de Pipes v16
                 // Estructura v16: [Tag][Precio][Qty]|[Cod]|[Nombre]
-                // Pachacutec: v98 - Sintonía de Longitud v16 Truth
-                // He confirmado en el código v16 original que cuando flag_21 es falso (como en este modelo), 
-                // el padding debe ser 8 para precio y 5 para cantidad.
-                let price = String(Math.round((unitPrice || 0) * 100)).padStart(8, '0').slice(-8);
-                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(5, '0').slice(-5);
+                // Pachacutec: v99 - Sintonía de Padding v16 Truth
+                // Confirmado: 8 enteros + 2 decimales = 10 chars para el precio.
+                // Confirmado: 5 enteros + 3 decimales = 8 chars para la cantidad.
+                let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
+                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
                 let command = tag + price + quantity;
                 
-                // v16 injects default code with pipes if available
+                // Pachacutec: v99 - Estética v16 Truth (TitleCase)
+                // Se usa 'sanitize' en lugar de 'cleanText' para evitar NAK (21).
                 const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
                 if (product?.default_code) {
-                    command += `|${cleanText(product.default_code).substring(0, 10)}|`;
+                    command += `|${sanitize(product.default_code).substring(0, 10)}|`;
                 }
                 
-                command += cleanText(line.product_id?.display_name || line.product_name || "Producto").substring(0, 30);
+                command += sanitize(line.product_id?.display_name || line.product_name || "Producto").substring(0, 30);
                 
                 console.warn("[FISCAL] v95 - Línea con Pipes v16:", command);
                 this.printerCommands.push(command);

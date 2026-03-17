@@ -22,11 +22,11 @@ Este skill centraliza la experiencia acumulada en la integración de Odoo con im
     - Se requiere una ráfaga de 6 encabezados para garantizar la apertura: `iR*`, `iS*`, `i00`, `i01`, `i02`, `i03`.
     - El comando `i03` (Información de Referencia) suele actuar como el disparador final para que la impresora entre en estado de factura.
 
-4.  **Estructura de Trama de Venta (Alineación v16 Estricta)**:
-    - Formato Estándar (Flag 21 = False): `[Tag][Precio(8)][Cantidad(5)]|[Opción:Código]|[Descripción(30)]`.
-    - **Punto Crítico**: v16 usa por defecto 8 dígitos para el precio y 5 para la cantidad. Enviar 10/8 (formato extendido) sin que el flag_21 esté activo provoca un **NAK (21)** por error de sintaxis.
+4.  **Estructura de Trama de Venta (v16 Truth)**:
+    - Formato (Flag 21 = False): `[Tag][Precio(10)][Cantidad(8)]|[Opción:Código]|[Descripción(30)]`.
+    - **Punto Crítico (Padding)**: El precio usa 8 enteros + 2 decimales = 10 chars. La cantidad usa 5 enteros + 3 decimales = 8 chars.
+    - **Punto Crítico (Estética)**: El hardware HKA80 prefiere **TitleCase** (Caso Original) en las descripciones. Forzar Mayúsculas con `cleanText` radical puede causar **NAK (21)** por desvío de la firma de datos esperada.
     - **REQUISITO MANDATORIO**: El precio enviado debe ser el **PRECIO BASE** (Sin impuestos).
-    - **ESTÉTICA**: Las descripciones deben preservar el caso original (TitleCase).
 
 ## 🚫 Tabú de Errores (Lo que NO se debe repetir)
 
