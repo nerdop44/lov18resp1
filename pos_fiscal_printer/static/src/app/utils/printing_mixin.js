@@ -874,10 +874,10 @@ export const FiscalPrinterMixin = {
         }
     },
 
-    // Pachacutec: v102 - Fidelidad v16 Total
-    // Se restauran etiquetas exactas, se elimina truncado y forzado de mayúsculas.
+    // Pachacutec: v105 - Purificación Total (Sin acentos en labels)
     setHeader(payload) {
-        const client = this.pos.get_order().partner;
+        const order = this.pos.get_order();
+        const client = order.partner;
         
         if (payload) {
             this.printerCommands.push("iF*" + payload.invoiceNumber.padStart(11, "0"));
@@ -885,14 +885,14 @@ export const FiscalPrinterMixin = {
             this.printerCommands.push("iI*" + payload.printerCode);
         }
 
-        this.printerCommands.push("iR*" + (client?.vat || "No tiene"));
-        this.printerCommands.push("iS*" + (client?.name || "CLIENTE GENERAL"));
+        this.printerCommands.push("iR*" + sanitize(client?.vat || "No tiene"));
+        this.printerCommands.push("iS*" + sanitize(client?.name || "CLIENTE GENERAL"));
 
-        this.printerCommands.push("i00Teléfono: " + (client?.phone || "No tiene"));
-        this.printerCommands.push("i01Dirección: " + (client?.street || "No tiene"));
-        this.printerCommands.push("i02Email: " + (client?.email || "No tiene"));
-        if (this.pos.get_order().name) {
-            this.printerCommands.push("i03Ref: " + this.pos.get_order().name);
+        this.printerCommands.push("i00Telefono: " + sanitize(client?.phone || "No tiene"));
+        this.printerCommands.push("i01Direccion: " + sanitize(client?.street || "No tiene"));
+        this.printerCommands.push("i02Email: " + sanitize(client?.email || "No tiene"));
+        if (order.name) {
+            this.printerCommands.push("i03Ref: " + sanitize(order.name));
         }
 
         console.warn("[FISCAL] v102 - Ráfaga de apertura (Fidelidad v16) preparada.");
@@ -1056,17 +1056,21 @@ export const FiscalPrinterMixin = {
                 
                 let command = tag + price + quantity;
                 
-                // Pachacutec: v102 - Fidelidad v16 Total (Sin truncado agresivo)
+                // Pachacutec: v105 - Truncado Estricto (Seguridad 40 chars totales)
                 const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
                 const desc = sanitize(line.full_product_name || product?.display_name || "PROD");
                 const code = sanitize(product?.default_code || "");
                 
+                let extra = "";
                 if (code) {
-                    command += `|${code}|`;
+                    extra += `|${code}|`;
                 }
-                command += desc;
+                extra += desc;
+                
+                // v105: Truncar la parte descriptiva a 20 chars para que el comando total (tag+price+qty+extra) sea ~39 chars
+                command += extra.slice(0, 20);
 
-                console.warn("[FISCAL] v100 - Línea con Pipes v16 (Truncado):", command);
+                console.warn("[FISCAL] v105 - Línea (Truncada 20):", command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
