@@ -285,6 +285,7 @@ export const FiscalPrinterMixin = {
         this.printing = true;
         // Pachacutec: v52 - ELIMINADA sanitización global que borraba '!', '*', '|'
         console.log("Comandos a enviar: ", this.printerCommands);
+        var cantidad_comandos = this.printerCommands.length;
         for (let i = 0; i < this.printerCommands.length; i++) {
             const command = this.printerCommands[i];
             var is_linea = false;
@@ -869,7 +870,7 @@ export const FiscalPrinterMixin = {
         }
     },
 
-    // Pachacutec: v97 - Etiquetas de Identidad v16 (    // Pachacutec: v100 - Auditoría de Ráfaga y Sintonía Estricta
+    // Pachacutec: v100 - Auditoría de Ráfaga y Sintonía Estricta
     // Se truncan valores a 20 chars para cabeceras y 15 para ítems.
     setHeader(payload) {
         const client = this.pos.get_order().partner;
