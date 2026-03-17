@@ -870,25 +870,28 @@ export const FiscalPrinterMixin = {
         }
     },
 
-    // Pachacutec: v100 - Auditoría de Ráfaga y Sintonía Estricta
-    // Se truncan valores a 20 chars para cabeceras y 15 para ítems.
+    // Pachacutec: v102 - Fidelidad v16 Total
+    // Se restauran etiquetas exactas, se elimina truncado y forzado de mayúsculas.
     setHeader(payload) {
         const client = this.pos.get_order().partner;
-        const cleanVat = (client?.vat || "").replace(/[^0-9VvJjGgEe]/g, "");
-        const name = (client?.name || "CLIENTE GENERAL").substring(0, 20);
-        const addr = (client?.street || "SIN DIRECCION").substring(0, 20);
-        const phone = (client?.phone || "0000").substring(0, 20);
         
-        this.printerCommands.push(`iR*${cleanVat || "0"}`);
-        this.printerCommands.push(`iS*${sanitize(name)}`);
-        
-        // Ráfaga completa v16: Etiquetas Cortas y Seguras
-        this.printerCommands.push(`i00Tlf:${sanitize(phone)}`);
-        this.printerCommands.push(`i01Dir:${sanitize(addr)}`);
-        this.printerCommands.push(`i02Mail:${((client?.email || "").substring(0, 20))}`);
-        this.printerCommands.push(`i03Ref:${((this.pos.get_order().name || "").substring(0, 20))}`);
-        
-        console.warn("[FISCAL] v100 - Ráfaga de apertura (Sintonía Estricta) preparada.");
+        if (payload) {
+            this.printerCommands.push("iF*" + payload.invoiceNumber.padStart(11, "0"));
+            this.printerCommands.push("iD*" + payload.date);
+            this.printerCommands.push("iI*" + payload.printerCode);
+        }
+
+        this.printerCommands.push("iR*" + (client?.vat || "No tiene"));
+        this.printerCommands.push("iS*" + (client?.name || "CLIENTE GENERAL"));
+
+        this.printerCommands.push("i00Teléfono: " + (client?.phone || "No tiene"));
+        this.printerCommands.push("i01Dirección: " + (client?.street || "No tiene"));
+        this.printerCommands.push("i02Email: " + (client?.email || "No tiene"));
+        if (this.pos.get_order().name) {
+            this.printerCommands.push("i03Ref: " + this.pos.get_order().name);
+        }
+
+        console.warn("[FISCAL] v102 - Ráfaga de apertura (Fidelidad v16) preparada.");
     },
 
     setTotal() {
@@ -908,13 +911,17 @@ export const FiscalPrinterMixin = {
         active_payments.forEach((payment, i, array) => {
             const printer_code = payment.payment_method_id?.x_printer_code || '01';
             
-            // Pachacutec: v96 - Padding Estricto v16 (12 dígitos totales = 10 entero + 2 decimal)
-            // Esto alinea la trama a 15 caracteres (1 prefijo + 2 código + 12 monto).
-            let amountRaw = Math.round(Math.abs(payment.amount) * 100).toString();
-            let monto = amountRaw.padStart(12, "0").slice(-12);
-
-            console.warn("[FISCAL] v96 - Pago (15 chars):", "2" + printer_code + monto);
-            this.printerCommands.push("2" + printer_code + monto);
+            if ((i + 1) === array.length && array.length === 1) {
+                // Pago Único (1 prefijo)
+                console.warn("[FISCAL] v102 - Pago Único (Cierre):", "1" + printer_code);
+                this.printerCommands.push("1" + printer_code);
+            } else {
+                // Pago Parcial (2 prefijo + monto 12 chars)
+                let amountRaw = Math.round(Math.abs(payment.amount) * 100).toString();
+                let monto = amountRaw.padStart(12, "0").slice(-12);
+                console.warn("[FISCAL] v102 - Pago Parcial:", "2" + printer_code + monto);
+                this.printerCommands.push("2" + printer_code + monto);
+            }
         });
 
         // Pachacutec: v32 - El comando 199 CERRARÁ la factura si se detectaron divisas
@@ -1045,10 +1052,10 @@ export const FiscalPrinterMixin = {
                 
                 let command = tag + price + quantity;
                 
-                // Pachacutec: v100 - Sintonía de Ítem Estrecha (15/10 chars)
+                // Pachacutec: v102 - Fidelidad v16 Total (Sin truncado agresivo)
                 const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
-                const desc = sanitize(line.full_product_name || product?.display_name || "PROD").substring(0, 15);
-                const code = sanitize(product?.default_code || "").substring(0, 10);
+                const desc = sanitize(line.full_product_name || product?.display_name || "PROD");
+                const code = sanitize(product?.default_code || "");
                 
                 if (code) {
                     command += `|${code}|`;
