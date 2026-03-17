@@ -27,13 +27,11 @@ export function cleanText(string) {
     }
 }
 
-// Pachacutec: v99 - Función Sanitize v16 Truth
-// Preserva el caso (TitleCase) de las descripciones para evitar NAK (21).
+// Pachacutec: v108 - Función Sanitize v16 Truth (High Fidelity)
+// Usa el CHAR_MAP explícito para garantizar ASCII puro y evitar UTF-8 (2 bytes).
 export function sanitize(string) {
     if (!string) return "";
-    return string.normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/ñ/g, "n").replace(/Ñ/g, "N")
+    return string.replace(EXPRESSION, (char) => CHAR_MAP[char])
         .replace(/[!|*]/g, " ")
         .replace(/[^\x20-\x7E]/g, "");
 }
@@ -879,7 +877,7 @@ export const FiscalPrinterMixin = {
         }
     },
 
-    // Pachacutec: v107 - RIF v16 (No tiene) y Labels Originales (v16 faithful)
+    // Pachacutec: v108 - Labels ASCII y Truncado de Referencia
     setHeader(payload) {
         const order = this.pos.get_order();
         const client = order.partner;
@@ -896,15 +894,15 @@ export const FiscalPrinterMixin = {
         this.printerCommands.push("iR*" + sanitize(vat));
         this.printerCommands.push("iS*" + sanitize(client?.name || "CLIENTE GENERAL"));
 
-        // v107: Restauramos acentos en labels para paridad total con v16 source. Sanitize limpiará al vuelo.
-        this.printerCommands.push("i00Teléfono: " + sanitize(client?.phone || "No tiene"));
-        this.printerCommands.push("i01Dirección: " + sanitize(client?.street || "No tiene"));
+        // v108: Forzamos labels ASCII en el código para evitar UTF-8 accidental en el buffer.
+        this.printerCommands.push("i00Telefono: " + sanitize(client?.phone || "No tiene"));
+        this.printerCommands.push("i01Direccion: " + sanitize(client?.street || "No tiene"));
         this.printerCommands.push("i02Email: " + sanitize(client?.email || "No tiene"));
         if (order.name) {
-            this.printerCommands.push("i03Ref: " + sanitize(order.name));
+            this.printerCommands.push("i03Ref: " + sanitize(order.name).substring(0, 20));
         }
 
-        console.warn("[FISCAL] v107 - Ráfaga de apertura (v16 Faithful) preparada.");
+        console.warn("[FISCAL] v108 - Ráfaga de apertura (ASCII Pura) preparada.");
     },
 
     setTotal() {
@@ -1075,21 +1073,24 @@ export const FiscalPrinterMixin = {
                 
                 let command = tag + price + quantity;
                 
-                // Pachacutec: v105 - Truncado Estricto (Seguridad 40 chars totales)
+                // Pachacutec: v108 - Truncado Balanceado (37 chars DATA = 40 bytes TOTAL)
                 const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
-                const desc = sanitize(line.full_product_name || product?.display_name || "PROD");
-                const code = sanitize(product?.default_code || "");
+                const desc_clean = sanitize(line.full_product_name || product?.display_name || "PROD");
+                const code_clean = sanitize(product?.default_code || "");
                 
                 let extra = "";
-                if (code) {
-                    extra += `|${code}|`;
+                if (code_clean) {
+                    let code_trunc = code_clean.substring(0, 5);
+                    // | (1) + code (5) + | (1) = 7 chars. Quedan 11 para name (Total 18 para extra).
+                    let name_trunc = desc_clean.substring(0, 11);
+                    extra = `|${code_trunc}|${name_trunc}`;
+                } else {
+                    // | (1) + desc (17) = 18. Total 37.
+                    extra = `|${desc_clean.substring(0, 17)}`;
                 }
-                extra += desc;
                 
-                // v105: Truncar la parte descriptiva a 20 chars para que el comando total (tag+price+qty+extra) sea ~39 chars
-                command += extra.slice(0, 20);
-
-                console.warn("[FISCAL] v105 - Línea (Truncada 20):", command);
+                command += extra;
+                console.warn(`[FISCAL] v108 - Línea (${command.length} chars DATA):`, command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
