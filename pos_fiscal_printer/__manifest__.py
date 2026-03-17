@@ -1,6 +1,6 @@
 {
     'name': '[LOCVE] Venezuela: POS fiscal printer',
-    "version": "18.0.1.0.93",
+    "version": "18.0.1.0.94",
     'category': 'LocVe [Localization]',
     'summary': 'Fiscal printing using serial ports',
     'author': 'Remake Ing Nerdo Pulido',

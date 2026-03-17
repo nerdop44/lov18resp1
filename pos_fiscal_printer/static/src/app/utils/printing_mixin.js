@@ -30,23 +30,22 @@ export function cleanText(string) {
 // Pachacutec: v66 - Restauración Estricta XOR v16 (1 solo byte de Checksum)
 // Pachacutec: v73 - Restauración XOR Binario (1 solo byte)
 // Requisito final HKA: 1 solo byte binario para el checksum.
-// Pachacutec: v93 - Inclusión de STX en el cálculo del LRC
-// Se ha validado por log que el hardware requiere STX en el XOR para ACK.
+// Pachacutec: v94 - Sintonía Fina v16 (Reversión LRC - Excluyendo STX)
+// Validado en producción: El LRC es DATA ^ ETX. STX no entra en el XOR.
 export function toBytes(command) {
     const encoder = new TextEncoder();
     const dataBytes = Array.from(encoder.encode(command));
     const ETX = 3;
     const STX = 2;
 
-    // Calculamos el LRC: XOR de cada byte de la DATA, el ETX y el STX.
-    // Pachacutec: v93 - La inclusión de STX es necesaria para obtener el 9 (ACK).
-    let lrc = STX; 
+    // Pachacutec: v94 - XOR de DATA + ETX solamente.
+    let lrc = 0; 
     for (const byte of dataBytes) {
         lrc ^= byte;
     }
     lrc ^= ETX;
 
-    // Retornamos la trama final
+    // Retornamos la trama final: [STX, DATA, ETX, LRC]
     const finalFrame = [STX, ...dataBytes, ETX, lrc];
     return new Uint8Array(finalFrame);
 }
@@ -857,31 +856,25 @@ export const FiscalPrinterMixin = {
         }
     },
 
+    // Pachacutec: v94 - Headers iR* / iS* (Perfil de Producción v16)
+    // Se ha validado que producción usa estos comandos para abrir el documento con éxito.
     setHeader(payload) {
-        const client = payload || this.order.get_partner() || { name: "Cliente Contado", vat: "00000000" };
+        const client = this.pos.get_order().partner;
+        const cleanVat = (client?.vat || "").replace(/[^0-9VvJjGgEe]/g, "");
         
-        // Pachacutec: v68 - ELIMINADO Escape 0x07 (Rechazado con NAK). Regreso a estructura v66.
+        // v16 prioritiza estos para la apertura fiscal
+        this.printerCommands.push(`iR*${cleanVat || "0"}`);
+        this.printerCommands.push(`iS*${cleanText(client?.name || "CLIENTE GENERAL").substring(0, 30)}`);
         
-        let vat = client.vat || client.identification_id || "00000000";
-        console.warn("[FISCAL] setHeader - Cliente:", client.name, "RIF:", client.vat);
-        if (payload) {
-            this.printerCommands.push("iF*" + payload.invoiceNumber.padStart(11, "0"));
-            this.printerCommands.push("iD*" + payload.date);
-            this.printerCommands.push("iI*" + payload.printerCode);
+        // Información opcional en slots estándar
+        if (client?.street) {
+            this.printerCommands.push(`i01DIRECCION: ${cleanText(client.street).substring(0, 30)}`);
         }
-
-        const prefix = client.prefix_vat || "V";
-        const raw_vat = client.vat || client.rif || "";
-        let vat_cleaned = raw_vat.replace(/[^0-9]/g, ""); // Solo números
-        if (!vat_cleaned) vat_cleaned = "No tiene";
-        else vat_cleaned = prefix + vat_cleaned;
-
-        // Pachacutec: v92 - Verificación de Checksum (i01, i02, i03)
-        // Secuencia correlativa ESTRICTA para asegurar apertura. i03 dispara.
-        this.printerCommands.push("i01" + vat_cleaned);
-        this.printerCommands.push("i02" + cleanText(client.name || "Cliente Contado").substring(0, 40));
-        this.printerCommands.push("i03" + cleanText(client.street || "No tiene").substring(0, 40));
-        console.warn("[FISCAL] v92 - setHeader Comandos:", this.printerCommands);
+        if (client?.phone) {
+            this.printerCommands.push(`i02TELEFONO: ${cleanText(client.phone).substring(0, 30)}`);
+        }
+        
+        console.warn("[FISCAL] v94 - Headers v16 (iR*/iS*) cargados.");
     },
 
     setTotal() {
