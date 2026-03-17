@@ -82,7 +82,7 @@ const mixinMethods = [
     'write', 'write_s2', 'write_Z', 'escribe_leer',
     'setHeader', 'setLines', 'setTotal',
     'printFiscal', 'printNoFiscal', 'printNotaCredito',
-    'doPrinting' // Added doPrinting as it is key for ReceiptScreen
+    'doPrinting', 'fetchStatusDiagnosis' // Added doPrinting and fetchStatusDiagnosis as they are key for ReceiptScreen
 ];
 
 for (const method of mixinMethods) {
