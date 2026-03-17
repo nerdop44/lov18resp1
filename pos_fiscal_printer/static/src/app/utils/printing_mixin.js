@@ -27,13 +27,11 @@ export function cleanText(string) {
     }
 }
 
-// Pachacutec: v108 - Función Sanitize v16 Truth (High Fidelity)
-// Usa el CHAR_MAP explícito para garantizar ASCII puro y evitar UTF-8 (2 bytes).
+// Pachacutec: v111 - Función Sanitize v16 Truth (Absolute Fidelity)
+// Solo reemplaza acentos. No remueve caracteres de protocolo (|!*).
 export function sanitize(string) {
     if (!string) return "";
-    return string.replace(EXPRESSION, (char) => CHAR_MAP[char])
-        .replace(/[!|*]/g, " ")
-        .replace(/[^\x20-\x7E]/g, "");
+    return string.replace(EXPRESSION, (char) => CHAR_MAP[char]);
 }
 
 // Pachacutec: v106 - Función Convert v16 Truth
@@ -886,19 +884,18 @@ export const FiscalPrinterMixin = {
             this.printerCommands.push("iD*" + payload.date);
             this.printerCommands.push("iI*" + payload.printerCode);
         }
-
-        // v109: Sintonía de RIF (Sin Espacios). El espacio en 'No tiene' podría corromper la apertura.
-        let vat = client?.vat || "Notiene";
+        // v111: RIF Estándar Forense (V000000000). Placeholder más seguro para apertura.
+        let vat = client?.vat || "V000000000";
 
         this.printerCommands.push("iR*" + sanitize(vat));
         this.printerCommands.push("iS*" + sanitize(client?.name || "CLIENTE GENERAL"));
 
-        // v108: Forzamos labels ASCII en el código para evitar UTF-8 accidental en el buffer.
+        // v111: Etiquetas ASCII y Referencia v16 (Sin truncado agresivo).
         this.printerCommands.push("i00Telefono: " + sanitize(client?.phone || "No tiene"));
         this.printerCommands.push("i01Direccion: " + sanitize(client?.street || "No tiene"));
         this.printerCommands.push("i02Email: " + sanitize(client?.email || "No tiene"));
         if (order.name) {
-            this.printerCommands.push("i03Ref: " + sanitize(order.name).substring(0, 20));
+            this.printerCommands.push("i03Ref: " + sanitize(order.name));
         }
 
         console.warn("[FISCAL] v108 - Ráfaga de apertura (ASCII Pura) preparada.");
@@ -1027,28 +1024,24 @@ export const FiscalPrinterMixin = {
                 }
 
                 // Pachacutec: v41 - Determinación de Carácter Fiscal (Seguro Social)
-                let tag = (char === "GC") ? "d0" : " "; // Default exento
-                
+                // Sintonía v16: Lógica de Tags simplificada.
+                // ! = General, " = Reducido, # = Adicional, Espacio = Exento.
+                let tag = " "; // Default exento
                 if (tax_records.length > 0) {
                     const first_tax = tax_records[0];
                     const type = first_tax.x_tipo_alicuota || first_tax.attr?.x_tipo_alicuota;
-                    // v55 - Uso de amount como respaldo (IVA 16% es General)
                     const amount = first_tax.amount !== undefined ? first_tax.amount : (first_tax.attr?.amount || 0);
 
-                    console.warn("[FISCAL] v55 - Analizando Tax:", {type, amount});
-
-                    if (type === 'general' || amount === 16) tag = '!'; // v77: ! = 16% (General)
-                    else if (type === 'reducido' || amount === 8 || amount === 12) tag = '"';
-                    else if (type === 'adicional' || amount === 31) tag = '#';
-                    else tag = ' '; // Espacio = Exento
-                } 
-                // Pachacutec: v56 - Failsafe: Si hay IDs pero no records, usar espacio (Exento) por seguridad
-                else if (tax_ids.length > 0) {
-                    console.warn("[FISCAL] v56 - Failsafe: IDs presentes pero records vacíos. Usando ' ' (Exento)");
-                    tag = ' ';
-                } else {
-                    tag = ' '; // Exento
+                    if (type === 'general' || amount === 16) {
+                        tag = (char === "GC") ? "d1" : "!";
+                    } else if (type === 'reducido' || amount === 8 || amount === 12) {
+                        tag = (char === "GC") ? "d2" : "\"";
+                    } else if (type === 'adicional' || amount === 31) {
+                        tag = (char === "GC") ? "d3" : "#";
+                    }
                 }
+                
+                if (tag === " " && char === "GC") tag = "d0";
 
                 // Cálculo de precios y cantidades (v16 alignment)
                 let unitPrice = line.get_unit_display_price ? line.get_unit_display_price() : (line.price_unit || 0);
@@ -1070,27 +1063,18 @@ export const FiscalPrinterMixin = {
                 qty_parts[0] = qty_parts[0].padStart(5, "0");
                 let quantity = qty_parts.join("");
                 
-                let command = tag + price + quantity;
-
-                // Pachacutec: v109 - Sintonía Radical (33 chars DATA = 36 bytes TOTAL)
-                // Muchos firmwares HKA80 seriales rechazan tramas mayores a 36-40 bytes.
+                // Pachacutec: v111 - Sintonía de Fidelidad v16 (Estructural)
+                // Se restaura el formato exacto: Solo tuberías if code exists.
                 const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
                 const desc_clean = sanitize(line.full_product_name || product?.display_name || "PROD");
                 const code_clean = sanitize(product?.default_code || "");
                 
-                let extra = "";
                 if (code_clean) {
-                    let code_trunc = code_clean.substring(0, 2);
-                    // | (1) + code (2) + | (1) = 4 chars. Quedan 10 para name (Total 14 para extra).
-                    let name_trunc = desc_clean.substring(0, 10);
-                    extra = `|${code_trunc}|${name_trunc}`;
-                } else {
-                    // | (1) + desc (13) = 14. Total DATA 33 (19 + 14).
-                    extra = `|${desc_clean.substring(0, 13)}`;
+                    command += `|${code_clean.substring(0, 10)}|`;
                 }
+                command += desc_clean.substring(0, 30);
                 
-                command += extra;
-                console.warn(`[FISCAL] v109 - Línea (${command.length} chars DATA):`, command);
+                console.warn(`[FISCAL] v111 - Línea (${command.length} chars DATA):`, command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
