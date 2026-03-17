@@ -1063,6 +1063,8 @@ export const FiscalPrinterMixin = {
                 qty_parts[0] = qty_parts[0].padStart(5, "0");
                 let quantity = qty_parts.join("");
                 
+                let command = tag + price + quantity;
+                
                 // Pachacutec: v111 - Sintonía de Fidelidad v16 (Estructural)
                 // Se restaura el formato exacto: Solo tuberías if code exists.
                 const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
