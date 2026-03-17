@@ -579,24 +579,36 @@ export const FiscalPrinterMixin = {
             const result = await this.setPort();
             if (!result) return;
 
-            // Pachacutec: v114 - Verificación Proactiva de Bloqueo (+24h)
+            // Pachacutec: v118 - Verificación Proactiva Unificada
             const fiscal_status = await this.checkFiscalStatus();
-            if (fiscal_status === "Z_REQUIRED") {
+            if (!fiscal_status.ok) {
+                let title = _t("Atención Requerida");
+                let text = "";
+                let icon = "warning";
+
+                if (fiscal_status.z_required) {
+                    title = _t("Reporte Z Obligatorio");
+                    text = _t("La impresora requiere un Reporte Z. Es posible que existan varios cierres acumulados por días de inactividad.");
+                    if (fiscal_status.paper_low) {
+                        text += "\n\n" + _t("ADVERTENCIA: Se detectó PAPEL BAJO. Esto puede estar impidiendo que el Reporte Z se complete internamente. Reemplace el rollo antes de intentar el cierre.");
+                    }
+                } else if (fiscal_status.paper_low) {
+                    title = _t("Papel Bajo");
+                    text = _t("La impresora detecta poco papel. Por favor reemplace el rollo pronto.");
+                    icon = "info";
+                }
+
                 await Swal.fire({
-                    icon: 'warning',
-                    title: 'Reporte Z Obligatorio',
-                    text: 'La impresora requiere un Reporte Z para continuar. Es posible que existan múltiples cierres acumulados si estuvo inactiva. Por favor realice el cierre manualmente desde el menú X/Z hasta que desaparezca el bloqueo.',
-                    confirmButtonText: 'Entendido'
+                    icon: icon,
+                    title: title,
+                    text: text,
+                    confirmButtonText: _t('Entendido')
                 });
-                this.printing = false;
-                return;
-            } else if (fiscal_status === "PAPER_LOW") {
-                await Swal.fire({
-                    icon: 'warning',
-                    title: 'Papel Bajo',
-                    text: 'La impresora detecta poco papel. Por favor reemplace el rollo para evitar interrupciones en la factura.',
-                    confirmButtonText: 'Continuar'
-                });
+
+                if (fiscal_status.z_required) {
+                    this.printing = false;
+                    return;
+                }
             }
 
             await this.write();
@@ -1140,30 +1152,31 @@ export const FiscalPrinterMixin = {
 
     // Pachacutec: v114 - Verificación de Estado Proactiva
     // Retorna "Z_REQUIRED" si detecta el bit de bloqueo por tiempo.
+    // Pachacutec: v118 - Diagnóstico de Sensores Unificado
+    // Retorna objeto con flags de estado para toma de decisiones compleja.
     async checkFiscalStatus() {
         const response = await this.fetchStatusDiagnosis();
+        const status = { z_required: false, paper_low: false, busy: false, ok: true };
+        
         if (response && response.length >= 6) {
-            const b1 = response[3];
-            const b2 = response[4];
-            const misc_byte = response[5]; // Byte 3 (Misc)
+            const b1 = response[3]; // Status Byte 1
+            const b2 = response[4]; // Status Byte 2 (Error)
+            const b3 = response[5]; // Status Byte 3 (Misc)
             
-            console.warn(`[FISCAL] v117 - STATUS B1: ${b1.toString(2).padStart(8, '0')} (Hex: ${b1.toString(16)})`);
-            console.warn(`[FISCAL] v117 - ERROR  B2: ${b2.toString(2).padStart(8, '0')} (Hex: ${b2.toString(16)})`);
-            console.warn(`[FISCAL] v117 - MISC   B3: ${misc_byte.toString(2).padStart(8, '0')} (Hex: ${misc_byte.toString(16)})`);
+            console.warn(`[FISCAL] v118 - B1 (Status): ${b1.toString(2).padStart(8, '0')}`);
+            console.warn(`[FISCAL] v118 - B2 (Error):  ${b2.toString(2).padStart(8, '0')}`);
+            console.warn(`[FISCAL] v118 - B3 (Misc):   ${b3.toString(2).padStart(8, '0')}`);
 
-            // Bit 3 (00001000) = Z Report (+24h) Needed
-            if (misc_byte & 8) {
-                console.error("[FISCAL] v117 - BLOQUEO DETECTADO: Reporte Z Requerido (+24h).");
-                return "Z_REQUIRED";
-            }
-            
-            // Bit 1 (00000010) = Paper Low / Near End
-            if (misc_byte & 2) {
-                console.warn("[FISCAL] v117 - ADVERTENCIA: Papel Bajo detectado.");
-                return "PAPER_LOW";
+            // Mapeo Bits HKA
+            if (b3 & 8) status.z_required = true;  // Bit 3: Z Needed
+            if (b3 & 2) status.paper_low = true;   // Bit 1: Paper Low
+            if (b1 & 1) status.busy = true;        // Bit 0: Busy (Typical HKA)
+
+            if (status.z_required || status.paper_low) {
+                status.ok = false;
             }
         }
-        return "OK";
+        return status;
     },
 
     // Pachacutec: v103 - Diagnóstico de Status HKA80 refactorizado v114
