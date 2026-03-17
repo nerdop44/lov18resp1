@@ -23,7 +23,7 @@ from odoo.tools.misc import formatLang, format_date, xlsxwriter
 from odoo.tools.safe_eval import expr_eval, safe_eval
 from odoo.models import check_method_name
 
-class AccountReport(models.AbstractModel):
+class AccountReport(models.Model):
     _inherit = 'account.report'
 
     CURRENCY_DIF = None

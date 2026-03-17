@@ -353,23 +353,23 @@ class AccountMove(models.Model):
             if rec.is_invoice(include_receipts=True) and rec.tax_totals:
                 # Odoo 18 usa una estructura de tax_totals diferente (summary)
                 # Intentamos obtener montos del formato nuevo primero, luego del legado
-                amount_untaxed = rec.tax_totals.get('amount_untaxed')
+                amount_untaxed = rec.tax_totals.get('base_amount_currency')
                 if amount_untaxed is None:
-                    # Formato legado o alternativo
-                    amount_untaxed = rec.tax_totals.get('base_amount_currency', 0)
+                    amount_untaxed = rec.tax_totals.get('amount_untaxed', 0)
                 
-                amount_tax = 0
-                if 'groups_by_subtotal' in rec.tax_totals:
-                    for product, income in rec.tax_totals.get('groups_by_subtotal', {}).items():
-                        for l in income:
-                            amount_tax += l.get('tax_group_amount', 0)
-                else:
-                    # Formato Odoo 18 summary
-                    amount_tax = rec.tax_totals.get('tax_amount_currency', 0)
+                amount_tax = rec.tax_totals.get('tax_amount_currency')
+                if amount_tax is None:
+                    if 'groups_by_subtotal' in rec.tax_totals:
+                        amount_tax = 0
+                        for product, income in rec.tax_totals.get('groups_by_subtotal', {}).items():
+                            for l in income:
+                                amount_tax += l.get('tax_group_amount', 0)
+                    else:
+                        amount_tax = rec.tax_totals.get('amount_tax', 0)
 
-                amount_total = rec.tax_totals.get('amount_total')
+                amount_total = rec.tax_totals.get('total_amount_currency')
                 if amount_total is None:
-                    amount_total = rec.tax_totals.get('total_amount_currency', 0)
+                    amount_total = rec.tax_totals.get('amount_total', 0)
 
                 if rec.currency_id != self.env.company.currency_id:
                     rec.amount_untaxed_usd = rec.amount_untaxed
