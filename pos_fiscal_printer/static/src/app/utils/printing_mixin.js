@@ -285,26 +285,27 @@ export const FiscalPrinterMixin = {
         this.printing = true;
         // Pachacutec: v52 - ELIMINADA sanitización global que borraba '!', '*', '|'
         console.log("Comandos a enviar: ", this.printerCommands);
-        var cantidad_comandos = this.printerCommands.length;
-        for (const command of this.printerCommands) {
+        for (let i = 0; i < this.printerCommands.length; i++) {
+            const command = this.printerCommands[i];
             var is_linea = false;
             if (command.substring(0, 1) === ' ' || command.substring(0, 1) === '!' || command.substring(0, 1) === 'd' || command.substring(0, 1) === '-') {
                 is_linea = true;
             }
             if (this.printing) {
-                // Pachacutec: v36 - VALIDACIÓN ACK ESTRICTA (AWAIT directo y chequeo de éxito)
                 const success = await new Promise((res) => {
                     setTimeout(async () => {
+                        console.warn(`[FISCAL] Enviando (${i + 1}/${this.printerCommands.length}):`, command);
                         const res_ok = await this.escribe_leer(command, is_linea);
                         res(res_ok);
                     }, TIME);
                 });
 
-                if (!success) {
+                if (success) {
+                    console.warn(`[FISCAL] Comando [${i + 1}] EXITOSO (ACK).`);
+                } else {
                     // Pachacutec: v70 - Tolerancia a NAK en encabezados opcionales (i00-i03)
                     if (command.substring(0, 2) === "i0") {
                         console.warn("[FISCAL] v70 - Encabezado opcional falló (NAK), continuando factura...", command);
-                        cantidad_comandos--; // Descontamos para que la cuenta final sea 0 si todo lo demás pasa
                         continue;
                     }
 
@@ -868,25 +869,25 @@ export const FiscalPrinterMixin = {
         }
     },
 
-    // Pachacutec: v97 - Etiquetas de Identidad v16 (TitleCase)
-    // Se ha validado que el hardware responde mejor a este formato exacto.
+    // Pachacutec: v97 - Etiquetas de Identidad v16 (    // Pachacutec: v100 - Auditoría de Ráfaga y Sintonía Estricta
+    // Se truncan valores a 20 chars para cabeceras y 15 para ítems.
     setHeader(payload) {
         const client = this.pos.get_order().partner;
         const cleanVat = (client?.vat || "").replace(/[^0-9VvJjGgEe]/g, "");
-        const name = client?.name || "CLIENTE GENERAL";
-        const addr = client?.street || "SIN DIRECCION";
-        const phone = client?.phone || "0000";
+        const name = (client?.name || "CLIENTE GENERAL").substring(0, 20);
+        const addr = (client?.street || "SIN DIRECCION").substring(0, 20);
+        const phone = (client?.phone || "0000").substring(0, 20);
         
         this.printerCommands.push(`iR*${cleanVat || "0"}`);
-        this.printerCommands.push(`iS*${name.substring(0, 30)}`);
+        this.printerCommands.push(`iS*${sanitize(name)}`);
         
-        // Ráfaga completa v16: Etiquetas Exactas e Identitarias
-        this.printerCommands.push(`i00Teléfono: ${phone.substring(0, 30)}`);
-        this.printerCommands.push(`i01Dirección: ${addr.substring(0, 30)}`);
-        this.printerCommands.push(`i02Email: ${(client?.email || "").substring(0, 30)}`);
-        this.printerCommands.push(`i03Ref: ${(this.pos.get_order().name || "").substring(0, 30)}`);
+        // Ráfaga completa v16: Etiquetas Cortas y Seguras
+        this.printerCommands.push(`i00Tlf:${sanitize(phone)}`);
+        this.printerCommands.push(`i01Dir:${sanitize(addr)}`);
+        this.printerCommands.push(`i02Mail:${((client?.email || "").substring(0, 20))}`);
+        this.printerCommands.push(`i03Ref:${((this.pos.get_order().name || "").substring(0, 20))}`);
         
-        console.warn("[FISCAL] v97 - Ráfaga de apertura v16 (Identidad TitleCase) enviada.");
+        console.warn("[FISCAL] v100 - Ráfaga de apertura (Sintonía Estricta) preparada.");
     },
 
     setTotal() {
@@ -1037,26 +1038,23 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v95 - Restauración de Pipes v16
-                // Estructura v16: [Tag][Precio][Qty]|[Cod]|[Nombre]
-                // Pachacutec: v99 - Sintonía de Padding v16 Truth
-                // Confirmado: 8 enteros + 2 decimales = 10 chars para el precio.
-                // Confirmado: 5 enteros + 3 decimales = 8 chars para la cantidad.
+                // Pachacutec: v99 - Sintonía de Padding v16 Truth (10/8)
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
                 let command = tag + price + quantity;
                 
-                // Pachacutec: v99 - Estética v16 Truth (TitleCase)
-                // Se usa 'sanitize' en lugar de 'cleanText' para evitar NAK (21).
+                // Pachacutec: v100 - Sintonía de Ítem Estrecha (15/10 chars)
                 const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
-                if (product?.default_code) {
-                    command += `|${sanitize(product.default_code).substring(0, 10)}|`;
+                const desc = sanitize(line.full_product_name || product?.display_name || "PROD").substring(0, 15);
+                const code = sanitize(product?.default_code || "").substring(0, 10);
+                
+                if (code) {
+                    command += `|${code}|`;
                 }
-                
-                command += sanitize(line.product_id?.display_name || line.product_name || "Producto").substring(0, 30);
-                
-                console.warn("[FISCAL] v95 - Línea con Pipes v16:", command);
+                command += desc;
+
+                console.warn("[FISCAL] v100 - Línea con Pipes v16 (Truncado):", command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {

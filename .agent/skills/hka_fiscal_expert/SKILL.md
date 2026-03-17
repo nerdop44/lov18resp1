@@ -14,9 +14,10 @@ Este skill centraliza la experiencia acumulada en la integración de Odoo con im
     - **Parity**: `"even"` (Mandatorio).
     - No intentar velocidades automáticas; forzar estos valores en el `setPort`.
 
-2.  **Cálculo de Checksum (LRC) v16 Pure**:
-    - **LRC = DATA ^ ETX**. El byte **STX (2) NUNCA entra** en la sumatoria XOR para ningún tipo de comando (Cabecera, Venta o Pago).
-    - **VERDAD ABSOLUTA**: Se ha auditado el código fuente funcional de v16 y se ha confirmado que el STX queda fuera. Intentar incluirlo (Resultado 9) causa NAK (21) en los ítems de venta.
+2.  **Cálculo de Checksum (LRC) - Estrategia Híbrida**:
+    - **Cabeceras (`i`)**: Usan **LRC = DATA ^ ETX** (Excluye STX). Validado con ACK.
+    - **Ítems y Pagos (`!`, `2`)**: Algunos firmwares HKA80 requieren **LRC = STX ^ DATA ^ ETX** (Incluye STX). Si el ítem da NAK 21 con LRC Pure, forzar el XOR con STX.
+    - **VERDAD ABSOLUTA**: Siempre verificar el ACK de las cabeceras primero para asegurar que el baudrate y paridad son correctos. Si las cabeceras dan ACK y el ítem da NAK, el problema es el Checksum del ítem o el padding.
 
 3.  **Apertura Documental Estricta**:
     - Se requiere una ráfaga de 6 encabezados para garantizar la apertura: `iR*`, `iS*`, `i00`, `i01`, `i02`, `i03`.
