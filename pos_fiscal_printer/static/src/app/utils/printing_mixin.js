@@ -233,6 +233,10 @@ export const FiscalPrinterMixin = {
                             leer = false;
                             await this.reader.releaseLock();
                             this.reader = false;
+
+                            // Pachacutec: v103 - Diagnóstico en Caliente
+                            await this.fetchStatusDiagnosis();
+
                             return false; 
                         }
                     } else {
@@ -1098,5 +1102,32 @@ export const FiscalPrinterMixin = {
         this.setLines("GC");
         this.setTotal();
         return true;
+    },
+
+    // Pachacutec: v103 - Diagnóstico de Status HKA80
+    // Captura el estado interno de la impresora tras un fallo NAK.
+    async fetchStatusDiagnosis() {
+        console.warn("[FISCAL] v103 - Solicitando Diagnóstico de Status (S1)...");
+        try {
+            const cmdStatus = toBytes("S1");
+            const writerStatus = this.port.writable.getWriter();
+            await writerStatus.write(cmdStatus);
+            await writerStatus.releaseLock();
+            
+            await new Promise(res => setTimeout(res, 300));
+            
+            const readerStatus = this.port.readable.getReader();
+            const { value } = await readerStatus.read();
+            console.warn("[FISCAL] v103 - RESPUESTA DIAGNÓSTICO S1:", value);
+            if (value && value.length >= 6) {
+                // Bytes de status según protocolo HKA
+                console.warn("[FISCAL] Byte[1] (Status):", value[1].toString(2).padStart(8, '0'));
+                console.warn("[FISCAL] Byte[2] (Error): ", value[2].toString(2).padStart(8, '0'));
+                console.warn("[FISCAL] Byte[3] (Misc):  ", value[3].toString(2).padStart(8, '0'));
+            }
+            await readerStatus.releaseLock();
+        } catch (e) {
+            console.error("[FISCAL] v103 - Fallo en diagnóstico S1:", e);
+        }
     }
 };
