@@ -881,15 +881,14 @@ export const FiscalPrinterMixin = {
     setHeader(payload) {
         const order = this.pos.get_order();
         const client = order.partner;
-        
         if (payload) {
             this.printerCommands.push("iF*" + payload.invoiceNumber.padStart(11, "0"));
             this.printerCommands.push("iD*" + payload.date);
             this.printerCommands.push("iI*" + payload.printerCode);
         }
 
-        // v107: Retorno a RIF exacto v16 ('No tiene'). El placeholder con guión podría fallar apertura.
-        let vat = client?.vat || "No tiene";
+        // v109: Sintonía de RIF (Sin Espacios). El espacio en 'No tiene' podría corromper la apertura.
+        let vat = client?.vat || "Notiene";
 
         this.printerCommands.push("iR*" + sanitize(vat));
         this.printerCommands.push("iS*" + sanitize(client?.name || "CLIENTE GENERAL"));
@@ -1071,26 +1070,25 @@ export const FiscalPrinterMixin = {
                 qty_parts[0] = qty_parts[0].padStart(5, "0");
                 let quantity = qty_parts.join("");
                 
-                let command = tag + price + quantity;
-                
-                // Pachacutec: v108 - Truncado Balanceado (37 chars DATA = 40 bytes TOTAL)
+                // Pachacutec: v109 - Sintonía Radical (33 chars DATA = 36 bytes TOTAL)
+                // Muchos firmwares HKA80 seriales rechazan tramas mayores a 36-40 bytes.
                 const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
                 const desc_clean = sanitize(line.full_product_name || product?.display_name || "PROD");
                 const code_clean = sanitize(product?.default_code || "");
                 
                 let extra = "";
                 if (code_clean) {
-                    let code_trunc = code_clean.substring(0, 5);
-                    // | (1) + code (5) + | (1) = 7 chars. Quedan 11 para name (Total 18 para extra).
-                    let name_trunc = desc_clean.substring(0, 11);
+                    let code_trunc = code_clean.substring(0, 2);
+                    // | (1) + code (2) + | (1) = 4 chars. Quedan 10 para name (Total 14 para extra).
+                    let name_trunc = desc_clean.substring(0, 10);
                     extra = `|${code_trunc}|${name_trunc}`;
                 } else {
-                    // | (1) + desc (17) = 18. Total 37.
-                    extra = `|${desc_clean.substring(0, 17)}`;
+                    // | (1) + desc (13) = 14. Total DATA 33 (19 + 14).
+                    extra = `|${desc_clean.substring(0, 13)}`;
                 }
                 
                 command += extra;
-                console.warn(`[FISCAL] v108 - Línea (${command.length} chars DATA):`, command);
+                console.warn(`[FISCAL] v109 - Línea (${command.length} chars DATA):`, command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
@@ -1142,7 +1140,14 @@ export const FiscalPrinterMixin = {
             
             const readerStatus = this.port.readable.getReader();
             const { value } = await readerStatus.read();
-            console.warn("[FISCAL] v103 - RESPUESTA DIAGNÓSTICO S1:", value);
+            console.warn("[FISCAL] v109 - RESPUESTA S1 (Uint8Array):", value);
+            
+            // Pachacutec: v109 - Decodificación Textual Forense
+            try {
+                const ascii_resp = Array.from(value).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : ".").join("");
+                console.warn("[FISCAL] v109 - RESPUESTA S1 (ASCII):", ascii_resp);
+            } catch(e) {}
+
             if (value && value.length >= 6) {
                 // Pachacutec: v107 - Reparación de Índices Mandatoria
                 // value[0]=STX, value[1]=S, value[2]=1. Los bytes de status reales empiezan en [3].
