@@ -879,7 +879,7 @@ export const FiscalPrinterMixin = {
         }
     },
 
-    // Pachacutec: v106 - RIF Formal (V-00000000)
+    // Pachacutec: v107 - RIF v16 (No tiene) y Labels Originales (v16 faithful)
     setHeader(payload) {
         const order = this.pos.get_order();
         const client = order.partner;
@@ -890,21 +890,21 @@ export const FiscalPrinterMixin = {
             this.printerCommands.push("iI*" + payload.printerCode);
         }
 
-        // v106: Si no hay RIF, usar placeholder formal para evitar rechazo de apertura
-        let vat = client?.vat || "";
-        if (!vat || vat === "No tiene") vat = "V-00000000";
+        // v107: Retorno a RIF exacto v16 ('No tiene'). El placeholder con guión podría fallar apertura.
+        let vat = client?.vat || "No tiene";
 
         this.printerCommands.push("iR*" + sanitize(vat));
         this.printerCommands.push("iS*" + sanitize(client?.name || "CLIENTE GENERAL"));
 
-        this.printerCommands.push("i00Telefono: " + sanitize(client?.phone || "No tiene"));
-        this.printerCommands.push("i01Direccion: " + sanitize(client?.street || "No tiene"));
+        // v107: Restauramos acentos en labels para paridad total con v16 source. Sanitize limpiará al vuelo.
+        this.printerCommands.push("i00Teléfono: " + sanitize(client?.phone || "No tiene"));
+        this.printerCommands.push("i01Dirección: " + sanitize(client?.street || "No tiene"));
         this.printerCommands.push("i02Email: " + sanitize(client?.email || "No tiene"));
         if (order.name) {
             this.printerCommands.push("i03Ref: " + sanitize(order.name));
         }
 
-        console.warn("[FISCAL] v106 - Ráfaga de apertura (RIF Formal) preparada.");
+        console.warn("[FISCAL] v107 - Ráfaga de apertura (v16 Faithful) preparada.");
     },
 
     setTotal() {
@@ -1143,10 +1143,11 @@ export const FiscalPrinterMixin = {
             const { value } = await readerStatus.read();
             console.warn("[FISCAL] v103 - RESPUESTA DIAGNÓSTICO S1:", value);
             if (value && value.length >= 6) {
-                // Bytes de status según protocolo HKA
-                console.warn("[FISCAL] Byte[1] (Status):", value[1].toString(2).padStart(8, '0'));
-                console.warn("[FISCAL] Byte[2] (Error): ", value[2].toString(2).padStart(8, '0'));
-                console.warn("[FISCAL] Byte[3] (Misc):  ", value[3].toString(2).padStart(8, '0'));
+                // Pachacutec: v107 - Reparación de Índices Mandatoria
+                // value[0]=STX, value[1]=S, value[2]=1. Los bytes de status reales empiezan en [3].
+                console.warn("[FISCAL] Byte[1] (Status):", value[3].toString(2).padStart(8, '0'));
+                console.warn("[FISCAL] Byte[2] (Error): ", value[4].toString(2).padStart(8, '0'));
+                console.warn("[FISCAL] Byte[3] (Misc):  ", value[5].toString(2).padStart(8, '0'));
             }
             await readerStatus.releaseLock();
         } catch (e) {
