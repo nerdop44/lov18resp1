@@ -297,13 +297,21 @@ export const FiscalPrinterMixin = {
             if (command.substring(0, 1) === ' ' || command.substring(0, 1) === '!' || command.substring(0, 1) === 'd' || command.substring(0, 1) === '-') {
                 is_linea = true;
             }
+            // Pachacutec: v113 - Tiempo de espera de Hardware para Reportes (X/Z)
+            // Permite que la impresora termine el arrastre de papel físico.
+            let wait_time = TIME;
+            if (command === "I0X" || command === "I0Z") {
+                wait_time = 15000; 
+                console.warn(`[FISCAL] v113 - Detectado reporte ${command}. Esperando 15s...`);
+            }
+
             if (this.printing) {
                 const success = await new Promise((res) => {
                     setTimeout(async () => {
                         console.warn(`[FISCAL] Enviando (${i + 1}/${this.printerCommands.length}):`, command);
                         const res_ok = await this.escribe_leer(command, is_linea);
                         res(res_ok);
-                    }, TIME);
+                    }, wait_time);
                 });
 
                 if (success) {
@@ -884,8 +892,8 @@ export const FiscalPrinterMixin = {
             this.printerCommands.push("iD*" + payload.date);
             this.printerCommands.push("iI*" + payload.printerCode);
         }
-        // v111: RIF Estándar Forense (V000000000). Placeholder más seguro para apertura.
-        let vat = client?.vat || "V000000000";
+        // v113: RIF v16 Fidelity ("No tiene"). El espacio es clave en el entorno funcional v16.
+        let vat = client?.vat || "No tiene";
 
         this.printerCommands.push("iR*" + sanitize(vat));
         this.printerCommands.push("iS*" + sanitize(client?.name || "CLIENTE GENERAL"));
@@ -950,6 +958,12 @@ export const FiscalPrinterMixin = {
     },
 
     printFiscal() {
+        // Pachacutec: v113 - Limpieza Forzada X/Z por bloqueo de tiempo (+24h)
+        // Solo para esta versión de emergencia para desbloquear el equipo.
+        console.warn("[FISCAL] v113 - Inyectando ráfaga de limpieza (X/Z) por bloqueo detectado.");
+        this.printerCommands.push("I0X");
+        this.printerCommands.push("I0Z");
+
         this.setHeader();
         this.setLines("GF");
         this.setTotal();
