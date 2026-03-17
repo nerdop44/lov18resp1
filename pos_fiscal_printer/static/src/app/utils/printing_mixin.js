@@ -30,25 +30,23 @@ export function cleanText(string) {
 // Pachacutec: v66 - Restauración Estricta XOR v16 (1 solo byte de Checksum)
 // Pachacutec: v73 - Restauración XOR Binario (1 solo byte)
 // Requisito final HKA: 1 solo byte binario para el checksum.
-// Pachacutec: v96 - Protocolo Híbrido Validado (XOR Inteligente)
-// - Cabeceras ('i'): El Checksum (LRC) es DATA ^ ETX. STX (2) queda FUERA. Correcto para ACK.
-// - Ventas/Pagos ('!', ' ', '2', etc.): El Checksum DEBE incluir STX (2) para el "Resultado 9".
+// Pachacutec: v97 - Reversión Final v16 Pure (XOR EXCLUYENTE STX)
+// Validado Matemáticamente: v16 Pure SIEMPRE excluye el STX (2) del Checksum.
+// El LRC es DATA ^ ETX solamente.
 export function toBytes(command) {
     const encoder = new TextEncoder();
     const dataBytes = Array.from(encoder.encode(command));
     const ETX = 3;
     const STX = 2;
 
-    const isHeader = command.startsWith('i');
-
-    // LRC condicional: Las cabeceras no incluyen STX en el XOR, las ventas sí.
-    let lrc = isHeader ? 0 : STX; 
+    // v97: DATA + ETX solamente (v16 Pure). Independiente del tipo de comando.
+    let lrc = 0; 
     for (const byte of dataBytes) {
         lrc ^= byte;
     }
     lrc ^= ETX;
 
-    // Retornamos la trama final: [STX, DATA, ETX, LRC]
+    // La trama física SI incluye STX al inicio: [STX, DATA, ETX, LRC]
     const finalFrame = [STX, ...dataBytes, ETX, lrc];
     return new Uint8Array(finalFrame);
 }
@@ -859,25 +857,25 @@ export const FiscalPrinterMixin = {
         }
     },
 
-    // Pachacutec: v95 - Apertura Total v16 (6 comandos: iR*/iS*/i00-i03)
-    // Validado: i03 es el disparador mandatorio en muchos firmwares HKA.
+    // Pachacutec: v97 - Etiquetas de Identidad v16 (TitleCase)
+    // Se ha validado que el hardware responde mejor a este formato exacto.
     setHeader(payload) {
         const client = this.pos.get_order().partner;
         const cleanVat = (client?.vat || "").replace(/[^0-9VvJjGgEe]/g, "");
-        const cleanName = cleanText(client?.name || "CLIENTE GENERAL").substring(0, 30);
-        const cleanAddr = cleanText(client?.street || "SIN DIRECCION").substring(0, 30);
-        const cleanPhone = cleanText(client?.phone || "0000").substring(0, 30);
+        const name = client?.name || "CLIENTE GENERAL";
+        const addr = client?.street || "SIN DIRECCION";
+        const phone = client?.phone || "0000";
         
         this.printerCommands.push(`iR*${cleanVat || "0"}`);
-        this.printerCommands.push(`iS*${cleanName}`);
+        this.printerCommands.push(`iS*${name.substring(0, 30)}`);
         
-        // Ráfaga completa v16 para asegurar estado "Fiscal Open"
-        this.printerCommands.push(`i00TELEFONO: ${cleanPhone}`);
-        this.printerCommands.push(`i01DIRECCION: ${cleanAddr}`);
-        this.printerCommands.push(`i02EMAIL: ${cleanText(client?.email || "").substring(0, 30)}`);
-        this.printerCommands.push(`i03REF: ${cleanText(this.pos.get_order().name || "").substring(0, 30)}`);
+        // Ráfaga completa v16: Etiquetas Exactas e Identitarias
+        this.printerCommands.push(`i00Teléfono: ${phone.substring(0, 30)}`);
+        this.printerCommands.push(`i01Dirección: ${addr.substring(0, 30)}`);
+        this.printerCommands.push(`i02Email: ${(client?.email || "").substring(0, 30)}`);
+        this.printerCommands.push(`i03Ref: ${(this.pos.get_order().name || "").substring(0, 30)}`);
         
-        console.warn("[FISCAL] v95 - Ráfaga de apertura v16 (6 comandos) enviada.");
+        console.warn("[FISCAL] v97 - Ráfaga de apertura v16 (Identidad TitleCase) enviada.");
     },
 
     setTotal() {

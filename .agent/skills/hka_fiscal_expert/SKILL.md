@@ -14,24 +14,23 @@ Este skill centraliza la experiencia acumulada en la integración de Odoo con im
     - **Parity**: `"even"` (Mandatorio).
     - No intentar velocidades automáticas; forzar estos valores en el `setPort`.
 
-2.  **Cálculo de Checksum (LRC) Híbrido**:
-    - **Comandos de Cabecera e Información (`i`)**: El LRC es `DATA ^ ETX`. El byte **STX (2) NO entra** en la sumatoria XOR. (Validado con ACKs en v94/v95).
-    - **Comandos de Venta y Pago (`!`, ` `, `"`, `#`, `2`)**: El LRC **SÍ DEBE incluir al STX (2)**. `STX ^ DATA ^ ETX`. Esto es lo que produce el "Resultado 9" esperado por el firmware para autorizar la venta.
+2.  **Cálculo de Checksum (LRC) v16 Pure**:
+    - **LRC = DATA ^ ETX**. El byte **STX (2) NUNCA entra** en la sumatoria XOR para ningún tipo de comando (Cabecera, Venta o Pago).
+    - **VERDAD ABSOLUTA**: Se ha auditado el código fuente funcional de v16 y se ha confirmado que el STX queda fuera. Intentar incluirlo (Resultado 9) causa NAK (21) en los ítems de venta.
 
 3.  **Apertura Documental Estricta**:
     - Se requiere una ráfaga de 6 encabezados para garantizar la apertura: `iR*`, `iS*`, `i00`, `i01`, `i02`, `i03`.
     - El comando `i03` (Información de Referencia) suele actuar como el disparador final para que la impresora entre en estado de factura.
 
-4.  **Estructura de Trama de Venta**:
-    - Formato: `[Tag][Precio(10)][Cantidad(8)]|[Opción:Código]|[Descripción(30)]`.
-    - Los pipes `|` son opcionales según el modelo, pero usarlos alinea el protocolo con la v16 estable.
+4.  **Estructura de Trama de Venta (Simplificación)**:
+    - Formato: `[Tag][Precio(10)][Cantidad(8)][Descripción(30)]`.
+    - **ADVERTENCIA v97**: Se ha observado que añadir pipes `|` en la v18 causa NAK (21) en algunos escenarios, posiblemente por exceder el buffer o por incompatibilidad del parser con delimitadores en este modelo específico.
 
 ## 🚫 Tabú de Errores (Lo que NO se debe repetir)
 
-- **ERROR 01**: Calcular un solo XOR para todos los comandos. El hardware es sensible al tipo de comando para el checksum.
+- **ERROR 01**: Incluir el STX en el cálculo del XOR (Basado en falsas premisas de "Resultado 9"). El hardware HKA80 en este entorno espera un LRC puro de la DATA y el ETX.
 - **ERROR 02**: Olvidar que el precio tiene 2 decimales implícitos (Precio * 100) y la cantidad 3 (Cantidad * 1000).
-- **ERROR 03**: Usar `padEnd` en la descripción. La trama debe terminar exactamente donde termina el texto o en el límite de 30/40 caracteres.
-- **ERROR 04**: Ignorar la respuesta `NAK (21)`. Un NAK en el ítem `!` suele ser un error de Checksum o de apertura de documento incompleta.
+- **ERROR 05**: Usar etiquetas en MAYÚSCULAS en los encabezados. v16 usa Label case (`Teléfono: `) para asegurar el ACK y la apertura del documento.
 
 ## 🛠️ Instrucciones para Nuevos Agentes
 
