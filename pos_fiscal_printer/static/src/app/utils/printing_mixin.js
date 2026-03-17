@@ -30,16 +30,19 @@ export function cleanText(string) {
 // Pachacutec: v66 - Restauración Estricta XOR v16 (1 solo byte de Checksum)
 // Pachacutec: v73 - Restauración XOR Binario (1 solo byte)
 // Requisito final HKA: 1 solo byte binario para el checksum.
-// Pachacutec: v94 - Sintonía Fina v16 (Reversión LRC - Excluyendo STX)
-// Validado en producción: El LRC es DATA ^ ETX. STX no entra en el XOR.
+// Pachacutec: v96 - Protocolo Híbrido Validado (XOR Inteligente)
+// - Cabeceras ('i'): El Checksum (LRC) es DATA ^ ETX. STX (2) queda FUERA. Correcto para ACK.
+// - Ventas/Pagos ('!', ' ', '2', etc.): El Checksum DEBE incluir STX (2) para el "Resultado 9".
 export function toBytes(command) {
     const encoder = new TextEncoder();
     const dataBytes = Array.from(encoder.encode(command));
     const ETX = 3;
     const STX = 2;
 
-    // Pachacutec: v94 - XOR de DATA + ETX solamente.
-    let lrc = 0; 
+    const isHeader = command.startsWith('i');
+
+    // LRC condicional: Las cabeceras no incluyen STX en el XOR, las ventas sí.
+    let lrc = isHeader ? 0 : STX; 
     for (const byte of dataBytes) {
         lrc ^= byte;
     }
@@ -894,11 +897,12 @@ export const FiscalPrinterMixin = {
         active_payments.forEach((payment, i, array) => {
             const printer_code = payment.payment_method_id?.x_printer_code || '01';
             
-            // Pachacutec: v80 - Todos los pagos con prefijo '2' y monto de 10 dígitos (Z1F Alignment)
+            // Pachacutec: v96 - Padding Estricto v16 (12 dígitos totales = 10 entero + 2 decimal)
+            // Esto alinea la trama a 15 caracteres (1 prefijo + 2 código + 12 monto).
             let amountRaw = Math.round(Math.abs(payment.amount) * 100).toString();
-            let monto = amountRaw.padStart(10, "0").slice(-10);
+            let monto = amountRaw.padStart(12, "0").slice(-12);
 
-            console.warn("[FISCAL] v80 - Pago (13 chars):", "2" + printer_code + monto);
+            console.warn("[FISCAL] v96 - Pago (15 chars):", "2" + printer_code + monto);
             this.printerCommands.push("2" + printer_code + monto);
         });
 
