@@ -38,6 +38,11 @@ export function sanitize(string) {
         .replace(/[^\x20-\x7E]/g, "");
 }
 
+// Pachacutec: v106 - Función Convert v16 Truth
+export function convert(amount, fixed = 2) {
+    return (amount || 0).toFixed(fixed).replace(".", ",");
+}
+
 // Pachacutec: v66 - Restauración Estricta XOR v16 (1 solo byte de Checksum)
 // Pachacutec: v73 - Restauración XOR Binario (1 solo byte)
 // Requisito final HKA: 1 solo byte binario para el checksum.
@@ -874,7 +879,7 @@ export const FiscalPrinterMixin = {
         }
     },
 
-    // Pachacutec: v105 - Purificación Total (Sin acentos en labels)
+    // Pachacutec: v106 - RIF Formal (V-00000000)
     setHeader(payload) {
         const order = this.pos.get_order();
         const client = order.partner;
@@ -885,7 +890,11 @@ export const FiscalPrinterMixin = {
             this.printerCommands.push("iI*" + payload.printerCode);
         }
 
-        this.printerCommands.push("iR*" + sanitize(client?.vat || "No tiene"));
+        // v106: Si no hay RIF, usar placeholder formal para evitar rechazo de apertura
+        let vat = client?.vat || "";
+        if (!vat || vat === "No tiene") vat = "V-00000000";
+
+        this.printerCommands.push("iR*" + sanitize(vat));
         this.printerCommands.push("iS*" + sanitize(client?.name || "CLIENTE GENERAL"));
 
         this.printerCommands.push("i00Telefono: " + sanitize(client?.phone || "No tiene"));
@@ -895,7 +904,7 @@ export const FiscalPrinterMixin = {
             this.printerCommands.push("i03Ref: " + sanitize(order.name));
         }
 
-        console.warn("[FISCAL] v102 - Ráfaga de apertura (Fidelidad v16) preparada.");
+        console.warn("[FISCAL] v106 - Ráfaga de apertura (RIF Formal) preparada.");
     },
 
     setTotal() {
@@ -920,10 +929,11 @@ export const FiscalPrinterMixin = {
                 console.warn("[FISCAL] v102 - Pago Único (Cierre):", "1" + printer_code);
                 this.printerCommands.push("1" + printer_code);
             } else {
-                // Pago Parcial (2 prefijo + monto 12 chars)
-                let amountRaw = Math.round(Math.abs(payment.amount) * 100).toString();
-                let monto = amountRaw.padStart(12, "0").slice(-12);
-                console.warn("[FISCAL] v102 - Pago Parcial:", "2" + printer_code + monto);
+                // Pachacutec: v106 - Pago Parcial (Logic v16 convert split join)
+                let amount_parts = convert(Math.abs(payment.amount), 2).split(",");
+                amount_parts[0] = amount_parts[0].padStart(10, "0");
+                let monto = amount_parts.join("");
+                console.warn("[FISCAL] v106 - Pago Parcial (v16):", "2" + printer_code + monto);
                 this.printerCommands.push("2" + printer_code + monto);
             }
         });
@@ -1050,9 +1060,18 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v99 - Sintonía de Padding v16 Truth (10/8)
-                let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
-                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
+                // Pachacutec: v106 - Sintonía de Padding Estructural v16 (10/8)
+                // Usamos split/join sobre convert(toFixed) para blindar contra decimales flotantes.
+                console.warn("[FISCAL] v106 - unitPrice original:", unitPrice);
+                
+                let price_parts = convert(unitPrice, 2).split(",");
+                price_parts[0] = price_parts[0].padStart(8, "0");
+                let price = price_parts.join("");
+
+                let qty_val = Math.abs(line.qty || line.quantity || 0);
+                let qty_parts = convert(qty_val, 3).split(",");
+                qty_parts[0] = qty_parts[0].padStart(5, "0");
+                let quantity = qty_parts.join("");
                 
                 let command = tag + price + quantity;
                 
