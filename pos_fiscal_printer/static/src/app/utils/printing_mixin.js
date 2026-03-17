@@ -585,11 +585,18 @@ export const FiscalPrinterMixin = {
                 await Swal.fire({
                     icon: 'warning',
                     title: 'Reporte Z Obligatorio',
-                    text: 'La impresora requiere un Reporte Z (+24h) para continuar. Por favor realice el cierre manualmente desde el menú X/Z y luego retome esta impresión.',
+                    text: 'La impresora requiere un Reporte Z para continuar. Es posible que existan múltiples cierres acumulados si estuvo inactiva. Por favor realice el cierre manualmente desde el menú X/Z hasta que desaparezca el bloqueo.',
                     confirmButtonText: 'Entendido'
                 });
                 this.printing = false;
                 return;
+            } else if (fiscal_status === "PAPER_LOW") {
+                await Swal.fire({
+                    icon: 'warning',
+                    title: 'Papel Bajo',
+                    text: 'La impresora detecta poco papel. Por favor reemplace el rollo para evitar interrupciones en la factura.',
+                    confirmButtonText: 'Continuar'
+                });
             }
 
             await this.write();
@@ -1140,13 +1147,20 @@ export const FiscalPrinterMixin = {
             const b2 = response[4];
             const misc_byte = response[5]; // Byte 3 (Misc)
             
-            console.warn(`[FISCAL] v116 - STATUS B1: ${b1.toString(2).padStart(8, '0')} (Hex: ${b1.toString(16)})`);
-            console.warn(`[FISCAL] v116 - ERROR  B2: ${b2.toString(2).padStart(8, '0')} (Hex: ${b2.toString(16)})`);
-            console.warn(`[FISCAL] v116 - MISC   B3: ${misc_byte.toString(2).padStart(8, '0')} (Hex: ${misc_byte.toString(16)})`);
+            console.warn(`[FISCAL] v117 - STATUS B1: ${b1.toString(2).padStart(8, '0')} (Hex: ${b1.toString(16)})`);
+            console.warn(`[FISCAL] v117 - ERROR  B2: ${b2.toString(2).padStart(8, '0')} (Hex: ${b2.toString(16)})`);
+            console.warn(`[FISCAL] v117 - MISC   B3: ${misc_byte.toString(2).padStart(8, '0')} (Hex: ${misc_byte.toString(16)})`);
 
-            if (misc_byte & 8) { // Bit 3 (00001000) = Z Report (+24h) Needed
-                console.error("[FISCAL] v116 - BLOQUEO DETECTADO: Reporte Z Requerido (+24h).");
+            // Bit 3 (00001000) = Z Report (+24h) Needed
+            if (misc_byte & 8) {
+                console.error("[FISCAL] v117 - BLOQUEO DETECTADO: Reporte Z Requerido (+24h).");
                 return "Z_REQUIRED";
+            }
+            
+            // Bit 1 (00000010) = Paper Low / Near End
+            if (misc_byte & 2) {
+                console.warn("[FISCAL] v117 - ADVERTENCIA: Papel Bajo detectado.");
+                return "PAPER_LOW";
             }
         }
         return "OK";
