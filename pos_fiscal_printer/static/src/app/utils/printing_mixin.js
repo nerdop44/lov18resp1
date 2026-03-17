@@ -297,13 +297,8 @@ export const FiscalPrinterMixin = {
             if (command.substring(0, 1) === ' ' || command.substring(0, 1) === '!' || command.substring(0, 1) === 'd' || command.substring(0, 1) === '-') {
                 is_linea = true;
             }
-            // Pachacutec: v113 - Tiempo de espera de Hardware para Reportes (X/Z)
-            // Permite que la impresora termine el arrastre de papel físico.
-            let wait_time = TIME;
-            if (command === "I0X" || command === "I0Z") {
-                wait_time = 15000; 
-                console.warn(`[FISCAL] v113 - Detectado reporte ${command}. Esperando 15s...`);
-            }
+            const TIME = this.pos.config.x_fiscal_commands_time || 750;
+            const wait_time = TIME;
 
             if (this.printing) {
                 const success = await new Promise((res) => {
@@ -583,6 +578,20 @@ export const FiscalPrinterMixin = {
         try {
             const result = await this.setPort();
             if (!result) return;
+
+            // Pachacutec: v114 - Verificación Proactiva de Bloqueo (+24h)
+            const fiscal_status = await this.checkFiscalStatus();
+            if (fiscal_status === "Z_REQUIRED") {
+                await Swal.fire({
+                    icon: 'warning',
+                    title: 'Reporte Z Obligatorio',
+                    text: 'La impresora requiere un Reporte Z (+24h) para continuar. Por favor realice el cierre manualmente desde el menú X/Z y luego retome esta impresión.',
+                    confirmButtonText: 'Entendido'
+                });
+                this.printing = false;
+                return;
+            }
+
             await this.write();
         } finally {
             this.printing_lock = false;
@@ -958,12 +967,6 @@ export const FiscalPrinterMixin = {
     },
 
     printFiscal() {
-        // Pachacutec: v113 - Limpieza Forzada X/Z por bloqueo de tiempo (+24h)
-        // Solo para esta versión de emergencia para desbloquear el equipo.
-        console.warn("[FISCAL] v113 - Inyectando ráfaga de limpieza (X/Z) por bloqueo detectado.");
-        this.printerCommands.push("I0X");
-        this.printerCommands.push("I0Z");
-
         this.setHeader();
         this.setLines("GF");
         this.setTotal();
@@ -1128,38 +1131,43 @@ export const FiscalPrinterMixin = {
         return true;
     },
 
-    // Pachacutec: v103 - Diagnóstico de Status HKA80
-    // Captura el estado interno de la impresora tras un fallo NAK.
+    // Pachacutec: v114 - Verificación de Estado Proactiva
+    // Retorna "Z_REQUIRED" si detecta el bit de bloqueo por tiempo.
+    async checkFiscalStatus() {
+        const response = await this.fetchStatusDiagnosis();
+        if (response && response.length >= 6) {
+            const misc_byte = response[5]; // Byte 3 (Misc)
+            if (misc_byte & 8) { // Bit 3 (00001000) = Z Report (+24h) Needed
+                console.error("[FISCAL] v114 - BLOQUEO DETECTADO: Reporte Z Requerido (+24h).");
+                return "Z_REQUIRED";
+            }
+        }
+        return "OK";
+    },
+
+    // Pachacutec: v103 - Diagnóstico de Status HKA80 refactorizado v114
     async fetchStatusDiagnosis() {
-        console.warn("[FISCAL] v103 - Solicitando Diagnóstico de Status (S1)...");
+        console.warn("[FISCAL] v114 - Solicitando Diagnóstico de Status (S1)...");
         try {
             const cmdStatus = toBytes("S1");
             const writerStatus = this.port.writable.getWriter();
             await writerStatus.write(cmdStatus);
             await writerStatus.releaseLock();
             
-            await new Promise(res => setTimeout(res, 300));
+            await new Promise(res => setTimeout(res, 500));
             
             const readerStatus = this.port.readable.getReader();
             const { value } = await readerStatus.read();
-            console.warn("[FISCAL] v109 - RESPUESTA S1 (Uint8Array):", value);
-            
-            // Pachacutec: v109 - Decodificación Textual Forense
-            try {
-                const ascii_resp = Array.from(value).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : ".").join("");
-                console.warn("[FISCAL] v109 - RESPUESTA S1 (ASCII):", ascii_resp);
-            } catch(e) {}
-
-            if (value && value.length >= 6) {
-                // Pachacutec: v107 - Reparación de Índices Mandatoria
-                // value[0]=STX, value[1]=S, value[2]=1. Los bytes de status reales empiezan en [3].
-                console.warn("[FISCAL] Byte[1] (Status):", value[3].toString(2).padStart(8, '0'));
-                console.warn("[FISCAL] Byte[2] (Error): ", value[4].toString(2).padStart(8, '0'));
-                console.warn("[FISCAL] Byte[3] (Misc):  ", value[5].toString(2).padStart(8, '0'));
-            }
             await readerStatus.releaseLock();
+
+            if (value) {
+                const ascii_resp = Array.from(value).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : ".").join("");
+                console.warn("[FISCAL] v114 - RESPUESTA S1 (ASCII):", ascii_resp);
+                return value;
+            }
         } catch (e) {
-            console.error("[FISCAL] v103 - Fallo en diagnóstico S1:", e);
+            console.error("[FISCAL] v114 - Fallo en diagnóstico S1:", e);
         }
+        return null;
     }
 };
