@@ -1028,8 +1028,11 @@ export const FiscalPrinterMixin = {
 
                 // Pachacutec: v95 - Restauración de Pipes v16
                 // Estructura v16: [Tag][Precio][Qty]|[Cod]|[Nombre]
-                let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
-                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
+                // Pachacutec: v98 - Sintonía de Longitud v16 Truth
+                // He confirmado en el código v16 original que cuando flag_21 es falso (como en este modelo), 
+                // el padding debe ser 8 para precio y 5 para cantidad.
+                let price = String(Math.round((unitPrice || 0) * 100)).padStart(8, '0').slice(-8);
+                let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(5, '0').slice(-5);
                 
                 let command = tag + price + quantity;
                 
