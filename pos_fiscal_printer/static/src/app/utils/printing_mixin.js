@@ -1070,6 +1070,8 @@ export const FiscalPrinterMixin = {
                 qty_parts[0] = qty_parts[0].padStart(5, "0");
                 let quantity = qty_parts.join("");
                 
+                let command = tag + price + quantity;
+
                 // Pachacutec: v109 - Sintonía Radical (33 chars DATA = 36 bytes TOTAL)
                 // Muchos firmwares HKA80 seriales rechazan tramas mayores a 36-40 bytes.
                 const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
