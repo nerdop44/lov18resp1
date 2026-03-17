@@ -856,25 +856,25 @@ export const FiscalPrinterMixin = {
         }
     },
 
-    // Pachacutec: v94 - Headers iR* / iS* (Perfil de Producción v16)
-    // Se ha validado que producción usa estos comandos para abrir el documento con éxito.
+    // Pachacutec: v95 - Apertura Total v16 (6 comandos: iR*/iS*/i00-i03)
+    // Validado: i03 es el disparador mandatorio en muchos firmwares HKA.
     setHeader(payload) {
         const client = this.pos.get_order().partner;
         const cleanVat = (client?.vat || "").replace(/[^0-9VvJjGgEe]/g, "");
+        const cleanName = cleanText(client?.name || "CLIENTE GENERAL").substring(0, 30);
+        const cleanAddr = cleanText(client?.street || "SIN DIRECCION").substring(0, 30);
+        const cleanPhone = cleanText(client?.phone || "0000").substring(0, 30);
         
-        // v16 prioritiza estos para la apertura fiscal
         this.printerCommands.push(`iR*${cleanVat || "0"}`);
-        this.printerCommands.push(`iS*${cleanText(client?.name || "CLIENTE GENERAL").substring(0, 30)}`);
+        this.printerCommands.push(`iS*${cleanName}`);
         
-        // Información opcional en slots estándar
-        if (client?.street) {
-            this.printerCommands.push(`i01DIRECCION: ${cleanText(client.street).substring(0, 30)}`);
-        }
-        if (client?.phone) {
-            this.printerCommands.push(`i02TELEFONO: ${cleanText(client.phone).substring(0, 30)}`);
-        }
+        // Ráfaga completa v16 para asegurar estado "Fiscal Open"
+        this.printerCommands.push(`i00TELEFONO: ${cleanPhone}`);
+        this.printerCommands.push(`i01DIRECCION: ${cleanAddr}`);
+        this.printerCommands.push(`i02EMAIL: ${cleanText(client?.email || "").substring(0, 30)}`);
+        this.printerCommands.push(`i03REF: ${cleanText(this.pos.get_order().name || "").substring(0, 30)}`);
         
-        console.warn("[FISCAL] v94 - Headers v16 (iR*/iS*) cargados.");
+        console.warn("[FISCAL] v95 - Ráfaga de apertura v16 (6 comandos) enviada.");
     },
 
     setTotal() {
@@ -1024,19 +1024,22 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v92 - Verificación de Checksum (v16 Nativo)
-                // Estructura: [Tag] + Precio(10) + Cantidad(8) + Descripción(30).
+                // Pachacutec: v95 - Restauración de Pipes v16
+                // Estructura v16: [Tag][Precio][Qty]|[Cod]|[Nombre]
                 let price = String(Math.round((unitPrice || 0) * 100)).padStart(10, '0').slice(-10);
                 let quantity = String(Math.round(Math.abs(line.qty || line.quantity || 0) * 1000)).padStart(8, '0').slice(-8);
                 
-                let base_command = tag; 
-                let description = cleanText(line.product_id?.display_name || line.product_name || "Producto")
-                    .substring(0, 30); // v92: Sin padding para evitar buffer overflow y NAK
+                let command = tag + price + quantity;
                 
-                // DATA: Tag + Precio(10) + Cantidad(8) + Descripción
-                let command = base_command + price + quantity + description;
+                // v16 injects default code with pipes if available
+                const product = this.pos.models["product.product"]?.get(line.product_id?.id || line.product_id);
+                if (product?.default_code) {
+                    command += `|${cleanText(product.default_code).substring(0, 10)}|`;
+                }
                 
-                console.warn("[FISCAL] v92 - Línea (Verificación LRC):", command, "Largo:", command.length);
+                command += cleanText(line.product_id?.display_name || line.product_name || "Producto").substring(0, 30);
+                
+                console.warn("[FISCAL] v95 - Línea con Pipes v16:", command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
