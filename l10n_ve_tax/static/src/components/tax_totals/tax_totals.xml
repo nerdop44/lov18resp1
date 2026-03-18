@@ -1,9 +1,9 @@
 <templates xml:space="preserve">
     <t t-name="l10n_ve_tax.TaxTotalsField" t-inherit="account.TaxTotalsField" t-inherit-mode="extension" owl="1">
         <xpath expr="//table[1]" position="replace">
-            <t t-set="has_foreign" t-value="totals.foreign_amount_total ? true : false"/>
+            <t t-set="has_foreign" t-value="totals and totals.foreign_amount_total ? true : false"/>
             
-            <div class="o_tax_totals_unified" style="width: 100%; margin-top: 15px;">
+            <div t-if="totals" class="o_tax_totals_unified" style="width: 100%; margin-top: 15px;">
                 <table class="oe_subtotal_footer" style="width: 100%; border-collapse: separate; border-spacing: 0 4px;">
                     <thead>
                         <tr style="border-bottom: 2px solid #dee2e6; color: #666; font-size: 0.9em; text-transform: uppercase;">
@@ -13,9 +13,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <t t-foreach="totals.subtotals" t-as="subtotal" t-key="subtotal.name">
-                            <t t-set="subtotal_index" t-value="totals.subtotals.indexOf(subtotal)"/>
-                            <t t-set="f_subtotal" t-value="has_foreign and totals.foreign_subtotals ? totals.foreign_subtotals[subtotal_index] : false"/>
+                        <t t-foreach="totals.subtotals || []" t-as="subtotal" t-key="subtotal.name">
+                            <t t-set="subtotal_index" t-value="(totals.subtotals || []).indexOf(subtotal)"/>
+                            <t t-set="f_subtotal" t-value="has_foreign and (totals.foreign_subtotals || [])[subtotal_index] ? totals.foreign_subtotals[subtotal_index] : false"/>
                             
                             <!-- Subtotal Principal -->
                             <tr style="font-weight: 500; border-bottom: 1px solid #eee;">
@@ -32,10 +32,11 @@
 
                             <!-- Grupos de Impuestos para este Subtotal -->
                             <t t-set="subtotal_name" t-value="subtotal.name"/>
-                            <t t-if="totals.groups_by_subtotal[subtotal_name]">
+                            <t t-if="(totals.groups_by_subtotal || {})[subtotal_name]">
                                 <t t-foreach="totals.groups_by_subtotal[subtotal_name]" t-as="taxGroup" t-key="taxGroup.group_key">
                                     <t t-set="taxGroup_index" t-value="totals.groups_by_subtotal[subtotal_name].indexOf(taxGroup)"/>
-                                    <t t-set="f_taxGroup" t-value="has_foreign and totals.groups_by_foreign_subtotal and totals.groups_by_foreign_subtotal[subtotal_name] ? totals.groups_by_foreign_subtotal[subtotal_name][taxGroup_index] : false"/>
+                                    <t t-set="f_taxGroups" t-value="has_foreign and (totals.groups_by_foreign_subtotal || {})[subtotal_name] ? totals.groups_by_foreign_subtotal[subtotal_name] : false"/>
+                                    <t t-set="f_taxGroup" t-value="f_taxGroups and f_taxGroups[taxGroup_index] ? f_taxGroups[taxGroup_index] : false"/>
                                     
                                     <tr style="font-size: 0.9em; color: #666;">
                                         <td class="o_td_label" style="padding: 2px 0 2px 15px;">
@@ -71,8 +72,6 @@
         </xpath>
     </t>
 
-    <!-- Redefinición de TaxForeignTotalsField para que no haga nada si se hereda, 
-         ya que ahora los totales están unificados en TaxTotalsField -->
     <t t-name="l10n_ve_tax.TaxForeignTotalsField" owl="1">
     </t>
 
