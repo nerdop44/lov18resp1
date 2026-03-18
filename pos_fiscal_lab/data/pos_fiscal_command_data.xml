@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Status Commands -->
+        <record id="cmd_s1" model="pos.fiscal.command">
+            <field name="name">Status S1 (General)</field>
+            <field name="code">S1</field>
+            <field name="protocol">hka</field>
+            <field name="description">Consulta Serial, RIF, Última Factura y Z.</field>
+            <field name="sequence">1</field>
+        </record>
+        <record id="cmd_s2" model="pos.fiscal.command">
+            <field name="name">Status S2 (Venta)</field>
+            <field name="code">S2</field>
+            <field name="protocol">hka</field>
+            <field name="description">Consulta subtotal, base imponible y cantidad de items en la factura abierta.</field>
+            <field name="sequence">2</field>
+        </record>
+        <record id="cmd_s3" model="pos.fiscal.command">
+            <field name="name">Status S3 (Tasas)</field>
+            <field name="code">S3</field>
+            <field name="protocol">hka</field>
+            <field name="description">Consulta las tasas de impuestos configuradas y banderas de sistema.</field>
+            <field name="sequence">3</field>
+        </record>
+
+        <!-- Reports -->
+        <record id="cmd_i0x" model="pos.fiscal.command">
+            <field name="name">Reporte X (Venta Diaria)</field>
+            <field name="code">I0X</field>
+            <field name="protocol">hka</field>
+            <field name="description">Imprime resumen de ventas sin cierre de jornada.</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="cmd_i0z" model="pos.fiscal.command">
+            <field name="name">Reporte Z (Cierre Fiscal)</field>
+            <field name="code">I0Z</field>
+            <field name="protocol">hka</field>
+            <field name="description">Cierre de jornada fiscal con incremento del contador Z.</field>
+            <field name="sequence">11</field>
+        </record>
+
+        <!-- Info -->
+        <record id="cmd_version" model="pos.fiscal.command">
+            <field name="name">Version Firmware</field>
+            <field name="code">V</field>
+            <field name="protocol">hka</field>
+            <field name="description">Consulta versión del firmware instalada.</field>
+            <field name="sequence">20</field>
+        </record>
+    </data>
+</odoo>

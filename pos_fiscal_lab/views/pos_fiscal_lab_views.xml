@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Server Action for Client Action (Diagnostic Lab) -->
+    <record id="action_pos_fiscal_lab" model="ir.actions.client">
+        <field name="name">Fiscal Diagnostic Laboratory</field>
+        <field name="tag">pos_fiscal_lab.diagnostic_panel</field>
+        <field name="target">main</field>
+    </record>
+
+    <!-- Tree View for Commands -->
+    <record id="view_pos_fiscal_command_tree" model="ir.ui.view">
+        <field name="name">pos.fiscal.command.tree</field>
+        <field name="model">pos.fiscal.command</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="protocol"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View for Commands -->
+    <record id="view_pos_fiscal_command_form" model="ir.ui.view">
+        <field name="name">pos.fiscal.command.form</field>
+        <field name="model">pos.fiscal.command</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                        </group>
+                        <group>
+                            <field name="protocol"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description">
+                            <field name="description"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_pos_fiscal_command" model="ir.actions.act_window">
+        <field name="name">Fiscal Commands Library</field>
+        <field name="res_model">pos.fiscal.command</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Technical Menus (Hidden in Technical) -->
+    <menuitem id="menu_pos_fiscal_lab_root"
+              name="POS Fiscal Laboratory"
+              parent="base.menu_custom"
+              sequence="100"
+              groups="base.group_erp_manager"/>
+
+    <menuitem id="menu_pos_fiscal_lab_action"
+              name="Laboratory"
+              parent="menu_pos_fiscal_lab_root"
+              action="action_pos_fiscal_lab"
+              sequence="10"/>
+
+    <menuitem id="menu_pos_fiscal_command_action"
+              name="Commands Library"
+              parent="menu_pos_fiscal_lab_root"
+              action="action_pos_fiscal_command"
+              sequence="20"/>
+</odoo>

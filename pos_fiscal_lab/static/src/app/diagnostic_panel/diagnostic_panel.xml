@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+    <t t-name="pos_fiscal_lab.DiagnosticPanel">
+        <div class="o_pos_fiscal_lab">
+            <!-- Header -->
+            <div class="o_lab_header">
+                <div>
+                    <h2 class="m-0"><i class="fa fa-flask mr-2"/>FISCAL LABORATORY v1.0</h2>
+                    <small>Auditoría Técnica Forense - Pachacutec</small>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span t-attf-class="badge mr-3 #{state.connected ? 'badge-success' : 'badge-danger'}">
+                        <t t-esc="state.connected ? 'CONECTADO' : 'DESCONECTADO'"/>
+                    </span>
+                    <button class="btn btn-primary" t-on-click="connectPrinter">
+                        <i class="fa fa-plug mr-2"/>Conectar Impresora
+                    </button>
+                    <button class="btn btn-secondary ml-2" t-on-click="clearConsole">
+                        <i class="fa fa-trash"/>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="o_lab_content">
+                <!-- Sidebar: Commands -->
+                <div class="o_lab_sidebar">
+                    <div class="card p-3 mb-3">
+                        <h5 class="card-title">Comandos Rápidos</h5>
+                        <div class="d-flex flex-column">
+                            <button class="btn btn-outline-info btn-lab" t-on-click="() => this.sendCommand('S1')">S1: Status General</button>
+                            <button class="btn btn-outline-info btn-lab" t-on-click="() => this.sendCommand('S2')">S2: Status Factura</button>
+                            <button class="btn btn-outline-danger btn-lab" t-on-click="() => this.sendCommand('I0X')">Reporte X</button>
+                            <button class="btn btn-outline-danger btn-lab" t-on-click="() => this.sendCommand('I0Z')">Reporte Z</button>
+                        </div>
+                    </div>
+
+                    <div class="card p-3">
+                        <h5 class="card-title">Comando Manual</h5>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Eje: I0Z" t-model="state.rawCommand"/>
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" t-on-click="sendRawCommand">Enviar</button>
+                            </div>
+                        </div>
+                        <small class="text-muted mt-2">Se calcula LRC automáticamente.</small>
+                    </div>
+                </div>
+
+                <!-- Main Area: Diagnostics & Console -->
+                <div class="o_lab_main">
+                    <!-- Status Cards -->
+                    <div class="row m-0 gap-3">
+                        <!-- B1: Status -->
+                        <div class="col o_status_card">
+                            <h6>B1: STATUS <small class="text-muted" t-esc="state.status.b1_hex"/></h6>
+                            <t t-foreach="statusMapping.b1" t-as="item" t-key="item.bit">
+                                <div class="status_bit">
+                                    <i t-attf-class="fa #{state.status.b1_bits[item.bit] ? 'fa-check-circle text-success' : 'fa-circle-o text-muted'}"/>
+                                    <span class="bit_val" t-esc="item.bit"/>: <span t-esc="item.label"/>
+                                </div>
+                            </t>
+                        </div>
+
+                        <!-- B2: Error -->
+                        <div class="col o_status_card">
+                            <h6>B2: ERROR <small class="text-muted" t-esc="state.status.b2_hex"/></h6>
+                            <t t-foreach="statusMapping.b2" t-as="item" t-key="item.bit">
+                                <div class="status_bit">
+                                    <i t-attf-class="fa #{state.status.b2_bits[item.bit] ? 'fa-warning text-danger' : 'fa-circle-o text-muted'}"/>
+                                    <span class="bit_val" t-esc="item.bit"/>: <span t-esc="item.label"/>
+                                </div>
+                            </t>
+                        </div>
+
+                        <!-- B3: Misc -->
+                        <div class="col o_status_card">
+                            <h6>B3: MISC <small class="text-muted" t-esc="state.status.b3_hex"/></h6>
+                            <t t-foreach="statusMapping.b3" t-as="item" t-key="item.bit">
+                                <div class="status_bit">
+                                    <i t-attf-class="fa #{state.status.b3_bits[item.bit] ? 'fa-info-circle text-info' : 'fa-circle-o text-muted'}"/>
+                                    <span class="bit_val" t-esc="item.bit"/>: <span t-esc="item.label"/>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- Console -->
+                    <div class="o_lab_console" id="lab_console">
+                        <t t-foreach="state.logs" t-as="log" t-key="log_index">
+                            <div t-attf-class="log_entry #{log.type}">
+                                [<t t-esc="log.time"/>] <t t-esc="log.prefix"/>: <t t-esc="log.content"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

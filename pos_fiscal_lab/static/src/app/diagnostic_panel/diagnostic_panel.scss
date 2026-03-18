@@ -1,0 +1,74 @@
+.o_pos_fiscal_lab {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #f8f9fa;
+    user-select: text !important; /* Requisito Pachacutec: Texto seleccionable */
+
+    .o_lab_header {
+        padding: 1rem;
+        background: #2c3e50;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .o_lab_content {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .o_lab_sidebar {
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .o_lab_main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .o_lab_console {
+        flex: 1;
+        background: #000;
+        color: #00ff00;
+        font-family: 'Courier New', Courier, monospace;
+        padding: 1rem;
+        overflow-y: auto;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+        user-select: text !important;
+    }
+
+    .o_status_card {
+        background: white;
+        padding: 1rem;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+        .status_bit {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+            font-size: 0.85rem;
+
+            i { width: 12px; }
+            .bit_val { font-weight: bold; font-family: monospace; }
+        }
+    }
+
+    .btn-lab {
+        margin-bottom: 0.5rem;
+        text-align: left;
+    }
+}
