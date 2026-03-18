@@ -765,6 +765,33 @@ class AccountMove(models.Model):
                         },
                     }
 
+    def action_force_recompute_usd_totals(self):
+        """ Método para forzar el recálculo de montos USD en registros existentes. 
+            Útil para corregir registros que quedaron en cero tras actualizaciones de lógica.
+        """
+        for move in self:
+            # Forzar recomputación de totales de factura
+            move._onchange_tax_today() # Recalcula líneas a la tasa actual del movimiento
+            move._amount_all_usd()     # Sincroniza cabecera
+            
+            # Forzar recomputación en líneas contables (aml)
+            for line in move.line_ids:
+                line._compute_balance_usd()
+                line._compute_amount_residual_usd()
+            
+            # Recalcular saldo total del movimiento
+            move._compute_amount()
+            
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Recálculo Completado'),
+                'message': _('Se han recalculado los totales USD para %s registros.') % len(self),
+                'sticky': False,
+            }
+        }
+
     def crear_asiento_diferencia(self):
         #verifica que todas las facturas sean de un mismo cliente o proveedor
         if self:
