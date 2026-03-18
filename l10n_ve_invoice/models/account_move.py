@@ -235,30 +235,33 @@ class AccountMove(models.Model):
             )
         return correlative.next_by_id(correlative.id)
 
-    @api.model
     def _get_tax_totals(self):
-        # Llama al método original para obtener los totales de impuestos
-        base_lines = self.invoice_line_ids.mapped(lambda line: {
-           'price_subtotal': line.price_subtotal,
-           'discount': line.discount,
-           'taxes': line.tax_ids,
-           'record': line
-        })
-            
-        # Llama al método de impuestos para calcular los totales
-        tax_totals = self.env['account.tax']._prepare_tax_totals(base_lines, self.currency_id)
-    
-        # Asegúrate de que cada subtotal tenga 'formatted_amount'
-        for subtotal in tax_totals.get('subtotals',[]):
-            if 'formatted_amount' not in subtotal:
-                subtotal['formatted_amount'] = self.env['account.move'].format_monetary(subtotal['amount'], self.currency_id)
-        
-        # Asegúrate de que 'foreign_subtotals' esté presente y tenga 'formatted_amount'
+        """
+        Restauración de Moneda Dual (V72)
+        Llama al super() para permitir que account_dual_currency inyecte sus totales.
+        Luego asegura que el formateo use el símbolo de la moneda de referencia ($).
+        """
+        self.ensure_one()
+        tax_totals = super()._get_tax_totals()
+
+        # En Odoo 18, si el módulo de moneda dual está activo, inyecta 'foreign_subtotals'
         if 'foreign_subtotals' in tax_totals:
-            foreign_currency = self.secondary_currency_id if hasattr(self, 'secondary_currency_id') and self.secondary_currency_id else self.currency_id # Usa la moneda alternativa si está disponible, sino la moneda principal
-            for subtotal in tax_totals['foreign_subtotals']:
-                if 'formatted_amount' not in subtotal:
-                    subtotal['formatted_amount'] = self.env['account.move'].format_monetary(subtotal['amount'], foreign_currency)
+            # Priorizamos currency_id_dif (Odoo 18) sobre secondary_currency_id (obsoleto)
+            foreign_currency = getattr(self, 'currency_id_dif', False) or \
+                               getattr(self, 'secondary_currency_id', False) or \
+                               self.company_id.currency_id_dif
+            
+            if foreign_currency:
+                # Formatear subtotales extranjeros con la moneda de referencia
+                for subtotal in tax_totals['foreign_subtotals']:
+                    if 'formatted_amount' not in subtotal or 'Bs' in subtotal.get('formatted_amount', ''):
+                        subtotal['formatted_amount'] = self.format_monetary(subtotal['amount'], foreign_currency)
+                
+                # Formatear montos totales extranjeros si existen
+                if 'foreign_amount_untaxed' in tax_totals and 'foreign_formatted_amount_untaxed' not in tax_totals:
+                     tax_totals['foreign_formatted_amount_untaxed'] = self.format_monetary(tax_totals['foreign_amount_untaxed'], foreign_currency)
+                if 'foreign_amount_total' in tax_totals and 'foreign_formatted_amount_total' not in tax_totals:
+                     tax_totals['foreign_formatted_amount_total'] = self.format_monetary(tax_totals['foreign_amount_total'], foreign_currency)
 
         return tax_totals
                 ### Verifica que 'foreign_subtotals' esté presente
