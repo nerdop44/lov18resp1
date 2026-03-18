@@ -724,7 +724,10 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
                 "format": "number",
                 "values": self._determinate_resume_books(moves),
                 "total": True,
-      def _determinate_amount_taxeds(self, move):
+            },
+        ]
+
+    def _determinate_amount_taxeds(self, move):
         is_posted = move.state == "posted"
         vef_base = self.company_id.currency_id.id == self.env.ref("base.VEF").id or self.company_id.currency_id.name in ["VEF", "VES"]
 
