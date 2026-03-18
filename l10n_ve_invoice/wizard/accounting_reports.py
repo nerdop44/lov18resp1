@@ -724,15 +724,11 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
                 "format": "number",
                 "values": self._determinate_resume_books(moves),
                 "total": True,
-            },
-        ]
-########
-
-    def _determinate_amount_taxeds(self, move):
+      def _determinate_amount_taxeds(self, move):
         is_posted = move.state == "posted"
-        vef_base = self.company_id.currency_id.id == self.env.ref("base.VEF").id
+        vef_base = self.company_id.currency_id.id == self.env.ref("base.VEF").id or self.company_id.currency_id.name in ["VEF", "VES"]
 
-    # 1. Valores por defecto para todos los casos
+        # 1. Valores por defecto para todos los casos
         default_result = {
             "amount_untaxed": 0.0,
             "amount_taxed": 0.0,
@@ -744,9 +740,9 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             "amount_reduced_aliquot": 0.0,
             "amount_general_aliquot": 0.0,
             "amount_extend_aliquot": 0.0,
-    }
+        }
 
-    # 2. Campos adicionales para compras no deducibles
+        # 2. Campos adicionales para compras no deducibles
         if self.company_id.config_deductible_tax and self.report == "purchase":
             default_result.update({
                 "tax_base_reduced_aliquot_no_deductible": 0.0,
@@ -757,51 +753,44 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
                 "amount_extend_aliquot_no_deductible": 0.0,
             })
 
-    # 3. Si el movimiento no está publicado, retornar valores por defecto
+        # 3. Si el movimiento no está publicado, retornar valores por defecto
         if not is_posted:
             return default_result
 
         is_credit_note = move.move_type in ["out_refund", "in_refund"]
-        tax_totals = move.tax_totals or {}  # Manejo seguro de tax_totals None
+        tax_totals = move.tax_totals or {}
 
-    # 4. Determinar campos según moneda
+        # 4. Determinar campos según moneda de reporte (Foreign vs System)
         if self.currency_system:
-            fields_taxed = ("amount_untaxed", "amount_total", "groups_by_subtotal")
+            amount_untaxed = tax_totals.get('amount_untaxed', 0.0)
+            amount_total = tax_totals.get('amount_total', 0.0)
         else:
-            fields_taxed = ("foreign_amount_untaxed", "foreign_amount_total", "groups_by_foreign_subtotal")
+            # En Odoo 18, si no es system currency, usamos campos foreign del dual_currency si existen
+            amount_untaxed = getattr(move, 'foreign_amount_untaxed', 0.0)
+            amount_total = getattr(move, 'foreign_amount_total', 0.0)
 
-    # 5. Calcular montos con manejo seguro de valores None
-        amount_untaxed = (tax_totals.get(fields_taxed[0], 0) * (-1 if is_credit_note else 1))
-        amount_taxed = (tax_totals.get(fields_taxed[1], 0) * (-1 if is_credit_note else 1))
-
-    # 6. Inicializar resultado con valores calculados
+        # Multiplicador por notas de crédito
+        multiplier = -1 if is_credit_note else 1
+        
         tax_result = default_result.copy()
         tax_result.update({
-            "amount_untaxed": amount_untaxed,
-            "amount_taxed": amount_taxed,
+            "amount_untaxed": amount_untaxed * multiplier,
+            "amount_taxed": (amount_total - amount_untaxed) * multiplier, # IVA total
         })
 
-    # 7. Si no hay tax_totals, retornar el resultado básico
-        if not tax_totals:
-            return tax_result
+        # 5. Obtener los grupos de impuestos de Odoo 18 (tax_groups_data o subtotals)
+        # En v18 tax_totals['subtotals'] contiene los grupos
+        subtotals = tax_totals.get('subtotals', [])
+        if not subtotals:
+             # Fallback: intentar obtener de groups_by_subtotal (compatibilidad dual_currency)
+             subtotals = tax_totals.get('groups_by_subtotal', {}).values() if isinstance(tax_totals.get('groups_by_subtotal'), dict) else []
 
-    # 8. Determinar la clave para los grupos de impuestos
-        tax_base_key = (
-            "groups_by_subtotal" 
-            if (vef_base and self.currency_system) or self.currency_system 
-            else "groups_by_foreign_subtotal"
-        )
-    
-    # 9. Obtener tax_base con manejo seguro
-        tax_base = tax_totals.get(tax_base_key, {})
-        if not tax_base:
-            return tax_result
-
-    # 10. Obtener configuraciones de grupos de impuestos
+        # 6. Obtener configuraciones de grupos de impuestos desde la compañía
         exent_aliquot = general_aliquot = reduced_aliquot = extend_aliquot = False
-    
+        general_aliquot_no_deductible = reduced_aliquot_no_deductible = extend_aliquot_no_deductible = False
+
         if self.report == "sale":
-            exent_aliquot = self.company_id.exent_aliquot_sale.tax_group_id.id if   self.company_id.exent_aliquot_sale else False
+            exent_aliquot = self.company_id.exent_aliquot_sale.tax_group_id.id if self.company_id.exent_aliquot_sale else False
             reduced_aliquot = self.company_id.reduced_aliquot_sale.tax_group_id.id if self.company_id.reduced_aliquot_sale else False
             general_aliquot = self.company_id.general_aliquot_sale.tax_group_id.id if self.company_id.general_aliquot_sale else False
             extend_aliquot = self.company_id.extend_aliquot_sale.tax_group_id.id if self.company_id.extend_aliquot_sale else False
@@ -810,66 +799,59 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             reduced_aliquot = self.company_id.reduced_aliquot_purchase.tax_group_id.id if self.company_id.reduced_aliquot_purchase else False
             general_aliquot = self.company_id.general_aliquot_purchase.tax_group_id.id if self.company_id.general_aliquot_purchase else False
             extend_aliquot = self.company_id.extend_aliquot_purchase.tax_group_id.id if self.company_id.extend_aliquot_purchase else False
-        
+            
             if self.company_id.config_deductible_tax:
                 general_aliquot_no_deductible = self.company_id.no_deductible_general_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_general_aliquot_purchase else False
                 reduced_aliquot_no_deductible = self.company_id.no_deductible_reduced_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_reduced_aliquot_purchase else False
                 extend_aliquot_no_deductible = self.company_id.no_deductible_extend_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_extend_aliquot_purchase else False
 
-    # 11. Procesar cada grupo de impuestos
-        for base_name, taxes in tax_base.items():
-            if not isinstance(taxes, dict):  # Validación de tipo
+        # 7. Procesar subtotales (Odoo 18 style)
+        # La estructura en v18 suele ser una lista de diccionarios en 'subtotals'
+        # o 'tax_groups_data' dependiendo de si es visualización o cálculo base.
+        
+        # Intentamos obtener los grupos de impuestos detallados
+        tax_groups_data = tax_totals.get('tax_groups_data', [])
+        
+        for group in tax_groups_data:
+            tax_group_id = group.get('id') or group.get('tax_group_id')
+            if not tax_group_id:
                 continue
-            
-            group_tax_details = taxes.get('group_tax_details', [])
-            if not isinstance(group_tax_details, list):  # Validación de tipo
-                continue
-
-            for tax in group_tax_details:
-                if not isinstance(tax, dict):  # Validación de tipo
-                    continue
                 
-                tax_group_id = tax.get("tax_group_id")
-                base_amount = tax.get("tax_group_base_amount", 0)
-                tax_amount = tax.get("tax_group_amount", 0)
+            # Determinar montos base e IVA en la moneda correcta
+            if self.currency_system:
+                base_amount = group.get('base_amount', 0.0)
+                tax_amount = group.get('tax_amount', 0.0)
+            else:
+                # Si no es moneda del sistema, buscamos claves foreign inyectadas por dual_currency
+                base_amount = group.get('foreign_base_amount', group.get('base_amount', 0.0))
+                tax_amount = group.get('foreign_tax_amount', group.get('tax_amount', 0.0))
 
-            # 12. Determinar el tipo de impuesto y actualizar resultados
-                if tax_group_id == exent_aliquot:
-                    tax_result.update({
-                        "tax_base_exempt_aliquot": base_amount,
-                        "amount_exempt_aliquot": tax_amount,
-                    })
-                elif tax_group_id == reduced_aliquot:
-                    tax_result.update({
-                        "tax_base_reduced_aliquot": base_amount,
-                        "amount_reduced_aliquot": tax_amount,
-                    })
-                elif tax_group_id == general_aliquot:
-                    tax_result.update({
-                        "tax_base_general_aliquot": base_amount,
-                        "amount_general_aliquot": tax_amount,
-                    })
-                elif tax_group_id == extend_aliquot:
-                    tax_result.update({
-                        "tax_base_extend_aliquot": base_amount,
-                        "amount_extend_aliquot": tax_amount,
-                    })
-                elif self.company_id.config_deductible_tax and self.report == "purchase":
-                    if tax_group_id == reduced_aliquot_no_deductible:
-                     tax_result.update({
-                         "tax_base_reduced_aliquot_no_deductible": base_amount,
-                         "amount_reduced_aliquot_no_deductible": tax_amount,
-                     })
+            base_amount *= multiplier
+            tax_amount *= multiplier
+
+            if tax_group_id == exent_aliquot:
+                tax_result["tax_base_exempt_aliquot"] += base_amount
+                tax_result["amount_exempt_aliquot"] += tax_amount
+            elif tax_group_id == reduced_aliquot:
+                tax_result["tax_base_reduced_aliquot"] += base_amount
+                tax_result["amount_reduced_aliquot"] += tax_amount
+            elif tax_group_id == general_aliquot:
+                tax_result["tax_base_general_aliquot"] += base_amount
+                tax_result["amount_general_aliquot"] += tax_amount
+            elif tax_group_id == extend_aliquot:
+                tax_result["tax_base_extend_aliquot"] += base_amount
+                tax_result["amount_extend_aliquot"] += tax_amount
+            elif self.company_id.config_deductible_tax and self.report == "purchase":
+                if tax_group_id == reduced_aliquot_no_deductible:
+                    tax_result["tax_base_reduced_aliquot_no_deductible"] += base_amount
+                    tax_result["amount_reduced_aliquot_no_deductible"] += tax_amount
                 elif tax_group_id == general_aliquot_no_deductible:
-                    tax_result.update({
-                        "tax_base_general_aliquot_no_deductible": base_amount,
-                        "amount_general_aliquot_no_deductible": tax_amount,
-                    })
+                    tax_result["tax_base_general_aliquot_no_deductible"] += base_amount
+                    tax_result["amount_general_aliquot_no_deductible"] += tax_amount
                 elif tax_group_id == extend_aliquot_no_deductible:
-                    tax_result.update({
-                        "tax_base_extend_aliquot_no_deductible": base_amount,
-                        "amount_extend_aliquot_no_deductible": tax_amount,
-                    })
+                    tax_result["tax_base_extend_aliquot_no_deductible"] += base_amount
+                    tax_result["amount_extend_aliquot_no_deductible"] += tax_amount
+
 
         return tax_result
     
