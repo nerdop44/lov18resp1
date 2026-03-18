@@ -59,6 +59,6 @@ but you will need set manually account defaults for taxes.
         #menuitems
         "views/l10n_ve_menuitems.xml",
     ],
-    'version': "18.0.1.0.66",
+    'version': "18.0.1.0.67",
     "license": "LGPL-3",
 }

@@ -826,12 +826,13 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
                 
             # Determinar montos base e IVA en la moneda correcta
             if self.currency_system:
-                base_amount = group.get('base_amount', 0.0)
-                tax_amount = group.get('tax_amount', 0.0)
+                # Odoo 18 usa tax_group_base_amount y tax_group_amount en subtotals summary
+                base_amount = group.get('tax_group_base_amount') or group.get('base_amount', 0.0)
+                tax_amount = group.get('tax_group_amount') or group.get('tax_amount', 0.0)
             else:
-                # Si no es moneda del sistema, buscamos claves foreign inyectadas por dual_currency
-                base_amount = group.get('foreign_base_amount', group.get('base_consult_amount', group.get('base_amount', 0.0)))
-                tax_amount = group.get('foreign_tax_amount', group.get('tax_amount', 0.0))
+                # Si no es moneda del sistema, buscamos claves foreign inyectadas por l10n_ve_tax
+                base_amount = group.get('foreign_base_amount') or group.get('tax_group_base_amount') or group.get('base_amount', 0.0)
+                tax_amount = group.get('foreign_tax_amount') or group.get('tax_group_amount') or group.get('tax_amount', 0.0)
 
             base_amount *= multiplier
             tax_amount *= multiplier
