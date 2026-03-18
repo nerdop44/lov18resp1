@@ -1,41 +1,51 @@
 <templates xml:space="preserve">
     <t t-name="l10n_ve_tax.TaxTotalsField" t-inherit="account.TaxTotalsField" t-inherit-mode="extension" owl="1">
-        <!-- Inyectamos nuestra tabla unificada al final y ocultamos las originales -->
-        <xpath expr="//table[last()]" position="after">
-            <table t-if="totals and totals.unified_rows" class="o_tax_totals_unified oe_right oe_subtotal_footer" style="width: auto; min-width: 350px; table-layout: auto; border-spacing: 0; margin-top: 10px;">
-                <thead>
-                    <tr style="border-bottom: 2px solid #333; color: #444; font-size: 0.8em; text-transform: uppercase;">
-                        <th style="text-align: left; padding: 4px 8px; font-weight: 600;">Concepto</th>
-                        <th style="text-align: center; padding: 4px 8px; font-weight: 600; min-width: 90px;">Ref. ($)</th>
-                        <th style="text-align: right; padding: 4px 8px; font-weight: 600; min-width: 100px;">Monto (Bs.)</th>
-                    </tr>
-                </thead>
-                <tbody style="font-size: 13px;">
-                    <t t-foreach="totals.unified_rows" t-as="row" t-key="row_index">
-                        <tr t-att-style="row.is_total ? 'font-weight: bold; border-top: 2px solid #222; background-color: #f9f9f9;' : 'border-bottom: 1px solid #eee;'">
-                            <td style="padding: 5px 8px; white-space: nowrap;">
-                                <span t-esc="row.label"/>
-                            </td>
-                            <td style="text-align: center; padding: 5px 8px; color: #444;">
-                                <t t-out="row.usd"/>
-                            </td>
-                            <td style="text-align: right; padding: 5px 8px; color: #000;">
-                                <t t-out="row.bs"/>
-                            </td>
-                        </tr>
-                    </t>
-                </tbody>
-            </table>
-        </xpath>
-
-        <!-- Ocultamos las tablas nativas para evitar duplicados -->
-        <xpath expr="//table[not(hasclass('o_tax_totals_unified'))]" position="attributes">
-            <attribute name="t-if">false</attribute>
-            <attribute name="style">display: none !important;</attribute>
+        <!-- Inyectamos los montos en dólares VERTICALMENTE antes de la tabla de bolívares -->
+        <xpath expr="//table[1]" position="before">
+            <t t-if="totals">
+                <TaxForeignTotalsField totals="totals" currency="currency" readonly="readonly" invalidate="invalidate"/>
+                <div style="border-bottom: 1px solid #dee2e6; margin: 10px 0; width: 100%; float: right;"/>
+            </t>
         </xpath>
     </t>
 
-    <!-- Neutralización de legado -->
     <t t-name="l10n_ve_tax.TaxForeignTotalsField" owl="1">
+        <table t-if="props.totals" class="oe_right oe_subtotal_footer" style="width: 100%; border-collapse: collapse;">
+            <tbody>
+                <!-- Subtotal USD (Base Ref) -->
+                <tr>
+                    <td class="o_td_label" style="padding: 2px 8px; text-align: right;">
+                        <label class="o_form_label" style="font-weight: normal;">Base Ref.:</label>
+                    </td>
+                    <td style="padding: 2px 8px; text-align: right; width: 120px;">
+                        <span t-out="props.totals.foreign_formatted_amount_untaxed" style="white-space: nowrap;"/>
+                    </td>
+                </tr>
+                
+                <!-- Impuestos USD (Impuesto Ref) -->
+                <t t-foreach="props.totals.groups_by_foreign_subtotal || {}" t-as="subtotal_name" t-key="subtotal_name">
+                   <t t-foreach="props.totals.groups_by_foreign_subtotal[subtotal_name]" t-as="tax_group" t-key="tax_group.group_key">
+                        <tr>
+                            <td class="o_td_label" style="padding: 2px 8px; text-align: right;">
+                                <label class="o_form_label" style="font-weight: normal;" t-esc="'Impuesto Ref. ' + tax_group.tax_group_name + ':'"/>
+                            </td>
+                            <td style="padding: 2px 8px; text-align: right;">
+                                <span t-out="tax_group.formatted_tax_group_amount" style="white-space: nowrap;"/>
+                            </td>
+                        </tr>
+                   </t>
+                </t>
+
+                <!-- Total USD (Total Ref) -->
+                <tr style="border-top: 1px solid #eee;">
+                    <td class="o_td_label" style="padding: 4px 8px; text-align: right;">
+                        <label class="o_form_label" style="font-weight: bold; font-size: 1.1em;">Total Ref.:</label>
+                    </td>
+                    <td style="padding: 4px 8px; text-align: right;">
+                        <span t-out="props.totals.foreign_formatted_amount_total" style="font-weight: bold; font-size: 1.2em; white-space: nowrap; color: #000;"/>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </t>
 </templates>
