@@ -84,7 +84,7 @@
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_move_tree"/>
             <field name="arch" type="xml">
-                <xpath expr="//field[@name='amount_total']" position="after">
+                <xpath expr="//field[@name='state']" position="before">
                     <field name="currency_id_dif" readonly="1" invisible="1"/>
                     <field name="amount_total_usd" sum="Total Ref." optional="show"/>
                     <field name="amount_residual_usd" sum="Saldo Ref." optional="hide"/>
