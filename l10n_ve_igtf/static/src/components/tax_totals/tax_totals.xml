@@ -1,15 +1,8 @@
 <templates xml:space="preserve">
-
+    <!-- En Odoo 18 la lógica de IGTF se maneja vía unified_rows desde el servidor -->
     <t t-name="l10n_ve_igtf.TaxTotalsField" t-inherit="account.TaxTotalsField" t-inherit-mode="extension" owl="1">
-        <!-- IGTF rows are injected via Python into unified_rows, no OWL injection needed here -->
-        <xpath expr="//table[1]" position="attributes">
-            <attribute name="data-igtf-active">true</attribute>
+        <xpath expr="." position="attributes">
+            <attribute name="data-igtf-unified">true</attribute>
         </xpath>
     </t>
-
-    <t t-name="l10n_ve_igtf.TaxForeignTotalsField" t-inherit="l10n_ve_tax.TaxForeignTotalsField" t-inherit-mode="extension" owl="1">
-        <xpath expr="." position="inside">
-        </xpath>
-    </t>
-
 </templates>
