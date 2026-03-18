@@ -1,8 +1,9 @@
 <templates xml:space="preserve">
 
     <t t-name="l10n_ve_igtf.TaxTotalsField" t-inherit="account.TaxTotalsField" t-inherit-mode="extension" owl="1">
-        <!-- En Odoo 18, la lógica de IGTF se inyecta por el servidor en unified_rows -->
-        <xpath expr="." position="inside">
+        <!-- IGTF rows are injected via Python into unified_rows, no OWL injection needed here -->
+        <xpath expr="//table[1]" position="attributes">
+            <attribute name="data-igtf-active">true</attribute>
         </xpath>
     </t>
 

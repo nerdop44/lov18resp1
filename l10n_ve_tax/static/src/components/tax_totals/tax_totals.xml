@@ -1,22 +1,23 @@
 <templates xml:space="preserve">
     <t t-name="l10n_ve_tax.TaxTotalsField" t-inherit="account.TaxTotalsField" t-inherit-mode="extension" owl="1">
-        <xpath expr="//div[hasclass('o_tax_totals')]" position="replace">
-            <div t-if="totals" class="o_tax_totals" style="width: 100%; font-family: inherit;">
-                <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+        <!-- Selector robusto: Reemplazamos la primera tabla de totales por nuestra versión unificada -->
+        <xpath expr="//table[1]" position="replace">
+            <div t-if="totals" class="o_tax_totals_unified" style="width: 100%; margin-top: 10px;">
+                <table style="width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px;">
                     <thead>
-                        <tr style="border-bottom: 1px solid #dee2e6; color: #666; font-size: 0.85em; text-transform: uppercase;">
-                            <th style="width: 40%; text-align: left; padding: 8px 4px;">Concepto</th>
-                            <th style="width: 30%; text-align: center; padding: 8px 4px;">Ref. ($)</th>
-                            <th style="width: 30%; text-align: right; padding: 8px 4px;">Monto (Bs.)</th>
+                        <tr style="border-bottom: 2px solid #dee2e6; color: #666; font-size: 0.85em; text-transform: uppercase;">
+                            <th style="width: 40%; text-align: left; padding: 4px;">Concepto</th>
+                            <th style="width: 30%; text-align: center; padding: 4px;">Ref. ($)</th>
+                            <th style="width: 30%; text-align: right; padding: 4px;">Monto (Bs.)</th>
                         </tr>
                     </thead>
-                    <tbody style="font-size: 0.95em;">
+                    <tbody>
                         <t t-foreach="totals.unified_rows || []" t-as="row" t-key="row_index">
-                            <tr t-att-style="row.is_total ? 'border-top: 2px solid #333; font-weight: bold; background-color: #f8f9fa;' : 'border-bottom: 1px solid #f2f2f2;'">
-                                <td style="padding: 6px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            <tr t-att-style="row.is_total ? 'border-top: 2px solid #2b2b2b; font-weight: bold; background-color: #fcfcfc;' : 'border-bottom: 1px solid #f2f2f2;'">
+                                <td style="padding: 6px 4px;">
                                     <span t-esc="row.label" t-att-style="row.is_subtotal ? 'font-weight: 500;' : ''"/>
                                 </td>
-                                <td style="text-align: center; padding: 6px 4px; color: #444;">
+                                <td style="text-align: center; padding: 6px 4px; color: #333;">
                                     <t t-out="row.usd"/>
                                 </td>
                                 <td style="text-align: right; padding: 6px 4px; color: #000;">
@@ -28,10 +29,15 @@
                 </table>
             </div>
         </xpath>
+
+        <!-- Ocultamos cualquier otra tabla redundante que Odoo añada (como el Total original flotante) -->
+        <xpath expr="//table[position()>1]" position="attributes">
+            <attribute name="style">display: none !important;</attribute>
+            <attribute name="t-if">false</attribute>
+        </xpath>
     </t>
 
-    <!-- Limpieza de componentes obsoletos -->
+    <!-- Desactivación de componentes de legado -->
     <t t-name="l10n_ve_tax.TaxForeignTotalsField" owl="1">
     </t>
-
 </templates>
