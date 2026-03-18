@@ -151,49 +151,28 @@ class WizardAccountingReports(models.TransientModel):
 
     def parse_sale_book_data(self):
         data = super().parse_sale_book_data()
-        for move in data:
-            date = move.get("accounting_date", False)
-            if move.get("vat", "") != "RESUMEN" and (
-                not date
-                or self._check_future_retention_dates(
-                    datetime.strptime(move.get("accounting_date"), "%d/%m/%Y").date()
-                )
-            ):
-                move.update(
-                    {
-                        "total_sales_iva": 0,
-                        "total_sales_not_iva": 0,
-                        "amount_reduced_aliquot": 0,
-                        "amount_general_aliquot": 0,
-                        "tax_base_reduced_aliquot": 0,
-                        "tax_base_general_aliquot": 0,
-                    }
-                )
-            retention_data = self.get_retention_iva_values(move.get("_id"))
-            move.update(retention_data)
-
+        for move_line in data:
+            move_id = move_line.get("_id")
+            retention_data = self.get_retention_iva_values(move_id)
+            move_line.update(retention_data)
+            
+            # LOG DE TRAZABILIDAD DE RETENCIONES
+            if retention_data.get("iva_retained", 0) != 0:
+                _logger.warning("V70 [Retención Venta] Move ID: %s | Retención: %s | Comprobante: %s", 
+                                move_id, retention_data["iva_retained"], retention_data["number_retention"])
         return data
 
     def parse_purchase_book_data(self):
         data = super().parse_purchase_book_data()
-        for move in data:
-            move_date = datetime.strptime(move.get("accounting_date"), "%d/%m/%Y").date()
-            if self._check_future_retention_dates(move_date):
-                move.update(
-                    {
-                        "total_purchases_iva": 0,
-                        "total_purchases_not_iva": 0,
-                        "amount_reduced_aliquot": 0,
-                        "amount_general_aliquot": 0,
-                        "amount_extend_aliquot": 0,
-                        "tax_base_reduced_aliquot": 0,
-                        "tax_base_general_aliquot": 0,
-                        "tax_base_extend_aliquot": 0,
-                    }
-                )
-            retention_data = self.get_retention_iva_values(move.get("_id"))
-            move.update(retention_data)
-
+        for move_line in data:
+            move_id = move_line.get("_id")
+            retention_data = self.get_retention_iva_values(move_id)
+            move_line.update(retention_data)
+            
+            # LOG DE TRAZABILIDAD DE RETENCIONES
+            if retention_data.get("iva_retained", 0) != 0:
+                _logger.warning("V70 [Retención Compra] Move ID: %s | Retención: %s | Comprobante: %s", 
+                                move_id, retention_data["iva_retained"], retention_data["number_retention"])
         return data
 
     def get_retention_iva_values(self, move_id):
