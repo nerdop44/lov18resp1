@@ -89,7 +89,7 @@
                     <field name="amount_total_usd" sum="Total Ref." optional="show"/>
                     <field name="amount_residual_usd" sum="Saldo Ref." optional="hide"/>
                 </xpath>
-            </list>
+            </field>
         </record>
 
         <record id="account_move_form_inherit_views_igtf" model="ir.ui.view">
