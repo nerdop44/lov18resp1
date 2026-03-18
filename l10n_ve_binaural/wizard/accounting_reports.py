@@ -70,11 +70,11 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             "reduced_aliquot": 0.08,
             "general_aliquot": 0.16,
             "total_sales_iva": taxes.get("amount_taxed", 0),
-            "total_sales_not_iva": taxes.get("tax_base_exempt_aliquot", 0) * multiplier,
-            "amount_reduced_aliquot": taxes.get("amount_reduced_aliquot", 0) * multiplier,
-            "amount_general_aliquot": taxes.get("amount_general_aliquot", 0) * multiplier,
-            "tax_base_reduced_aliquot": taxes.get("tax_base_reduced_aliquot", 0) * multiplier,
-            "tax_base_general_aliquot": taxes.get("tax_base_general_aliquot", 0) * multiplier,
+            "total_sales_not_iva": taxes.get("tax_base_exempt_aliquot", 0),
+            "amount_reduced_aliquot": taxes.get("amount_reduced_aliquot", 0),
+            "amount_general_aliquot": taxes.get("amount_general_aliquot", 0),
+            "tax_base_reduced_aliquot": taxes.get("tax_base_reduced_aliquot", 0),
+            "tax_base_general_aliquot": taxes.get("tax_base_general_aliquot", 0),
         }
 
     def _fields_purchase_book_line(self, move, taxes):
@@ -96,13 +96,13 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             "extend_aliquot": 0.31,
             "general_aliquot": 0.16,
             "total_purchases_iva": taxes.get("amount_taxed", 0),
-            "total_purchases_not_iva": taxes.get("tax_base_exempt_aliquot", 0) * multiplier,
-            "amount_reduced_aliquot": taxes.get("amount_reduced_aliquot", 0) * multiplier,
-            "amount_general_aliquot": taxes.get("amount_general_aliquot", 0) * multiplier,
-            "amount_extend_aliquot": taxes.get("amount_extend_aliquot", 0) * multiplier,
-            "tax_base_reduced_aliquot": taxes.get("tax_base_reduced_aliquot", 0) * multiplier,
-            "tax_base_general_aliquot": taxes.get("tax_base_general_aliquot", 0) * multiplier,
-            "tax_base_extend_aliquot": taxes.get("tax_base_extend_aliquot", 0) * multiplier,
+            "total_purchases_not_iva": taxes.get("tax_base_exempt_aliquot", 0),
+            "amount_reduced_aliquot": taxes.get("amount_reduced_aliquot", 0),
+            "amount_general_aliquot": taxes.get("amount_general_aliquot", 0),
+            "amount_extend_aliquot": taxes.get("amount_extend_aliquot", 0),
+            "tax_base_reduced_aliquot": taxes.get("tax_base_reduced_aliquot", 0),
+            "tax_base_general_aliquot": taxes.get("tax_base_general_aliquot", 0),
+            "tax_base_extend_aliquot": taxes.get("tax_base_extend_aliquot", 0),
         }
         if self.company_id.config_deductible_tax and self.report == "purchase":
             fields_purchase_book_line.update(
@@ -110,12 +110,12 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
                     "reduced_aliquot_no_deductible": 0.08,
                     "extend_aliquot_no_deductible": 0.31,
                     "general_aliquot_no_deductible": 0.16,
-                    "amount_reduced_aliquot_no_deductible": taxes.get("amount_reduced_aliquot_no_deductible", 0) * multiplier,
-                    "amount_general_aliquot_no_deductible": taxes.get("amount_general_aliquot_no_deductible", 0) * multiplier,
-                    "amount_extend_aliquot_no_deductible": taxes.get("amount_extend_aliquot_no_deductible", 0) * multiplier,
-                    "tax_base_reduced_aliquot_no_deductible": taxes.get("tax_base_reduced_aliquot_no_deductible", 0) * multiplier,
-                    "tax_base_general_aliquot_no_deductible": taxes.get("tax_base_general_aliquot_no_deductible", 0) * multiplier,
-                    "tax_base_extend_aliquot_no_deductible": taxes.get("tax_base_extend_aliquot_no_deductible", 0) * multiplier,
+                    "amount_reduced_aliquot_no_deductible": taxes.get("amount_reduced_aliquot_no_deductible", 0),
+                    "amount_general_aliquot_no_deductible": taxes.get("amount_general_aliquot_no_deductible", 0),
+                    "amount_extend_aliquot_no_deductible": taxes.get("amount_extend_aliquot_no_deductible", 0),
+                    "tax_base_reduced_aliquot_no_deductible": taxes.get("tax_base_reduced_aliquot_no_deductible", 0),
+                    "tax_base_general_aliquot_no_deductible": taxes.get("tax_base_general_aliquot_no_deductible", 0),
+                    "tax_base_extend_aliquot_no_deductible": taxes.get("tax_base_extend_aliquot_no_deductible", 0),
                 }
             )
         return fields_purchase_book_line
@@ -859,6 +859,41 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
                 elif tax_group_id == extend_aliquot_no_deductible:
                     tax_result["tax_base_extend_aliquot_no_deductible"] += base_amount
                     tax_result["amount_extend_aliquot_no_deductible"] += tax_amount
+
+        # 8. Fallback Critico Redundante: Si la sumatoria de bases es 0, barrer lineas directamente
+        sum_bases = (tax_result["tax_base_exempt_aliquot"] + tax_result["tax_base_reduced_aliquot"] + 
+                     tax_result["tax_base_general_aliquot"] + tax_result["tax_base_extend_aliquot"])
+        
+        if sum_bases == 0 and tax_result["amount_untaxed"] != 0:
+            # Barrido redundante sobre lineas contables para Odoo 18
+            for line in move.line_ids:
+                if line.display_type != 'product': continue
+                
+                line_base = abs(line.balance) if self.currency_system else abs(line.foreign_balance)
+                line_tax = 0.0
+                
+                # Encontrar montos de impuestos asociados a esta linea
+                tax_lines = move.line_ids.filtered(lambda l: l.tax_line_id and l.group_tax_id in line.tax_ids.mapped('tax_group_id'))
+                for tl in tax_lines:
+                    line_tax += abs(tl.balance) if self.currency_system else abs(tl.foreign_balance)
+                
+                line_base *= multiplier
+                line_tax *= multiplier
+                
+                # Asignar segun grupo configurado
+                tax_group_ids = line.tax_ids.mapped('tax_group_id.id')
+                if exent_aliquot in tax_group_ids or not line.tax_ids:
+                    tax_result["tax_base_exempt_aliquot"] += line_base
+                    tax_result["amount_exempt_aliquot"] += line_tax
+                elif reduced_aliquot in tax_group_ids:
+                    tax_result["tax_base_reduced_aliquot"] += line_base
+                    tax_result["amount_reduced_aliquot"] += line_tax
+                elif general_aliquot in tax_group_ids:
+                    tax_result["tax_base_general_aliquot"] += line_base
+                    tax_result["amount_general_aliquot"] += line_tax
+                elif extend_aliquot in tax_group_ids:
+                    tax_result["tax_base_extend_aliquot"] += line_base
+                    tax_result["amount_extend_aliquot"] += line_tax
 
         # 8. Fallback Critico: Si la sumatoria de bases es 0 pero el move tiene montos, usar montos del move
         # Esto previene que el reporte salga en blanco si tax_totals no está bien formado
