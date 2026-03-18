@@ -347,51 +347,60 @@ class AccountMove(models.Model):
     @api.depends(
         'tax_totals',
         'currency_id_dif',
-        'currency_id','tax_today')
+        'currency_id',
+        'tax_today',
+        'line_ids.balance_usd',
+        'move_type'
+    )
     def _amount_all_usd(self):
         for rec in self:
-            if rec.is_invoice(include_receipts=True) and rec.tax_totals:
-                # Odoo 18 usa una estructura de tax_totals diferente (summary)
-                # Intentamos obtener montos del formato nuevo primero, luego del legado
-                amount_untaxed = rec.tax_totals.get('base_amount_currency')
-                if amount_untaxed is None:
-                    amount_untaxed = rec.tax_totals.get('amount_untaxed', 0)
-                
-                amount_tax = rec.tax_totals.get('tax_amount_currency')
-                if amount_tax is None:
-                    if 'groups_by_subtotal' in rec.tax_totals:
-                        amount_tax = 0
-                        for product, income in rec.tax_totals.get('groups_by_subtotal', {}).items():
-                            for l in income:
-                                amount_tax += l.get('tax_group_amount', 0)
-                    else:
-                        amount_tax = rec.tax_totals.get('amount_tax', 0)
+            rec.amount_untaxed_usd = 0
+            rec.amount_tax_usd = 0
+            rec.amount_total_usd = 0
+            rec.amount_untaxed_bs = 0
+            rec.amount_tax_bs = 0
+            rec.amount_total_bs = 0
 
-                amount_total = rec.tax_totals.get('total_amount_currency')
-                if amount_total is None:
-                    amount_total = rec.tax_totals.get('amount_total', 0)
+            # 1. Caso Facturas (Invoices/Refunds)
+            if rec.is_invoice(include_receipts=True):
+                tax_totals = rec.tax_totals or {}
+                # Priorizar montos ya calculados por l10n_ve_tax
+                untaxed_usd = tax_totals.get('foreign_amount_untaxed')
+                tax_usd = tax_totals.get('foreign_amount_tax')
+                total_usd = tax_totals.get('foreign_amount_total')
 
-                if rec.currency_id != self.env.company.currency_id:
-                    rec.amount_untaxed_usd = rec.amount_untaxed
-                    rec.amount_tax_usd = rec.amount_tax
-                    rec.amount_total_usd = rec.amount_total
-                    rec.amount_untaxed_bs = rec.amount_untaxed_usd * rec.tax_today
-                    rec.amount_tax_bs = rec.amount_tax_usd * rec.tax_today
-                    rec.amount_total_bs = rec.amount_total_usd * rec.tax_today
+                if untaxed_usd is not None:
+                    rec.amount_untaxed_usd = untaxed_usd
+                    rec.amount_tax_usd = tax_usd or 0.0
+                    rec.amount_total_usd = total_usd or 0.0
                 else:
-                    rec.amount_untaxed_usd = (amount_untaxed / rec.tax_today) if rec.tax_today > 0 else 0
-                    rec.amount_tax_usd = (amount_tax / rec.tax_today) if rec.tax_today > 0 else 0
-                    rec.amount_total_usd = (amount_total / rec.tax_today) if rec.tax_today > 0 else 0
-                    rec.amount_untaxed_bs = rec.amount_untaxed
-                    rec.amount_tax_bs = rec.amount_tax
-                    rec.amount_total_bs = rec.amount_total
-            else:
-                rec.amount_untaxed_usd = 0
-                rec.amount_tax_usd = 0
-                rec.amount_total_usd = 0
-                rec.amount_untaxed_bs = 0
-                rec.amount_tax_bs = 0
-                rec.amount_total_bs = 0
+                    # Fallback legado: cálculo basado en tasa
+                    amount_untaxed = tax_totals.get('amount_untaxed', 0.0)
+                    amount_total = tax_totals.get('amount_total', 0.0)
+                    
+                    if rec.currency_id != rec.company_id.currency_id:
+                        rec.amount_untaxed_usd = rec.amount_untaxed
+                        rec.amount_total_usd = rec.amount_total
+                    else:
+                        rec.amount_untaxed_usd = (amount_untaxed / rec.tax_today) if rec.tax_today > 0 else 0
+                        rec.amount_total_usd = (amount_total / rec.tax_today) if rec.tax_today > 0 else 0
+                    
+                    rec.amount_tax_usd = rec.amount_total_usd - rec.amount_untaxed_usd
+                
+                # Sincronizar montos en Bs para consistencia
+                rec.amount_untaxed_bs = rec.amount_untaxed
+                rec.amount_total_bs = rec.amount_total
+
+            # 2. Caso Asientos Manuales (MISC / entry)
+            elif rec.move_type == 'entry':
+                # Sumamos el balance_usd de las líneas (debe - haber en USD)
+                # Para el total "bruto" del asiento, sumamos los débitos USD
+                total_usd = sum(rec.line_ids.mapped('debit_usd'))
+                rec.amount_total_usd = total_usd
+                rec.amount_untaxed_usd = total_usd
+                
+                rec.amount_total_bs = sum(rec.line_ids.mapped('debit'))
+                rec.amount_untaxed_bs = rec.amount_total_bs
 
     @api.depends('move_type', 'line_ids.amount_residual_usd')
     def _compute_payments_widget_reconciled_info_USD(self):
