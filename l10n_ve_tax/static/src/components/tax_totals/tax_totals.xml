@@ -119,7 +119,7 @@
                     <td class="o_tree_monetary">
                         <span
                             name="foreign_amount_total"
-                            t-att-class="Object.keys(totals.groups_by_subtotal).length > 0 ? 'oe_subtotal_footer_separator' : ''"
+                            t-att-class="(Object.keys(totals.groups_by_subtotal || {}).length > 0 || Object.keys(totals.groups_by_foreign_subtotal || {}).length > 0) ? 'oe_subtotal_footer_separator' : ''"
                             t-out="totals.foreign_formatted_amount_total"
                             style="font-size: 1.3em; font-weight: bold; white-space: nowrap;"
                         />
