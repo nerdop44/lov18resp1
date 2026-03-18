@@ -278,6 +278,48 @@ class AccountTax(models.Model):
             res["foreign_formatted_amount_untaxed"] = formatLang(self.env, foreign_amount_untaxed, currency_obj=foreign_currency)
             res["foreign_formatted_amount_total"] = formatLang(self.env, foreign_amount_total, currency_obj=foreign_currency)
 
+            # --- ARQUITECTURA DE FILAS UNIFICADAS (FASE 77) ---
+            # Esta lista permite que el frontend solo tenga que iterar y mostrar, eliminando errores de alineación.
+            unified_rows = []
+            for sub_index, subtotal in enumerate(res.get("subtotals", [])):
+                name = subtotal.get("name")
+                # Obtener el subtotal foráneo correspondiente por índice
+                f_subtotals = res.get("foreign_subtotals", [])
+                f_subtotal_formatted = f_subtotals[sub_index].get("formatted_amount") if len(f_subtotals) > sub_index else formatLang(self.env, 0.0, currency_obj=foreign_currency)
+                
+                # 1. Fila de Subtotal
+                unified_rows.append({
+                    "label": name,
+                    "usd": f_subtotal_formatted,
+                    "bs": subtotal.get("formatted_amount"),
+                    "is_total": False,
+                    "is_subtotal": True,
+                })
+
+                # 2. Filas de Grupos de Impuestos asociados
+                if name in res.get("groups_by_subtotal", {}):
+                    for g_index, group in enumerate(res["groups_by_subtotal"][name]):
+                        f_groups = res.get("groups_by_foreign_subtotal", {}).get(name, [])
+                        f_group_formatted = f_groups[g_index].get("formatted_tax_group_amount") if len(f_groups) > g_index else formatLang(self.env, 0.0, currency_obj=foreign_currency)
+                        
+                        unified_rows.append({
+                            "label": group.get("tax_group_name"),
+                            "usd": f_group_formatted,
+                            "bs": group.get("formatted_tax_group_amount"),
+                            "is_total": False,
+                            "is_subtotal": False,
+                        })
+
+            # 3. Fila de Total Final (Sin IGTF todavía, se añade en el módulo IGTF si aplica)
+            unified_rows.append({
+                "label": _("TOTAL"),
+                "usd": res["foreign_formatted_amount_total"],
+                "bs": res["formatted_amount_total"],
+                "is_total": True,
+                "is_subtotal": False,
+            })
+            res["unified_rows"] = unified_rows
+
         except Exception as e:
             _logger.warning("Error calculating foreign tax totals (bimonetary): %s", e)
 

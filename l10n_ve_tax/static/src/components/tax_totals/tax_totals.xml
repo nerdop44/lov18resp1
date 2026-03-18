@@ -1,77 +1,36 @@
 <templates xml:space="preserve">
     <t t-name="l10n_ve_tax.TaxTotalsField" t-inherit="account.TaxTotalsField" t-inherit-mode="extension" owl="1">
-        <xpath expr="//table[1]" position="replace">
-            <t t-set="has_foreign" t-value="totals and totals.foreign_amount_total ? true : false"/>
-            
-            <div t-if="totals" class="o_tax_totals_unified" style="width: 100%; margin-top: 15px;">
-                <table class="oe_subtotal_footer" style="width: 100%; border-collapse: separate; border-spacing: 0 4px;">
+        <xpath expr="//div[hasclass('o_tax_totals')]" position="replace">
+            <div t-if="totals" class="o_tax_totals" style="width: 100%; font-family: inherit;">
+                <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
                     <thead>
-                        <tr style="border-bottom: 2px solid #dee2e6; color: #666; font-size: 0.9em; text-transform: uppercase;">
-                            <th style="text-align: left; padding: 4px; border-bottom: 2px solid #dee2e6;">Concepto</th>
-                            <th t-if="has_foreign" style="text-align: center; padding: 4px; border-bottom: 2px solid #dee2e6; color: #00A09D;">Ref. ($)</th>
-                            <th style="text-align: right; padding: 4px; border-bottom: 2px solid #dee2e6;">Monto (Bs.)</th>
+                        <tr style="border-bottom: 1px solid #dee2e6; color: #666; font-size: 0.85em; text-transform: uppercase;">
+                            <th style="width: 40%; text-align: left; padding: 8px 4px;">Concepto</th>
+                            <th style="width: 30%; text-align: center; padding: 8px 4px;">Ref. ($)</th>
+                            <th style="width: 30%; text-align: right; padding: 8px 4px;">Monto (Bs.)</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <t t-foreach="totals.subtotals || []" t-as="subtotal" t-key="subtotal.name">
-                            <t t-set="subtotal_index" t-value="(totals.subtotals || []).indexOf(subtotal)"/>
-                            <t t-set="f_subtotal" t-value="has_foreign and (totals.foreign_subtotals || [])[subtotal_index] ? totals.foreign_subtotals[subtotal_index] : false"/>
-                            
-                            <!-- Subtotal Principal -->
-                            <tr style="font-weight: 500; border-bottom: 1px solid #eee;">
-                                <td class="o_td_label" style="padding: 6px 0;">
-                                    <label class="o_form_label" t-esc="subtotal.name" style="font-weight: 500;"/>
+                    <tbody style="font-size: 0.95em;">
+                        <t t-foreach="totals.unified_rows || []" t-as="row" t-key="row_index">
+                            <tr t-att-style="row.is_total ? 'border-top: 2px solid #333; font-weight: bold; background-color: #f8f9fa;' : 'border-bottom: 1px solid #f2f2f2;'">
+                                <td style="padding: 6px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    <span t-esc="row.label" t-att-style="row.is_subtotal ? 'font-weight: 500;' : ''"/>
                                 </td>
-                                <td t-if="has_foreign" style="text-align: center; padding: 6px 0; color: #00A09D;">
-                                    <t t-if="f_subtotal" t-out="f_subtotal.formatted_amount"/>
+                                <td style="text-align: center; padding: 6px 4px; color: #444;">
+                                    <t t-out="row.usd"/>
                                 </td>
-                                <td style="text-align: right; padding: 6px 0;">
-                                    <t t-out="subtotal.formatted_amount"/>
+                                <td style="text-align: right; padding: 6px 4px; color: #000;">
+                                    <t t-out="row.bs"/>
                                 </td>
                             </tr>
-
-                            <!-- Grupos de Impuestos para este Subtotal -->
-                            <t t-set="subtotal_name" t-value="subtotal.name"/>
-                            <t t-if="(totals.groups_by_subtotal || {})[subtotal_name]">
-                                <t t-foreach="totals.groups_by_subtotal[subtotal_name]" t-as="taxGroup" t-key="taxGroup.group_key">
-                                    <t t-set="taxGroup_index" t-value="totals.groups_by_subtotal[subtotal_name].indexOf(taxGroup)"/>
-                                    <t t-set="f_taxGroups" t-value="has_foreign and (totals.groups_by_foreign_subtotal || {})[subtotal_name] ? totals.groups_by_foreign_subtotal[subtotal_name] : false"/>
-                                    <t t-set="f_taxGroup" t-value="f_taxGroups and f_taxGroups[taxGroup_index] ? f_taxGroups[taxGroup_index] : false"/>
-                                    
-                                    <tr style="font-size: 0.9em; color: #666;">
-                                        <td class="o_td_label" style="padding: 2px 0 2px 15px;">
-                                            <span t-esc="taxGroup.tax_group_name"/>
-                                        </td>
-                                        <td t-if="has_foreign" style="text-align: center; color: #00A09D; padding: 2px 0;">
-                                            <t t-if="f_taxGroup" t-out="f_taxGroup.formatted_tax_group_amount"/>
-                                        </td>
-                                        <td style="text-align: right; padding: 2px 0;">
-                                            <t t-out="taxGroup.formatted_tax_group_amount"/>
-                                        </td>
-                                    </tr>
-                                </t>
-                            </t>
                         </t>
-
-                        <!-- Espaciador -->
-                        <tr style="height: 10px;"><td t-att-colspan="has_foreign ? 3 : 2"></td></tr>
-
-                        <!-- Fila de TOTAL FINAL -->
-                        <tr style="border-top: 2px solid #2b2b2b; font-size: 1.15em; font-weight: bold; background-color: #fcfcfc;">
-                            <td class="o_td_label" style="padding: 10px 0; border-top: 2px solid #2b2b2b;">TOTAL</td>
-                            <td t-if="has_foreign" style="text-align: center; padding: 10px 0; color: #00A09D; border-top: 2px solid #2b2b2b;">
-                                <t t-out="totals.foreign_formatted_amount_total"/>
-                            </td>
-                            <td style="text-align: right; padding: 10px 0; border-top: 2px solid #2b2b2b;">
-                                <t t-out="totals.formatted_amount_total"/>
-                            </td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
         </xpath>
     </t>
 
+    <!-- Limpieza de componentes obsoletos -->
     <t t-name="l10n_ve_tax.TaxForeignTotalsField" owl="1">
     </t>
 

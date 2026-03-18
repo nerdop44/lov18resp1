@@ -164,4 +164,53 @@ class AccountTax(models.Model):
         )
         res["igtf"]["is_igtf_suggested"] = is_igtf_suggested
 
+    @api.model
+    def _get_tax_totals_summary(self, base_lines, currency, company, cash_rounding=None):
+        """
+        Inyectar filas de IGTF en la arquitectura unificada para visualización de 3 columnas.
+        """
+        res = super()._get_tax_totals_summary(
+            base_lines=base_lines,
+            currency=currency,
+            company=company,
+            cash_rounding=cash_rounding,
+        )
+        if not res or 'igtf' not in res or not res['igtf'].get('apply_igtf'):
+            return res
+
+        # Obtener datos de IGTF ya calculados por el super() o lógica previa
+        igtf = res['igtf']
+        foreign_currency = company.currency_foreign_id
+        
+        # Insertar filas de IGTF ANTES del Total final en unified_rows
+        unified_rows = res.get('unified_rows', [])
+        if unified_rows:
+            # Encontrar el índice del Total (última fila)
+            total_idx = len(unified_rows) - 1
+            
+            # Fila de Base Imponible IGTF
+            unified_rows.insert(total_idx, {
+                "label": _("(Suggested) BI IGTF") if igtf.get('is_igtf_suggested') else _("BI IGTF"),
+                "usd": igtf.get("formatted_foreign_igtf_base_amount", "0.00 $"),
+                "bs": igtf.get("formatted_igtf_base_amount", "0,00 Bs."),
+                "is_total": False,
+                "is_subtotal": False,
+            })
+            total_idx += 1
+
+            # Fila de Monto IGTF
+            unified_rows.insert(total_idx, {
+                "label": _("IGTF %s") % igtf.get("name", "3%"),
+                "usd": igtf.get("formatted_foreign_igtf_amount", "0.00 $"),
+                "bs": igtf.get("formatted_igtf_amount", "0,00 Bs."),
+                "is_total": False,
+                "is_subtotal": False,
+            })
+            total_idx += 1
+
+            # Actualizar la fila de TOTAL para ser "Total con IGTF"
+            unified_rows[total_idx]["label"] = _("TOTAL CON IGTF")
+            unified_rows[total_idx]["usd"] = res.get("formatted_foreign_amount_total_igtf")
+            unified_rows[total_idx]["bs"] = res.get("formatted_amount_total_igtf")
+
         return res

@@ -1,48 +1,8 @@
 <templates xml:space="preserve">
 
     <t t-name="l10n_ve_igtf.TaxTotalsField" t-inherit="account.TaxTotalsField" t-inherit-mode="extension" owl="1">
-        <xpath expr="//tbody" position="inside">
-            <t t-if="totals and totals.igtf &amp;&amp; totals.igtf.apply_igtf">
-                <t t-set="has_foreign" t-value="totals.foreign_amount_total ? true : false"/>
-                
-                <tr style="height: 4px;"><td t-att-colspan="has_foreign ? 3 : 2"></td></tr>
-                
-                <tr style="font-size: 0.9em; color: #666;">
-                    <td class="o_td_label" style="padding: 2px 0 2px 15px;">
-                        <t t-if="totals.igtf.is_igtf_suggested">(Sugerido) </t>
-                        BI IGTF
-                    </td>
-                    <td t-if="has_foreign" style="text-align: center; color: #00A09D; padding: 2px 0;">
-                        <t t-out="totals.igtf.formatted_foreign_igtf_base_amount"/>
-                    </td>
-                    <td style="text-align: right; padding: 2px 0;">
-                        <t t-out="totals.igtf.formatted_igtf_base_amount"/>
-                    </td>
-                </tr>
-
-                <tr style="font-size: 0.9em; color: #666;">
-                    <td class="o_td_label" style="padding: 2px 0 2px 15px;">
-                        <t t-if="totals.igtf.is_igtf_suggested">(Sugerido) </t>
-                        IGTF <t t-esc="totals.igtf.name || ''"/>
-                    </td>
-                    <td t-if="has_foreign" style="text-align: center; color: #00A09D; padding: 2px 0;">
-                        <t t-out="totals.igtf.formatted_foreign_igtf_amount"/>
-                    </td>
-                    <td style="text-align: right; padding: 2px 0;">
-                        <t t-out="totals.igtf.formatted_igtf_amount"/>
-                    </td>
-                </tr>
-
-                <tr style="border-top: 1px solid #dee2e6; font-weight: bold; background-color: #f0fdf4;">
-                    <td class="o_td_label" style="padding: 6px 0;">Total con IGTF</td>
-                    <td t-if="has_foreign" style="text-align: center; color: #00A09D; padding: 6px 0;">
-                        <t t-out="totals.formatted_foreign_amount_total_igtf"/>
-                    </td>
-                    <td style="text-align: right; padding: 6px 0;">
-                        <t t-out="totals.formatted_amount_total_igtf"/>
-                    </td>
-                </tr>
-            </t>
+        <!-- En Odoo 18, la lógica de IGTF se inyecta por el servidor en unified_rows -->
+        <xpath expr="." position="inside">
         </xpath>
     </t>
 
