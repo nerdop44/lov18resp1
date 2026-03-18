@@ -806,16 +806,24 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             if self.company_id.config_deductible_tax:
                 general_aliquot_no_deductible = self.company_id.no_deductible_general_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_general_aliquot_purchase else False
                 reduced_aliquot_no_deductible = self.company_id.no_deductible_reduced_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_reduced_aliquot_purchase else False
-                extend_aliquot_no_deductible = self.company_id.no_deductible_extend_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_extend_aliquot_purchase else False
+                extend_aliquot_no_deductible = self.company_id.no_deductible_extend_aliquot_purchase.tax_group_id.id if self.company_id.no_deductibl        # 7. Procesar subtotales (Odoo 18 style)
+        # En v18 tax_totals['subtotals'] es una lista. Cada elemento tiene 'tax_groups_data'.
+        subtotals = tax_totals.get('subtotals', [])
+        
+        # Recopilar todos los grupos de impuestos de todos los subtotales
+        all_groups = []
+        for subtotal in subtotals:
+            all_groups.extend(subtotal.get('tax_groups_data', []))
+            
+        # Fallback para compatibilidad con dual_currency (groups_by_subtotal/groups_by_foreign_subtotal)
+        if not all_groups:
+             legacy_key = 'groups_by_subtotal' if self.currency_system else 'groups_by_foreign_subtotal'
+             legacy_groups = tax_totals.get(legacy_key, {})
+             if isinstance(legacy_groups, dict):
+                 for groups_list in legacy_groups.values():
+                     all_groups.extend(groups_list)
 
-        # 7. Procesar subtotales (Odoo 18 style)
-        # La estructura en v18 suele ser una lista de diccionarios en 'subtotals'
-        # o 'tax_groups_data' dependiendo de si es visualización o cálculo base.
-        
-        # Intentamos obtener los grupos de impuestos detallados
-        tax_groups_data = tax_totals.get('tax_groups_data', [])
-        
-        for group in tax_groups_data:
+        for group in all_groups:
             tax_group_id = group.get('id') or group.get('tax_group_id')
             if not tax_group_id:
                 continue
@@ -826,7 +834,7 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
                 tax_amount = group.get('tax_amount', 0.0)
             else:
                 # Si no es moneda del sistema, buscamos claves foreign inyectadas por dual_currency
-                base_amount = group.get('foreign_base_amount', group.get('base_amount', 0.0))
+                base_amount = group.get('foreign_base_amount', group.get('base_consult_amount', group.get('base_amount', 0.0)))
                 tax_amount = group.get('foreign_tax_amount', group.get('tax_amount', 0.0))
 
             base_amount *= multiplier
