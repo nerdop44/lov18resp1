@@ -194,23 +194,36 @@ class AccountTax(models.Model):
                 record = base_line.get("record")
                 if not record:
                     continue
-                # Sumamos subtotal foráneo (sin impuestos) y total foráneo (con impuestos)
+                
+                # Intentar obtener subtotal y total foráneo con fallbacks
+                line_foreign_subtotal = 0.0
+                line_foreign_total = 0.0
+                
                 if hasattr(record, 'foreign_subtotal'):
-                    foreign_amount_untaxed += record.foreign_subtotal or 0.0
+                    line_foreign_subtotal = record.foreign_subtotal or 0.0
+                elif hasattr(record, 'price_subtotal_usd'):
+                    line_foreign_subtotal = record.price_subtotal_usd or 0.0
+                
                 if hasattr(record, 'foreign_price_total'):
-                    foreign_amount_total += record.foreign_price_total or 0.0
+                    line_foreign_total = record.foreign_price_total or 0.0
+                elif hasattr(record, 'price_total_usd'):
+                    line_foreign_total = record.price_total_usd or 0.0
+                elif line_foreign_subtotal:
+                    # Fallback simple si no hay total pero hay subtotal
+                    line_foreign_total = line_foreign_subtotal
+                
+                foreign_amount_untaxed += line_foreign_subtotal
+                foreign_amount_total += line_foreign_total
 
                 # Construir groups_by_foreign_subtotal para los libros fiscales
-                # La estructura que espera el reporte es:
-                # { "Nombre subtotal": [{ "tax_group_id": id, "tax_group_base_amount": float, "tax_group_amount": float }] }
                 if hasattr(record, 'tax_ids') and record.tax_ids:
                     for tax in record.tax_ids:
                         subtotal_name = tax.mapped('invoice_repartition_line_ids.factor_percent')
                         group_id = tax.tax_group_id.id if tax.tax_group_id else False
                         if not group_id:
                             continue
-                        base_amount = record.foreign_subtotal or 0.0
-                        tax_amount = (record.foreign_price_total or 0.0) - base_amount
+                        base_amount = line_foreign_subtotal
+                        tax_amount = line_foreign_total - base_amount
 
                         # Agregar al diccionario de grupos
                         for subtotal in res.get("subtotals", []):

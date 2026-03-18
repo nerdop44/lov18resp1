@@ -768,9 +768,15 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             amount_untaxed = tax_totals.get('amount_untaxed', 0.0)
             amount_total = tax_totals.get('amount_total', 0.0)
         else:
-            # En Odoo 18, si no es system currency, usamos campos foreign del dual_currency si existen
-            amount_untaxed = getattr(move, 'foreign_amount_untaxed', 0.0)
-            amount_total = getattr(move, 'foreign_amount_total', 0.0)
+            # En Odoo 18, si no es system currency, usamos campos foreign inyectados en tax_totals
+            amount_untaxed = tax_totals.get('foreign_amount_untaxed', 0.0)
+            amount_total = tax_totals.get('foreign_amount_total', 0.0)
+            
+            # Fallback a atributos de move solo si tax_totals falla
+            if not amount_untaxed:
+                 amount_untaxed = getattr(move, 'foreign_amount_untaxed', 0.0)
+            if not amount_total:
+                 amount_total = getattr(move, 'foreign_amount_total', 0.0)
 
         # Multiplicador por notas de crédito
         multiplier = -1 if is_credit_note else 1
