@@ -230,6 +230,8 @@ class AccountTax(models.Model):
                                     "tax_group_id": group_id,
                                     "tax_group_base_amount": base_amount,
                                     "tax_group_amount": tax_amount,
+                                    "base_amount": base_amount, # Compatibilidad wizard
+                                    "tax_amount": tax_amount,   # Compatibilidad wizard
                                 })
 
             res["foreign_amount_untaxed"] = foreign_amount_untaxed

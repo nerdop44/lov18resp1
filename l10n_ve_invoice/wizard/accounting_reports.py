@@ -865,6 +865,17 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
                     tax_result["tax_base_extend_aliquot_no_deductible"] += base_amount
                     tax_result["amount_extend_aliquot_no_deductible"] += tax_amount
 
+        # 8. Fallback Critico: Si la sumatoria de bases es 0 pero el move tiene montos, usar montos del move
+        # Esto previene que el reporte salga en blanco si tax_totals no está bien formado
+        sum_bases = (tax_result["tax_base_exempt_aliquot"] + tax_result["tax_base_reduced_aliquot"] + 
+                     tax_result["tax_base_general_aliquot"] + tax_result["tax_base_extend_aliquot"])
+        
+        if sum_bases == 0 and tax_result["amount_untaxed"] != 0:
+            # Si no se detectó ningún grupo pero hay base imponible, asumimos Alícuota General por defecto
+            # (Comportamiento de emergencia para evitar reporte en blanco)
+            tax_result["tax_base_general_aliquot"] = tax_result["amount_untaxed"]
+            tax_result["amount_general_aliquot"] = tax_result["amount_taxed"]
+
 
         return tax_result
     
