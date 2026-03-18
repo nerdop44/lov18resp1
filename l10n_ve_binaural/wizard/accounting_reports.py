@@ -729,10 +729,8 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
 
     def _determinate_amount_taxeds(self, move):
         is_posted = move.state == "posted"
-        vef_base = self.company_id.currency_id.id == self.env.ref("base.VEF").id or self.company_id.currency_id.name in ["VEF", "VES"]
-
-        # 1. Valores por defecto para todos los casos
-        default_result = {
+        # 1. Valores por defecto (Garantizan que siempre haya un dict con ceros)
+        tax_result = {
             "amount_untaxed": 0.0,
             "amount_taxed": 0.0,
             "tax_base_exempt_aliquot": 0.0,
@@ -745,9 +743,8 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             "amount_extend_aliquot": 0.0,
         }
 
-        # 2. Campos adicionales para compras no deducibles
         if self.company_id.config_deductible_tax and self.report == "purchase":
-            default_result.update({
+            tax_result.update({
                 "tax_base_reduced_aliquot_no_deductible": 0.0,
                 "tax_base_general_aliquot_no_deductible": 0.0,
                 "tax_base_extend_aliquot_no_deductible": 0.0,
@@ -756,155 +753,75 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
                 "amount_extend_aliquot_no_deductible": 0.0,
             })
 
-        # 3. Si el movimiento no está publicado, retornar valores por defecto
         if not is_posted:
-            return default_result
+            return tax_result
 
         is_credit_note = move.move_type in ["out_refund", "in_refund"]
-        # 4. Determinar campos según moneda de reporte (Foreign vs System)
-        if self.currency_system:
-            # Para moneda del sistema (Bs), usamos los campos base que Odoo mantiene en la moneda de la compañía
-            # Usamos abs() porque para libros de venta/compra el signo se maneja por tipo de documento/columna
-            amount_untaxed = abs(move.amount_untaxed_signed) if hasattr(move, 'amount_untaxed_signed') else move.amount_untaxed
-            amount_total = abs(move.amount_total_signed) if hasattr(move, 'amount_total_signed') else move.amount_total
-            amount_tax = amount_total - amount_untaxed
-        else:
-            # Para moneda extranjera ($), usamos los campos inyectados de l10n_ve_tax
-            tax_totals = move.tax_totals or {}
-            amount_untaxed = tax_totals.get('foreign_amount_untaxed', 0.0)
-            amount_tax = tax_totals.get('foreign_amount_tax', 0.0)
-            amount_total = tax_totals.get('foreign_amount_total', 0.0)
-            
-
-        # Multiplicador por notas de crédito
         multiplier = -1 if is_credit_note else 1
         
-        tax_result = default_result.copy()
-        tax_result.update({
-            "amount_untaxed": amount_untaxed * multiplier,
-            "amount_taxed": (amount_total - amount_untaxed) * multiplier, # IVA total
-        })
-
-        # 5. Obtener los grupos de impuestos de Odoo 18 (tax_groups_data dentro de subtotals)
-        subtotals = tax_totals.get('subtotals', [])
-        all_groups = []
-        for subtotal in subtotals:
-            all_groups.extend(subtotal.get('tax_groups_data', []))
-            
-        # Fallback para compatibilidad con dual_currency (groups_by_subtotal/groups_by_foreign_subtotal)
-        if not all_groups:
-             legacy_key = 'groups_by_subtotal' if self.currency_system else 'groups_by_foreign_subtotal'
-             legacy_groups = tax_totals.get(legacy_key, {})
-             if isinstance(legacy_groups, dict):
-                 for groups_list in legacy_groups.values():
-                     all_groups.extend(groups_list)
-
-        # 6. Obtener configuraciones de grupos de impuestos desde la compañía
-        exent_aliquot = general_aliquot = reduced_aliquot = extend_aliquot = False
-        general_aliquot_no_deductible = reduced_aliquot_no_deductible = extend_aliquot_no_deductible = False
-
-        if self.report == "sale":
-            exent_aliquot = self.company_id.exent_aliquot_sale.tax_group_id.id if self.company_id.exent_aliquot_sale else False
-            reduced_aliquot = self.company_id.reduced_aliquot_sale.tax_group_id.id if self.company_id.reduced_aliquot_sale else False
-            general_aliquot = self.company_id.general_aliquot_sale.tax_group_id.id if self.company_id.general_aliquot_sale else False
-            extend_aliquot = self.company_id.extend_aliquot_sale.tax_group_id.id if self.company_id.extend_aliquot_sale else False
-        else:
+        # 2. Obtener configuraciones de grupos de impuestos (IDs)
+        exent_aliquot = self.company_id.exent_aliquot_sale.tax_group_id.id if self.report == "sale" and self.company_id.exent_aliquot_sale else False
+        reduced_aliquot = self.company_id.reduced_aliquot_sale.tax_group_id.id if self.report == "sale" and self.company_id.reduced_aliquot_sale else False
+        general_aliquot = self.company_id.general_aliquot_sale.tax_group_id.id if self.report == "sale" and self.company_id.general_aliquot_sale else False
+        extend_aliquot = self.company_id.extend_aliquot_sale.tax_group_id.id if self.report == "sale" and self.company_id.extend_aliquot_sale else False
+        
+        if self.report == "purchase":
             exent_aliquot = self.company_id.exent_aliquot_purchase.tax_group_id.id if self.company_id.exent_aliquot_purchase else False
             reduced_aliquot = self.company_id.reduced_aliquot_purchase.tax_group_id.id if self.company_id.reduced_aliquot_purchase else False
             general_aliquot = self.company_id.general_aliquot_purchase.tax_group_id.id if self.company_id.general_aliquot_purchase else False
             extend_aliquot = self.company_id.extend_aliquot_purchase.tax_group_id.id if self.company_id.extend_aliquot_purchase else False
+
+        # 3. EXTRACCIÓN DIRECTA DE LÍNEAS (VERDAD CONTABLE)
+        # Recorremos todas las líneas del asiento para reconstruir los totales
+        total_untaxed_bs = 0.0
+        total_tax_bs = 0.0
+        
+        for line in move.line_ids:
+            # En Odoo 18, balance es en moneda de compañía (VEF/VES)
+            # credit/debit también. Usamos balance porque ya tiene el signo contable.
+            val = abs(line.balance) if self.currency_system else abs(line.foreign_balance)
             
-            if self.company_id.config_deductible_tax:
-                general_aliquot_no_deductible = self.company_id.no_deductible_general_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_general_aliquot_purchase else False
-                reduced_aliquot_no_deductible = self.company_id.no_deductible_reduced_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_reduced_aliquot_purchase else False
-                extend_aliquot_no_deductible = self.company_id.no_deductible_extend_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_extend_aliquot_purchase else False
-
-        for group in all_groups:
-            tax_group_id = group.get('id') or group.get('tax_group_id')
-            if not tax_group_id:
-                continue
-                
-            # Determinar montos base e IVA en la moneda correcta
-            if self.currency_system:
-                # Odoo 18 usa tax_group_base_amount y tax_group_amount en subtotals summary
-                base_amount = group.get('tax_group_base_amount') or group.get('base_amount', 0.0)
-                tax_amount = group.get('tax_group_amount') or group.get('tax_amount', 0.0)
-            else:
-                # Si no es moneda del sistema, buscamos claves foreign inyectadas por l10n_ve_tax
-                base_amount = group.get('foreign_base_amount') or group.get('tax_group_base_amount') or group.get('base_amount', 0.0)
-                tax_amount = group.get('foreign_tax_amount') or group.get('tax_group_amount') or group.get('tax_amount', 0.0)
-
-            base_amount *= multiplier
-            tax_amount *= multiplier
-
-            if tax_group_id == exent_aliquot:
-                tax_result["tax_base_exempt_aliquot"] += base_amount
-                tax_result["amount_exempt_aliquot"] += tax_amount
-            elif tax_group_id == reduced_aliquot:
-                tax_result["tax_base_reduced_aliquot"] += base_amount
-                tax_result["amount_reduced_aliquot"] += tax_amount
-            elif tax_group_id == general_aliquot:
-                tax_result["tax_base_general_aliquot"] += base_amount
-                tax_result["amount_general_aliquot"] += tax_amount
-            elif tax_group_id == extend_aliquot:
-                tax_result["tax_base_extend_aliquot"] += base_amount
-                tax_result["amount_extend_aliquot"] += tax_amount
-            elif self.company_id.config_deductible_tax and self.report == "purchase":
-                if tax_group_id == reduced_aliquot_no_deductible:
-                    tax_result["tax_base_reduced_aliquot_no_deductible"] += base_amount
-                    tax_result["amount_reduced_aliquot_no_deductible"] += tax_amount
-                elif tax_group_id == general_aliquot_no_deductible:
-                    tax_result["tax_base_general_aliquot_no_deductible"] += base_amount
-                    tax_result["amount_general_aliquot_no_deductible"] += tax_amount
-                elif tax_group_id == extend_aliquot_no_deductible:
-                    tax_result["tax_base_extend_aliquot_no_deductible"] += base_amount
-                    tax_result["amount_extend_aliquot_no_deductible"] += tax_amount
-
-        # 8. Fallback Critico Redundante: Si la sumatoria de bases es 0, barrer lineas directamente
-        sum_bases = (tax_result["tax_base_exempt_aliquot"] + tax_result["tax_base_reduced_aliquot"] + 
-                     tax_result["tax_base_general_aliquot"] + tax_result["tax_base_extend_aliquot"])
-        
-        if sum_bases == 0 and tax_result["amount_untaxed"] != 0:
-            # Barrido redundante sobre lineas contables para Odoo 18
-            for line in move.line_ids:
-                if line.display_type != 'product': continue
-                
-                line_base = abs(line.balance) if self.currency_system else abs(line.foreign_balance)
-                line_tax = 0.0
-                
-                # Encontrar montos de impuestos asociados a esta linea
-                tax_lines = move.line_ids.filtered(lambda l: l.tax_line_id and l.group_tax_id in line.tax_ids.mapped('tax_group_id'))
-                for tl in tax_lines:
-                    line_tax += abs(tl.balance) if self.currency_system else abs(tl.foreign_balance)
-                
-                line_base *= multiplier
-                line_tax *= multiplier
-                
-                # Asignar segun grupo configurado
+            # Líneas de Producto (Base Imponible)
+            if line.display_type == 'product':
+                total_untaxed_bs += val
+                # Determinar Alícuota de esta línea
                 tax_group_ids = line.tax_ids.mapped('tax_group_id.id')
+                
+                # Asignar a la columna correspondiente
+                signed_val = val * multiplier
                 if exent_aliquot in tax_group_ids or not line.tax_ids:
-                    tax_result["tax_base_exempt_aliquot"] += line_base
-                    tax_result["amount_exempt_aliquot"] += line_tax
+                    tax_result["tax_base_exempt_aliquot"] += signed_val
                 elif reduced_aliquot in tax_group_ids:
-                    tax_result["tax_base_reduced_aliquot"] += line_base
-                    tax_result["amount_reduced_aliquot"] += line_tax
+                    tax_result["tax_base_reduced_aliquot"] += signed_val
                 elif general_aliquot in tax_group_ids:
-                    tax_result["tax_base_general_aliquot"] += line_base
-                    tax_result["amount_general_aliquot"] += line_tax
+                    tax_result["tax_base_general_aliquot"] += signed_val
                 elif extend_aliquot in tax_group_ids:
-                    tax_result["tax_base_extend_aliquot"] += line_base
-                    tax_result["amount_extend_aliquot"] += line_tax
+                    tax_result["tax_base_extend_aliquot"] += signed_val
+                else:
+                    # Fallback si no coincide con ninguno, va a general
+                    tax_result["tax_base_general_aliquot"] += signed_val
+            
+            # Líneas de Impuesto (Cuota Tributaria)
+            if line.tax_line_id:
+                total_tax_bs += val
+                group_id = line.tax_line_id.tax_group_id.id
+                signed_tax = val * multiplier
+                
+                if group_id == exent_aliquot:
+                    tax_result["amount_exempt_aliquot"] += signed_tax
+                elif group_id == reduced_aliquot:
+                    tax_result["amount_reduced_aliquot"] += signed_tax
+                elif group_id == general_aliquot:
+                    tax_result["amount_general_aliquot"] += signed_tax
+                elif group_id == extend_aliquot:
+                    tax_result["amount_extend_aliquot"] += signed_tax
+                else:
+                    tax_result["amount_general_aliquot"] += signed_tax
 
-        # 8. Fallback Critico: Si la sumatoria de bases es 0 pero el move tiene montos, usar montos del move
-        # Esto previene que el reporte salga en blanco si tax_totals no está bien formado
-        sum_bases = (tax_result["tax_base_exempt_aliquot"] + tax_result["tax_base_reduced_aliquot"] + 
-                     tax_result["tax_base_general_aliquot"] + tax_result["tax_base_extend_aliquot"])
+        # 4. Asignar totales generales operacionales
+        tax_result["amount_untaxed"] = total_untaxed_bs * multiplier
+        tax_result["amount_taxed"] = total_tax_bs * multiplier
         
-        if sum_bases == 0 and tax_result["amount_untaxed"] != 0:
-            # Si no se detectó ningún grupo pero hay base imponible, asumimos Alícuota General por defecto
-            tax_result["tax_base_general_aliquot"] = tax_result["amount_untaxed"]
-            tax_result["amount_general_aliquot"] = tax_result["amount_taxed"]
-
         return tax_result
 
     def generate_sales_book(self, company_id):
