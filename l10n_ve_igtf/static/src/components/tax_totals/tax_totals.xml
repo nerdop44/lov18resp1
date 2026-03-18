@@ -1,8 +1,8 @@
 <templates xml:space="preserve">
-    <!-- En Odoo 18 la lógica de IGTF se maneja vía unified_rows desde el servidor -->
     <t t-name="l10n_ve_igtf.TaxTotalsField" t-inherit="account.TaxTotalsField" t-inherit-mode="extension" owl="1">
-        <xpath expr="." position="attributes">
-            <attribute name="data-igtf-unified">true</attribute>
+        <!-- Ocultamos las tablas base también desde aquí por seguridad -->
+        <xpath expr="//table[not(hasclass('o_tax_totals_unified'))]" position="attributes">
+            <attribute name="t-if">false</attribute>
         </xpath>
     </t>
 </templates>

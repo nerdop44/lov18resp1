@@ -1,37 +1,41 @@
 <templates xml:space="preserve">
     <t t-name="l10n_ve_tax.TaxTotalsField" t-inherit="account.TaxTotalsField" t-inherit-mode="extension" owl="1">
-        <!-- Reemplazo TOTAL del componente para evitar errores de herencia parcial -->
-        <xpath expr="." position="replace">
-            <div t-if="totals" class="o_tax_totals_unified" style="width: 100%; font-family: inherit;">
-                <table style="width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px;">
-                    <thead>
-                        <tr style="border-bottom: 2px solid #dee2e6; color: #666; font-size: 0.85em; text-transform: uppercase;">
-                            <th style="width: 40%; text-align: left; padding: 4px;">Concepto</th>
-                            <th style="width: 30%; text-align: center; padding: 4px;">Ref. ($)</th>
-                            <th style="width: 30%; text-align: right; padding: 4px;">Monto (Bs.)</th>
+        <!-- Inyectamos nuestra tabla unificada al final y ocultamos las originales -->
+        <xpath expr="//table[last()]" position="after">
+            <table t-if="totals and totals.unified_rows" class="o_tax_totals_unified oe_right oe_subtotal_footer" style="width: auto; min-width: 350px; table-layout: auto; border-spacing: 0; margin-top: 10px;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #333; color: #444; font-size: 0.8em; text-transform: uppercase;">
+                        <th style="text-align: left; padding: 4px 8px; font-weight: 600;">Concepto</th>
+                        <th style="text-align: center; padding: 4px 8px; font-weight: 600; min-width: 90px;">Ref. ($)</th>
+                        <th style="text-align: right; padding: 4px 8px; font-weight: 600; min-width: 100px;">Monto (Bs.)</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size: 13px;">
+                    <t t-foreach="totals.unified_rows" t-as="row" t-key="row_index">
+                        <tr t-att-style="row.is_total ? 'font-weight: bold; border-top: 2px solid #222; background-color: #f9f9f9;' : 'border-bottom: 1px solid #eee;'">
+                            <td style="padding: 5px 8px; white-space: nowrap;">
+                                <span t-esc="row.label"/>
+                            </td>
+                            <td style="text-align: center; padding: 5px 8px; color: #444;">
+                                <t t-out="row.usd"/>
+                            </td>
+                            <td style="text-align: right; padding: 5px 8px; color: #000;">
+                                <t t-out="row.bs"/>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <t t-foreach="totals.unified_rows || []" t-as="row" t-key="row_index">
-                            <tr t-att-style="row.is_total ? 'border-top: 2px solid #2b2b2b; font-weight: bold; background-color: #fcfcfc;' : 'border-bottom: 1px solid #f2f2f2;'">
-                                <td style="padding: 6px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                    <span t-esc="row.label" t-att-style="row.is_subtotal ? 'font-weight: 500;' : ''"/>
-                                </td>
-                                <td style="text-align: center; padding: 6px 4px; color: #333;">
-                                    <t t-out="row.usd"/>
-                                </td>
-                                <td style="text-align: right; padding: 6px 4px; color: #000;">
-                                    <t t-out="row.bs"/>
-                                </td>
-                            </tr>
-                        </t>
-                    </tbody>
-                </table>
-            </div>
+                    </t>
+                </tbody>
+            </table>
+        </xpath>
+
+        <!-- Ocultamos las tablas nativas para evitar duplicados -->
+        <xpath expr="//table[not(hasclass('o_tax_totals_unified'))]" position="attributes">
+            <attribute name="t-if">false</attribute>
+            <attribute name="style">display: none !important;</attribute>
         </xpath>
     </t>
 
-    <!-- Limpieza de componentes legados -->
+    <!-- Neutralización de legado -->
     <t t-name="l10n_ve_tax.TaxForeignTotalsField" owl="1">
     </t>
 </templates>
