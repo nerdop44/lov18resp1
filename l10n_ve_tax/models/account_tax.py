@@ -249,8 +249,32 @@ class AccountTax(models.Model):
 
             res["foreign_amount_untaxed"] = foreign_amount_untaxed
             res["foreign_amount_total"] = foreign_amount_total or (foreign_amount_untaxed + (foreign_amount_total - foreign_amount_untaxed if foreign_amount_total > foreign_amount_untaxed else 0.0))
-            res["groups_by_foreign_subtotal"] = groups_by_foreign_subtotal
+            
+            # Sincronizar subtotales foráneos con la estructura de Odoo
             res["foreign_subtotals"] = []
+            for subtotal in res.get("subtotals", []):
+                name = subtotal.get("name")
+                # Sumar base imponible foránea para este subtotal específico
+                f_subtotal_amount = 0.0
+                if name in groups_by_foreign_subtotal:
+                    for g in groups_by_foreign_subtotal[name]:
+                        f_subtotal_amount += g.get("tax_group_base_amount", 0.0)
+                elif name == "Untaxed Amount":
+                    f_subtotal_amount = foreign_amount_untaxed
+                
+                res["foreign_subtotals"].append({
+                    "name": name,
+                    "amount": f_subtotal_amount,
+                    "formatted_amount": formatLang(self.env, f_subtotal_amount, currency_obj=foreign_currency)
+                })
+
+            # Añadir montos formateados a los grupos foráneos
+            for s_name, groups in groups_by_foreign_subtotal.items():
+                for g in groups:
+                    g["formatted_tax_group_base_amount"] = formatLang(self.env, g.get("tax_group_base_amount", 0.0), currency_obj=foreign_currency)
+                    g["formatted_tax_group_amount"] = formatLang(self.env, g.get("tax_group_amount", 0.0), currency_obj=foreign_currency)
+
+            res["groups_by_foreign_subtotal"] = groups_by_foreign_subtotal
             res["foreign_formatted_amount_untaxed"] = formatLang(self.env, foreign_amount_untaxed, currency_obj=foreign_currency)
             res["foreign_formatted_amount_total"] = formatLang(self.env, foreign_amount_total, currency_obj=foreign_currency)
 

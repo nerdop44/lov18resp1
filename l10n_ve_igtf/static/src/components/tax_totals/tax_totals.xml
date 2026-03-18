@@ -1,172 +1,59 @@
-
 <templates xml:space="preserve">
 
-    <t 
-        t-name="TaxForeignTotalsField" 
-        t-inherit="l10n_ve_tax.TaxForeignTotalsField" 
-        t-inherit-mode="extension" 
-        owl="1">
-        <xpath expr="//t[@t-as='taxGroup']" position="after">
-            <!--<t t-if="totals.igtf && totals.igtf.apply_igtf && !totals.igtf.is_igtf_suggested"> 
-            <t t-if="totals.igtf.apply_igtf &amp;&amp; !totals.igtf.is_igtf_suggested">-->
-            <t t-if="totals.igtf &amp;&amp; totals.igtf.apply_igtf &amp;&amp; !totals.igtf.is_igtf_suggested">
-
-                <tr>
-                    <td class="o_td_label">
-                        <label class="o_form_label o_tax_total_label">
-                                BI IGTF</label>
-                    </td>
-                    <td>
-                        <span class="o_tax_group_amount_value">
-                            <t t-out="totals.igtf.formatted_foreign_igtf_base_amount"/>
-                        </span>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="o_td_label">
-                        <label class="o_form_label o_tax_total_label" >
-                                IGTF <t t-esc="totals.igtf.name"/>
-                        </label>
-                    </td>
-                    <td>
-                        <span class="o_tax_group_amount_value">
-                            <t t-out="totals.igtf.formatted_foreign_igtf_amount"/>
-                        </span>
-                    </td>
-                </tr>
-            </t>
-        </xpath>
-
+    <t t-name="l10n_ve_igtf.TaxTotalsField" t-inherit="account.TaxTotalsField" t-inherit-mode="extension" owl="1">
+        <!-- Inyección de filas IGTF en la tabla de 3 columnas unificada -->
         <xpath expr="//tbody" position="inside">
-            <!--<t t-if="totals.igtf && totals.igtf.apply_igtf && !!totals.igtf.is_igtf_suggested">
-            <t t-if="totals.igtf.apply_igtf &amp;&amp; !!totals.igtf.is_igtf_suggested">-->
-            <t t-if="totals.igtf &amp;&amp; totals.igtf.apply_igtf &amp;&amp; !!totals.igtf.is_igtf_suggested">
-
-                <tr>
-                    <td class="o_td_label">
-                        <label class="o_form_label o_tax_total_label">
-                            <t t-if="totals.igtf.is_igtf_suggested">
-                                (Suggested)
-                            </t>
-                                BI IGTF
-                        </label>
+            <t t-if="totals.igtf &amp;&amp; totals.igtf.apply_igtf">
+                <!-- Espaciador sutil antes de IGTF -->
+                <tr style="height: 4px;"><td t-att-colspan="totals.foreign_amount_total ? 3 : 2"></td></tr>
+                
+                <!-- Base Imponible IGTF -->
+                <tr style="font-size: 0.9em; color: #666;">
+                    <td class="o_td_label" style="padding: 2px 0 2px 15px;">
+                        <t t-if="totals.igtf.is_igtf_suggested">(Sugerido) </t>
+                        BI IGTF
                     </td>
-                    <td>
-                        <span class="o_tax_group_amount_value">
-                            <t t-out="totals.igtf.formatted_foreign_igtf_base_amount"/>
-                        </span>
+                    <td t-if="totals.foreign_amount_total" style="text-align: center; color: #00A09D; padding: 2px 0;">
+                        <t t-out="totals.igtf.formatted_foreign_igtf_base_amount"/>
+                    </td>
+                    <td style="text-align: right; padding: 2px 0;">
+                        <t t-out="totals.igtf.formatted_igtf_base_amount"/>
                     </td>
                 </tr>
-                <tr>
-                    <td class="o_td_label">
-                        <label class="o_form_label o_tax_total_label" >
-                            <t t-if="totals.igtf.is_igtf_suggested">
-                                (Suggested)
-                            </t>
-                            IGTF <t t-esc="totals.igtf.name"/>
-                        </label>
+
+                <!-- Monto IGTF -->
+                <tr style="font-size: 0.9em; color: #666;">
+                    <td class="o_td_label" style="padding: 2px 0 2px 15px;">
+                        <t t-if="totals.igtf.is_igtf_suggested">(Sugerido) </t>
+                        IGTF <t t-esc="totals.igtf.name"/>
                     </td>
-                    <td>
-                        <span class="o_tax_group_amount_value">
-                            <t t-out="totals.igtf.formatted_foreign_igtf_amount"/>
-                        </span>
+                    <td t-if="totals.foreign_amount_total" style="text-align: center; color: #00A09D; padding: 2px 0;">
+                        <t t-out="totals.igtf.formatted_foreign_igtf_amount"/>
+                    </td>
+                    <td style="text-align: right; padding: 2px 0;">
+                        <t t-out="totals.igtf.formatted_igtf_amount"/>
+                    </td>
+                </tr>
+
+                <!-- Total con IGTF (Ajustado para 3 columnas) -->
+                <tr style="border-top: 1px solid #dee2e6; font-weight: bold; background-color: #f0fdf4;">
+                    <td class="o_td_label" style="padding: 6px 0;">Total con IGTF</td>
+                    <td t-if="totals.foreign_amount_total" style="text-align: center; color: #00A09D; padding: 6px 0;">
+                        <t t-out="totals.formatted_foreign_amount_total_igtf"/>
+                    </td>
+                    <td style="text-align: right; padding: 6px 0;">
+                        <t t-out="totals.formatted_amount_total_igtf"/>
                     </td>
                 </tr>
             </t>
-            <tr>
-                <td class="o_td_label">
-                    <label class="o_form_label o_tax_total_label">Total with IGTF</label>
-                </td>
-
-                <td>
-                    <span
-                        name="amount_total_igtf"
-                        class="o_tax_group_amount_value"
-                        t-out="totals.formatted_foreign_amount_total_igtf"
-                    />
-                </td>
-            </tr>
         </xpath>
     </t>
 
-    <t 
-        t-name="TaxTotalsField" 
-        t-inherit="account.TaxTotalsField" 
-        t-inherit-mode="extension" 
-        owl="1">
-        <xpath expr="//t[@t-as='taxGroup']" position="after">
-            <t t-if="totals.igtf &amp;&amp; totals.igtf.apply_igtf &amp;&amp; !totals.igtf.is_igtf_suggested">
-                <tr>
-                    <td class="o_td_label">
-                        <label class="o_form_label o_tax_total_label">BI IGTF</label>
-                    </td>
-                    <td>
-                        <span class="o_tax_group_amount_value">
-                            <t t-out="totals.igtf.formatted_igtf_base_amount"/>
-                        </span>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="o_td_label">
-                        <label class="o_form_label o_tax_total_label" >
-                                IGTF <t t-if="totals.igtf.name" t-esc="totals.igtf.name"/>
-                        </label>
-                    </td>
-                    <td>
-                        <span class="o_tax_group_amount_value">
-                            <t t-out="totals.igtf.formatted_igtf_amount"/>
-                        </span>
-                    </td>
-                </tr>
-            </t>
-        </xpath>
-
-        <xpath expr="//tbody" position="inside">
-            <t t-if="totals.igtf &amp;&amp; totals.igtf.apply_igtf &amp;&amp; !!totals.igtf.is_igtf_suggested">
-                <tr>
-                    <td class="o_td_label">
-                        <label class="o_form_label o_tax_total_label">
-                            <t t-if="totals.igtf.is_igtf_suggested">
-                                (Suggested)
-                            </t>
-                                BI IGTF</label>
-                    </td>
-                    <td>
-                        <span class="o_tax_group_amount_value">
-                            <t t-out="totals.igtf.formatted_igtf_base_amount"/>
-                        </span>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="o_td_label">
-                        <label class="o_form_label o_tax_total_label" >
-                            <t t-if="totals.igtf.is_igtf_suggested">
-                                (Suggested)
-                            </t>
-                            IGTF <t t-if="totals.igtf.name" t-esc="totals.igtf.name"/>
-                        </label>
-                    </td>
-                    <td>
-                        <span class="o_tax_group_amount_value">
-                            <t t-out="totals.igtf.formatted_igtf_amount"/>
-                        </span>
-                    </td>
-                </tr>
-            </t>
-            <t t-if="totals.igtf &amp;&amp; totals.igtf.apply_igtf">
-                <tr>
-                    <td class="o_td_label">
-                        <label class="o_form_label o_tax_total_label">Total con IGTF</label>
-                    </td>
-                    <td>
-                        <span
-                            name="amount_total_igtf"
-                            class="o_tax_group_amount_value"
-                            t-out="totals.formatted_amount_total_igtf"
-                        />
-                    </td>
-                </tr>
-            </t>
+    <!-- Limpieza de la herencia del componente extranjero de IGTF ya que ahora 
+         todo se maneja por el componente principal unificado -->
+    <t t-name="l10n_ve_igtf.TaxForeignTotalsField" t-inherit="l10n_ve_tax.TaxForeignTotalsField" t-inherit-mode="extension" owl="1">
+        <xpath expr="//table" position="replace">
+            <!-- El contenido ya está en la tabla principal -->
         </xpath>
     </t>
 
