@@ -68,24 +68,15 @@
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_invoice_tree"/>
             <field name="arch" type="xml">
-                <!-- Hacer opcionales las columnas de totales locales -->
-                <xpath expr="//field[@name='amount_untaxed_signed']" position="attributes">
-                    <attribute name="optional">hide</attribute>
-                </xpath>
-                <xpath expr="//field[@name='amount_total_signed']" position="attributes">
-                    <attribute name="optional">show</attribute>
-                </xpath>
-                <xpath expr="//field[@name='amount_residual_signed']" position="attributes">
-                    <attribute name="optional">hide</attribute>
-                </xpath>
-
+                <!-- Inyectar columnas USD al lado del total original -->
                 <xpath expr="//field[@name='amount_total_in_currency_signed']" position="after">
                     <field name="currency_id_dif" readonly="1" optional="show" string="Moneda Ref."/>
                     <field name="amount_total_usd" sum="Total Ref." optional="show"/>
                     <field name="amount_residual_usd" sum="Saldo Ref." optional="hide"/>
                 </xpath>
+                <!-- Hacer opcional el Total original para permitir su ocultación -->
                 <xpath expr="//field[@name='amount_total_in_currency_signed']" position="attributes">
-                    <attribute name="column_invisible">1</attribute>
+                    <attribute name="optional">show</attribute>
                 </xpath>
             </field>
         </record>
