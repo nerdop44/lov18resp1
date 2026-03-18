@@ -761,22 +761,20 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             return default_result
 
         is_credit_note = move.move_type in ["out_refund", "in_refund"]
-        tax_totals = move.tax_totals or {}
-
         # 4. Determinar campos según moneda de reporte (Foreign vs System)
         if self.currency_system:
-            amount_untaxed = tax_totals.get('amount_untaxed', 0.0)
-            amount_total = tax_totals.get('amount_total', 0.0)
+            # Para moneda del sistema (Bs), usamos los campos base que Odoo mantiene en la moneda de la compañía
+            # Usamos abs() porque para libros de venta/compra el signo se maneja por tipo de documento/columna
+            amount_untaxed = abs(move.amount_untaxed_signed) if hasattr(move, 'amount_untaxed_signed') else move.amount_untaxed
+            amount_total = abs(move.amount_total_signed) if hasattr(move, 'amount_total_signed') else move.amount_total
+            amount_tax = amount_total - amount_untaxed
         else:
-            # En Odoo 18, si no es system currency, usamos campos foreign inyectados en tax_totals
+            # Para moneda extranjera ($), usamos los campos inyectados de l10n_ve_tax
+            tax_totals = move.tax_totals or {}
             amount_untaxed = tax_totals.get('foreign_amount_untaxed', 0.0)
+            amount_tax = tax_totals.get('foreign_amount_tax', 0.0)
             amount_total = tax_totals.get('foreign_amount_total', 0.0)
             
-            # Fallback a atributos de move solo si tax_totals falla
-            if not amount_untaxed:
-                 amount_untaxed = getattr(move, 'foreign_amount_untaxed', 0.0)
-            if not amount_total:
-                 amount_total = getattr(move, 'foreign_amount_total', 0.0)
 
         # Multiplicador por notas de crédito
         multiplier = -1 if is_credit_note else 1
