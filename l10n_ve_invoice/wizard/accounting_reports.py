@@ -806,7 +806,9 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             if self.company_id.config_deductible_tax:
                 general_aliquot_no_deductible = self.company_id.no_deductible_general_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_general_aliquot_purchase else False
                 reduced_aliquot_no_deductible = self.company_id.no_deductible_reduced_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_reduced_aliquot_purchase else False
-                extend_aliquot_no_deductible = self.company_id.no_deductible_extend_aliquot_purchase.tax_group_id.id if self.company_id.no_deductibl        # 7. Procesar subtotales (Odoo 18 style)
+                extend_aliquot_no_deductible = self.company_id.no_deductible_extend_aliquot_purchase.tax_group_id.id if self.company_id.no_deductible_extend_aliquot_purchase else False
+
+        # 7. Procesar subtotales (Odoo 18 style)
         # En v18 tax_totals['subtotals'] es una lista. Cada elemento tiene 'tax_groups_data'.
         subtotals = tax_totals.get('subtotals', [])
         
