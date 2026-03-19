@@ -28,6 +28,7 @@ export class DiagnosticPanel extends Component {
         this.port = null;
         this.writer = null;
         this.reader = null;
+        this.buffer = new Uint8Array(0); // Búfer de reconstrucción
 
         onWillStart(async () => {
             await this.loadInitialData();
@@ -121,37 +122,79 @@ export class DiagnosticPanel extends Component {
     }
 
     processResponse(data) {
-        const hex = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(" ");
-        const ascii = Array.from(data).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : ".").join("");
-        
-        let interpretation = this.interpretResponse(data);
-        this.addLog("RECIBIDO", `Hex: ${hex} | Interpretación: ${interpretation}`);
-        
-        // Guardar en Backend
-        this.saveLogToBackend(this.state.rawCommand, hex, interpretation);
+        // Concatenar al búfer existente
+        let newBuffer = new Uint8Array(this.buffer.length + data.length);
+        newBuffer.set(this.buffer);
+        newBuffer.set(data, this.buffer.length);
+        this.buffer = newBuffer;
+
+        // Buscar tramas completas
+        this.findAndProcessFrames();
     }
 
-    interpretResponse(data) {
-        if (data.length === 1) {
-            if (data[0] === 0x06) return "ACK (Comando Aceptado)";
-            if (data[0] === 0x15) return "NAK (Error de Protocolo o Estado)";
-            if (data[0] === 0x04) return "EOT (Fin de Transmisión)";
+    findAndProcessFrames() {
+        let stxIdx = this.buffer.indexOf(0x02);
+        let etxIdx = this.buffer.indexOf(0x03);
+
+        // Caso especial: ACK/NAK/EOT son un solo byte y no tienen STX/ETX
+        if (this.buffer.length === 1 && [0x06, 0x15, 0x04].includes(this.buffer[0])) {
+            const byte = this.buffer[0];
+            const interp = this.interpretControlByte(byte);
+            this.addLog("RECIBIDO", `Byte: ${byte.toString(16).padStart(2, '0')} | ${interp}`);
+            this.saveLogToBackend(this.state.rawCommand, byte.toString(16).padStart(2, '0'), interp);
+            this.buffer = new Uint8Array(0);
+            return;
         }
 
-        let result = "Respuesta de Datos";
-        if (data.length >= 6) {
-            const b1 = data[3];
-            const b2 = data[4];
-            const b3 = data[5];
-            this.updateStatusUI(b1, b2, b3);
-            result += ` | B1:${b1.toString(16)} B2:${b2.toString(16)} B3:${b3.toString(16)}`;
+        if (stxIdx !== -1 && etxIdx !== -1 && etxIdx > stxIdx) {
+            // Trama completa detectada
+            const frame = this.buffer.slice(stxIdx, etxIdx + 2); // STX ... ETX + LRC
+            this.handleFullFrame(frame);
             
-            // Interpretación simple de errores críticos
-            if (b2 & 0x01) result += " -> ERROR: Comando Inválido";
-            if (b3 & 0x08) result += " -> BLOQUEO: Requiere Reporte Z";
-            if (b1 & 0x04) result += " -> ADVERTENCIA: Sin Papel";
+            // Limpiar búfer hasta después del ETX + LRC
+            this.buffer = this.buffer.slice(etxIdx + 2);
+            
+            // Buscar si hay más tramas en lo que queda
+            if (this.buffer.length > 0) this.findAndProcessFrames();
         }
-        return result;
+    }
+
+    interpretControlByte(byte) {
+        if (byte === 0x06) return "ACK (Comando Aceptado)";
+        if (byte === 0x15) return "NAK (Error de Protocolo o Estado)";
+        if (byte === 0x04) return "EOT (Fin de Transmisión)";
+        return "Byte Desconocido";
+    }
+
+    handleFullFrame(frame) {
+        const hex = Array.from(frame).map(b => b.toString(16).padStart(2, '0')).join(" ");
+        let interp = "Trama de Datos";
+        
+        // En HKA Standard: STX(0), B1(1), B2(2), B3(3), DATA...
+        if (frame.length >= 5) {
+            const b1 = frame[1];
+            const b2 = frame[2];
+            const b3 = frame[3];
+            this.updateStatusUI(b1, b2, b3);
+            
+            const dataBytes = frame.slice(4, frame.length - 2);
+            const ascii = new TextDecoder().decode(dataBytes);
+            interp = `Status[${b1.toString(16)},${b2.toString(16)},${b3.toString(16)}]`;
+            
+            // Si la data tiene separadores 0x0a (LF), es una respuesta S1/S2
+            if (ascii.includes("\n")) {
+                const fields = ascii.split("\n");
+                interp += ` | Detectados ${fields.length} campos.`;
+                // Log específico para humanos si es S1
+                if (ascii.startsWith("S1")) {
+                     const serial = fields.find(f => f.match(/^[Z][0-9A-Z]{9}$/));
+                     if (serial) interp += ` -> Serial: ${serial}`;
+                }
+            }
+        }
+
+        this.addLog("RECIBIDO", `Hex: ${hex} | Interpretación: ${interp}`);
+        this.saveLogToBackend(this.state.rawCommand, hex, interp);
     }
 
     updateStatusUI(b1, b2, b3) {
