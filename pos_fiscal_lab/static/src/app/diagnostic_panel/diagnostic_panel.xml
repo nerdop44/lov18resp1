@@ -36,9 +36,8 @@
                         <!-- Dynamic Fields -->
                         <div t-if="state.selectedCommand">
                             <p class="small text-muted" t-esc="state.selectedCommand.description"/>
-                            <t t-if="state.selectedCommand.field_template">
-                                <t t-set="template" t-value="JSON.parse(state.selectedCommand.field_template)"/>
-                                <t t-foreach="template.fields" t-as="field" t-key="field.name">
+                            <t t-if="state.activeTemplate">
+                                <t t-foreach="state.activeTemplate.fields" t-as="field" t-key="field.name">
                                     <div class="form-group mb-2">
                                         <label class="small font-weight-bold"><t t-esc="field.label"/></label>
                                         

@@ -14,6 +14,7 @@ export class DiagnosticPanel extends Component {
             dbLogs: [], // Historial persistente del backend
             commands: [],
             selectedCommand: null,
+            activeTemplate: null, // Guardará el JSON parseado
             dynamicFields: {},
             rawCommand: "",
             status: {
@@ -76,13 +77,17 @@ export class DiagnosticPanel extends Component {
         const cmd = this.state.commands.find(c => c.id == cmdId);
         this.state.selectedCommand = cmd;
         this.state.dynamicFields = {};
+        this.state.activeTemplate = null;
         if (cmd && cmd.field_template) {
             try {
-                const template = JSON.parse(cmd.field_template);
-                template.fields.forEach(f => {
+                this.state.activeTemplate = JSON.parse(cmd.field_template);
+                this.state.activeTemplate.fields.forEach(f => {
                     this.state.dynamicFields[f.name] = f.placeholder || "";
                 });
-            } catch (e) { console.error("Error parseando template", e); }
+            } catch (e) {
+                console.error("Error parseando template", e);
+                this.state.activeTemplate = null;
+            }
         }
     }
 
