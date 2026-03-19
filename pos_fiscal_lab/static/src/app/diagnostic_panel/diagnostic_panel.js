@@ -169,29 +169,37 @@ export class DiagnosticPanel extends Component {
     handleFullFrame(frame) {
         const hex = Array.from(frame).map(b => b.toString(16).padStart(2, '0')).join(" ");
         let interp = "Trama de Datos";
-        
-        // En HKA Standard: STX(0), B1(1), B2(2), B3(3), DATA...
-        if (frame.length >= 5) {
-            const b1 = frame[1];
-            const b2 = frame[2];
-            const b3 = frame[3];
+        let dataStart = 1; // Salto STX
+
+        // Auto-Detección de Eco: Si los primeros bytes coinciden con el comando enviado (p.ej. S1)
+        const decoder = new TextDecoder();
+        const possibleEcho = decoder.decode(frame.slice(1, 3));
+        if (possibleEcho === this.state.rawCommand || possibleEcho === "S1" || possibleEcho === "S2") {
+            dataStart = 3; // Saltamos STX + Eco (2 bytes)
+        }
+
+        if (frame.length >= dataStart + 3) {
+            const b1 = frame[dataStart];
+            const b2 = frame[dataStart + 1];
+            const b3 = frame[dataStart + 2];
             this.updateStatusUI(b1, b2, b3);
             
-            const dataBytes = frame.slice(4, frame.length - 2);
-            const ascii = new TextDecoder().decode(dataBytes);
+            const dataBytes = frame.slice(dataStart + 3, frame.length - 2);
+            const ascii = decoder.decode(dataBytes);
             interp = `Status[${b1.toString(16)},${b2.toString(16)},${b3.toString(16)}]`;
             
-            // Si la data tiene separadores 0x0a (LF), es una respuesta S1/S2
             if (ascii.includes("\n")) {
                 const fields = ascii.split("\n");
-                interp += ` | Detectados ${fields.length} campos.`;
-                // Log específico para humanos si es S1
-                if (ascii.startsWith("S1")) {
-                     const serial = fields.find(f => f.match(/^[Z][0-9A-Z]{9}$/));
-                     const rif = fields.find(f => f.match(/^[JEGVPV][\-0-9]{8,12}$/));
-                     if (serial) interp += ` -> Serial: ${serial}`;
-                     if (rif) interp += ` -> RIF: ${rif}`;
-                }
+                interp += ` | ${fields.length} campos detectados.`;
+                const serial = fields.find(f => f.match(/^[Z][0-9A-Z]{9}$/));
+                const rif = fields.find(f => f.match(/^[JEGVPV][\-0-9]{8,12}$/));
+                if (serial) interp += ` -> Serial: ${serial}`;
+                if (rif) interp += ` -> RIF: ${rif}`;
+                
+                // Log detallado de campos para la consola (Pachacutec)
+                fields.forEach((f, i) => {
+                    if (f.trim()) this.addLog("CAMPO", `[${i+1}] ${f}`);
+                });
             }
         }
 
