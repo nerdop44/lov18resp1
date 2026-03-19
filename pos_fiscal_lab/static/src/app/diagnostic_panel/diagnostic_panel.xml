@@ -9,13 +9,14 @@
                     <small>Simulador Dinámico e Intérprete Forense - Pachacutec</small>
                 </div>
                 <div class="d-flex align-items-center">
-                    <span t-attf-class="badge mr-3 #{state.connected ? 'badge-success' : 'badge-danger'}">
+                    <span t-attf-class="badge mr-3 #{state.connected ? 'badge-success' : 'badge-danger'}" style="font-size: 1.1em; padding: 8px 12px;">
+                        <i t-attf-class="fa #{state.connected ? 'fa-link' : 'fa-unlink'} mr-1"/>
                         <t t-esc="state.connected ? 'CONECTADO' : 'DESCONECTADO'"/>
                     </span>
-                    <button class="btn btn-primary" t-on-click="connectPrinter">
+                    <button class="btn btn-primary shadow-sm" t-on-click="connectPrinter">
                         <i class="fa fa-plug mr-2"/>Conectar
                     </button>
-                    <button class="btn btn-secondary ml-2" t-on-click="clearConsole">
+                    <button class="btn btn-outline-secondary ml-2 shadow-sm" t-on-click="clearConsole">
                         <i class="fa fa-trash"/>
                     </button>
                 </div>
@@ -117,9 +118,13 @@
                     <div class="o_lab_console" id="lab_console">
                         <t t-foreach="state.logs" t-as="log" t-key="log_index">
                             <div t-attf-class="log_entry #{log.type}">
-                                <span class="text-white-50">[<t t-esc="log.time"/>]</span> 
-                                <span class="font-weight-bold ml-1"><t t-esc="log.prefix"/>:</span> 
-                                <t t-esc="log.content"/>
+                                <span class="text-white-50 mr-1" style="font-size: 0.85em;">[<t t-esc="log.time"/>]</span> 
+                                <span t-attf-class="badge mr-2 #{log.type == 'campo' ? 'badge-dark text-warning' : (log.type == 'recibido' ? 'badge-primary' : (log.type == 'enviado' ? 'badge-info' : ''))}">
+                                    <t t-esc="log.prefix"/>
+                                </span>
+                                <span t-attf-style="#{log.type == 'campo' ? 'font-family: monospace; letter-spacing: 0.5px;' : ''}">
+                                    <t t-esc="log.content"/>
+                                </span>
                             </div>
                         </t>
                     </div>

@@ -291,6 +291,11 @@ export class DiagnosticPanel extends Component {
         }
     }
 
+    clearConsole() {
+        this.state.logs = [];
+        this.addLog("INFO", "Consola local limpiada.");
+    }
+
     addLog(prefix, content) {
         const time = new Date().toLocaleTimeString();
         this.state.logs.push({ time, prefix, content, type: prefix.toLowerCase() });
