@@ -94,14 +94,15 @@ export const FiscalPrinterMixin = {
                 const baudRate = 19200;
                 console.warn("[FISCAL] v84 - Forzando Puerto: 19200 baudios, Parity: Even");
 
+                // Pachacutec: v84/v120 - Baudrate dinámico v16 Truth
                 try {
                     await port.open({
-                        baudRate: baudRate,
+                        baudRate: this.pos.config.x_fiscal_command_baudrate || 9600,
                         parity: parity,
                         dataBits: 8,
                         stopBits: 1,
                     });
-                    console.log("Puerto abierto exitosamente a 19200.");
+                    console.log("Puerto abierto exitosamente (v16 Alignment).");
                 } catch (e) {
                     if (e.name === "InvalidStateError") {
                         console.log("El puerto ya estaba abierto. Continuando...");
@@ -109,7 +110,7 @@ export const FiscalPrinterMixin = {
                         console.warn("Fallo al reutilizar puerto persistente (" + e.name + "), solicitando nuevo...");
                         port = await navigator.serial.requestPort();
                         await port.open({
-                            baudRate: baudRate,
+                            baudRate: this.pos.config.x_fiscal_command_baudrate || 9600,
                             parity: parity,
                             dataBits: 8,
                             stopBits: 1,
@@ -441,15 +442,12 @@ export const FiscalPrinterMixin = {
                         console.warn("[FISCAL] Respuesta S1 recibida:", string);
                         
                         if (string.length > 0) {
-                            // Pachacutec: v36 - CAPTURA ROBUSTA CON REGEX (Compatible con cualquier impresora HKA)
-                            // Buscamos una secuencia de dígitos (generalmente 8 o más) que represente el número fiscal
-                            const match = string.match(/\d{5,15}/g); 
-                            if (match && match.length > 0) {
-                                // El número de factura suele ser el último o penúltimo grupo de números grandes
-                                // En HKA-NG el reporte S1 devuelve varios campos, el correlativo es clave.
-                                const num_factura = match[match.length - 1]; 
-                                console.warn("[FISCAL] Numero de factura extraído con Regex: ", num_factura);
-                                this.order.num_factura = num_factura.padStart(8, "0");
+                            // Pachacutec: v120 - Alineación v16 (Partición por \n, índice 2)
+                            const myArray = string.split('\n');
+                            const num_factura = myArray[2];
+                            if (num_factura) {
+                                console.warn("[FISCAL] v120 - Numero de factura extraído (v16 Truth): ", num_factura);
+                                this.order.num_factura = num_factura.padStart(11, "0"); // v16 wide number
                                 leer = false;
                                 break;
                             } else {
@@ -579,35 +577,16 @@ export const FiscalPrinterMixin = {
             const result = await this.setPort();
             if (!result) return;
 
-            // Pachacutec: v118 - Verificación Proactiva Unificada
+            // Pachacutec: v120 - Verificación Informativa (v16 Truth)
+            // Ya no bloquea la impresión (return), solo notifica al usuario.
             const fiscal_status = await this.checkFiscalStatus();
             if (!fiscal_status.ok) {
-                let title = _t("Atención Requerida");
-                let text = "";
-                let icon = "warning";
-
-                if (fiscal_status.z_required) {
-                    title = _t("Reporte Z Obligatorio");
-                    text = _t("La impresora requiere un Reporte Z. Es posible que existan varios cierres acumulados por días de inactividad.");
-                    if (fiscal_status.paper_low) {
-                        text += "\n\n" + _t("ADVERTENCIA: Se detectó PAPEL BAJO. Esto puede estar impidiendo que el Reporte Z se complete internamente. Reemplace el rollo antes de intentar el cierre.");
-                    }
-                } else if (fiscal_status.paper_low) {
-                    title = _t("Papel Bajo");
-                    text = _t("La impresora detecta poco papel. Por favor reemplace el rollo pronto.");
-                    icon = "info";
-                }
-
-                await Swal.fire({
-                    icon: icon,
-                    title: title,
-                    text: text,
-                    confirmButtonText: _t('Entendido')
-                });
-
-                if (fiscal_status.z_required) {
-                    this.printing = false;
-                    return;
+                let msg = "";
+                if (fiscal_status.z_required) msg = _t("Atención: Reporte Z Sugerido.");
+                if (fiscal_status.paper_low) msg += (msg ? " " : "") + _t("Aviso: Poco Papel.");
+                
+                if (msg) {
+                    this.env.services.notification.add(msg, { type: "warning" });
                 }
             }
 
@@ -1086,17 +1065,16 @@ export const FiscalPrinterMixin = {
                     unitPrice = all_prices.priceWithoutTaxBeforeDiscount / (line.qty || 1);
                 }
 
-                // Pachacutec: v106 - Sintonía de Padding Estructural v16 (10/8)
-                // Usamos split/join sobre convert(toFixed) para blindar contra decimales flotantes.
-                console.warn("[FISCAL] v106 - unitPrice original:", unitPrice);
-                
+
+                // Pachacutec: v120 - Estructura HKA-NG (Fidelidad v16 Log)
+                // Inferencia del log: ! + Precio (16 dígitos) + Cantidad (17 dígitos) = 33 dígitos DATA.
                 let price_parts = convert(unitPrice, 2).split(",");
-                price_parts[0] = price_parts[0].padStart(8, "0");
+                price_parts[0] = price_parts[0].padStart(14, "0"); // 14 + 2 = 16
                 let price = price_parts.join("");
 
                 let qty_val = Math.abs(line.qty || line.quantity || 0);
                 let qty_parts = convert(qty_val, 3).split(",");
-                qty_parts[0] = qty_parts[0].padStart(5, "0");
+                qty_parts[0] = qty_parts[0].padStart(14, "0"); // 14 + 1 = 15? No, 14 integers + 3 decimals = 17
                 let quantity = qty_parts.join("");
                 
                 let command = tag + price + quantity;
@@ -1112,7 +1090,7 @@ export const FiscalPrinterMixin = {
                 }
                 command += desc_clean.substring(0, 30);
                 
-                console.warn(`[FISCAL] v111 - Línea (${command.length} chars DATA):`, command);
+                console.warn(`[FISCAL] v120 - Línea (${command.length} chars DATA):`, command);
                 this.printerCommands.push(command);
 
                 if (line.discount > 0) {
