@@ -1,6 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
+        <record id="cmd_item" model="pos.fiscal.command">
+            <field name="name">Venta Item (!)</field>
+            <field name="code">!</field>
+            <field name="protocol">hka</field>
+            <field name="description">Envía una línea de producto a la factura abierta.</field>
+            <field name="field_template">{
+                "fields": [
+                    {"name": "tag", "label": "Tasa", "type": "selection", "options": [["!", "General (16%)"], ["\"", "Reducido (8/12%)"], ["#", "Adicional (31%)"], [" ", "Exento"]]},
+                    {"name": "price", "label": "Precio (10d)", "type": "numeric", "length": 10, "placeholder": "0000001000"},
+                    {"name": "qty", "label": "Cantidad (8d)", "type": "numeric", "length": 8, "placeholder": "00001000"},
+                    {"name": "desc", "label": "Descripción", "type": "text", "length": 40}
+                ]
+            }</field>
+            <field name="sequence">5</field>
+        </record>
+
+        <record id="cmd_header" model="pos.fiscal.command">
+            <field name="name">Datos de Cabecera (i)</field>
+            <field name="code">i</field>
+            <field name="protocol">hka</field>
+            <field name="description">Programa o envía líneas de información (RIF, Nombre, etc).</field>
+            <field name="field_template">{
+                "fields": [
+                    {"name": "type", "label": "Tipo", "type": "selection", "options": [["S", "Nombre/Sujeto"], ["R", "RIF"], ["0", "Línea 1"], ["1", "Línea 2"]]},
+                    {"name": "content", "label": "Contenido", "type": "text", "length": 40}
+                ]
+            }</field>
+            <field name="sequence">6</field>
+        </record>
+
+        <record id="cmd_pago" model="pos.fiscal.command">
+            <field name="name">Pago (1-9)</field>
+            <field name="code">1</field>
+            <field name="protocol">hka</field>
+            <field name="description">Cierra la factura con un método de pago.</field>
+            <field name="field_template">{
+                "fields": [
+                    {"name": "type", "label": "ID Pago", "type": "selection", "options": [["01", "Efectivo"], ["02", "Tarjeta"], ["05", "Divisa"]]},
+                    {"name": "amount", "label": "Monto (12d)", "type": "numeric", "length": 12}
+                ]
+            }</field>
+            <field name="sequence">7</field>
+        </record>
+
         <!-- Status Commands -->
         <record id="cmd_s1" model="pos.fiscal.command">
             <field name="name">Status S1 (General)</field>

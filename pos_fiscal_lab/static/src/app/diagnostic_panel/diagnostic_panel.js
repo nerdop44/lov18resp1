@@ -2,18 +2,25 @@
 
 import { Component, useState, onWillStart } from "@odoo/owl";
 import { registry } from "@web/core/registry";
+import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
 
 export class DiagnosticPanel extends Component {
     setup() {
+        this.orm = useService("orm");
         this.state = useState({
             connected: false,
             logs: [],
+            dbLogs: [], // Historial persistente del backend
+            commands: [],
+            selectedCommand: null,
+            dynamicFields: {},
             rawCommand: "",
             status: {
                 b1_hex: "00", b1_bits: {},
                 b2_hex: "00", b2_bits: {},
                 b3_hex: "00", b3_bits: {},
+                interpretation: ""
             }
         });
 
@@ -21,7 +28,10 @@ export class DiagnosticPanel extends Component {
         this.writer = null;
         this.reader = null;
 
-        // Mapeo Bit-a-Bit v3.6 (HKA)
+        onWillStart(async () => {
+            await this.loadInitialData();
+        });
+
         this.statusMapping = {
             b1: [
                 { bit: 0, label: "Memoria Fiscal Llena" },
@@ -56,12 +66,32 @@ export class DiagnosticPanel extends Component {
         };
     }
 
+    async loadInitialData() {
+        this.state.commands = await this.orm.searchRead("pos.fiscal.command", [], ["name", "code", "field_template", "description"]);
+        this.state.dbLogs = await this.orm.searchRead("pos.fiscal.log", [], ["timestamp", "command_raw", "response_raw", "interpretation"], { limit: 50, order: "timestamp desc" });
+    }
+
+    onCommandSelect(ev) {
+        const cmdId = ev.target.value;
+        const cmd = this.state.commands.find(c => c.id == cmdId);
+        this.state.selectedCommand = cmd;
+        this.state.dynamicFields = {};
+        if (cmd && cmd.field_template) {
+            try {
+                const template = JSON.parse(cmd.field_template);
+                template.fields.forEach(f => {
+                    this.state.dynamicFields[f.name] = f.placeholder || "";
+                });
+            } catch (e) { console.error("Error parseando template", e); }
+        }
+    }
+
     async connectPrinter() {
         try {
             this.port = await navigator.serial.requestPort();
             await this.port.open({ baudRate: 19200, parity: 'even' });
             this.state.connected = true;
-            this.addLog("INFO", "Puerto abierto exitosamente a 19200 (Even).");
+            this.addLog("INFO", "Puerto abierto exitosamente.");
             this.listen();
         } catch (e) {
             this.addLog("ERROR", `Fallo al conectar: ${e.message}`);
@@ -75,9 +105,7 @@ export class DiagnosticPanel extends Component {
                 while (true) {
                     const { value, done } = await this.reader.read();
                     if (done) break;
-                    if (value) {
-                        this.processResponse(value);
-                    }
+                    if (value) this.processResponse(value);
                 }
             } catch (e) {
                 this.addLog("ERROR", `Error en lectura: ${e.message}`);
@@ -90,18 +118,35 @@ export class DiagnosticPanel extends Component {
     processResponse(data) {
         const hex = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(" ");
         const ascii = Array.from(data).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : ".").join("");
-        this.addLog("RECIBIDO", `Hex: ${hex} | ASCII: ${ascii}`);
+        
+        let interpretation = this.interpretResponse(data);
+        this.addLog("RECIBIDO", `Hex: ${hex} | Interpretación: ${interpretation}`);
+        
+        // Guardar en Backend
+        this.saveLogToBackend(this.state.rawCommand, hex, interpretation);
+    }
 
-        // Intentar decodificar Status (HKA usualmente STX + DATA + Status1 + Status2 + Status3)
-        // Detectamos si el frame contiene la respuesta S1-S6
+    interpretResponse(data) {
+        if (data.length === 1) {
+            if (data[0] === 0x06) return "ACK (Comando Aceptado)";
+            if (data[0] === 0x15) return "NAK (Error de Protocolo o Estado)";
+            if (data[0] === 0x04) return "EOT (Fin de Transmisión)";
+        }
+
+        let result = "Respuesta de Datos";
         if (data.length >= 6) {
-            // Buscamos el inicio de los bytes de status.
-            // En HKA S1, suelen ser indices 3, 4, 5 si la respuesta es STX + "S1" + B1 + B2 + B3
             const b1 = data[3];
             const b2 = data[4];
             const b3 = data[5];
             this.updateStatusUI(b1, b2, b3);
+            result += ` | B1:${b1.toString(16)} B2:${b2.toString(16)} B3:${b3.toString(16)}`;
+            
+            // Interpretación simple de errores críticos
+            if (b2 & 0x01) result += " -> ERROR: Comando Inválido";
+            if (b3 & 0x08) result += " -> BLOQUEO: Requiere Reporte Z";
+            if (b1 & 0x04) result += " -> ADVERTENCIA: Sin Papel";
         }
+        return result;
     }
 
     updateStatusUI(b1, b2, b3) {
@@ -116,55 +161,80 @@ export class DiagnosticPanel extends Component {
         }
     }
 
-    async sendCommand(cmdCode) {
-        if (!this.state.connected) return alert("Conecte la impresora primero.");
-        this.state.rawCommand = cmdCode;
+    async buildAndSend() {
+        if (!this.state.selectedCommand) return;
+        let cmd = this.state.selectedCommand.code;
+        
+        // Lógica de construcción dinámica
+        if (this.state.selectedCommand.code === "!") {
+             const tag = this.state.dynamicFields.tag || "!";
+             const price = (this.state.dynamicFields.price || "0").padStart(12, "0");
+             const qty = (this.state.dynamicFields.qty || "0").padStart(8, "0");
+             const desc = (this.state.dynamicFields.desc || "").substring(0, 40);
+             cmd = `!${price}${qty}|${desc}`; // Formato HKA Simplificado Lab
+        } else if (this.state.selectedCommand.code === "i") {
+             const type = this.state.dynamicFields.type || "0";
+             const content = this.state.dynamicFields.content || "";
+             cmd = `i${type}${content}`;
+        }
+        
+        this.state.rawCommand = cmd;
         await this.sendRawCommand();
     }
 
     async sendRawCommand() {
         if (!this.port || !this.port.writable) return;
         const cmd = this.state.rawCommand;
-        if (!cmd) return;
-
-        // Construir trama: STX + CMD + ETX + LRC
-        const encoder = new TextEncoder();
-        const data = encoder.encode(cmd);
-        const stx = 0x02;
-        const etx = 0x03;
+        const frame = this.buildFrame(cmd);
         
-        const frame = new Uint8Array(data.length + 3);
-        frame[0] = stx;
-        frame.set(data, 1);
-        frame[frame.length - 2] = etx;
-        
-        // Calcular LRC
-        let lrc = 0;
-        for (let i = 1; i < frame.length - 1; i++) {
-            lrc ^= frame[i];
-        }
-        frame[frame.length - 1] = lrc;
-
-        const hexFrame = Array.from(frame).map(b => b.toString(16).padStart(2, '0')).join(" ");
-        this.addLog("ENVIADO", `Trama: ${hexFrame} (LRC: ${lrc.toString(16)})`);
-
+        this.addLog("ENVIADO", `Trama Original: ${cmd}`);
         const writer = this.port.writable.getWriter();
         await writer.write(frame);
         writer.releaseLock();
     }
 
+    buildFrame(cmd) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(cmd);
+        const frame = new Uint8Array(data.length + 3);
+        frame[0] = 0x02; // STX
+        frame.set(data, 1);
+        frame[frame.length - 2] = 0x03; // ETX
+        
+        let lrc = 0;
+        for (let i = 1; i < frame.length - 1; i++) lrc ^= frame[i];
+        frame[frame.length - 1] = lrc;
+        return frame;
+    }
+
+    async saveLogToBackend(cmd, res, interp) {
+        await this.orm.create("pos.fiscal.log", [{
+            command_raw: cmd,
+            response_raw: res,
+            interpretation: interp,
+            protocol: 'hka'
+        }]);
+        await this.loadInitialData(); // Refrescar historial
+    }
+
+    async clearHistory() {
+        if (!confirm("¿Está seguro de vaciar todo el historial persistente?")) return;
+        // En Odoo ORM, para borrar todos sin IDs a veces es mejor un rpc call o unlink con dominio grande
+        const ids = this.state.dbLogs.map(l => l.id);
+        if (ids.length > 0) {
+            await this.orm.unlink("pos.fiscal.log", ids);
+            this.addLog("INFO", "Historial del backend vaciado.");
+            await this.loadInitialData();
+        }
+    }
+
     addLog(prefix, content) {
         const time = new Date().toLocaleTimeString();
         this.state.logs.push({ time, prefix, content, type: prefix.toLowerCase() });
-        // Auto-scroll
         setTimeout(() => {
             const el = document.getElementById('lab_console');
             if (el) el.scrollTop = el.scrollHeight;
         }, 10);
-    }
-
-    clearConsole() {
-        this.state.logs = [];
     }
 }
 

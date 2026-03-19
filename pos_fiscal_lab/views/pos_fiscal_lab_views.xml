@@ -33,6 +33,7 @@
                         <group>
                             <field name="name"/>
                             <field name="code"/>
+                            <field name="sequence"/>
                         </group>
                         <group>
                             <field name="protocol"/>
@@ -43,19 +44,37 @@
                         <page string="Description">
                             <field name="description"/>
                         </page>
+                        <page string="Dynamic Template">
+                            <field name="field_template" placeholder='{"fields": [{"name": "price", "label": "Precio (10d)", "type": "numeric", "length": 10}, ...]}'/>
+                        </page>
                     </notebook>
                 </sheet>
             </form>
         </field>
     </record>
 
-    <record id="action_pos_fiscal_command" model="ir.actions.act_window">
-        <field name="name">Fiscal Commands Library</field>
-        <field name="res_model">pos.fiscal.command</field>
+    <!-- Tree View for Logs -->
+    <record id="view_pos_fiscal_log_tree" model="ir.ui.view">
+        <field name="name">pos.fiscal.log.tree</field>
+        <field name="model">pos.fiscal.log</field>
+        <field name="arch" type="xml">
+            <list create="false">
+                <field name="timestamp"/>
+                <field name="command_raw"/>
+                <field name="response_raw"/>
+                <field name="interpretation"/>
+                <field name="user_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_pos_fiscal_log" model="ir.actions.act_window">
+        <field name="name">Communication Logs</field>
+        <field name="res_model">pos.fiscal.log</field>
         <field name="view_mode">list,form</field>
     </record>
 
-    <!-- Technical Menus (Hidden in Technical) -->
+    <!-- Technical Menus -->
     <menuitem id="menu_pos_fiscal_lab_root"
               name="POS Fiscal Laboratory"
               parent="base.menu_custom"
@@ -73,4 +92,10 @@
               parent="menu_pos_fiscal_lab_root"
               action="action_pos_fiscal_command"
               sequence="20"/>
+
+    <menuitem id="menu_pos_fiscal_log_action"
+              name="Communication Logs"
+              parent="menu_pos_fiscal_lab_root"
+              action="action_pos_fiscal_log"
+              sequence="30"/>
 </odoo>

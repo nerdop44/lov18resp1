@@ -1,6 +1,6 @@
 {
     'name': '[LOCVE] Venezuela: POS Fiscal Laboratory',
-    'version': '18.0.1.0.1',
+    'version': '18.0.1.1.0',
     'category': 'LocVe [Localization]',
     'summary': 'Technical diagnostic tool for Fiscal Printers (HKA, Bixolon, PnP)',
     'author': 'Remake Ing Nerdo Pulido',

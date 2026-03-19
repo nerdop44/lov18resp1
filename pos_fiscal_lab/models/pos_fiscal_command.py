@@ -14,6 +14,7 @@ class PosFiscalCommand(models.Model):
         ('pnp', 'PnP Protocol'),
     ], string='Protocol', default='hka', required=True)
     description = fields.Text(string='Description')
+    field_template = fields.Text(string='Fields Template (JSON)', help="JSON definition of fields for data construction (e.g. price, qty)")
     sequence = fields.Integer(default=10)
     active = fields.Boolean(default=True)
 
