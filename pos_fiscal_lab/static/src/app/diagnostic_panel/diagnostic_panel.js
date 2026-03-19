@@ -187,6 +187,11 @@ export class DiagnosticPanel extends Component {
         await this.sendRawCommand();
     }
 
+    async sendCommand(cmdCode) {
+        this.state.rawCommand = cmdCode;
+        await this.sendRawCommand();
+    }
+
     async sendRawCommand() {
         if (!this.port || !this.port.writable) return;
         const cmd = this.state.rawCommand;
