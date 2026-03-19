@@ -188,7 +188,9 @@ export class DiagnosticPanel extends Component {
                 // Log específico para humanos si es S1
                 if (ascii.startsWith("S1")) {
                      const serial = fields.find(f => f.match(/^[Z][0-9A-Z]{9}$/));
+                     const rif = fields.find(f => f.match(/^[JEGVPV][\-0-9]{8,12}$/));
                      if (serial) interp += ` -> Serial: ${serial}`;
+                     if (rif) interp += ` -> RIF: ${rif}`;
                 }
             }
         }
