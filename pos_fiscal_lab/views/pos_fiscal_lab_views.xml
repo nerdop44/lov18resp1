@@ -74,6 +74,12 @@
         <field name="view_mode">list,form</field>
     </record>
 
+    <record id="action_pos_fiscal_command" model="ir.actions.act_window">
+        <field name="name">Fiscal Commands Library</field>
+        <field name="res_model">pos.fiscal.command</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
     <!-- Technical Menus -->
     <menuitem id="menu_pos_fiscal_lab_root"
               name="POS Fiscal Laboratory"
