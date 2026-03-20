@@ -50,7 +50,7 @@ class GenericTaxReportCustomHandler(models.AbstractModel):
 
         for column_group_key, options in options_by_column_group.items():
             query_res = report._get_report_query(options, 'strict_range')
-            tables, where_clause, where_params = query_res.from_clause, query_res.where_clause, query_res.where_params
+            tables, where_clause, where_params = query_res.from_clause, query_res.where_clause, query_res.params
 
             # Fetch the base amounts.
             if currency_dif == self.env.company.currency_id.symbol:
@@ -311,7 +311,7 @@ class GenericTaxReportCustomHandler(models.AbstractModel):
             'strict_range',
             domain=self._get_vat_closing_entry_additional_domain()
         )
-        tables, where_clause, where_params = query_res.from_clause, query_res.where_clause, query_res.where_params
+        tables, where_clause, where_params = query_res.from_clause, query_res.where_clause, query_res.params
         query = sql % (tables, where_clause)
         self.env.cr.execute(query, where_params)
         results = self.env.cr.dictfetchall()

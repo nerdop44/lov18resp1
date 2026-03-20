@@ -67,7 +67,7 @@ class AgedPartnerBalanceCustomHandler(models.AbstractModel):
 
         # Build query
         query_res = report._get_report_query(options, 'strict_range', domain=[('account_id.account_type', '=', internal_type)])
-        tables, where_clause, where_params = query_res.from_clause, query_res.where_clause, query_res.where_params
+        tables, where_clause, where_params = query_res.from_clause, query_res.where_clause, query_res.params
 
         companies = self.env['res.company'].browse(options.get('company_ids') or self.env.companies.ids)
         currency_table = self.env['res.currency']._get_simple_currency_table(companies)
