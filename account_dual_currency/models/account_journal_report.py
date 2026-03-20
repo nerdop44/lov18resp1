@@ -20,7 +20,12 @@ class JournalReportCustomHandler(models.AbstractModel):
         for column_group_key, options_group in report._split_options_per_column_group(options).items():
             new_options = self.env['account.general.ledger.report.handler']._get_options_initial_balance(options_group)  # Same options as the general ledger
             query_res = report._get_report_query(new_options, 'normal', domain=[('journal_id', '=', journal_id)])
-            tables, where_clause, where_params = query_res.get_sql()
+            if hasattr(query_res, 'get_sql'):
+                tables, where_clause, where_params = query_res.get_sql()
+            else:
+                tables = query_res.from_clause
+                where_clause = query_res.where_clause
+                where_params = getattr(query_res, 'params', getattr(query_res, 'where_params', getattr(query_res, 'where_clause_params', [])))
             params.append(column_group_key)
             params += where_params
             if currency_dif == self.env.company.currency_id.symbol:
@@ -70,7 +75,12 @@ class JournalReportCustomHandler(models.AbstractModel):
             # Override any forced options: We want the ones given in the options
             options_group['date'] = options['date']
             query_res = report._get_report_query(options_group, 'strict_range', domain=[('journal_id', '=', journal.id)])
-            tables, where_clause, where_params = query_res.get_sql()
+            if hasattr(query_res, 'get_sql'):
+                tables, where_clause, where_params = query_res.get_sql()
+            else:
+                tables = query_res.from_clause
+                where_clause = query_res.where_clause
+                where_params = getattr(query_res, 'params', getattr(query_res, 'where_params', getattr(query_res, 'where_clause_params', [])))
             sort_by_date = options_group.get('sort_by_date')
             params.append(column_group_key)
             params += where_params
@@ -234,7 +244,12 @@ class JournalReportCustomHandler(models.AbstractModel):
         # grid information
         tax_report_options = self._get_generic_tax_report_options(options, data)
         query_res = report._get_report_query(tax_report_options, 'strict_range')
-        tables, where_clause, where_params = query_res.get_sql()
+        if hasattr(query_res, 'get_sql'):
+            tables, where_clause, where_params = query_res.get_sql()
+        else:
+            tables = query_res.from_clause
+            where_clause = query_res.where_clause
+            where_params = getattr(query_res, 'params', getattr(query_res, 'where_params', getattr(query_res, 'where_clause_params', [])))
         lang = self.env.user.lang or get_lang(self.env).code
         country_name = f"COALESCE(country.name->>'{lang}', country.name->>'en_US')"
         tag_name = f"COALESCE(tag.name->>'{lang}', tag.name->>'en_US')" if \

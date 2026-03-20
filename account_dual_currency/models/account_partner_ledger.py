@@ -24,7 +24,12 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
             # period: [('date' <= options['date_from'] - 1)]
             new_options = self._get_options_initial_balance(column_group_options)
             query_res = report._get_report_query(new_options, 'normal', domain=[('partner_id', 'in', partner_ids)])
-            tables, where_clause, where_params = query_res.get_sql()
+            if hasattr(query_res, 'get_sql'):
+                tables, where_clause, where_params = query_res.get_sql()
+            else:
+                tables = query_res.from_clause
+                where_clause = query_res.where_clause
+                where_params = getattr(query_res, 'params', getattr(query_res, 'where_params', getattr(query_res, 'where_clause_params', [])))
             params.append(column_group_key)
             params += where_params
             if currency_dif == self.env.company.currency_id.symbol:
@@ -199,7 +204,12 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
         currency_dif = options['currency_dif']
         for column_group_key, group_options in report._split_options_per_column_group(options).items():
             query_res = report._get_report_query(group_options, 'strict_range')
-            tables, where_clause, where_params = query_res.get_sql()
+            if hasattr(query_res, 'get_sql'):
+                tables, where_clause, where_params = query_res.get_sql()
+            else:
+                tables = query_res.from_clause
+                where_clause = query_res.where_clause
+                where_params = getattr(query_res, 'params', getattr(query_res, 'where_params', getattr(query_res, 'where_clause_params', [])))
 
             all_params += [
                 column_group_key,

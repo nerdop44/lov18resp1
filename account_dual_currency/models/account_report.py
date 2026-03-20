@@ -211,7 +211,12 @@ class AccountReport(models.Model):
         for formula, expressions in formulas_dict.items():
             line_domain = literal_eval(formula)
             query_res = self._get_report_query(options, date_scope, domain=line_domain)
-            tables, where_clause, where_params = query_res.get_sql()
+            if hasattr(query_res, 'get_sql'):
+                tables, where_clause, where_params = query_res.get_sql()
+            else:
+                tables = query_res.from_clause
+                where_clause = query_res.where_clause
+                where_params = getattr(query_res, 'params', getattr(query_res, 'where_params', getattr(query_res, 'where_clause_params', [])))
 
             tail_query, tail_params = self._get_engine_query_tail(offset, limit)
             if currency_dif == self.env.company.currency_id.symbol:
