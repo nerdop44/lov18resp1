@@ -596,7 +596,7 @@ class AccountRetention(models.Model):
                 payment_type = "inbound" if partner_type == "supplier" else "outbound"
 
             # Moneda del pago: VEF (Regla universal venezolana)
-            currency_vef = self.env.company.currency_foreign_id
+            currency_vef = self.foreign_currency_id or self.env.company.currency_id
             # Monto en VEF
             total_retention_vef = sum(lines.mapped("foreign_retention_amount"))
             # Tasa
@@ -926,7 +926,7 @@ class AccountRetention(models.Model):
         # 2. Iterar sobre los pagos requeridos para crear o actualizar
         for (concept, move), lines in lines_by_concept_and_move.items():
             # Moneda VEF
-            currency_vef = self.env.company.currency_foreign_id
+            currency_vef = self.foreign_currency_id or self.env.company.currency_id
             total_retention_vef = sum(lines.mapped('foreign_retention_amount'))
             
             if currency_vef.is_zero(total_retention_vef):
@@ -1521,8 +1521,8 @@ class AccountRetention(models.Model):
             tax_totals = invoice_id.tax_totals
 
             # Identificar el VEF como moneda objetivo de retención
-            # Se asume que company.currency_foreign_id es VEF (configurado por el módulo)
-            vef_currency = self.env.company.currency_foreign_id
+            # Usamos la moneda configurada en la retención (default VEF)
+            vef_currency = self.foreign_currency_id or self.env.company.currency_id
             invoice_currency = invoice_id.currency_id
 
             # Tasa de la factura (moneda empresa → VEF)

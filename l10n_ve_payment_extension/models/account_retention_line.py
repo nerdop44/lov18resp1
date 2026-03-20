@@ -238,7 +238,7 @@ class AccountRetentionLine(models.Model):
             # =====================================================================
             # REGLA UNIVERSAL VENEZOLANA: montos siempre en VEF para retenciones
             # =====================================================================
-            vef_currency = self.env.company.currency_foreign_id
+            vef_currency = self.foreign_currency_id or self.env.company.currency_id
             invoice_currency = record.move_id.currency_id
             invoice_is_in_vef = (vef_currency and invoice_currency == vef_currency) or (
                 not vef_currency and invoice_currency == self.env.company.currency_id
