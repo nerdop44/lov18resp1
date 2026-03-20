@@ -219,6 +219,9 @@ class AccountReport(models.Model):
                 where_params = getattr(query_res, 'params', getattr(query_res, 'where_params', getattr(query_res, 'where_clause_params', [])))
 
             tail_query, tail_params = self._get_engine_query_tail(offset, limit)
+            # Normalize where_clause to avoid syntax errors
+            final_where = f"({where_clause})" if where_clause else "1=1"
+            
             if currency_dif == self.env.company.currency_id.symbol:
                 query = f"""
                     SELECT
@@ -227,26 +230,27 @@ class AccountReport(models.Model):
                         {f', {groupby_sql} AS grouping_key' if groupby_sql else ''}
                     FROM {tables}
                     JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
-                    WHERE {where_clause}
+                    WHERE {final_where}
                     {f' GROUP BY {groupby_sql}' if groupby_sql else ''}
                     {tail_query}
                 """
             else:
                 query = f"""
-                                    SELECT
-                                        COALESCE(SUM(ROUND(account_move_line.balance_usd, currency_table.precision)), 0.0) AS sum,
-                                        COUNT(DISTINCT account_move_line.{next_groupby.split(',')[0] if next_groupby else 'id'}) AS count_rows
-                                        {f', {groupby_sql} AS grouping_key' if groupby_sql else ''}
-                                    FROM {tables}
-                                    JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
-                                    WHERE {where_clause}
-                                    {f' GROUP BY {groupby_sql}' if groupby_sql else ''}
-                                    {tail_query}
-                                """
+                    SELECT
+                        COALESCE(SUM(ROUND(account_move_line.balance_usd, currency_table.precision)), 0.0) AS sum,
+                        COUNT(DISTINCT account_move_line.{next_groupby.split(',')[0] if next_groupby else 'id'}) AS count_rows
+                        {f', {groupby_sql} AS grouping_key' if groupby_sql else ''}
+                    FROM {tables}
+                    JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
+                    WHERE {final_where}
+                    {f' GROUP BY {groupby_sql}' if groupby_sql else ''}
+                    {tail_query}
+                """
 
             # Fetch the results.
             formula_rslt = []
-            self._cr.execute(query, where_params + tail_params)
+            full_params = list(where_params or []) + list(tail_params or [])
+            self._cr.execute(query, full_params)
             all_query_res = self._cr.dictfetchall()
 
             total_sum = 0
