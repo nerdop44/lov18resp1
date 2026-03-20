@@ -1539,22 +1539,25 @@ class AccountRetention(models.Model):
                 not vef_currency and invoice_currency == self.env.company.currency_id
             )
 
-            # Regla v61: Determinar la tasa a usar (Factura vs Hoy)
+            # Regla v62: Determinar la tasa a usar (Priorizar tasa BCV de la factura)
             rate_date = fields.Date.today() if self.use_today_rate else (invoice_id.invoice_date or fields.Date.today())
             company_currency = self.env.company.currency_id
             
-            # Montos globales en VEF (Regla v61: Conversión Manual Garantizada)
+            # Tasa guardada en la factura por account_dual_currency
+            invoice_rate = invoice_id.tax_today or 1.0
+            # Tasa de hoy desde la configuración de moneda dual de la empresa
+            today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
+            
+            used_rate = today_rate if self.use_today_rate else invoice_rate
+            
+            # Montos globales en VEF (Regla v62: Conversión Manual con Tasa Dual)
             if invoice_currency == vef_currency:
                 global_vef_untaxed = abs(invoice_id.amount_untaxed_signed)
                 global_vef_total = abs(invoice_id.amount_total_signed)
             else:
-                # Convertir manualmente desde el monto de factura (USD) a moneda empresa (Bs.)
-                global_vef_untaxed = invoice_currency._convert(
-                    invoice_id.amount_untaxed, company_currency, self.env.company, rate_date
-                )
-                global_vef_total = invoice_currency._convert(
-                    invoice_id.amount_total, company_currency, self.env.company, rate_date
-                )
+                # Multiplicación directa por la tasa BCV para asegurar Bolívares reales
+                global_vef_untaxed = invoice_id.amount_untaxed * used_rate
+                global_vef_total = invoice_id.amount_total * used_rate
 
             for subtotal in tax_totals["subtotals"]:
                 subtotal_name = subtotal.get("name", "Subtotal")
