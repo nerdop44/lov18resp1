@@ -68,7 +68,8 @@ class AgedPartnerBalanceCustomHandler(models.AbstractModel):
         # Build query
         tables, where_clause, where_params = report._query_get(options, 'strict_range', domain=[('account_id.account_type', '=', internal_type)])
 
-        currency_table = self.env['res.currency']._get_simple_currency_table(options)
+        companies = self.env['res.company'].browse(options.get('company_ids') or self.env.companies.ids)
+        currency_table = self.env['res.currency']._get_simple_currency_table(companies)
         always_present_groupby = "period_table.period_index, currency_table.rate, currency_table.precision"
         if current_groupby:
             select_from_groupby = f"account_move_line.{current_groupby} AS grouping_key,"

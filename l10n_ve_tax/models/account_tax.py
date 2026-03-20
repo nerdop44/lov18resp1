@@ -15,7 +15,6 @@ class AccountTax(models.Model):
     def _prepare_tax_totals(
         self, base_lines, currency, tax_lines=None, is_company_currency_requested=False
     ):
-        _logger.criltical("¡¡¡MI METODO _prepare_tax_totals SE ESTÁ EJECUTANDO!!!") # Línea agregada
 
         """
         This function adds the alternate currency tax amounts to tax_totals.
@@ -70,7 +69,6 @@ class AccountTax(models.Model):
             is_company_currency_requested=is_company_currency_requested,
         )
         # Registro de depuración para los totales en moneda base
-        _logger.debug("Base Tax Totals: %s", res)
         
         res_without_discount = res.copy()
         has_discount = not currency.is_zero(sum([line["discount"] for line in base_lines]))
@@ -98,7 +96,6 @@ class AccountTax(models.Model):
             foreign_tax_lines,
             is_company_currency_requested=is_company_currency_requested,
         )
-        _logger.debug("Foreign Tax Totals: %s", foreign_taxes)
         
         # Registro de depuración para los totales en moneda extranjera
        
@@ -156,7 +153,6 @@ class AccountTax(models.Model):
 
         
         # Registro de depuración final antes de retornar
-        _logger.debug("Final Tax Totals: %s", res)
         
         return res
 

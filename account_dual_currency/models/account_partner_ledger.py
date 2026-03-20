@@ -16,7 +16,8 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
         queries = []
         params = []
         report = self.env.ref('account_reports.partner_ledger_report')
-        ct_query = self.env['res.currency']._get_simple_currency_table(options)
+        companies = self.env['res.company'].browse(options.get('company_ids') or self.env.companies.ids)
+        ct_query = self.env['res.currency']._get_simple_currency_table(companies)
         currency_dif = options['currency_dif']
         for column_group_key, column_group_options in report._split_options_per_column_group(options).items():
             # Get sums for the initial balance.
@@ -129,7 +130,8 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
         report = self.env.ref('account_reports.partner_ledger_report')
 
         # Create the currency table.
-        ct_query = self.env['res.currency']._get_simple_currency_table(options)
+        companies = self.env['res.company'].browse(options.get('company_ids') or self.env.companies.ids)
+        ct_query = self.env['res.currency']._get_simple_currency_table(companies)
         currency_dif = options['currency_dif']
         for column_group_key, column_group_options in report._split_options_per_column_group(options).items():
             tables, where_clause, where_params = report._query_get(column_group_options, 'normal')
@@ -183,7 +185,8 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
             indirectly_linked_aml_partner_params.append(tuple(partner_ids_wo_none))
         directly_linked_aml_partner_clause = '(' + ' OR '.join(directly_linked_aml_partner_clauses) + ')'
 
-        ct_query = self.env['res.currency']._get_simple_currency_table(options)
+        companies = self.env['res.company'].browse(options.get('company_ids') or self.env.companies.ids)
+        ct_query = self.env['res.currency']._get_simple_currency_table(companies)
         queries = []
         all_params = []
         lang = self.env.lang or get_lang(self.env).code

@@ -28,7 +28,8 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
 
         # Create the currency table.
         # As the currency table is the same whatever the comparisons, create it only once.
-        ct_query = self.env['res.currency']._get_simple_currency_table(options)
+        companies = self.env['res.company'].browse(options.get('company_ids') or self.env.companies.ids)
+        ct_query = self.env['res.currency']._get_simple_currency_table(companies)
         currency_dif = options['currency_dif']
         # ============================================
         # 1) Get sums for all accounts.
@@ -154,7 +155,8 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
             # Get sums for the account move lines.
             # period: [('date' <= options['date_to']), ('date', '>=', options['date_from'])]
             tables, where_clause, where_params = report._query_get(group_options, domain=additional_domain, date_scope='strict_range')
-            ct_query = self.env['res.currency']._get_simple_currency_table(group_options)
+            companies = self.env['res.company'].browse(group_options.get('company_ids') or self.env.companies.ids)
+            ct_query = self.env['res.currency']._get_simple_currency_table(companies)
             if currency_dif == self.env.company.currency_id.symbol:
                 query = f'''
                     (SELECT
@@ -256,7 +258,8 @@ class GeneralLedgerCustomHandler(models.AbstractModel):
         currency_dif = options['currency_dif']
         for column_group_key, options_group in report._split_options_per_column_group(options).items():
             new_options = self._get_options_initial_balance(options_group)
-            ct_query = self.env['res.currency']._get_simple_currency_table(new_options)
+            companies = self.env['res.company'].browse(new_options.get('company_ids') or self.env.companies.ids)
+            ct_query = self.env['res.currency']._get_simple_currency_table(companies)
             tables, where_clause, where_params = report._query_get(new_options, 'normal', domain=[
                 ('account_id', 'in', account_ids),
                 ('account_id.include_initial_balance', '=', True),

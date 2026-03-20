@@ -49,11 +49,9 @@ class AccountMoveLine(models.Model):
                 company=company,
                 date=date,
             )
-            #print('pasando por get_rate', rate)
             return rate
 
         for line in self:
-            #print('pasando por _compute_currency_rate')
             # line.currency_rate = get_rate(
             #     from_currency=line.company_currency_id,
             #     to_currency=line.currency_id,
@@ -61,7 +59,6 @@ class AccountMoveLine(models.Model):
             #     date=line.move_id.invoice_date or line.move_id.date or fields.Date.context_today(line),
             # )
             line.currency_rate = 1 / line.move_id.tax_today if line.move_id.tax_today > 0 else 1
-            #print('line.currency_rate', line.currency_rate)
 
     @api.onchange('amount_currency')
     def _onchange_amount_currency(self):
@@ -174,8 +171,6 @@ class AccountMoveLine(models.Model):
                 else:
                     rec.credit_usd = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
                     model = self.env.context.get('active_model')
-                    #print('contexto--->', self._context)
-                    #print('contexto', self.env.context)
                     # if not 'calcular_dual_currency' in self.env.context:
                     #     if not rec.move_id.stock_move_id:
                     #         module_dual_currency = self.env['ir.module.module'].sudo().search(
@@ -268,7 +263,6 @@ class AccountMoveLine(models.Model):
         partial_no_exch_diff = bool(self.env['ir.config_parameter'].sudo().get_param('account.disable_partial_exchange_diff'))
         sorted_lines_ctx = sorted_lines.with_context(no_exchange_difference=self._context.get('no_exchange_difference') or partial_no_exch_diff)
         partials = sorted_lines_ctx._create_reconciliation_partials()
-        print('partials', partials)
         results['partials'] = partials
         involved_partials += partials
         exchange_move_lines = partials.exchange_move_id.line_ids.filtered(lambda line: line.account_id == account)
@@ -388,12 +382,8 @@ class AccountMoveLine(models.Model):
             # if parcial.debit_move_id.move_id.is_invoice(include_receipts=True):
             #     parcial.debit_move_id._compute_amount_residual_usd()
             #     #verificar que el monto residual sea 0 y si el amount_residual sea mayor a 0
-            #     print('parcial.debit_move_id.move_id.amount_residual_usd', parcial.debit_move_id.move_id.amount_residual_usd)
-            #     print('parcial.debit_move_id.move_id.amount_residual', parcial.debit_move_id.move_id.amount_residual)
             #     if parcial.debit_move_id.move_id.amount_residual_usd == 0 and parcial.debit_move_id.move_id.amount_residual > 0:
             #         #verificar que la tasa del pago es menor a la de la factura
-            #         print('parcial.debit_move_id.move_id.tax_today', parcial.debit_move_id.move_id.tax_today)
-            #         print('parcial.credit_move_id.tax_today', parcial.credit_move_id.tax_today)
             #         if parcial.credit_move_id.move_id.tax_today < parcial.debit_move_id.move_id.tax_today:
             #             #crear un asiento de ajuste por perdida de diferencial cambiario
             #             move = self.env['account.move'].create({
@@ -428,12 +418,8 @@ class AccountMoveLine(models.Model):
             # if parcial.credit_move_id.move_id.is_invoice(include_receipts=True):
             #     parcial.credit_move_id._compute_amount_residual_usd()
             #     # verificar que el monto residual sea 0 y si el amount_residual sea mayor a 0
-            #     print('parcial.credit_move_id.move_id.amount_residual_usd', parcial.credit_move_id.move_id.amount_residual_usd)
-            #     print('parcial.credit_move_id.move_id.amount_residual', parcial.credit_move_id.move_id.amount_residual)
             #     if parcial.credit_move_id.move_id.amount_residual_usd == 0 and parcial.credit_move_id.move_id.amount_residual > 0:
             #         # verificar que la tasa del pago es menor a la de la factura
-            #         print('parcial.debit_move_id.move_id.tax_today', parcial.debit_move_id.move_id.tax_today)
-            #         print('parcial.credit_move_id.tax_today', parcial.credit_move_id.tax_today)
             #         if parcial.debit_move_id.move_id.tax_today < parcial.credit_move_id.move_id.tax_today:
             #             # crear un asiento de ajuste por perdida de diferencial cambiario
             #             move = self.env['account.move'].create({
@@ -538,7 +524,6 @@ class AccountMoveLine(models.Model):
             debit_rate = credit_rate = 1.0
             recon_debit_amount = remaining_debit_amount
             recon_credit_amount = -remaining_credit_amount
-            #print('entra en 1')
         elif debit_vals['currency'] == company_currency \
                 and is_rec_pay_account \
                 and not has_debit_zero_residual \
@@ -549,12 +534,8 @@ class AccountMoveLine(models.Model):
             recon_currency = credit_vals['currency']
             debit_rate = get_odoo_rate(debit_vals)
             credit_rate = get_accounting_rate(credit_vals)
-            print('debit_rate', debit_rate)
-            print('credit_rate', credit_rate)
-            print('remaining_debit_amount', remaining_debit_amount)
             recon_debit_amount = recon_currency.round(remaining_debit_amount * debit_rate)
             recon_credit_amount = -remaining_credit_amount_curr
-            #print('entra en 2')
         elif debit_vals['currency'] != company_currency \
                 and is_rec_pay_account \
                 and not has_debit_zero_residual_currency \
@@ -567,7 +548,6 @@ class AccountMoveLine(models.Model):
             credit_rate = get_odoo_rate(credit_vals)
             recon_debit_amount = remaining_debit_amount_curr
             recon_credit_amount = recon_currency.round(-remaining_credit_amount * credit_rate)
-            #print('entra en 3')
         elif debit_vals['currency'] == credit_vals['currency'] \
                 and debit_vals['currency'] != company_currency \
                 and not has_debit_zero_residual_currency \
@@ -590,7 +570,6 @@ class AccountMoveLine(models.Model):
             credit_rate = None
             recon_debit_amount = remaining_debit_amount
             recon_credit_amount = -remaining_credit_amount
-            #print('entra en 4')
         else:
             # Multiple involved foreign currencies. The reconciliation is done using the currency of the company.
             recon_currency = company_currency
@@ -598,7 +577,6 @@ class AccountMoveLine(models.Model):
             credit_rate = get_accounting_rate(credit_vals)
             recon_debit_amount = remaining_debit_amount
             recon_credit_amount = -remaining_credit_amount
-            #print('entra en 5')
         # Check if there is something left to reconcile. Move to the next loop iteration if not.
         skip_reconciliation = False
         if recon_currency.is_zero(recon_debit_amount):
@@ -1031,7 +1009,6 @@ class AccountMoveLine(models.Model):
     #         if company_currency.is_zero(vals['balance']) or vals['currency'].is_zero(vals['amount_currency']):
     #             return None
     #         else:
-    #             #print('la get_accounting_rate es ', abs(vals['amount_currency']) / abs(vals['balance']))
     #             return abs(vals['amount_currency']) / abs(vals['balance'])
     #
     #     # ==== Determine the currency in which the reconciliation will be done ====
@@ -1278,7 +1255,6 @@ class AccountMoveLine(models.Model):
     #         res['debit_vals'] = None
     #     if credit_fully_matched:
     #         res['credit_vals'] = None
-    #     #print('res final',res)
     #     return res
 
 
