@@ -166,7 +166,7 @@ class AccountReport(models.Model):
 
         return formatted_amount
 
-    def _compute_formula_batch_with_engine_domain(self, options, date_scope, formulas_dict, current_groupby, next_groupby, offset=0, limit=None):
+    def _compute_formula_batch_with_engine_domain(self, options, date_scope, formulas_dict, current_groupby, next_groupby, offset=0, limit=None, warnings=None, **kwargs):
         """ Report engine.
 
         Formulas made for this engine consist of a domain on account.move.line. Only those move lines will be used to compute the result.
