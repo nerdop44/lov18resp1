@@ -49,7 +49,8 @@ class GenericTaxReportCustomHandler(models.AbstractModel):
         })
 
         for column_group_key, options in options_by_column_group.items():
-            tables, where_clause, where_params = report._query_get(options, 'strict_range')
+            query_res = report._get_report_query(options, 'strict_range')
+            tables, where_clause, where_params = query_res.from_clause, query_res.where_clause, query_res.where_params
 
             # Fetch the base amounts.
             if currency_dif == self.env.company.currency_id.symbol:
@@ -305,11 +306,12 @@ class GenericTaxReportCustomHandler(models.AbstractModel):
         new_options['date']['date_from'] = fields.Date.to_string(period_start)
         new_options['date']['date_to'] = fields.Date.to_string(period_end)
 
-        tables, where_clause, where_params = self.env.ref('account.generic_tax_report')._query_get(
+        query_res = self.env.ref('account.generic_tax_report')._get_report_query(
             new_options,
             'strict_range',
             domain=self._get_vat_closing_entry_additional_domain()
         )
+        tables, where_clause, where_params = query_res.from_clause, query_res.where_clause, query_res.where_params
         query = sql % (tables, where_clause)
         self.env.cr.execute(query, where_params)
         results = self.env.cr.dictfetchall()

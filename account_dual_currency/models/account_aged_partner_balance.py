@@ -66,7 +66,8 @@ class AgedPartnerBalanceCustomHandler(models.AbstractModel):
         period_table = self.env.cr.mogrify(period_table_format, params).decode(self.env.cr.connection.encoding)
 
         # Build query
-        tables, where_clause, where_params = report._query_get(options, 'strict_range', domain=[('account_id.account_type', '=', internal_type)])
+        query_res = report._get_report_query(options, 'strict_range', domain=[('account_id.account_type', '=', internal_type)])
+        tables, where_clause, where_params = query_res.from_clause, query_res.where_clause, query_res.where_params
 
         companies = self.env['res.company'].browse(options.get('company_ids') or self.env.companies.ids)
         currency_table = self.env['res.currency']._get_simple_currency_table(companies)

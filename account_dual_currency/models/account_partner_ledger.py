@@ -23,7 +23,8 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
             # Get sums for the initial balance.
             # period: [('date' <= options['date_from'] - 1)]
             new_options = self._get_options_initial_balance(column_group_options)
-            tables, where_clause, where_params = report._query_get(new_options, 'normal', domain=[('partner_id', 'in', partner_ids)])
+            query_res = report._get_report_query(new_options, 'normal', domain=[('partner_id', 'in', partner_ids)])
+            tables, where_clause, where_params = query_res.from_clause, query_res.where_clause, query_res.where_params
             params.append(column_group_key)
             params += where_params
             if currency_dif == self.env.company.currency_id.symbol:
@@ -197,7 +198,8 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
         report = self.env.ref('account_reports.partner_ledger_report')
         currency_dif = options['currency_dif']
         for column_group_key, group_options in report._split_options_per_column_group(options).items():
-            tables, where_clause, where_params = report._query_get(group_options, 'strict_range')
+            query_res = report._get_report_query(group_options, 'strict_range')
+            tables, where_clause, where_params = query_res.from_clause, query_res.where_clause, query_res.where_params
 
             all_params += [
                 column_group_key,
