@@ -11,7 +11,8 @@ from odoo.tools import (
     frozendict,
     get_lang,
     is_html_empty,
-    sql
+    sql,
+    SQL
 )
 import json
 
@@ -54,7 +55,7 @@ class AccountMove(models.Model):
     amount_residual_usd = fields.Monetary(currency_field='currency_id_dif', compute='_compute_amount', string='Adeudado Ref.',
                                           readonly=True, store=True, copy=False)
     invoice_payments_widget_usd = fields.Binary(groups="account.group_account_invoice,account.group_account_readonly",
-                                              compute='_compute_payments_widget_reconciled_info_USD')
+                                               compute='_compute_payments_widget_reconciled_info_USD')
 
     amount_untaxed_bs = fields.Monetary(currency_field='company_currency_id', string="Base imponible Bs.", store=True, copy=False,
                                         compute="_amount_all_usd")
@@ -162,12 +163,6 @@ class AccountMove(models.Model):
                     new_rate = 1 / new_rate_ids[self.env.company.currency_id_dif.id]
                     #print('new_rate', new_rate)
                     rec.tax_today = new_rate
-        # if self.invoice_date and self.company_id.currency_id_dif and not self.tax_today_edited:
-        #     new_rate_ids = self.env.company.currency_id_dif._get_rates(self.env.company, self.invoice_date)
-        #     if new_rate_ids:
-        #         new_rate = 1 / new_rate_ids[self.env.company.currency_id_dif.id]
-        #         #print('new_rate', new_rate)
-        #         self.tax_today = new_rate
 
 
     @api.model_create_multi
@@ -182,9 +177,6 @@ class AccountMove(models.Model):
             if 'line_ids' in val:
                 if val['line_ids']:
                     for idx, l in enumerate(val['line_ids']):
-                        #print('linea', l[2])
-                        #print(l[2]['name'])
-                        #print(idx)
                         if diferencia:
                             #verifica si el texto l[2]['name'] contiene la palabra diferencia
                             if 'name' in l[2] and 'Diferencia en tasa' in l[2]['name']:
@@ -211,20 +203,9 @@ class AccountMove(models.Model):
                         [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
                     if module_dual_currency:
                         val.update({'tax_today': self.env.company.currency_id_dif.inverse_rate})
-                # elif 'tax_today' in val:
-                #     if val['tax_today'] == 0:
-                #         module_dual_currency = self.env['ir.module.module'].sudo().search(
-                #             [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
-                #         if module_dual_currency:
-                #             val.update({'tax_today': self.env.company.currency_id_dif.tasa_referencia})
 
-        #print('Valores de la factura', values)
         res = super(AccountMove, self).create(values)
         return res
-
-    # def write(self, vals):
-    #     ##print('Valores de la factura', vals)
-    #     return super(AccountMove, self).write(vals)
 
     @api.depends('currency_id')
     def _same_currency(self):
@@ -241,24 +222,12 @@ class AccountMove(models.Model):
                 rec._onchange_quick_edit_total_amount()
                 rec._onchange_quick_edit_line_ids()
                 rec._compute_tax_totals()
-                #rec.line_ids._compute_currency_rate()
-                #rec.line_ids._compute_amount_currency()
                 rec.invoice_line_ids._compute_totals()
 
             else:
-                #print('por aqui si entra')
-                #model_active = self._context.get('active_model')
-                #print('model_active', self.env.context)
                 for aml in rec.with_context(check_move_validity=False).line_ids:
-                    ##print('aml', aml)
-                    #if aml.debit_usd > 0:
-                    #    pass
-                        #aml.with_context(check_move_validity=False).debit = aml.debit_usd * rec.tax_today
                     if aml.debit_usd == 0 and aml.debit > 0:
                         aml.with_context(check_move_validity=False).debit_usd = (aml.debit / rec.tax_today) if rec.tax_today > 0 else 0
-                    #if aml.credit_usd > 0:
-                    #    pass
-                        #aml.with_context(check_move_validity=False).credit = aml.credit_usd * rec.tax_today
                     if aml.credit_usd == 0 and aml.credit > 0:
                         aml.with_context(check_move_validity=False).credit_usd = (aml.credit / rec.tax_today) if rec.tax_today > 0 else 0
 
@@ -272,25 +241,18 @@ class AccountMove(models.Model):
         for rec in self:
             if rec.currency_id == self.env.company.currency_id:
                 for l in rec.invoice_line_ids:
-                    # pass
                     l.currency_id = rec.currency_id
                     l.price_unit = (l.price_unit_usd * (rec.tax_today if rec.tax_today > 0 else l.price_unit))
 
             else:
                 for l in rec.invoice_line_ids:
-                    # pass
                     l.currency_id = rec.currency_id
                     l.price_unit = l.price_unit_usd
 
-            #rec.invoice_line_ids._onchange_price_subtotal()
-
-            #rec._recompute_dynamic_lines(recompute_all_taxes=True)
             for aml in rec.line_ids:
                 aml.currency_id = rec.currency_id
                 aml._compute_currency_rate()
 
-
-            #rec._onchange_tax_today()
 
     @api.depends('state', 'move_type')
     def _edit_trm(self):
@@ -308,7 +270,6 @@ class AccountMove(models.Model):
                         edit_trm = True
                     else:
                         edit_trm = False
-            # ##print(edit_trm)
             rec.edit_trm = edit_trm
 
     @api.depends(
@@ -437,7 +398,7 @@ class AccountMove(models.Model):
                         # these are necessary for the views to change depending on the values
                         'is_exchange': reconciled_partial['is_exchange'],
                         'amount_company_currency': formatLang(self.env, abs(counterpart_line.balance_usd),
-                                                              currency_obj=counterpart_line.company_id.currency_id_dif),
+                                                               currency_obj=counterpart_line.company_id.currency_id_dif),
                         'amount_foreign_currency': foreign_currency and formatLang(self.env,
                                                                                    abs(counterpart_line.amount_currency),
                                                                                    currency_obj=foreign_currency)
@@ -450,10 +411,6 @@ class AccountMove(models.Model):
                     move.amount_residual_usd = move.amount_total_usd - total_pagado
                 else:
                     move.amount_residual_usd = 0
-                # if move.amount_residual_usd > 0:
-                #     move.payment_state = 'partial'
-                # else:
-                #     move.payment_state = 'paid'
             else:
                 move.amount_residual_usd = move.amount_total_usd
                 move.invoice_payments_widget_usd = False
@@ -477,14 +434,11 @@ class AccountMove(models.Model):
 
     def _get_reconciled_info_JSON_values_bs(self):
         self.ensure_one()
-        foreign_currency = self.currency_id if self.currency_id != self.company_id.currency_id else False
-
         reconciled_vals = []
         pay_term_line_ids = self.line_ids.filtered(lambda line: line.account_id.account_type in ('asset_receivable', 'liability_payable'))
         partials = pay_term_line_ids.mapped('matched_debit_ids') + pay_term_line_ids.mapped('matched_credit_ids')
         for partial in partials:
             counterpart_lines = partial.debit_move_id + partial.credit_move_id
-
             counterpart_line = counterpart_lines.filtered(lambda line: line not in self.line_ids)
 
             if counterpart_line.credit > 0:
@@ -510,7 +464,6 @@ class AccountMove(models.Model):
                 'move_id': counterpart_line.move_id.id,
                 'ref': ref,
             })
-        # ##print(reconciled_vals)
         return reconciled_vals
 
     def _get_all_reconciled_invoice_partials_USD(self):
@@ -519,7 +472,8 @@ class AccountMove(models.Model):
         if not reconciled_lines:
             return {}
 
-        query = '''
+        query = SQL(
+            """
             SELECT
                 part.id,
                 part.exchange_move_id,
@@ -527,9 +481,7 @@ class AccountMove(models.Model):
                 part.credit_move_id AS counterpart_line_id
             FROM account_partial_reconcile part
             WHERE part.debit_move_id IN %s
-
             UNION ALL
-
             SELECT
                 part.id,
                 part.exchange_move_id,
@@ -537,8 +489,11 @@ class AccountMove(models.Model):
                 part.debit_move_id AS counterpart_line_id
             FROM account_partial_reconcile part
             WHERE part.credit_move_id IN %s
-        '''
-        self._cr.execute(query, [tuple(reconciled_lines.ids)] * 2)
+            """,
+            tuple(reconciled_lines.ids),
+            tuple(reconciled_lines.ids),
+        )
+        self._cr.execute(query)
 
         partial_values_list = []
         counterpart_line_ids = set()
@@ -555,24 +510,28 @@ class AccountMove(models.Model):
                 exchange_move_ids.add(values['exchange_move_id'])
 
         if exchange_move_ids:
-            query = '''
+            query = SQL(
+                """
                 SELECT
                     part.id,
                     part.credit_move_id AS counterpart_line_id
                 FROM account_partial_reconcile part
                 JOIN account_move_line credit_line ON credit_line.id = part.credit_move_id
                 WHERE credit_line.move_id IN %s AND part.debit_move_id IN %s
-
                 UNION ALL
-
                 SELECT
                     part.id,
                     part.debit_move_id AS counterpart_line_id
                 FROM account_partial_reconcile part
                 JOIN account_move_line debit_line ON debit_line.id = part.debit_move_id
                 WHERE debit_line.move_id IN %s AND part.credit_move_id IN %s
-            '''
-            self._cr.execute(query, [tuple(exchange_move_ids), tuple(counterpart_line_ids)] * 2)
+                """,
+                tuple(exchange_move_ids),
+                tuple(counterpart_line_ids),
+                tuple(exchange_move_ids),
+                tuple(counterpart_line_ids),
+            )
+            self._cr.execute(query)
 
             for values in self._cr.dictfetchall():
                 counterpart_line_ids.add(values['counterpart_line_id'])
@@ -598,48 +557,6 @@ class AccountMove(models.Model):
         res = super(AccountMove, self).js_assign_outstanding_line(line_id)
         return res
 
-    # def js_assign_outstanding_line(self, line_id):
-    #     ''' Called by the 'payment' widget to reconcile a suggested journal item to the present
-    #     invoice.
-    #
-    #     :param line_id: The id of the line to reconcile with the current invoice.
-    #     '''
-    #     self.ensure_one()
-    #     lines = self.env['account.move.line'].browse(line_id)
-    #     l = self.line_ids.filtered(lambda line: line.account_id == lines[0].account_id and not line.reconciled)
-    #     if abs(lines[0].amount_residual) == 0 and abs(lines[0].amount_residual_usd) > 0:
-    #         if l.full_reconcile_id:
-    #             l.full_reconcile_id.unlink()
-    #         partial = self.env['account.partial.reconcile'].create([{
-    #             'amount': 0,
-    #             'amount_usd': l.move_id.amount_residual_usd if abs(
-    #                 lines[0].amount_residual_usd) > l.move_id.amount_residual_usd else abs(
-    #                 lines[0].amount_residual_usd),
-    #             'debit_amount_currency': 0,
-    #             'credit_amount_currency': 0,
-    #             'debit_move_id': l.id,
-    #             'credit_move_id': line_id,
-    #         }])
-    #         p = (lines + l).reconcile()
-    #         (lines + l)._compute_amount_residual_usd()
-    #         return p
-    #     else:
-    #         results = (lines + l).reconcile()
-    #         if 'partials' in results:
-    #             if results['partials'].amount_usd == 0:
-    #                 monto_usd = 0
-    #                 if abs(lines[0].amount_residual_usd) > 0:
-    #
-    #                     # ##print("1")
-    #                     if abs(lines[0].amount_residual_usd) > self.amount_residual_usd:
-    #                         # ##print("2")
-    #                         monto_usd = self.amount_residual_usd
-    #                     else:
-    #                         # ##print("3")
-    #                         monto_usd = abs(lines[0].amount_residual_usd)
-    #                 results['partials'].write({'amount_usd': monto_usd})
-    #                 lines[0]._compute_amount_residual_usd()
-    #         return results
 
     def _compute_payments_widget_to_reconcile_info(self):
         for move in self:
@@ -717,7 +634,6 @@ class AccountMove(models.Model):
 
             if not payments_widget_vals['content']:
                 continue
-            ###print(payments_widget_vals)
             move.invoice_outstanding_credits_debits_widget = payments_widget_vals
             move.invoice_has_outstanding = True
 
@@ -727,15 +643,9 @@ class AccountMove(models.Model):
         asset_id = vals.get('asset_id')
         move_vals['tax_today'] = asset_id.tax_today
         move_vals['currency_id_dif'] = asset_id.currency_id_dif.id
-        #move_vals['asset_remaining_value_ref'] = move_vals['asset_remaining_value'] / asset_id.tax_today
-        #move_vals['asset_depreciated_value_ref'] = move_vals['asset_depreciated_value'] / asset_id.tax_today
         return move_vals
 
     def js_remove_outstanding_partial(self, partial_id):
-        ''' Called by the 'payment' widget to remove a reconciled entry to the present invoice.
-
-        :param partial_id: The id of an existing partial reconciled with the current invoice.
-        '''
         self.ensure_one()
         partial = self.env['account.partial.reconcile'].browse(partial_id)
         debit_move_id = partial.debit_move_id
@@ -766,20 +676,14 @@ class AccountMove(models.Model):
                     }
 
     def action_force_recompute_usd_totals(self):
-        """ Método para forzar el recálculo de montos USD en registros existentes. 
-            Útil para corregir registros que quedaron en cero tras actualizaciones de lógica.
-        """
         for move in self:
-            # Forzar recomputación de totales de factura
-            move._onchange_tax_today() # Recalcula líneas a la tasa actual del movimiento
-            move._amount_all_usd()     # Sincroniza cabecera
+            move._onchange_tax_today()
+            move._amount_all_usd()
             
-            # Forzar recomputación en líneas contables (aml)
             for line in move.line_ids:
                 line._compute_balance_usd()
                 line._compute_amount_residual_usd()
             
-            # Recalcular saldo total del movimiento
             move._compute_amount()
             
         return {
@@ -793,12 +697,10 @@ class AccountMove(models.Model):
         }
 
     def crear_asiento_diferencia(self):
-        #verifica que todas las facturas sean de un mismo cliente o proveedor
         if self:
             partner_ids = self.mapped('partner_id')
             if len(partner_ids) > 1:
                 raise UserError('No se puede crear un asiento de diferencia para facturas de diferentes clientes o proveedores')
-            print('partner_ids', partner_ids)
         fac_clientes = self.filtered(lambda x: x.move_type in ('out_invoice'))
         total_diferencia_cliente = sum(fac_clientes.filtered(lambda x: x.amount_residual_usd == 0 and x.amount_residual != 0).mapped('amount_residual'))
         partner_id = self.mapped('partner_id')
@@ -814,7 +716,6 @@ class AccountMove(models.Model):
                     'tax_today': 0,
                     'ref': 'Diferencia en tasa de cambio',
                 })
-                # crea la linea de diferencia
                 line_ids = [
                         (0, 0, {
                             'name': 'Diferencia en tasa de cambio',
@@ -833,18 +734,9 @@ class AccountMove(models.Model):
                         }),
                     ]
                 move.write({'line_ids': line_ids})
-                print('move', move)
-
-                print('move.line_ids', move.line_ids)
                 move._post()
-                # busca la linea en move con cuenta contable de property_account_receivable_id
                 line = move.line_ids.filtered(lambda x: x.account_id == partner_id.property_account_receivable_id)
-                print('line', line)
-                # crea la reconciliacion
                 lines_facturas = fac_clientes.line_ids.filtered(lambda x: x.account_id == partner_id.property_account_receivable_id)
-                print('lines_facturas', lines_facturas)
                 (lines_facturas + line).reconcile()
 
                 return move
-
-
