@@ -149,9 +149,23 @@ class AccountRetentionLine(models.Model):
             self.foreign_invoice_total = tax_totals.get('foreign_amount_total', self.invoice_total) 
 
             self.invoice_amount = tax_totals.get('amount_untaxed', 0.0)
-            # Regla v98: Usar campos signed nativos de Odoo para obtener Bolívares reales
-            self.foreign_invoice_amount = abs(invoice.amount_untaxed_signed) if invoice.amount_untaxed_signed else self.invoice_amount
-            self.foreign_invoice_total = abs(invoice.amount_total_signed) if invoice.amount_total_signed else self.invoice_total
+            
+            # Regla v61: Montos en VEF (Bolívares) con conversión manual
+            rate_date = fields.Date.today() if parent_retention.use_today_rate else (invoice.invoice_date or fields.Date.today())
+            company_currency = self.env.company.currency_id
+            invoice_currency = invoice.currency_id
+            vef_currency = self.foreign_currency_id or company_currency
+            
+            if invoice_currency == vef_currency:
+                self.foreign_invoice_amount = abs(invoice.amount_untaxed_signed)
+                self.foreign_invoice_total = abs(invoice.amount_total_signed)
+            else:
+                self.foreign_invoice_amount = invoice_currency._convert(
+                    invoice.amount_untaxed, company_currency, self.env.company, rate_date
+                )
+                self.foreign_invoice_total = invoice_currency._convert(
+                    invoice.amount_total, company_currency, self.env.company, rate_date
+                )
             
             # Poblar los campos de IVA directamente (Estimación proporcional si no hay campo signed de tax)
             self.iva_amount = tax_totals.get('amount_tax', 0.0)
@@ -251,9 +265,21 @@ class AccountRetentionLine(models.Model):
             amount_untaxed_company = tax_totals.get('base_amount', tax_totals.get('base_amount_currency', 0.0))
             amount_total_company = tax_totals.get('total_amount', tax_totals.get('total_amount_currency', 0.0))
 
-            # Montos en VEF (Regla v98)
-            vef_untaxed = abs(record.move_id.amount_untaxed_signed)
-            vef_total = abs(record.move_id.amount_total_signed)
+            # Montos en VEF (Regla v61: Conversión Manual)
+            rate_date = fields.Date.today() if parent_retention.use_today_rate else (record.move_id.invoice_date or fields.Date.today())
+            company_currency = self.env.company.currency_id
+            invoice_currency = record.move_id.currency_id
+            
+            if invoice_currency == vef_currency:
+                vef_untaxed = abs(record.move_id.amount_untaxed_signed)
+                vef_total = abs(record.move_id.amount_total_signed)
+            else:
+                vef_untaxed = invoice_currency._convert(
+                    record.move_id.amount_untaxed, company_currency, self.env.company, rate_date
+                )
+                vef_total = invoice_currency._convert(
+                    record.move_id.amount_total, company_currency, self.env.company, rate_date
+                )
 
             # Asignar valores — los campos foreign_ siempre son en VEF
             record.invoice_total = amount_total_company

@@ -26,6 +26,11 @@ class AccountRetention(models.Model):
     base_currency_is_vef = fields.Boolean(
         default=lambda self: self.env.company.currency_id == self.env.ref("base.VEF"),
     )
+    use_today_rate = fields.Boolean(
+        string="Utilizar Tasa de Hoy:",
+        default=False,
+        help="Si se marca, se utilizará la tasa de cambio de hoy en lugar de la tasa de la factura."
+    )
 
     company_id = fields.Many2one(
         "res.company",
@@ -1534,10 +1539,22 @@ class AccountRetention(models.Model):
                 not vef_currency and invoice_currency == self.env.company.currency_id
             )
 
-            # Montos globales en VEF (Regla v98: Usar campos signed nativos de Odoo)
-            # amount_untaxed_signed siempre es moneda empresa (Bs.)
-            global_vef_untaxed = abs(invoice_id.amount_untaxed_signed)
-            global_vef_total = abs(invoice_id.amount_total_signed)
+            # Regla v61: Determinar la tasa a usar (Factura vs Hoy)
+            rate_date = fields.Date.today() if self.use_today_rate else (invoice_id.invoice_date or fields.Date.today())
+            company_currency = self.env.company.currency_id
+            
+            # Montos globales en VEF (Regla v61: Conversión Manual Garantizada)
+            if invoice_currency == vef_currency:
+                global_vef_untaxed = abs(invoice_id.amount_untaxed_signed)
+                global_vef_total = abs(invoice_id.amount_total_signed)
+            else:
+                # Convertir manualmente desde el monto de factura (USD) a moneda empresa (Bs.)
+                global_vef_untaxed = invoice_currency._convert(
+                    invoice_id.amount_untaxed, company_currency, self.env.company, rate_date
+                )
+                global_vef_total = invoice_currency._convert(
+                    invoice_id.amount_total, company_currency, self.env.company, rate_date
+                )
 
             for subtotal in tax_totals["subtotals"]:
                 subtotal_name = subtotal.get("name", "Subtotal")
