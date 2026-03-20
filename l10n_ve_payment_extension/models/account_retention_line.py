@@ -149,14 +149,13 @@ class AccountRetentionLine(models.Model):
             self.foreign_invoice_total = tax_totals.get('foreign_amount_total', self.invoice_total) 
 
             self.invoice_amount = tax_totals.get('amount_untaxed', 0.0)
-            # Si la moneda base es Bs (VEF), el monto foráneo (en Bs) es el mismo que el base.
-            base_is_vef = self.env.company.currency_id == self.foreign_currency_id
-            self.foreign_invoice_amount = self.invoice_amount if base_is_vef else tax_totals.get('foreign_amount_untaxed', self.invoice_amount)
-            self.foreign_invoice_total = self.invoice_total if base_is_vef else tax_totals.get('foreign_amount_total', self.invoice_total)
+            # Regla v98: Usar campos signed nativos de Odoo para obtener Bolívares reales
+            self.foreign_invoice_amount = abs(invoice.amount_untaxed_signed) if invoice.amount_untaxed_signed else self.invoice_amount
+            self.foreign_invoice_total = abs(invoice.amount_total_signed) if invoice.amount_total_signed else self.invoice_total
             
-            # Poblar los campos de IVA directamente
+            # Poblar los campos de IVA directamente (Estimación proporcional si no hay campo signed de tax)
             self.iva_amount = tax_totals.get('amount_tax', 0.0)
-            self.foreign_iva_amount = self.iva_amount if base_is_vef else tax_totals.get('foreign_amount_tax', self.iva_amount)
+            self.foreign_iva_amount = self.foreign_invoice_total - self.foreign_invoice_amount
 
             self.foreign_currency_rate = invoice.foreign_rate or 1.0
 
@@ -252,14 +251,9 @@ class AccountRetentionLine(models.Model):
             amount_untaxed_company = tax_totals.get('base_amount', tax_totals.get('base_amount_currency', 0.0))
             amount_total_company = tax_totals.get('total_amount', tax_totals.get('total_amount_currency', 0.0))
 
-            # Montos en VEF
-            base_is_vef = self.env.company.currency_id == vef_currency
-            if invoice_is_in_vef or base_is_vef:
-                vef_untaxed = amount_untaxed_company
-                vef_total = amount_total_company
-            else:
-                vef_untaxed = tax_totals.get('foreign_amount_untaxed', amount_untaxed_company * foreign_rate)
-                vef_total = tax_totals.get('foreign_amount_total', amount_total_company * foreign_rate)
+            # Montos en VEF (Regla v98)
+            vef_untaxed = abs(record.move_id.amount_untaxed_signed)
+            vef_total = abs(record.move_id.amount_total_signed)
 
             # Asignar valores — los campos foreign_ siempre son en VEF
             record.invoice_total = amount_total_company

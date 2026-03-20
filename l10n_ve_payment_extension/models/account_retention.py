@@ -1534,11 +1534,10 @@ class AccountRetention(models.Model):
                 not vef_currency and invoice_currency == self.env.company.currency_id
             )
 
-            # Montos globales en VEF
-            # Si la moneda base es Bs, usamos los montos base. Si no, usamos los montos foráneos del tax_totals.
-            base_is_vef = self.env.company.currency_id == vef_currency
-            global_vef_untaxed = tax_totals.get("amount_untaxed", 0.0) if base_is_vef else tax_totals.get("foreign_amount_untaxed", 0.0)
-            global_vef_total = tax_totals.get("amount_total", 0.0) if base_is_vef else tax_totals.get("foreign_amount_total", 0.0)
+            # Montos globales en VEF (Regla v98: Usar campos signed nativos de Odoo)
+            # amount_untaxed_signed siempre es moneda empresa (Bs.)
+            global_vef_untaxed = abs(invoice_id.amount_untaxed_signed)
+            global_vef_total = abs(invoice_id.amount_total_signed)
 
             for subtotal in tax_totals["subtotals"]:
                 subtotal_name = subtotal.get("name", "Subtotal")
