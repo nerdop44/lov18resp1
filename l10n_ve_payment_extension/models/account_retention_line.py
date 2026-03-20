@@ -149,11 +149,14 @@ class AccountRetentionLine(models.Model):
             self.foreign_invoice_total = tax_totals.get('foreign_amount_total', self.invoice_total) 
 
             self.invoice_amount = tax_totals.get('amount_untaxed', 0.0)
-            self.foreign_invoice_amount = tax_totals.get('foreign_amount_untaxed', self.invoice_amount) 
-
-            # >>> ESTO ES CLAVE: Poblar los campos de IVA directamente desde tax_totals de la factura
-            self.iva_amount = tax_totals.get('amount_tax', 0.0) 
-            self.foreign_iva_amount = tax_totals.get('foreign_amount_tax', self.iva_amount) 
+            # Si la moneda base es Bs (VEF), el monto foráneo (en Bs) es el mismo que el base.
+            base_is_vef = self.env.company.currency_id == self.foreign_currency_id
+            self.foreign_invoice_amount = self.invoice_amount if base_is_vef else tax_totals.get('foreign_amount_untaxed', self.invoice_amount)
+            self.foreign_invoice_total = self.invoice_total if base_is_vef else tax_totals.get('foreign_amount_total', self.invoice_total)
+            
+            # Poblar los campos de IVA directamente
+            self.iva_amount = tax_totals.get('amount_tax', 0.0)
+            self.foreign_iva_amount = self.iva_amount if base_is_vef else tax_totals.get('foreign_amount_tax', self.iva_amount)
 
             self.foreign_currency_rate = invoice.foreign_rate or 1.0
 
@@ -250,7 +253,8 @@ class AccountRetentionLine(models.Model):
             amount_total_company = tax_totals.get('total_amount_currency', tax_totals.get('total_amount', 0.0))
 
             # Montos en VEF
-            if invoice_is_in_vef:
+            base_is_vef = self.env.company.currency_id == vef_currency
+            if invoice_is_in_vef or base_is_vef:
                 vef_untaxed = amount_untaxed_company
                 vef_total = amount_total_company
             else:

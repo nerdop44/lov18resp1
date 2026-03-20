@@ -1534,9 +1534,11 @@ class AccountRetention(models.Model):
                 not vef_currency and invoice_currency == self.env.company.currency_id
             )
 
-            # Montos globales en VEF precalculados por l10n_ve_tax en _get_tax_totals_summary
-            global_vef_untaxed = tax_totals.get("foreign_amount_untaxed", 0.0)
-            global_vef_total = tax_totals.get("foreign_amount_total", 0.0)
+            # Montos globales en VEF
+            # Si la moneda base es Bs, usamos los montos base. Si no, usamos los montos foráneos del tax_totals.
+            base_is_vef = self.env.company.currency_id == vef_currency
+            global_vef_untaxed = tax_totals.get("amount_untaxed", 0.0) if base_is_vef else tax_totals.get("foreign_amount_untaxed", 0.0)
+            global_vef_total = tax_totals.get("amount_total", 0.0) if base_is_vef else tax_totals.get("foreign_amount_total", 0.0)
 
             for subtotal in tax_totals["subtotals"]:
                 subtotal_name = subtotal.get("name", "Subtotal")
