@@ -1553,12 +1553,13 @@ class AccountRetention(models.Model):
                     tax = tax[0]
                     _logger.warning(f"compute_retention_lines_data: Impuesto: ID {tax.id}, Nombre {tax.name}")
 
-                    # Montos en la moneda de empresa (lo que sea: USD, VEF, EUR, etc.)
+                    # Montos en la moneda de empresa (En este caso, siempre Bs. para Devenalsa)
+                    # Odoo 18: base_amount es moneda empresa, base_amount_currency es moneda factura.
                     invoice_amount_company = tax_group_data.get(
-                        "base_amount_currency", tax_group_data.get("base_amount", 0.0)
+                        "base_amount", tax_group_data.get("base_amount_currency", 0.0)
                     )
                     iva_amount_company = tax_group_data.get(
-                        "tax_amount_currency", tax_group_data.get("tax_amount", 0.0)
+                        "tax_amount", tax_group_data.get("tax_amount_currency", 0.0)
                     )
 
                     # ==========================================================

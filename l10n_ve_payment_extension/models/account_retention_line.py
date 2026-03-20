@@ -248,9 +248,9 @@ class AccountRetentionLine(models.Model):
             )
             foreign_rate = record.move_id.foreign_rate or 1.0
 
-            # Montos en moneda empresa
-            amount_untaxed_company = tax_totals.get('base_amount_currency', tax_totals.get('base_amount', 0.0))
-            amount_total_company = tax_totals.get('total_amount_currency', tax_totals.get('total_amount', 0.0))
+            # Montos en moneda empresa (Bs.)
+            amount_untaxed_company = tax_totals.get('base_amount', tax_totals.get('base_amount_currency', 0.0))
+            amount_total_company = tax_totals.get('total_amount', tax_totals.get('total_amount_currency', 0.0))
 
             # Montos en VEF
             base_is_vef = self.env.company.currency_id == vef_currency
