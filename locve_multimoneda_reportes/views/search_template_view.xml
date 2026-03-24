@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        RC Multi-Moneda: Selector de moneda y tasa en reportes contables.
+        Este template se inyecta como referencia para el sistema de botones.
+    -->
+    <template id="search_template_currency_dif_choose">
+        <button type="button" class="o-no-caret btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown">
+            <span class="fa fa-money"/> Moneda:
+            <t t-if="options.get('currency_dif') != None">
+                <span style="color: red;"><t t-esc="options['currency_dif']"/></span>
+            </t>
+            <t t-else="">
+                <span style="color: red;"><t t-esc="options['currency_id_company_name']"/></span>
+            </t>
+        </button>
+        <div class="dropdown-menu o_filter_menu" role="menu">
+            <a role="menuitem" class="dropdown-item js_account_reports_one_choice_filter"
+               title="Moneda Local" data-filter="currency_dif"
+               t-att-data-id="options['currency_id_company_name']">
+                <t t-esc="options['currency_id_company_name']"/> (Local)
+            </a>
+            <a role="menuitem" class="dropdown-item js_account_reports_one_choice_filter"
+               title="Divisa" data-filter="currency_dif"
+               t-att-data-id="options['currency_id_dif_name']">
+                <t t-esc="options['currency_id_dif_name']"/> (Divisa)
+            </a>
+        </div>
+
+        <button t-if="options.get('currency_dif') == options.get('currency_id_dif_name')"
+                type="button" class="o-no-caret btn btn-secondary dropdown-toggle"
+                data-bs-toggle="dropdown" style="margin-left: 5px;">
+            <span class="fa fa-line-chart"/> Tasa:
+            <span style="color: blue;">
+                <t t-if="options.get('rate_mode') == 'current'">Actualizada</t>
+                <t t-else="">Histórica</t>
+            </span>
+        </button>
+        <div t-if="options.get('currency_dif') == options.get('currency_id_dif_name')"
+             class="dropdown-menu o_filter_menu" role="menu">
+            <a role="menuitem" class="dropdown-item js_account_reports_one_choice_filter"
+               title="Histórica" data-filter="rate_mode" data-id="historical">
+                Histórica (Registro)
+            </a>
+            <a role="menuitem" class="dropdown-item js_account_reports_one_choice_filter"
+               title="Actualizada" data-filter="rate_mode" data-id="current">
+                Actualizada (BCV/Hoy)
+            </a>
+        </div>
+    </template>
+</odoo>

@@ -10,18 +10,18 @@
     "license": "LGPL-3",
     "installable": True,
     "depends": ["web"],
-    "data": [
-        "data/ir_cron_data.xml",
-        "security/ir.model.access.csv",
-        "security/date_range_security.xml",
-        "views/date_range_view.xml",
-        "wizard/date_range_generator.xml",
-    ],
-    "assets": {
-        "web.assets_backend": [
-            "date_range/static/src/js/*",
-        ],
-    },
+#    "data": [
+#        "data/ir_cron_data.xml",
+#        "security/ir.model.access.csv",
+#        "security/date_range_security.xml",
+#        "views/date_range_view.xml",
+#        "wizard/date_range_generator.xml",
+#    ],
+#    "assets": {
+#        "web.assets_backend": [
+#            "date_range/static/src/js/*",
+#        ],
+#    },
     "development_status": "Mature",
     "maintainers": ["lmignon"],
 }

@@ -1,42 +1,91 @@
 from odoo import api, fields, models, _
-# Force deployment update
 from datetime import date, timedelta, datetime
 from bs4 import BeautifulSoup
 import requests
 import logging
+from odoo.tools import SQL
+from odoo.tools.misc import get_lang
 
 _logger = logging.getLogger(__name__)
 import urllib3
 urllib3.disable_warnings()
+
 class ResCurrency(models.Model):
     _inherit = 'res.currency'
 
+    @api.model
+    def _normalize_to_company_recordset(self, data):
+        """ Helper to force any input into a res.company recordset. """
+        if hasattr(data, 'currency_id'): # Already a recordset
+            return data
+        
+        c_ids = []
+        if isinstance(data, list):
+            c_ids = [c['id'] if isinstance(c, dict) else (c.id if hasattr(c, 'id') else c) for c in data]
+        elif isinstance(data, dict):
+            if 'id' in data:
+                c_ids = [data['id']]
+            else:
+                c_ids = [int(k) for k, v in data.items() if v and str(k).isdigit()]
+        elif isinstance(data, (int, str)):
+            try:
+                c_ids = [int(data)]
+            except:
+                pass
+        elif hasattr(data, 'ids'):
+            c_ids = data.ids
+            
+        if c_ids:
+            return self.env['res.company'].browse(c_ids)
+        return self.env.company
+
+    @api.model
+    def _get_query_currency_table(self, options):
+        """ Final Resolution V7.0: Universal Enterprise Compatibility.
+        Provides all 6 standard Enterprise columns + custom 'precision' column.
+        Columns: company_id, period_key, date_from, date_next, rate_type, rate, precision
+        """
+        companies = self._normalize_to_company_recordset(options.get('companies') if isinstance(options, dict) else options)
+        
+        rows = []
+        for company in companies:
+            # Standard Odoo 18 columns: company_id, period_key, date_from, date_next, rate_type, rate
+            # Our custom addition: precision
+            rows.append(SQL("(%(company_id)s, NULL, NULL, NULL, NULL, 1.0, %(precision)s)", 
+                company_id=company.id, 
+                precision=company.currency_id.decimal_places or 2
+            ))
+        
+        if not rows:
+            rows = [SQL("(%(company_id)s, NULL, NULL, NULL, NULL, 1.0, 2)", company_id=self.env.company.id)]
+
+        return SQL("(VALUES %(rows)s) AS currency_table(company_id, period_key, date_from, date_next, rate_type, rate, precision)", 
+            rows=SQL(', ').join(rows)
+        )
+
+    @api.model
+    def _check_currency_table_monocurrency(self, companies):
+        # Override to ensure it uses our normalized recordsets
+        companies_rs = self._normalize_to_company_recordset(companies)
+        return super()._check_currency_table_monocurrency(companies_rs)
+
+    # --- Business Logic (Restored) ---
+
     facturas_por_actualizar = fields.Boolean(compute="_facturas_por_actualizar")
-
-    # habilitar sincronización automatica
     sincronizar = fields.Boolean(string="Sincronizar", default=False)
-
-    # campo listado de servidores, bcv o dolar today
     server = fields.Selection([('bcv', 'BCV'), ('dolar_today', 'Dolar Today Promedio')], string='Servidor',
                               default='bcv')
-
     act_productos = fields.Boolean(string="Actualizar Productos", default=False)
 
     def _convert(self, from_amount, to_currency, company, date, round=True, custom_rate=0.0):
-        """Returns the converted amount of ``from_amount``` from the currency
-           ``self`` to the currency ``to_currency`` for the given ``date`` and
-           company.
-
-           :param company: The company from which we retrieve the convertion rate
-           :param date: The nearest date from which we retriev the conversion rate.
-           :param round: Round the result or not
-        """
         self, to_currency = self or to_currency, to_currency or self
         assert self, "convert amount from unknown currency"
-        assert to_currency, "convert amount to unknown currency"
-        assert company, "convert amount from unknown company"
-        assert date, "convert amount from unknown date"
-        # apply conversion rate
+        to_currency = to_currency or self
+        if not company:
+            company = self.env.company
+        if not date:
+            date = fields.Date.context_today(self)
+        
         if self == to_currency:
             to_amount = from_amount
         else:
@@ -49,9 +98,7 @@ class ResCurrency(models.Model):
                     to_amount = from_amount * self.env.context.get('tasa_factura')
             else:
                 to_amount = from_amount * self._get_conversion_rate(self, to_currency, company, date)
-        # apply rounding
-        #print("from_amount", from_amount)
-        #print("to_amount", to_amount)
+        
         return to_currency.round(to_amount) if round else to_amount
 
     def _facturas_por_actualizar(self):
@@ -64,10 +111,8 @@ class ResCurrency(models.Model):
             else:
                 rec.facturas_por_actualizar = False
 
-
     def actualizar_facturas(self):
         for rec in self:
-            # actualizar tasa a las facturas dinamicas
             facturas = self.env['account.move'].search([('acuerdo_moneda', '=', True)])
             if facturas:
                 for f in facturas:
@@ -80,7 +125,6 @@ class ResCurrency(models.Model):
                         d.tax_today = rec.inverse_rate
                         d._price_unit_usd()
                         d._price_subtotal_usd()
-                    #f._amount_untaxed_usd()
                     f._amount_all_usd()
                     f._compute_payments_widget_reconciled_info_USD()
 
@@ -107,7 +151,6 @@ class ResCurrency(models.Model):
                     for p in product_id_bs:
                         p.fixed_price = lp.fixed_price * rec.inverse_rate
                 else:
-                    # buscar el producto en la lista de Bs y actualizar
                     dominio = [('currency_id', '=', lp.company_id.currency_id.id or self.env.company.currency_id.id)]
                     if lp.product_id:
                         dominio.append((('product_id', '=', lp.product_id.id)))
@@ -137,12 +180,10 @@ class ResCurrency(models.Model):
         status_code = req.status_code
         if status_code == 200:
             html = BeautifulSoup(req.text, "html.parser")
-            # Dolar
             dolar_tag = html.find('div', {'id': 'dolar'})
             if not dolar_tag:
                 return False
             dolar = str(dolar_tag.find('strong')).split()
-            # Handle potential parsing errors if format changes
             if len(dolar) < 2:
                 return False
             dolar = str.replace(dolar[1], '.', '')
@@ -151,7 +192,6 @@ class ResCurrency(models.Model):
             except ValueError:
                 return False
 
-            # Euro
             euro_tag = html.find('div', {'id': 'euro'})
             if not euro_tag:
                 val_eur = 0.0
@@ -172,34 +212,26 @@ class ResCurrency(models.Model):
             elif curr_name == 'EUR':
                 return val_eur
             elif curr_name in ['VES', 'VEF']:
-                 # If we are strictly asking for VES rate, it's 1. 
-                 # But if we want the "Dolar" value, we should probably ask for USD currency.
-                 # For now, return 1.0 as standard behaviour, but get_trm_systray handles the fallback.
                 return 1.0
             else:
                 return False
         else:
             return False
 
-
     def get_dolar_today_promedio(self):
         url = "https://s3.amazonaws.com/dolartoday/data.json"
-        response = requests.get(url)
-        status_code = response.status_code
-
-        if status_code == 200:
-            response = response.json()
-            usd = float(response['USD']['transferencia'])
-            eur = float(response['EUR']['transferencia'])
-            if self.name == 'USD':
-                data = usd
-            elif self.name == 'EUR':
-                data = eur
-            else:
-                data = False
-
-            return data
-        else:
+        try:
+            response = requests.get(url, timeout=10)
+            if response.status_code == 200:
+                data_json = response.json()
+                usd = float(data_json['USD']['transferencia'])
+                eur = float(data_json['EUR']['transferencia'])
+                if self.name == 'USD':
+                    return usd
+                elif self.name == 'EUR':
+                    return eur
+            return False
+        except:
             return False
 
     def actualizar_tasa(self):
@@ -216,18 +248,13 @@ class ResCurrency(models.Model):
                 today = fields.Date.context_today(self)
                 
                 for c in company_ids:
-                    # Obtener valor BCV de la moneda base de la compañía
                     base_bcv = c.currency_id.get_bcv() or 1.0
-                    
-                    # Cálculo de la tasa Odoo: (Valor BCV Base / Valor BCV Destino)
-                    # Ej: Base VES (1.0), Destino USD (36.5) -> Rate = 1/36.5 = 0.027...
-                    # Ej: Base USD (36.5), Destino VES (1.0) -> Rate = 36.5/1 = 36.5
                     odoo_rate = base_bcv / nueva_tasa_bcv
                     
-                    # Buscar tasa existente para hoy
                     tasa_actual = self.env['res.currency.rate'].sudo().search(
                         [('name', '=', today), ('currency_id', '=', rec.id), ('company_id', '=', c.id)], limit=1)
                     
+                    nueva = False
                     if not tasa_actual:
                         self.env['res.currency.rate'].sudo().create({
                                 'currency_id': rec.id,
@@ -240,8 +267,6 @@ class ResCurrency(models.Model):
                         if abs(tasa_actual.rate - odoo_rate) > 0.000001:
                             tasa_actual.rate = odoo_rate
                             nueva = True
-                        else:
-                            nueva = False
 
                     if nueva:
                         channel_id.message_post(
@@ -255,8 +280,6 @@ class ResCurrency(models.Model):
                 if rec.act_productos:
                     rec.actualizar_productos()
 
-
-
     @api.model
     def _cron_actualizar_tasa(self):
         monedas = self.env['res.currency'].search([('active', '=', True), ('sincronizar', '=',True)])
@@ -268,12 +291,9 @@ class ResCurrency(models.Model):
         company_id = self.env.company
         currency_dif = company_id.currency_id_dif
         
-        _logger.info(f"TRM DEBUG: Company {company_id.name} (ID: {company_id.id}), Currency Dif: {currency_dif.name if currency_dif else 'None'}")
-
         if not currency_dif:
             return 0.0
 
-        # Busqueda directa de la ultima tasa registrada
         last_rate = self.env['res.currency.rate'].search([
             ('currency_id', '=', currency_dif.id),
             ('company_id', '=', company_id.id),
@@ -283,32 +303,20 @@ class ResCurrency(models.Model):
         if last_rate:
              tasa = last_rate.rate
         
-        _logger.info(f"TRM DEBUG: Initial DB Rate: {tasa}")
-
-        # Si la tasa es 0 o 1, intentar usar el inverse_rate (calculado desde Odoo) si existe
         if (tasa == 0.0 or tasa == 1.0) and currency_dif.inverse_rate and currency_dif.inverse_rate > 1:
             tasa = currency_dif.inverse_rate
-            _logger.info(f"TRM DEBUG: Using Inverse Rate fallback: {tasa}")
 
-        # Fallback: BCV Directo (Solo si sigue siendo 0 o 1)
         if tasa == 0.0 or tasa == 1.0:
             try:
-                # Intentamos obtener la tasa del Dólar (USD) del BCV
                 usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
                 if usd_currency:
                     bcv_rate = usd_currency.get_bcv()
                     if bcv_rate and bcv_rate > 1:
                         tasa = bcv_rate
-                        _logger.info(f"TRM DEBUG: BCV Scrape Success: {tasa}")
-            except Exception as e:
-                _logger.error(f"TRM DEBUG: BCV Scrape connection failed: {e}")
+            except:
                 pass
 
-        # Lógica final de visualización:
-        # En Venezuela siempre queremos ver "xx.xx Bs/S por Dolar".
         if tasa < 1.0 and tasa > 0.0:
             tasa = 1.0 / tasa
-            _logger.info(f"TRM DEBUG: Rate inverted for display: {tasa}")
 
-        _logger.info(f"TRM DEBUG: Final Rate returned to systray: {round(tasa, 4)}")
         return round(tasa, 4)

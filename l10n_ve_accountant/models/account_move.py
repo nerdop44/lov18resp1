@@ -91,27 +91,8 @@ class AccountMove(models.Model):
         store=True,
     )
 
-    # INICIO: Añadir los siguientes campos aquí
-    retention_iva_line_ids = fields.One2many(
-        "account.retention.iva.line",
-        "move_id",
-        string="Líneas de Retención de IVA",
-        copy=True,
-    )
-    retention_islr_line_ids = fields.One2many(
-        "account.retention.islr.line",
-        "move_id",
-        string="Líneas de Retención de ISLR",
-        copy=True,
-    )
-    retention_municipal_line_ids = fields.One2many(
-        "account.retention.municipal.line",
-        "move_id",
-        string="Líneas de Retención Municipal",
-        copy=True,
-    )
-    # FIN: De los campos a añadir
     # === INICIO DE LA MODIFICACIÓN PARA base_currency_is_vef ===
+
     base_currency_is_vef = fields.Boolean(
         compute='_compute_base_currency_is_vef',
         store=True, # Lo almacenamos para optimizar el rendimiento
@@ -132,22 +113,18 @@ class AccountMove(models.Model):
             rec.base_currency_is_vef = (rec.company_id.currency_id == vef_currency)
     # === FIN DE LA MODIFICACIÓN PARA base_currency_is_vef ===
 
-    @api.depends('company_id.currency_id')
-    def _compute_base_currency_is_vef(self):
-        # Primero, intentamos buscar la moneda VEF/VES por su ID externo.
-        # En Odoo 14+, lo más común es 'base.VES'. Si es una versión anterior, podría ser 'base.VEF'.
-        vef_currency = self.env.ref('base.VES', raise_if_not_found=False)
-        
-        # Si no la encontramos por ID externo, la buscamos por el código 'VEF' o 'VES'.
-        if not vef_currency:
-            vef_currency = self.env['res.currency'].search([('name', 'in', ['VEF', 'VES'])], limit=1)
-
-        for rec in self:
-            rec.base_currency_is_vef = (rec.company_id.currency_id == vef_currency)
-    # === FIN DE LA MODIFICACIÓN PARA base_currency_is_vef ===
-
-    # _sql_constraints eliminados porque se gestionan manualmente en _auto_init para permitir índices parciales
-    _sql_constraints = []
+    _sql_constraints = [
+        (
+            "unique_name",
+            "",
+            "Another entry with the same name already exists.",
+        ),
+        (
+            "unique_name_ve",
+            "",
+            "Another entry with the same name already exists.",
+        ),
+    ]
 
     detailed_amounts = fields.Binary(compute="_compute_detailed_amounts")
 
@@ -709,15 +686,6 @@ class AccountMove(models.Model):
             if move.is_invoice() and move.invoice_line_ids and move.foreign_currency_id and move.currency_id != move.foreign_currency_id:
                 if 'foreign_amount_untaxed' in move.tax_totals:
                     move.foreign_taxable_income = move.tax_totals['foreign_amount_untaxed']
-                    
-#    def _compute_foreign_taxable_income(self):
-#        """
-#        Compute the foreign taxable income of the invoice
-#        """
-#        for move in self:
-#            move.foreign_taxable_income = False
-#            if move.is_invoice() and move.invoice_line_ids:
-#                move.foreign_taxable_income = move.tax_totals["foreign_amount_untaxed"]
 
     @api.depends("tax_totals")
     def _compute_foreign_total_billed(self):

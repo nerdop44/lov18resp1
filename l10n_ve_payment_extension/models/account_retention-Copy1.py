@@ -793,7 +793,7 @@ Detalles técnicos: %s
                         "correlative": invoice_id.correlative or "--",
                        
                         "foreign_currency_rate": invoice_id.foreign_rate,
-                        "related_percentage_tax_base": withholding_amount,
+                        "islr_tax_base": withholding_amount,
                         "invoice_amount": tax_group_data["base_amount"],
                         "foreign_invoice_amount": tax_group_data.get("base_amount_currency", 0.0),
                         "iva_amount": tax_group_data["tax_amount"],

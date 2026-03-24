@@ -21,11 +21,6 @@ class AccountMoveLine(models.Model):
                                  compute="_credit_usd", readonly=False)
     tax_today = fields.Float(related="move_id.tax_today", store=True, string="Tasa del Asiento")
     currency_id_dif = fields.Many2one("res.currency", related="move_id.currency_id_dif", store=True)
-
-    # Campos de compatibilidad (Alias para evitar errores de validación de vista)
-    currency_vef_id = fields.Many2one("res.currency", related="currency_id_dif", string="Moneda VEF (Compatibilidad)")
-    vef_currency_id = fields.Many2one("res.currency", related="currency_id_dif", string="Moneda VEF (Compatibilidad 2)")
-
     price_unit_usd = fields.Monetary(currency_field='currency_id_dif', string='Precio $', store=True,
                                      compute='_price_unit_usd', readonly=False)
     price_subtotal_usd = fields.Monetary(currency_field='currency_id_dif', string='SubTotal $', store=True,
@@ -54,6 +49,7 @@ class AccountMoveLine(models.Model):
 
         for line in self:
             #print('pasando por _compute_currency_rate')
+            self.env.context = dict(self.env.context, tasa_factura=line.move_id.tax_today, calcular_dual_currency=True)
             # line.currency_rate = get_rate(
             #     from_currency=line.company_currency_id,
             #     to_currency=line.currency_id,
@@ -62,6 +58,7 @@ class AccountMoveLine(models.Model):
             # )
             line.currency_rate = 1 / line.move_id.tax_today if line.move_id.tax_today > 0 else 1
             #print('line.currency_rate', line.currency_rate)
+        self.env.context = dict(self.env.context, tasa_factura=None, calcular_dual_currency=False)
 
     @api.onchange('amount_currency')
     def _onchange_amount_currency(self):

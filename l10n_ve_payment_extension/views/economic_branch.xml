@@ -1,7 +1,6 @@
 
 <odoo>
 
-    <data>
 
         <record id="view_economic_branch_tree_binaural_payment_extension" model="ir.ui.view">
             <field name="name">view.economic.branch.tree.binaural.payment.extension</field>
@@ -52,6 +51,5 @@
             <field name="view_mode">list,form</field>
         </record>
     
-    </data>
 
 </odoo>

@@ -1,6 +1,5 @@
 
 <odoo>
-	<data>
 
 		<record id="view_retention_islr_form_binaural_payment_extension" model="ir.ui.view">
 			<field name="name">Retention ISLR client form</field>
@@ -28,6 +27,7 @@
 						<field name="number" force_save="1" readonly="type == 'in_invoice' or state in ['emitted', 'cancel']" required="type == 'out_invoice'" />
 						<field name="correlative" force_save="1" invisible="1" readonly="type == 'in_invoice'"/>
 						<field name="date" readonly="state in ['emitted', 'cancel']"/>
+						<field name="print_with_signatures" readonly="state in ['emitted', 'cancel']"/>
 					</group>
 					<notebook colspan="4">
 						<page name="retention_lines" string="Líneas de Retención">
@@ -42,10 +42,10 @@
 									<!-- Montos siempre en VEF (Bs.) — Regla universal de retenciones venezolanas -->
 									<field name="foreign_invoice_total" force_save="1" string="Total Factura (Bs.)" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="1"/>
 									<field name="foreign_invoice_amount" force_save="1" string="Base Imponible (Bs.)" widget="monetary" options="{'currency_field': 'foreign_currency_id'}"/>
-									<field name="related_pay_from" force_save="1" readonly="1" column_invisible="parent.type == 'out_invoice'"/>
-									<field name="related_percentage_tax_base" force_save="1" readonly="1" />
-									<field name="related_percentage_fees" force_save="1" readonly="1" />
-									<field name="related_amount_subtract_fees" force_save="1" readonly="1" />
+									<field name="islr_pay_from" force_save="1" readonly="1" column_invisible="parent.type == 'out_invoice'"/>
+									<field name="islr_tax_base" force_save="1" readonly="1" />
+									<field name="islr_percentage_perc" force_save="1" readonly="1" />
+									<field name="islr_subtract_amount" force_save="1" readonly="1" />
 									<field name="foreign_currency_rate" force_save="1" readonly="1" optional="hide" string="Tasa de Retención"/>
 									<field name="foreign_retention_amount" force_save="1" string="Monto Retenido (Bs.)" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="parent.type == 'in_invoice'"/>
 								</list>
@@ -56,8 +56,8 @@
 							</group>
 						</page>
 						<page name="Payments" string="Pagos">
-							<field name="payment_ids" nolabel="1" invisible="not partner_id" readonly="1">
-								<list string="Pagos">
+							<field name="payment_ids" nolabel="1" invisible="not partner_id" readonly="state != 'draft'">
+								<list string="Pagos" editable="bottom">
 									<field name="date"/>
 									<field name="name"/>
 									<field name="currency_id" column_invisible="False"/>
@@ -90,5 +90,4 @@
 			<field name="domain">[('type_retention', '=', 'islr'), ('type', '=', 'in_invoice')]</field>
 		</record>
 	
-    </data>
 </odoo>

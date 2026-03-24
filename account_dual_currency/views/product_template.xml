@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <data>
 
         <record id="product_variant_easy_edit_view_dual_currency" model="ir.ui.view">
             <field name="name">product.product.view.form.easy dual currency</field>
@@ -19,23 +18,23 @@
             <field name="model">product.template</field>
             <field name="inherit_id" ref="product.product_template_form_view"/>
             <field name="arch" type="xml">
-                 <xpath expr="//field[@name='taxes_id']" position="before">
-                    <field name="list_price_usd" />
-                 </xpath>
-                <xpath expr="//div[@name='standard_price_uom']" position="after">
-                    <field name="currency_id_dif" invisible="1"/>
-                    <label for="standard_price_usd" groups="base.group_user"
-                           invisible="[('product_variant_count', '&gt;', 1), ('is_product_variant', '=', False)]"/>
-                    <div name="standard_price_uom_usd" groups="base.group_user"
-                         invisible="[('product_variant_count', '&gt;', 1), ('is_product_variant', '=', False)]"
-                         class="o_row">
-                        <field name="standard_price_usd" widget="monetary" options="{'currency_field': 'currency_id_dif', 'field_digits': True}" />
-                        <span groups="uom.group_uom" class="oe_read_only">por
-                            <field name="uom_name"/>
-                        </span>
-                    </div>
-                    <field name="costo_reposicion_usd" />
-                 </xpath>
+                   <xpath expr="//div[@name='list_price_uom']" position="after">
+                      <field name="currency_id_dif" invisible="1"/>
+                      <label for="list_price_usd" class="fw-bold mt-1" string="Precio Alterno"/>
+                      <div name="pricing_usd" class="o_row">
+                        <field name="list_price_usd" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                      </div>
+                   </xpath>
+                   <xpath expr="//div[@name='standard_price_uom']" position="after">
+                      <label for="standard_price_usd" class="fw-bold" groups="base.group_user" invisible="product_variant_count &gt; 1 and not is_product_variant" string="Costo Alterno"/>
+                      <div name="standard_price_uom_usd" groups="base.group_user" invisible="product_variant_count &gt; 1 and not is_product_variant" class="o_row">
+                          <field name="standard_price_usd" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                      </div>
+                      <label for="costo_reposicion_usd" class="fw-bold" string="Costo Reposición Alterno"/>
+                      <div name="costo_reposicion_uom_usd" class="o_row">
+                          <field name="costo_reposicion_usd" class="oe_inline" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                      </div>
+                   </xpath>
             </field>
         </record>
 
@@ -92,7 +91,7 @@
                 </xpath>
                 <xpath expr="//field[@name='list_price']/.." position="after">
                     <div name="product_lst_price_usd" class="mt-1" style="color: red;">
-                        Precio $: <field name="list_price_usd"/>
+                        Precio Alt.: <field name="list_price_usd"/>
                     </div>
                 </xpath>
             </field>
@@ -100,5 +99,4 @@
 
 
 
-    </data>
 </odoo>

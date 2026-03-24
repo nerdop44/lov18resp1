@@ -1,6 +1,5 @@
 <odoo>
 
-    <data>
 
         <record id="view_account_retention_line_tree_binaural_payment_extension" model="ir.ui.view">
             <field name="name">views.account.retention.line.tree.binaural.payment.extension</field>
@@ -42,5 +41,4 @@
                 </form>
             </field>
         </record>
-    </data>
 </odoo>

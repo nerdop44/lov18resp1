@@ -1,7 +1,6 @@
 
 <odoo>
 
-    <data>
 
         <record id="view_fees_retention_tree_binaural_payment_extension" model="ir.ui.view">
             <field name="name">view.fees.retention.tree</field>
@@ -75,6 +74,5 @@
             <field name="context">{"search_default_status":True}</field>
         </record>
     
-    </data>
     
 </odoo>

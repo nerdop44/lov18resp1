@@ -1,7 +1,6 @@
 
 <odoo>
 
-    <data>
 
         <record id="view_type_withholding_tree_binaural_payment_extension" model="ir.ui.view">
             <field name="name">IVA Retention</field>
@@ -36,6 +35,5 @@
                 <field name="context">{"search_default_state":True}</field>
         </record>
     
-    </data>
 
 </odoo>

@@ -26,7 +26,7 @@
         "report/report_invoice_free_form_dual.xml",
         "report/report_invoice_sale_note.xml",
         "report/report_invoice.xml",
-        #"views/account_move.xml",
+        "views/account_move.xml",
         "views/account_journal_views.xml",
         "views/res_config_settings.xml",
         "views/menu.xml",

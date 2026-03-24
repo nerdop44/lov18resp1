@@ -170,7 +170,7 @@
                 <t t-set="invoice_amount" t-options='{"widget": "float", "precision": get_digits}' t-value='0'/>
                 <t t-set="total_amount_tax" t-options='{"widget": "float", "precision": get_digits}' t-value='0'/>
                 <!--retenido-->
-                <t t-set="related_percentage_tax_base" t-options='{"widget": "float", "precision": get_digits}'/>
+                <t t-set="islr_tax_base" t-options='{"widget": "float", "precision": get_digits}'/>
                 <t t-set="total_amount_to_pay" t-options='{"widget": "float", "precision": get_digits}' t-value='0'/>
 
                 <t t-set="excent" t-options='{"widget": "float", "precision": get_digits}' t-value='0'></t>
@@ -296,7 +296,7 @@
                         </div>
                         <!-- % Ret -->
                         <div class="" style="width:7%">
-                            <span t-esc="line.related_percentage_tax_base"/>
+                            <span t-esc="line.islr_tax_base"/>
                         </div>
 
                         <!-- Impuesto IVA -->
@@ -415,12 +415,18 @@
             <div class="row text-center">
                 <div class="col-5" style="width:35%; margin-top:10px;">
                     <!--Firma digital-->
-                    <div style="height:100px">
-                        <img style="max-height:120px;width:200px" t-if="retention.get_signature()"
-                             t-att-src="'data:image/png;base64,%s' % retention.get_signature()"/>
+                    <div style="height:120px; position: relative;">
+                        <img style="max-height:120px; width:auto; display: block; margin: 0 auto;" 
+                             t-if="retention.get_signature()"
+                             t-att-src="image_data_uri(retention.get_signature())"/>
+                        
+                        <!--Sello de la empresa (Superpuesto o al lado)-->
+                        <img style="max-height:100px; width:auto; position: absolute; bottom: 0; right: 0; opacity: 0.8;" 
+                             t-if="retention.get_stamp()"
+                             t-att-src="image_data_uri(retention.get_stamp())"/>
                     </div>
                     <!--Firma digital fin-->
-                    <h6 style="text-align: center; margin: 30px 0;border-top: 1px solid #000;width:80%; padding-top:10px;">
+                    <h6 style="text-align: center; margin: 20px 0; border-top: 1px solid #000; width:100%; padding-top:10px;">
                         Agente de Retención
                     </h6>
                 </div>
@@ -656,12 +662,12 @@
                         </div>
                         <!-- Tarifa de Retención -->
                         <div style="width:5%">
-                            <span t-field="line.related_percentage_fees"/>
+                            <span t-field="line.islr_percentage_perc"/>
                             <span>%</span>
                         </div>
                         <!-- Sustraendo -->
                         <div style="width:15%">
-			    <span t-field="line.related_amount_subtract_fees"
+			    <span t-field="line.islr_subtract_amount"
 				  t-options='{"widget": "float", "precision": 2}'/>
                         </div>
                         <!-- imp Retenido -->
@@ -747,12 +753,18 @@
 
                 <div class="col-5" style="width:35%; margin-top:10px;">
                     <!--Firma digital-->
-                    <div style="height:100px">
-                        <img style="max-height:120px;width:200px" t-if="retention.get_signature()"
-                             t-att-src="'data:image/png;base64,%s' % retention.get_signature()"/>
+                    <div style="height:120px; position: relative;">
+                        <img style="max-height:120px; width:auto; display: block; margin: 0 auto;" 
+                             t-if="retention.get_signature()"
+                             t-att-src="image_data_uri(retention.get_signature())"/>
+                        
+                        <!--Sello de la empresa (Superpuesto o al lado)-->
+                        <img style="max-height:100px; width:auto; position: absolute; bottom: 0; right: 0; opacity: 0.8;" 
+                             t-if="retention.get_stamp()"
+                             t-att-src="image_data_uri(retention.get_stamp())"/>
                     </div>
                     <!--Firma digital fin-->
-                    <h6 style="text-align: center; margin: 30px 0;border-top: 1px solid #000;width:80%; padding-top:10px;">
+                    <h6 style="text-align: center; margin: 20px 0; border-top: 1px solid #000; width:100%; padding-top:10px;">
                         Firma del Agente de Retención
                     </h6>
                 </div>
@@ -760,7 +772,7 @@
         </div>
     </template>
 
-
+    <!-- Template ORIGINAL: CON firma y sello (usa get_signature/get_stamp del modelo) -->
     <template id="retention_voucher_template">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="retention">
@@ -777,4 +789,77 @@
             </t>
         </t>
     </template>
+
+    <!-- Template LIMPIO: sin firma ni sello -->
+
+    <template id="retention_voucher_template_clean">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="retention">
+                <!-- Forzar print_with_signatures=False para este render sin modificar el registro -->
+                <t t-set="retention_clean" t-value="retention.with_context(force_no_signature=True)"/>
+                <t t-call="web.internal_layout">
+                    <div class="page">
+                        <t t-if="retention.type_retention == 'iva'">
+                            <t t-call="l10n_ve_payment_extension.report_iva_customer_clean"/>
+                        </t>
+                        <t t-else="">
+                            <t t-call="l10n_ve_payment_extension.report_islr_customer_clean"/>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <!-- Sub-template IVA SIN firma/sello: idéntico a report_iva_customer pero sin la sección Firmas -->
+    <template id="report_iva_customer_clean" inherit_id="l10n_ve_payment_extension.report_iva_customer" primary="True">
+        <!-- Eliminar la sección de firma/sello reemplazándola con espacio en blanco -->
+        <xpath expr="//div[hasclass('container')][last()]" position="replace">
+            <div class="container" style="font-size:12px !important;">
+                <div class="row text-center">
+                    <div class="col-5" style="width:35%; margin-top:10px;">
+                        <div style="height:120px;"></div>
+                        <h6 style="text-align: center; margin: 20px 0; border-top: 1px solid #000; width:100%; padding-top:10px;">
+                            Agente de Retención
+                        </h6>
+                    </div>
+                    <div class="col-5" style="width:30%; margin-top:10px;"></div>
+                    <div class="col-5" style="width:35%;margin-top:10px;">
+                        <div style="height:100px"></div>
+                        <h6 style="text-align: center; margin: 30px 0;border-top: 1px solid #000;width:80%; padding-top:10px;">
+                            Recibido por:
+                        </h6>
+                        <div style="height:30px"></div>
+                        <h6 style="text-align: center; margin: 5px 0;width:80%; padding-top:10px;">Fecha de entrega:
+                        </h6>
+                    </div>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+    <!-- Sub-template ISLR SIN firma/sello: idéntico a report_islr_customer pero sin la sección Firmas -->
+    <template id="report_islr_customer_clean" inherit_id="l10n_ve_payment_extension.report_islr_customer" primary="True">
+        <xpath expr="//div[hasclass('container')][last()]" position="replace">
+            <div class="container" style="font-size:12px !important;">
+                <div class="row text-center">
+                    <div class="col-5" style="width:35%;margin-top:10px;">
+                        <div style="height:100px"></div>
+                        <h6 style="text-align: center; margin: 30px 0;border-top: 1px solid #000;width:80%; padding-top:10px;">
+                            Firma del Agente Retenido
+                        </h6>
+                    </div>
+                    <div class="col-5" style="width:30%; margin-top:10px;"></div>
+                    <div class="col-5" style="width:35%; margin-top:10px;">
+                        <div style="height:120px;"></div>
+                        <h6 style="text-align: center; margin: 20px 0; border-top: 1px solid #000; width:100%; padding-top:10px;">
+                            Firma del Agente de Retención
+                        </h6>
+                    </div>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
 </odoo>
+

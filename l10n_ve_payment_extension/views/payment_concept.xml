@@ -1,7 +1,6 @@
 
 <odoo>
 
-    <data>
     
         <record id="view_payment_concept_tree_binaural_payment_extension" model="ir.ui.view">
             <field name="name">view.payment.concept.tree.binaural.payment.extension</field>
@@ -65,6 +64,5 @@
             <field name="context">{"search_default_status":True}</field>
         </record>
     
-    </data>
     
 </odoo>

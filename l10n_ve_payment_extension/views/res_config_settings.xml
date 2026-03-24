@@ -1,6 +1,5 @@
 
 <odoo>
-	<data>
 
 		<record id="res_config_settings_binaural_payment_extension" model="ir.ui.view">
 			<field name="name">res.config.settings.binaural.payment.extension</field>
@@ -37,5 +36,4 @@
 			</field>
 		</record>
 
-	</data>
 </odoo>

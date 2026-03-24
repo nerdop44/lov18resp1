@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
         <record model="ir.ui.view" id="effective_date_change">
             <field name="name">effective.date.change</field>
             <field name="model">stock.picking</field>
@@ -11,5 +10,4 @@
                 </field>
             </field>
         </record>
-    </data>
 </odoo>

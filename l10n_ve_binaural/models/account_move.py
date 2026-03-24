@@ -20,7 +20,7 @@ class AccountMove(models.Model):
     correlative = fields.Char("Control Number", copy=False, help="Sequence control number")
     is_contingency = fields.Boolean(related="journal_id.is_contingency")
 
-    @api.constrains("correlative", "journal_id.is_contingency")
+    @api.constrains("correlative", "is_contingency")
     def _check_correlative(self):
         AccountMove = self.env["account.move"]
         is_series_invoicing_enabled = self.company_id.group_sales_invoicing_series

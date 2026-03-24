@@ -191,7 +191,6 @@ class AccountBankStatementLine(models.Model):
         foreign_currency = self.foreign_currency_id or journal_currency or company_currency
         statement_line_rate = (self.amount_currency / self.amount) if self.amount else 0.0
 
-        balance_to_reconcile = counterpart_vals.pop('balance', None)
         amount_residual = -counterpart_vals.pop('amount_residual', move_line.amount_residual if move_line else 0.0) \
             if balance_to_reconcile is None else balance_to_reconcile
         amount_residual_currency = -counterpart_vals.pop('amount_residual_currency',

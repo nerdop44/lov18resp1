@@ -4,6 +4,7 @@
     "website": "https://www.odoo.com/documentation/18.0/applications/finance/fiscal_localizations.html",
     "icon": "/account/static/description/l10n.png",
     "countries": ["ve"],
+    "version": "18.0.1.0.14",
     "author": "Odoo S.A., Binaural C.A",
     "category": "Accounting/Localizations/Account Charts",
     "description": """

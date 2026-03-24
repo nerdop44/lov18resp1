@@ -21,7 +21,7 @@ class AccountRetention(models.Model):
     )
     foreign_currency_id = fields.Many2one(
         "res.currency",
-        default=lambda self: self.env.ref("base.VEF").id,
+        default=lambda self: self.env.company.currency_foreign_id.id,
     )
     base_currency_is_vef = fields.Boolean(
         default=lambda self: self.env.company.currency_id == self.env.ref("base.VEF"),
@@ -154,6 +154,26 @@ class AccountRetention(models.Model):
             " that the one that just has been deleted."
         )
     )
+
+    print_with_signatures = fields.Boolean(
+        string="Imprimir con Firmas y Sellos",
+        default=True,
+        help="Si se marca, el comprobante PDF incluirá la firma y el sello de la empresa.",
+    )
+
+    def get_signature(self):
+        """Retorna la imagen de firma del representante legal si print_with_signatures=True."""
+        self.ensure_one()
+        if self.print_with_signatures:
+            return self.company_id.signature_image
+        return False
+
+    def get_stamp(self):
+        """Retorna la imagen del sello húmedo de la empresa si print_with_signatures=True."""
+        self.ensure_one()
+        if self.print_with_signatures:
+            return self.company_id.stamp_image
+        return False
 
     @api.depends("type", "partner_id")
     def _compute_allowed_lines_move_ids(self):
@@ -414,18 +434,8 @@ class AccountRetention(models.Model):
         Clear retention lines and payments.
         """
         self.ensure_one()
-        self.update(
-            {
-                "retention_line_ids": (
-                    Command.clear()
-                    if any(
-                        isinstance(id, models.NewId)
-                        for id in self.retention_line_ids.ids
-                    )
-                    else False
-                ),
-            }
-        )
+        if any(isinstance(id, models.NewId) for id in self.retention_line_ids.ids):
+            self.retention_line_ids = [Command.clear()]
 
 
 
@@ -484,10 +494,13 @@ class AccountRetention(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         res = super().create(vals_list)
+        res._safe_create_payments()
         return res
 
     def write(self, vals):
         res = super().write(vals)
+        if vals.get("retention_line_ids", False):
+            self._safe_create_payments()
         return res
 
     def action_generate_payment(self):
@@ -507,24 +520,12 @@ class AccountRetention(models.Model):
     def _safe_create_payments(self):
         """
         Crea o actualiza los pagos en borrador para retenciones IVA e ISLR.
-        Para IVA: sincroniza el pago por factura (igual que ISLR).
+        Para IVA: sincroniza el pago por factura.
         Para ISLR: sincroniza por concepto+factura via _create_islr_payments_on_draft.
         Para Municipal: no crea pagos automáticos.
         """
         for retention in self:
-            journals = {
-                ("iva", "in_invoice"): retention.company_id.iva_supplier_retention_journal_id,
-                ("iva", "out_invoice"): retention.company_id.iva_customer_retention_journal_id,
-                ("islr", "in_invoice"): retention.company_id.islr_supplier_retention_journal_id,
-                ("islr", "out_invoice"): retention.company_id.islr_customer_retention_journal_id,
-                ("municipal", "in_invoice"): retention.company_id.municipal_supplier_retention_journal_id,
-                ("municipal", "out_invoice"): retention.company_id.municipal_customer_retention_journal_id,
-            }
-            journal = journals.get((retention.type_retention, retention.type))
-            if not journal:
-                continue
-
-            # El municipal no crea pagos automáticos
+            # El municipal no crea pagos automáticos por ahora (puedes agregarlo aquí si es necesario)
             if retention.type_retention == "municipal":
                 continue
 
@@ -562,14 +563,6 @@ class AccountRetention(models.Model):
         if not journal:
             return
 
-        # Odoo 18 requiere payment_method_line_id
-        payment_method_line = journal.outbound_payment_method_line_ids[:1] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[:1]
-        if not payment_method_line:
-             # Fallback simple
-             payment_method_line = journal._get_available_payment_method_lines(
-                 "outbound" if self.type == "in_invoice" else "inbound"
-             )[:1]
-
         partner_type = "supplier" if self.type in ("in_invoice", "in_refund") else "customer"
 
         # Agrupar líneas por factura
@@ -605,6 +598,15 @@ class AccountRetention(models.Model):
             if currency_vef.is_zero(total_retention_vef):
                 continue
 
+            # Odoo 18 requiere payment_method_line_id (detectado según sentido de la factura/movimiento)
+            payment_method_line = (journal.outbound_payment_method_line_ids if payment_type == "outbound" else journal.inbound_payment_method_line_ids)[:1]
+            if not payment_method_line:
+                payment_method_line = journal._get_available_payment_method_lines(payment_type)[:1]
+            
+            if not payment_method_line:
+                _logger.warning("El diario %s no tiene configurado un método de pago para pagos de tipo %s. El pago no se sincronizará automáticamente.", journal.display_name, payment_type)
+                continue
+
             payment_vals = {
                 "retention_id": self.id,
                 "partner_id": self.partner_id.id,
@@ -613,7 +615,7 @@ class AccountRetention(models.Model):
                 "is_retention": True,
                 "journal_id": journal.id,
                 "payment_type": payment_type,
-                "payment_method_line_id": payment_method_line.id if payment_method_line else False,
+                "payment_method_line_id": payment_method_line.id,
                 "foreign_rate": foreign_rate,
                 "currency_id": currency_vef.id,
                 "amount": total_retention_vef,
@@ -908,13 +910,6 @@ class AccountRetention(models.Model):
         if not journal:
             return
 
-        # Odoo 18 requiere payment_method_line_id
-        payment_method_line = journal.outbound_payment_method_line_ids[:1] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[:1]
-        if not payment_method_line:
-             payment_method_line = journal._get_available_payment_method_lines(
-                 "outbound" if self.type == "in_invoice" else "inbound"
-             )[:1]
-
         # 1. Determinar los pagos que DEBERÍAN existir
         lines_by_concept_and_move = defaultdict(lambda: self.env['account.retention.line'])
         for line in self.retention_line_ids.filtered(lambda l: l.payment_concept_id):
@@ -937,6 +932,12 @@ class AccountRetention(models.Model):
             if move.move_type in ('in_refund', 'out_refund'):
                 payment_type = 'inbound' if payment_type == 'outbound' else 'outbound'
 
+            # Odoo 18 requiere payment_method_line_id
+            payment_method_line = (journal.outbound_payment_method_line_ids if payment_type == "outbound" else journal.inbound_payment_method_line_ids)[:1]
+            if not payment_method_line:
+                _logger.warning("El diario %s no tiene configurado un método de pago para pagos de tipo %s. El pago no se sincronizará automáticamente.", journal.display_name, payment_type)
+                continue
+
             payment_vals = {
                 'retention_id': self.id,
                 'partner_id': self.partner_id.id,
@@ -947,7 +948,7 @@ class AccountRetention(models.Model):
                 'payment_type': payment_type,
                 'payment_concept_id': concept.id,
                 'foreign_rate': lines[0].foreign_currency_rate,
-                'payment_method_line_id': payment_method_line.id if payment_method_line else False,
+                'payment_method_line_id': payment_method_line.id,
                 'amount': total_retention_vef,
                 'currency_id': currency_vef.id,
                 'date': self.date_accounting or fields.Date.context_today(self),
@@ -974,16 +975,6 @@ class AccountRetention(models.Model):
 
         return payments_to_keep
 
-    def _safe_create_payments(self):
-        """
-        Crea los pagos según el tipo de retención.
-        Se llama desde action_post como Opción A.
-        """
-        for retention in self:
-            if retention.type_retention == "iva":
-                retention._sync_iva_payments_on_draft()
-            elif retention.type_retention == "islr":
-                retention._create_islr_payments_on_draft()
     
     def action_post(self):
 
@@ -1040,6 +1031,9 @@ class AccountRetention(models.Model):
 
                 # Procesar cada pago con contexto seguro (se mantiene igual)
                 for payment in retention.payment_ids.with_context(skip_manually_modified_check=True):
+                    # FORZAR SINCRONIZACIÓN DEL CORRELATIVO AL PAGO AHORA QUE HAY NÚMERO
+                    payment._synchronize_to_moves(set())
+                    
                     _logger.info(f"Procesando pago {payment.id}")
                     if not payment.move_id:
                         if hasattr(payment, 'action_create'):
@@ -1049,7 +1043,6 @@ class AccountRetention(models.Model):
                             _logger.info("Publicando pago (versión moderna)")
                         payment.with_context(skip_manually_modified_check=True).action_post()
                     elif payment.state != 'posted':
-                        _logger.info("Publicando pago pendiente")
                         payment.with_context(skip_manually_modified_check=True).action_post()
 
                 # Asignar número de comprobante a facturas (se mantiene igual)
@@ -1058,6 +1051,9 @@ class AccountRetention(models.Model):
                     _logger.info(f"Asignando número de comprobante a {len(move_ids)} facturas")
                     retention.set_voucher_number_in_invoice(move_ids, retention)
 
+                # Reconciliar pagos con facturas (NUEVO)
+                _logger.info("Iniciando reconciliación de pagos con facturas")
+                retention._reconcile_all_payments()
 
                 # Actualizar estado de la retención (se mantiene igual)
                 retention.write({'state': 'emitted'})
@@ -1634,7 +1630,7 @@ class AccountRetention(models.Model):
                         # Tasa
                         "foreign_currency_rate": foreign_rate,
                         "foreign_currency_inverse_rate": foreign_inverse_rate,
-                        "related_percentage_tax_base": withholding_amount,
+                        "islr_tax_base": withholding_amount,
                     }
                     # Evitar líneas con monto cero
                     if line_data.get("retention_amount") != 0.0 or line_data.get("foreign_retention_amount") != 0.0:
@@ -1686,11 +1682,13 @@ class AccountRetention(models.Model):
 
 
     def get_signature(self):
-        config = self.env["signature.config"].search(
-            [("active", "=", True), ("company_id", "=", self.company_id.id)],
-            limit=1,
-        )
-        if config and config.signature:
-            return config.signature.decode()
-        else:
-            return False
+        self.ensure_one()
+        if self.print_with_signatures and self.company_id.signature_image:
+            return self.company_id.signature_image
+        return False
+
+    def get_stamp(self):
+        self.ensure_one()
+        if self.print_with_signatures and self.company_id.stamp_image:
+            return self.company_id.stamp_image
+        return False

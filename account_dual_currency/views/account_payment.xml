@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <data>
         <record id="account_payment_dual_currency" model="ir.ui.view">
             <field name="name">Dual Currency: account.payment.form</field>
             <field name="model">account.payment</field>
@@ -30,5 +29,4 @@
                 </xpath>
             </field>
         </record>
-    </data>
 </odoo>

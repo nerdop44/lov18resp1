@@ -176,10 +176,8 @@ class AccountPayment(models.Model):
 
     def unlink(self):
         for payment in self:
-            if any(isinstance(id, models.NewId) for id in self.retention_line_ids.ids):
-                payment.retention_line_ids = False
-            else:
-                payment.retention_line_ids = Command.clear()
+            if payment.retention_line_ids:
+                payment.retention_line_ids.write({'payment_id': False})
         return super().unlink()
 
     def compute_retention_amount_from_retention_lines(self):
@@ -202,3 +200,31 @@ class AccountPayment(models.Model):
                     )
                 )
             )
+    @api.onchange("retention_id")
+    def onchange_retention_id(self):
+        if self.retention_id:
+            self.partner_id = self.retention_id.partner_id
+            self.partner_type = "supplier" if self.retention_id.type in ("in_invoice", "in_refund") else "customer"
+            self.amount = self.retention_id.foreign_total_retention_amount
+            self.currency_id = self.retention_id.foreign_currency_id
+            self.is_retention = True
+            self.payment_type_retention = self.retention_id.type_retention
+            
+            # Para ISLR, intentar asignar el primer concepto de las líneas
+            if self.retention_id.type_retention == 'islr' and self.retention_id.retention_line_ids:
+                concept = self.retention_id.retention_line_ids.filtered('payment_concept_id')[:1].payment_concept_id
+                if concept:
+                    self.payment_concept_id = concept
+
+            # Intentar pre-cargar el diario (Inluyendo Municipal)
+            journals = {
+                ("iva", "in_invoice"): self.env.company.iva_supplier_retention_journal_id,
+                ("iva", "out_invoice"): self.env.company.iva_customer_retention_journal_id,
+                ("islr", "in_invoice"): self.env.company.islr_supplier_retention_journal_id,
+                ("islr", "out_invoice"): self.env.company.islr_customer_retention_journal_id,
+                ("municipal", "in_invoice"): self.env.company.municipal_supplier_retention_journal_id,
+                ("municipal", "out_invoice"): self.env.company.municipal_customer_retention_journal_id,
+            }
+            journal = journals.get((self.retention_id.type_retention, self.retention_id.type))
+            if journal:
+                self.journal_id = journal

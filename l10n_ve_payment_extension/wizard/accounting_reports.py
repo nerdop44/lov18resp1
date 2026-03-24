@@ -205,29 +205,28 @@ class WizardAccountingReports(models.TransientModel):
             if move.state == "posted"
             else move.retention_iva_line_ids
         )
-        
+        retention = ret_lines.mapped("retention_id")
         ret_vals = {
-            "date_retention": "",
-            "number_retention": "",
-            "iva_retained": 0,
-        }
+                    "date_retention": "",
+                    "number_retention": "",
+                    "iva_retained": 0,
+                }
 
         if not ret_lines:
             return ret_vals
         
-        # Tomamos datos del primer comprobante válido encontrado
-        main_ret = ret_lines[0].retention_id
-        ret_vals["date_retention"] = self._format_date(main_ret.date)
-        ret_vals["number_retention"] = move.iva_voucher_number or main_ret.number
-
-        total_retained = 0
         for ret_line in ret_lines:
+
             if ret_line and self._check_future_retention_dates(ret_line.retention_id.date_accounting):
                 continue
-            
-            total_retained += self._sum_retention_total(ret_line)
 
-        ret_vals["iva_retained"] = total_retained * multiplier if move.state != "cancel" else 0
+            ret_vals["date_retention"] = self._format_date(ret_line.mapped("retention_id").date)
+            ret_vals["number_retention"] = move.iva_voucher_number
+            ret_vals["iva_retained"] = ret_vals["iva_retained"] + (
+                self._sum_retention_total(ret_line) * multiplier
+                if ret_line.move_id.state != "cancel"
+                else 0
+            )
 
         return ret_vals
 

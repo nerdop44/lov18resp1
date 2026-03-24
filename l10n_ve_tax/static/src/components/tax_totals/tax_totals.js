@@ -7,7 +7,7 @@ import { registry } from "@web/core/registry";
 
 import { TaxTotalsComponent } from "@account/components/tax_totals/tax_totals";
 
-const { Component, onPatched, onWillUpdateProps, useRef, toRaw, useState } = owl;
+import { Component, onPatched, onWillUpdateProps, useRef, toRaw, useState } from "@odoo/owl";
 
 
 export class TaxTotalsComponents extends TaxTotalsComponent {
@@ -16,27 +16,27 @@ export class TaxTotalsComponents extends TaxTotalsComponent {
   }
 
   formatData(props) {
-////////////////////////////////
-// Verificar si hay datos disponibles
+    ////////////////////////////////
+    // Verificar si hay datos disponibles
     if (!props.record.data || !props.record.data[this.props.name]) {
-        console.warn("No data available for the specified name:", this.props.name);
-        return;
+      console.warn("No data available for the specified name:", this.props.name);
+      return;
     }
- /////////////////////////////////
-    
+    /////////////////////////////////
+
     let totals = JSON.parse(JSON.stringify(toRaw(props.record.data[this.props.name])));
     console.log("Datos de entrada:", props.record.data[this.props.name]);    //verifica la estructura de datos
-//   if (!totals) {
- //     return;
- //   }
-/////////////////////////////////////
-     // Verificar si totals es un objeto
+    //   if (!totals) {
+    //     return;
+    //   }
+    /////////////////////////////////////
+    // Verificar si totals es un objeto
     if (typeof totals !== 'object' || totals === null) {
-        console.error("Invalid totals data:", totals);
-        return;
+      console.error("Invalid totals data:", totals);
+      return;
     }
-/////////////////////////////////////////////
-    
+    /////////////////////////////////////////////
+
     // Verificar si totals está definido
     if (!totals) {
       console.warn("No totals data available");
@@ -47,15 +47,15 @@ export class TaxTotalsComponents extends TaxTotalsComponent {
     if (!Array.isArray(totals.subtotals_order)) {
       console.error("totals.subtotals_order is not iterable", totals);
       totals.subtotals_order = []; // O asignar un valor por defecto      
-//return; // Salir si no es iterable
+      //return; // Salir si no es iterable
     }
 
- // Asegurarse de que groups_by_subtotal sea un objeto
+    // Asegurarse de que groups_by_subtotal sea un objeto
     if (typeof totals.groups_by_subtotal !== 'object' || totals.groups_by_subtotal === null) {
-        console.error("totals.groups_by_subtotal is not an object", totals);
-        totals.groups_by_subtotal = {}; // Inicializar como un objeto vacío
+      console.error("totals.groups_by_subtotal is not an object", totals);
+      totals.groups_by_subtotal = {}; // Inicializar como un objeto vacío
     }
-// Asegurarse de que subtotals sea un array
+    // Asegurarse de que subtotals sea un array
     totals.subtotals = totals.subtotals || []; // Inicializar como un array vacío si no está definido
 
     const currencyFmtOpts = { currencyId: props.record.data.currency_id && props.record.data.currency_id[0] };
