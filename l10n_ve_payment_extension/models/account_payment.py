@@ -1,5 +1,6 @@
-from odoo import api, fields, models, Command
+from odoo import _, api, fields, models, Command
 from odoo.tools.float_utils import float_round
+from odoo.exceptions import UserError, ValidationError
 
 
 class AccountPayment(models.Model):
@@ -181,6 +182,12 @@ class AccountPayment(models.Model):
             else:
                 payment.retention_line_ids = Command.clear()
         return super().unlink()
+
+    def action_post(self):
+        for payment in self:
+            if payment.is_retention and payment.retention_id and payment.retention_id.state == 'draft':
+                raise ValidationError(_("No puede contabilizar un pago de retención si la retención asociada aún se encuentra en estado Borrador."))
+        return super().action_post()
 
     def compute_retention_amount_from_retention_lines(self):
         """

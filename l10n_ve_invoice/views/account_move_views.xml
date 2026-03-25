@@ -41,8 +41,7 @@
             <xpath expr="//field[@name='invoice_date']" position="after">
                 <field name="invoice_reception_date"
                     options="{'datepicker': {'warn_future': true}}"
-                    invisible="move_type not in ('out_invoice', 'out_refund', 'out_receipt', 'in_invoice', 'in_refund', 'in_receipt', 'entry')"
-                    readonly="state == 'draft'"/>
+                    invisible="move_type not in ('out_invoice', 'out_refund', 'out_receipt', 'in_invoice', 'in_refund', 'in_receipt', 'entry')"/>
             </xpath>
         </field>
     </record>
