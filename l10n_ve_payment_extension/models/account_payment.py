@@ -186,7 +186,8 @@ class AccountPayment(models.Model):
     def action_post(self):
         for payment in self:
             if payment.is_retention and payment.retention_id and payment.retention_id.state == 'draft':
-                raise ValidationError(_("No puede contabilizar un pago de retención si la retención asociada aún se encuentra en estado Borrador."))
+                if not self._context.get('skip_retention_state_check'):
+                    raise ValidationError(_("No puede contabilizar un pago de retención si la retención asociada aún se encuentra en estado Borrador."))
         return super().action_post()
 
     def compute_retention_amount_from_retention_lines(self):

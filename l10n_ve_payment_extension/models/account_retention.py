@@ -1046,7 +1046,10 @@ class AccountRetention(models.Model):
 #                        retention._create_payments_from_retention_lines()  # Método existente para IVA/municipal
 
                 # Procesar cada pago con contexto seguro (se mantiene igual)
-                for payment in retention.payment_ids.with_context(skip_manually_modified_check=True):
+                for payment in retention.payment_ids.with_context(
+                    skip_manually_modified_check=True,
+                    skip_retention_state_check=True
+                ):
                     _logger.info(f"Procesando pago {payment.id}")
                     if not payment.move_id:
                         if hasattr(payment, 'action_create'):
