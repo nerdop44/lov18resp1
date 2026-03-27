@@ -981,16 +981,8 @@ class AccountRetention(models.Model):
 
         return payments_to_keep
 
-    def _safe_create_payments(self):
-        """
-        Crea los pagos según el tipo de retención.
-        Se llama desde action_post como Opción A.
-        """
-        for retention in self:
-            if retention.type_retention == "iva":
-                retention._sync_iva_payments_on_draft()
-            elif retention.type_retention == "islr":
-                retention._create_islr_payments_on_draft()
+    # NOTA: _safe_create_payments está definido más arriba (línea ~514).
+    # La definición activa incluye guards de estado, tipo municipal y líneas vacías.
     
     def action_post(self):
 
@@ -1472,40 +1464,13 @@ class AccountRetention(models.Model):
         list[dict]
             The retention lines data.
         """
-        _logger.warning(f"compute_retention_lines_data: Procesando factura con ID {invoice_id.id}")
-        _logger.warning(f"compute_retention_lines_data: Atributos de la factura: {invoice_id._fields.keys()}")
-        if hasattr(invoice_id, 'number'):
-            _logger.warning(f"compute_retention_lines_data: El atributo 'number' EXISTE: {invoice_id.number}")
-        else:
-            _logger.warning(f"compute_retention_lines_data: El atributo 'number' NO EXISTE.")
-        if hasattr(invoice_id, 'name'):
-            _logger.warning(f"compute_retention_lines_data: El atributo 'name' EXISTE: {invoice_id.name}")
-        else:
-            _logger.warning(f"compute_retention_lines_data: El atributo 'name' NO EXISTE.")
-        # --- INICIO DE LA VALIDACIÓN CRÍTICA ---
-        if invoice_id.currency_id != self.env.company.currency_id and (not foreign_rate or foreign_rate == 0.0):
-            _logger.error(
-                f"Tasa de cambio extranjera (foreign_rate) es cero o nula para la factura {invoice_id.display_name} "
-                f"({invoice_id.id}) con moneda {invoice_id.currency_id.name} para la fecha {invoice_id.date}. "
-                "Verifique las tasas de cambio configuradas en Finanzas -> Configuración -> Monedas -> Tasas."
-            )
-            raise UserError(_(
-                "No se pudo crear la línea de retención. La tasa de cambio para la factura '%s' (moneda %s) "
-                "es cero o no está definida para la fecha %s. Por favor, configure la tasa de cambio "
-                "en Configuración > Monedas > Tasas."
-            ) % (invoice_id.display_name, invoice_id.currency_id.name, invoice_id.date))
-        # --- FIN DE LA VALIDACIÓN CRÍTICA ---
-
-
         tax_ids = invoice_id.invoice_line_ids.filtered(
             lambda l: l.tax_ids and l.tax_ids[0].amount > 0
         ).mapped("tax_ids")
-        _logger.warning(f"compute_retention_lines_data: Impuestos encontrados en las líneas de factura: {tax_ids.ids}")
+        _logger.info(f"compute_retention_lines_data: Impuestos encontrados en las líneas de factura: {tax_ids.ids}")
 
         if not any(tax_ids):
-            _logger.warning(f"compute_retention_lines_data: La factura {invoice_id.number} no tiene impuestos.")
-
-            raise UserError(_("The invoice %s has no tax."), invoice_id.number)
+            raise UserError(_("The invoice %s has no tax.") % invoice_id.name)
 
         withholding_amount = invoice_id.partner_id.withholding_type_id.value
         _logger.warning(f"compute_retention_lines_data: Tasa de retención del socio {invoice_id.partner_id.id}: {withholding_amount * 100}%")
@@ -1538,6 +1503,14 @@ class AccountRetention(models.Model):
             # Tasa de la factura (moneda empresa → VEF)
             foreign_rate = invoice_id.foreign_rate or 1.0
             foreign_inverse_rate = 1.0 / foreign_rate if foreign_rate else 0.0
+
+            # Validación: si la factura NO está en VEF, se necesita tasa para convertir
+            if invoice_currency != vef_currency and not foreign_rate:
+                raise UserError(_(
+                    "No se pudo crear la línea de retención. La tasa de cambio para la factura '%s' "
+                    "(moneda %s) no está definida. Por favor, configure la tasa de cambio en "
+                    "Configuración > Monedas > Tasas."
+                ) % (invoice_id.display_name, invoice_currency.name))
 
             # ¿La factura ya está en VEF?
             invoice_is_in_vef = (vef_currency and invoice_currency == vef_currency) or (
