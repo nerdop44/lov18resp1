@@ -151,20 +151,31 @@ class AccountPayment(models.Model):
         total_debit = 0
         total_credit = 0
         if res:
-            currency_id = res[0]['currency_id']
+            currency_id = res[0].get('currency_id')
         currencies_are_different = self.currency_id_company.id != currency_id
+
+        # Odoo 18 compatibility: ensure 'debit' and 'credit' keys exist in all line dicts
+        # also process write_off_line_vals to avoid KeyErrors in sums later
+        for line in (res or []) + (write_off_line_vals or []):
+            if 'debit' not in line:
+                line['debit'] = line['balance'] if line.get('balance', 0) > 0 else 0
+            if 'credit' not in line:
+                line['credit'] = abs(line['balance']) if line.get('balance', 0) < 0 else 0
+
         for line in res:
             if line['account_id'] == self.outstanding_account_id.id:
                 line['tax_today'] = self.tax_today
                 if currencies_are_different:
                     line['debit'] = (line['amount_currency'] * self.tax_today) if line['debit'] else 0
                     line['credit'] = (abs(line['amount_currency']) * self.tax_today) if line['credit'] else 0
+                    line['balance'] = line['debit'] - line['credit']
             elif line['account_id'] == self.destination_account_id.id:
                 tasa_factura = self.env.context.get('tasa_factura', self.tax_today)
                 line['tax_today'] = tasa_factura if write_off_line_vals else self.tax_today
                 if currencies_are_different:
                     line['debit'] = (line['amount_currency'] * line['tax_today']) if line['debit'] else 0
                     line['credit'] = (abs(line['amount_currency']) * line['tax_today']) if line['credit'] else 0
+                    line['balance'] = line['debit'] - line['credit']
             else:
                 continue
             total_debit += line['debit']

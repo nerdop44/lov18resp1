@@ -187,8 +187,9 @@ class AccountMove(models.Model):
                                 journal_id = self.env['account.journal'].search([('id', '=', val['journal_id'])])
                                 company_id = journal_id.company_id
                                 l[2]['currency_id'] = company_id.currency_id.id
-                                l[2]['debit'] = l[2]['balance'] if l[2]['balance'] > 0 else 0
-                                l[2]['credit'] = l[2]['balance'] if l[2]['balance'] < 0 else 0
+                                balance = l[2].get('balance', 0)
+                                l[2]['debit'] = balance if balance > 0 else 0
+                                l[2]['credit'] = abs(balance) if balance < 0 else 0
                                 l[2]['partner_id'] = None
                                 l[2]['amount_currency'] = l[2]['balance']
                                 line_ids.append(l)
