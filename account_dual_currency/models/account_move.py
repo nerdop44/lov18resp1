@@ -577,7 +577,7 @@ class AccountMove(models.Model):
                 ('parent_state', '=', 'posted'),
                 ('partner_id', '=', move.commercial_partner_id.id),
                 ('reconciled', '=', False),
-                '|','|', ('amount_residual', '!=', 0.0), ('amount_residual_usd', '!=', 0.0),('amount_residual_currency', '!=', 0.0),
+                '|', ('amount_residual', '!=', 0.0), ('amount_residual_currency', '!=', 0.0),
             ]
 
             payments_widget_vals = {'outstanding': True, 'content': [], 'move_id': move.id}
@@ -618,7 +618,7 @@ class AccountMove(models.Model):
                     )
                     amount_usd = abs(line.amount_residual_usd)
 
-                if move.currency_id.is_zero(amount) and amount_usd == 0:
+                if move.currency_id.is_zero(amount):
                     continue
 
                 payments_widget_vals['content'].append({
