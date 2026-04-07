@@ -508,10 +508,18 @@ class AccountMoveLine(models.Model):
             'credit_move_id': credit_aml and credit_aml.id,
         }
 
-        debit_vals['amount_residual'] = remaining_debit_amount
-        debit_vals['amount_residual_currency'] = remaining_debit_amount_curr
-        credit_vals['amount_residual'] = remaining_credit_amount
-        credit_vals['amount_residual_currency'] = remaining_credit_amount_curr
+        debit_vals['amount_residual'] = company_currency.round(remaining_debit_amount)
+        debit_vals['amount_residual_currency'] = (debit_currency.round(remaining_debit_amount_curr) if debit_currency else 0.0)
+        credit_vals['amount_residual'] = company_currency.round(remaining_credit_amount)
+        credit_vals['amount_residual_currency'] = (credit_currency.round(remaining_credit_amount_curr) if credit_currency else 0.0)
+
+        # Odoo 18 Compatibility: Dual Currency Residual Sync
+        # If the balance in Bs is zero, we must ensure the USD residual is also closed 
+        # to avoid the line staying 'open' in the outstanding payments widget.
+        if company_currency.is_zero(debit_vals['amount_residual']):
+             debit_vals['amount_residual_usd'] = 0.0
+        if company_currency.is_zero(credit_vals['amount_residual']):
+             credit_vals['amount_residual_usd'] = 0.0
 
         if debit_fully_matched:
             res['debit_vals'] = None
