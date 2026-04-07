@@ -260,7 +260,9 @@ class AccountMoveLine(models.Model):
 
 
         def get_accounting_rate(vals):
-            if company_currency.is_zero(vals['balance']) or vals['currency'].is_zero(vals['amount_currency']):
+            aml = vals.get('aml') or vals.get('record')
+            currency = aml.currency_id if aml else vals.get('currency')
+            if company_currency.is_zero(vals['balance']) or (currency and currency.is_zero(vals['amount_currency'])):
                 return None
             else:
                 return abs(vals['amount_currency']) / abs(vals['balance'])
@@ -278,15 +280,21 @@ class AccountMoveLine(models.Model):
         remaining_debit_amount = debit_vals['amount_residual']
         remaining_credit_amount = credit_vals['amount_residual']
 
-        company_currency = debit_vals['company'].currency_id
+        # Odoo 18 Safe Accessors
+        debit_aml = debit_vals.get('aml') or debit_vals.get('record')
+        credit_aml = credit_vals.get('aml') or credit_vals.get('record')
+        debit_currency = debit_aml.currency_id if debit_aml else debit_vals.get('currency')
+        credit_currency = credit_aml.currency_id if credit_aml else credit_vals.get('currency')
+        company_currency = (debit_aml or credit_aml).company_id.currency_id if (debit_aml or credit_aml) else debit_vals.get('company').currency_id
+
         has_debit_zero_residual = company_currency.is_zero(remaining_debit_amount)
         has_credit_zero_residual = company_currency.is_zero(remaining_credit_amount)
-        has_debit_zero_residual_currency = debit_vals['currency'].is_zero(remaining_debit_amount_curr)
-        has_credit_zero_residual_currency = credit_vals['currency'].is_zero(remaining_credit_amount_curr)
-        is_rec_pay_account = debit_vals.get('record') \
-                             and debit_vals['record'].account_type in ('asset_receivable', 'liability_payable')
+        has_debit_zero_residual_currency = debit_currency.is_zero(remaining_debit_amount_curr) if debit_currency else False
+        has_credit_zero_residual_currency = credit_currency.is_zero(remaining_credit_amount_curr) if credit_currency else False
+        
+        is_rec_pay_account = debit_aml and debit_aml.account_type in ('asset_receivable', 'liability_payable')
 
-        if debit_vals['currency'] == credit_vals['currency'] == company_currency \
+        if debit_currency == credit_currency == company_currency \
                 and not has_debit_zero_residual \
                 and not has_credit_zero_residual:
             # Everything is expressed in company's currency and there is something left to reconcile.
@@ -294,42 +302,42 @@ class AccountMoveLine(models.Model):
             debit_rate = credit_rate = 1.0
             recon_debit_amount = remaining_debit_amount
             recon_credit_amount = -remaining_credit_amount
-        elif debit_vals['currency'] == company_currency \
+        elif debit_currency == company_currency \
                 and is_rec_pay_account \
                 and not has_debit_zero_residual \
-                and credit_vals['currency'] != company_currency \
+                and credit_currency != company_currency \
                 and not has_credit_zero_residual_currency:
             # The credit line is using a foreign currency but not the opposite line.
             # In that case, convert the amount in company currency to the foreign currency one.
-            recon_currency = credit_vals['currency']
+            recon_currency = credit_currency
             debit_rate = get_odoo_rate(debit_vals)
             credit_rate = get_accounting_rate(credit_vals)
             recon_debit_amount = recon_currency.round(remaining_debit_amount * debit_rate)
             recon_credit_amount = -remaining_credit_amount_curr
-        elif debit_vals['currency'] != company_currency \
+        elif debit_currency != company_currency \
                 and is_rec_pay_account \
                 and not has_debit_zero_residual_currency \
-                and credit_vals['currency'] == company_currency \
+                and credit_currency == company_currency \
                 and not has_credit_zero_residual:
             # The debit line is using a foreign currency but not the opposite line.
             # In that case, convert the amount in company currency to the foreign currency one.
-            recon_currency = debit_vals['currency']
+            recon_currency = debit_currency
             debit_rate = get_accounting_rate(debit_vals)
             credit_rate = get_odoo_rate(credit_vals)
             recon_debit_amount = remaining_debit_amount_curr
             recon_credit_amount = recon_currency.round(-remaining_credit_amount * credit_rate)
-        elif debit_vals['currency'] == credit_vals['currency'] \
-                and debit_vals['currency'] != company_currency \
+        elif debit_currency == credit_currency \
+                and debit_currency != company_currency \
                 and not has_debit_zero_residual_currency \
                 and not has_credit_zero_residual_currency:
             # Both lines are sharing the same foreign currency.
-            recon_currency = debit_vals['currency']
+            recon_currency = debit_currency
             debit_rate = get_accounting_rate(debit_vals)
             credit_rate = get_accounting_rate(credit_vals)
             recon_debit_amount = remaining_debit_amount_curr
             recon_credit_amount = -remaining_credit_amount_curr
-        elif debit_vals['currency'] == credit_vals['currency'] \
-                and debit_vals['currency'] != company_currency \
+        elif debit_currency == credit_currency \
+                and debit_currency != company_currency \
                 and (has_debit_zero_residual_currency or has_credit_zero_residual_currency):
             # Special case for exchange difference lines. In that case, both lines are sharing the same foreign
             # currency but at least one has no amount in foreign currency.
