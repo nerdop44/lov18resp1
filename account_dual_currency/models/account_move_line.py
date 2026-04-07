@@ -381,12 +381,12 @@ class AccountMoveLine(models.Model):
 
             # Compute the partial amount expressed in foreign currency.
             if debit_rate:
-                partial_debit_amount_currency = debit_vals['currency'].round(debit_rate * min_recon_amount)
+                partial_debit_amount_currency = (debit_currency.round(debit_rate * min_recon_amount) if debit_currency else 0.0)
                 partial_debit_amount_currency = min(partial_debit_amount_currency, remaining_debit_amount_curr)
             else:
                 partial_debit_amount_currency = 0.0
             if credit_rate:
-                partial_credit_amount_currency = credit_vals['currency'].round(credit_rate * min_recon_amount)
+                partial_credit_amount_currency = (credit_currency.round(credit_rate * min_recon_amount) if credit_currency else 0.0)
                 partial_credit_amount_currency = min(partial_credit_amount_currency, -remaining_credit_amount_curr)
             else:
                 partial_credit_amount_currency = 0.0
@@ -409,11 +409,11 @@ class AccountMoveLine(models.Model):
             # Compute the partial amount expressed in foreign currency.
             # Take care to handle the case when a line expressed in company currency is mimicking the foreign
             # currency of the opposite line.
-            if debit_vals['currency'] == company_currency:
+            if debit_currency == company_currency:
                 partial_debit_amount_currency = partial_amount
             else:
                 partial_debit_amount_currency = min_recon_amount
-            if credit_vals['currency'] == company_currency:
+            if credit_currency == company_currency:
                 partial_credit_amount_currency = partial_amount
             else:
                 partial_credit_amount_currency = min_recon_amount
@@ -426,16 +426,16 @@ class AccountMoveLine(models.Model):
             if recon_currency == company_currency:
                 if debit_fully_matched:
                     debit_exchange_amount = remaining_debit_amount_curr - partial_debit_amount_currency
-                    if not debit_vals['currency'].is_zero(debit_exchange_amount):
-                        if debit_vals.get('record'):
-                            exchange_lines_to_fix += debit_vals['record']
+                    if debit_currency and not debit_currency.is_zero(debit_exchange_amount):
+                        if debit_aml:
+                            exchange_lines_to_fix += debit_aml
                         amounts_list.append({'amount_residual_currency': debit_exchange_amount})
                         remaining_debit_amount_curr -= debit_exchange_amount
                 if credit_fully_matched:
                     credit_exchange_amount = remaining_credit_amount_curr + partial_credit_amount_currency
-                    if not credit_vals['currency'].is_zero(credit_exchange_amount):
-                        if credit_vals.get('record'):
-                            exchange_lines_to_fix += credit_vals['record']
+                    if credit_currency and not credit_currency.is_zero(credit_exchange_amount):
+                        if credit_aml:
+                            exchange_lines_to_fix += credit_aml
                         amounts_list.append({'amount_residual_currency': credit_exchange_amount})
                         remaining_credit_amount_curr += credit_exchange_amount
 
@@ -444,11 +444,11 @@ class AccountMoveLine(models.Model):
                     # Create an exchange difference on the remaining amount expressed in company's currency.
                     debit_exchange_amount = remaining_debit_amount - partial_amount
                     if not company_currency.is_zero(debit_exchange_amount):
-                        if debit_vals.get('record'):
-                            exchange_lines_to_fix += debit_vals['record']
+                        if debit_aml:
+                            exchange_lines_to_fix += debit_aml
                         amounts_list.append({'amount_residual': debit_exchange_amount})
                         remaining_debit_amount -= debit_exchange_amount
-                        if debit_vals['currency'] == company_currency:
+                        if debit_currency == company_currency:
                             remaining_debit_amount_curr -= debit_exchange_amount
                 else:
                     # Create an exchange difference ensuring the rate between the residual amounts expressed in
@@ -456,22 +456,22 @@ class AccountMoveLine(models.Model):
                     # 'amount_currency' & 'balance'.
                     debit_exchange_amount = partial_debit_amount - partial_amount
                     if company_currency.compare_amounts(debit_exchange_amount, 0.0) > 0:
-                        if debit_vals.get('record'):
-                            exchange_lines_to_fix += debit_vals['record']
+                        if debit_aml:
+                            exchange_lines_to_fix += debit_aml
                         amounts_list.append({'amount_residual': debit_exchange_amount})
                         remaining_debit_amount -= debit_exchange_amount
-                        if debit_vals['currency'] == company_currency:
+                        if debit_currency == company_currency:
                             remaining_debit_amount_curr -= debit_exchange_amount
 
                 if credit_fully_matched:
                     # Create an exchange difference on the remaining amount expressed in company's currency.
                     credit_exchange_amount = remaining_credit_amount + partial_amount
                     if not company_currency.is_zero(credit_exchange_amount):
-                        if credit_vals.get('record'):
-                            exchange_lines_to_fix += credit_vals['record']
+                        if credit_aml:
+                            exchange_lines_to_fix += credit_aml
                         amounts_list.append({'amount_residual': credit_exchange_amount})
                         remaining_credit_amount += credit_exchange_amount
-                        if credit_vals['currency'] == company_currency:
+                        if credit_currency == company_currency:
                             remaining_credit_amount_curr -= credit_exchange_amount
                 else:
                     # Create an exchange difference ensuring the rate between the residual amounts expressed in
@@ -479,17 +479,18 @@ class AccountMoveLine(models.Model):
                     # 'amount_currency' & 'balance'.
                     credit_exchange_amount = partial_amount - partial_credit_amount
                     if company_currency.compare_amounts(credit_exchange_amount, 0.0) < 0:
-                        if credit_vals.get('record'):
-                            exchange_lines_to_fix += credit_vals['record']
+                        if credit_aml:
+                            exchange_lines_to_fix += credit_aml
                         amounts_list.append({'amount_residual': credit_exchange_amount})
                         remaining_credit_amount -= credit_exchange_amount
-                        if credit_vals['currency'] == company_currency:
+                        if credit_currency == company_currency:
                             remaining_credit_amount_curr -= credit_exchange_amount
 
             if exchange_lines_to_fix:
                 res['exchange_vals'] = exchange_lines_to_fix._prepare_exchange_difference_move_vals(
                     amounts_list,
-                    exchange_date=max(debit_vals['date'], credit_vals['date']),
+                    exchange_date=max(debit_vals.get('date', debit_aml.date if debit_aml else fields.Date.today()), 
+                                      credit_vals.get('date', credit_aml.date if credit_aml else fields.Date.today())),
                 )
 
         # ==== Create partials ====
@@ -503,8 +504,8 @@ class AccountMoveLine(models.Model):
             'amount': partial_amount,
             'debit_amount_currency': partial_debit_amount_currency,
             'credit_amount_currency': partial_credit_amount_currency,
-            'debit_move_id': debit_vals.get('record') and debit_vals['record'].id,
-            'credit_move_id': credit_vals.get('record') and credit_vals['record'].id,
+            'debit_move_id': debit_aml and debit_aml.id,
+            'credit_move_id': credit_aml and credit_aml.id,
         }
 
         debit_vals['amount_residual'] = remaining_debit_amount
