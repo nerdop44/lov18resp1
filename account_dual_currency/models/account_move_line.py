@@ -226,7 +226,7 @@ class AccountMoveLine(models.Model):
         return results
 
     @api.model
-    def _prepare_reconciliation_single_partial(self, debit_vals, credit_vals):
+    def _prepare_reconciliation_single_partial(self, debit_vals, credit_vals, **kwargs):
         """ Prepare the values to create an account.partial.reconcile later when reconciling the dictionaries passed
         as parameters, each one representing an account.move.line.
         :param debit_vals:  The values of account.move.line to consider for a debit line.
@@ -557,12 +557,12 @@ class AccountMoveLine(models.Model):
             
         return partials
 
-    def _prepare_reconciliation_partials(self, vals_list):
+    def _prepare_reconciliation_partials(self, vals_list, **kwargs):
         ''' Bridge method to satisfy Odoo 18 core call while keeping custom logic. '''
         # Standard Odoo 18 doesn't always define this, but the server's build calls it.
         # We delegate to the logic that Odoo 18 uses internally.
         if hasattr(super(AccountMoveLine, self), '_prepare_reconciliation_partials'):
-            return super(AccountMoveLine, self)._prepare_reconciliation_partials(vals_list)
+            return super(AccountMoveLine, self)._prepare_reconciliation_partials(vals_list, **kwargs)
         
         # Fallback to a manual preparation if super doesn't have it (Odoo 18 refactoring)
         # This matches what Odoo 18 core at line 2832 of addons/account/models/account_move_line.py expects.
