@@ -2,6 +2,9 @@ from collections import defaultdict
 from contextlib import contextmanager
 from datetime import date, timedelta
 from functools import lru_cache
+import logging
+
+_logger = logging.getLogger(__name__)
 
 from odoo import api, fields, models, Command, _
 from odoo.exceptions import ValidationError, UserError
@@ -513,6 +516,12 @@ class AccountMoveLine(models.Model):
         credit_vals['amount_residual'] = company_currency.round(remaining_credit_amount)
         credit_vals['amount_residual_currency'] = (credit_currency.round(remaining_credit_amount_curr) if credit_currency else 0.0)
 
+        # DEBUG: Ver los balances con alta precisión
+        _logger.warning("!!! DEBUG CONCILIACION [RESULT DEBIT] ID: %s | Res: %.15f | ResCurr: %.15f", 
+                        debit_aml.id if debit_aml else 'N/A', debit_vals['amount_residual'], debit_vals['amount_residual_currency'])
+        _logger.warning("!!! DEBUG CONCILIACION [RESULT CREDIT] ID: %s | Res: %.15f | ResCurr: %.15f", 
+                        credit_aml.id if credit_aml else 'N/A', credit_vals['amount_residual'], credit_vals['amount_residual_currency'])
+
         # Odoo 18 Compatibility: Dual Currency Residual Sync
         # If the balance in Bs is zero, we must ensure the USD residual is also closed 
         # to avoid the line staying 'open' in the outstanding payments widget.
@@ -525,6 +534,14 @@ class AccountMoveLine(models.Model):
             res['debit_vals'] = None
         if credit_fully_matched:
             res['credit_vals'] = None
+
+        # Diagnostic Logs (To be removed after fix)
+        _logger.warning("!!! DEBUG CONCILIACION [RESULT DEBIT] Res: %.15f | ResCurr: %.15f | Fully: %s", 
+                        debit_vals['amount_residual'], debit_vals['amount_residual_currency'], debit_fully_matched)
+        _logger.warning("!!! DEBUG CONCILIACION [RESULT CREDIT] Res: %.15f | ResCurr: %.15f | Fully: %s", 
+                        credit_vals['amount_residual'], credit_vals['amount_residual_currency'], credit_fully_matched)
+        if hasattr(debit_aml, 'amount_residual_usd'):
+             _logger.warning("!!! DEBUG CONCILIACION [RESULT USD] DebResUSD: %.15f", debit_vals.get('amount_residual_usd', 0.0))
 
         # Odoo 18 Compatibility: Map 'vals' to 'values' keys and force None for full reconciliation
         # If residuals are zero after rounding, we must set *_values to None 
