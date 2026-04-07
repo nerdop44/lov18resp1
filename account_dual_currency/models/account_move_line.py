@@ -517,6 +517,13 @@ class AccountMoveLine(models.Model):
             res['debit_vals'] = None
         if credit_fully_matched:
             res['credit_vals'] = None
+
+        # Odoo 18 Compatibility: Map 'vals' to 'values' keys
+        res['debit_values'] = res.get('debit_vals')
+        res['credit_values'] = res.get('credit_vals')
+        res['partial_values'] = res.get('partial_vals')
+        res['exchange_values'] = res.get('exchange_vals')
+
         return res
 
     def _apply_price_difference(self):
