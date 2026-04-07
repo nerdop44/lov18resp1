@@ -36,10 +36,28 @@ class AccountMoveLine(models.Model):
     amount_residual_usd = fields.Monetary(string='Residual Amount USD', compute='_compute_amount_residual_usd', store=True,
                                        help="The residual amount on a journal item expressed in the company currency.")
     balance_usd = fields.Monetary(string='Balance Ref.',
-                                  currency_field='currency_id_dif', store=True, readonly=False,
                                   compute='_compute_balance_usd',
                                   default=lambda self: self._compute_balance_usd(),
                                   help="Technical field holding the debit_usd - credit_usd in order to open meaningful graph views from reports")
+
+    def reconcile(self):
+        # Odoo 18 Main Entry-point for reconciliation (v8 Shield)
+        res = super().reconcile()
+        
+        # SANEAMIENTO POST-RECONCILIACION
+        # Forzamos el cierre si el saldo residual es matemáticamente cero.
+        for aml in self:
+            if not aml.reconciled:
+                 # Verificamos precisión oficial de la moneda
+                 currency = aml.company_id.currency_id
+                 if currency.is_zero(aml.amount_residual):
+                      # Cierre de USD y Estado Contable
+                      aml.write({
+                          'amount_residual_usd': 0.0,
+                          'reconciled': True
+                      })
+                      _logger.warning("SANEAMIENTO ALTO NIVEL: Cerrando linea %s (ID: %s) tras detectar saldo residual 0.", aml.name, aml.id)
+        return res
 
     @api.depends('currency_id', 'company_id', 'move_id.date','move_id.tax_today')
     def _compute_currency_rate(self):
@@ -516,12 +534,6 @@ class AccountMoveLine(models.Model):
         credit_vals['amount_residual'] = company_currency.round(remaining_credit_amount)
         credit_vals['amount_residual_currency'] = (credit_currency.round(remaining_credit_amount_curr) if credit_currency else 0.0)
 
-        # DEBUG: Ver los balances con alta precisión
-        _logger.warning("!!! DEBUG CONCILIACION [RESULT DEBIT] ID: %s | Res: %.15f | ResCurr: %.15f", 
-                        debit_aml.id if debit_aml else 'N/A', debit_vals['amount_residual'], debit_vals['amount_residual_currency'])
-        _logger.warning("!!! DEBUG CONCILIACION [RESULT CREDIT] ID: %s | Res: %.15f | ResCurr: %.15f", 
-                        credit_aml.id if credit_aml else 'N/A', credit_vals['amount_residual'], credit_vals['amount_residual_currency'])
-
         # Odoo 18 Compatibility: Dual Currency Residual Sync
         # If the balance in Bs is zero, we must ensure the USD residual is also closed 
         # to avoid the line staying 'open' in the outstanding payments widget.
@@ -535,13 +547,6 @@ class AccountMoveLine(models.Model):
         if credit_fully_matched:
             res['credit_vals'] = None
 
-        # Diagnostic Logs (To be removed after fix)
-        _logger.warning("!!! DEBUG CONCILIACION [RESULT DEBIT] Res: %.15f | ResCurr: %.15f | Fully: %s", 
-                        debit_vals['amount_residual'], debit_vals['amount_residual_currency'], debit_fully_matched)
-        _logger.warning("!!! DEBUG CONCILIACION [RESULT CREDIT] Res: %.15f | ResCurr: %.15f | Fully: %s", 
-                        credit_vals['amount_residual'], credit_vals['amount_residual_currency'], credit_fully_matched)
-        if hasattr(debit_aml, 'amount_residual_usd'):
-             _logger.warning("!!! DEBUG CONCILIACION [RESULT USD] DebResUSD: %.15f", debit_vals.get('amount_residual_usd', 0.0))
 
         # Odoo 18 Compatibility: Map 'vals' to 'values' keys and force None for full reconciliation
         # If residuals are zero after rounding, we must set *_values to None 
