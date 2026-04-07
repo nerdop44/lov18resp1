@@ -526,9 +526,21 @@ class AccountMoveLine(models.Model):
         if credit_fully_matched:
             res['credit_vals'] = None
 
-        # Odoo 18 Compatibility: Map 'vals' to 'values' keys
-        res['debit_values'] = res.get('debit_vals')
-        res['credit_values'] = res.get('credit_vals')
+        # Odoo 18 Compatibility: Map 'vals' to 'values' keys and force None for full reconciliation
+        # If residuals are zero after rounding, we must set *_values to None 
+        # to correctly flip the 'reconciled' flag in Odoo 18 core.
+        if company_currency.is_zero(debit_vals['amount_residual']):
+             res['debit_vals'] = None
+             res['debit_values'] = None
+        else:
+             res['debit_values'] = res.get('debit_vals')
+
+        if company_currency.is_zero(credit_vals['amount_residual']):
+             res['credit_vals'] = None
+             res['credit_values'] = None
+        else:
+             res['credit_values'] = res.get('credit_vals')
+
         res['partial_values'] = res.get('partial_vals')
         res['exchange_values'] = res.get('exchange_vals')
 
