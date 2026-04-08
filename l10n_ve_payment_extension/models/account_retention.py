@@ -1176,7 +1176,7 @@ class AccountRetention(models.Model):
                     _logger.info(f"Secuencia Municipal encontrada: {sequence.id}")
                     sequence_number = sequence.next_by_id()
             
-                correlative = f"{retention.date_accounting.year}{retention.date_accounting.month:02d}{sequence_number}"
+                correlative = f"{retention.date_accounting.year}{retention.date_accounting.month:02d}-{sequence_number}"
                 retention.name = correlative
                 retention.number = correlative
             
