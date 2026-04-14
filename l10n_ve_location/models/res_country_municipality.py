@@ -24,10 +24,12 @@ class ResCountryMunicipalityBinauralLocalizacion(models.Model):
     @api.constrains("country_id", "state_id", "name")
     def constraint_unique_municipality(self):
         for record in self:
+            if not record.state_id:
+                continue
             municipality = self.search(
                 [
                     ("country_id", "=", record.country_id.id),
-                    ("state_id", "=", record.state_id.id),
+                    ("state_id", "in", record.state_id.ids),
                     ("name", "=", record.name),
                     ("id", "!=", record.id),
                 ]
