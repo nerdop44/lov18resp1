@@ -1,5 +1,5 @@
 <odoo>
-  <data>
+  <data noupdate="1">
     <!-- Municipios de Venezuela -->
     <record id="res_country_municipality_1" model="res.country.municipality">
       <field name="name">Libertador</field>
