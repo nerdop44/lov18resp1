@@ -229,32 +229,30 @@
                                 <span>--</span>
                             </t>
                         </div>
-                        `<!-- Total Compras Incluyendo el IVA -->
+                        <!-- Total Compras Incluyendo el IVA (Supervisado) -->
                         <div class="" style="width:7%">
                             <span>
-				<t t-if="foreign_currency_is_vef">
-                                    <t t-esc="line.foreign_invoice_total"
+                                <t t-if="foreign_currency_is_vef">
+                                    <t t-set="amount_except_line"
+                                       t-value="sum(line.move_id.invoice_line_ids.filtered(lambda l: not l.tax_ids or any(t.amount == 0 for t in l.tax_ids)).mapped('foreign_subtotal'))"/>
+                                    <t t-set="safe_total" t-value="line.foreign_invoice_total if line.foreign_invoice_total > 0 else (line.foreign_invoice_amount + line.foreign_iva_amount + amount_except_line)"/>
+                                    <t t-esc="safe_total"
                                        t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_total" t-value="total_amount_total + line.foreign_invoice_total"/>
-			    	</t>
-				<t t-else="">
-                                    <t t-esc="line.invoice_total"
+                                    <t t-set="total_amount_total" t-value="total_amount_total + safe_total"/>
+                                </t>
+                                <t t-else="">
+                                    <t t-set="amount_except_line"
+                                       t-value="sum(line.move_id.invoice_line_ids.filtered(lambda l: not l.tax_ids or any(t.amount == 0 for t in l.tax_ids)).mapped('price_subtotal'))"/>
+                                    <t t-set="safe_total" t-value="line.invoice_total if line.invoice_total > 0 else (line.invoice_amount + line.iva_amount + amount_except_line)"/>
+                                    <t t-esc="safe_total"
                                        t-options='{"widget": "float", "precision": get_digits}'/>
-				    <t t-set="total_amount_total" t-value="total_amount_total + line.invoice_total"/>
-				</t>
+                                    <t t-set="total_amount_total" t-value="total_amount_total + safe_total"/>
+                                </t>
                             </span>
                         </div>
 
                         <!-- sin derecho a Crédito IVA -->
                         <div class="" style="width:7%">
-			    <t t-if="foreign_currency_is_vef">
-				<t t-set="amount_except_line"
-				   t-value="sum(line.move_id.invoice_line_ids.filtered(lambda l: l.tax_ids.amount == 0).mapped('foreign_subtotal'))"/>
-			    </t>
-			    <t t-else="">
-				<t t-set="amount_except_line"
-				   t-value="sum(line.move_id.invoice_line_ids.filtered(lambda l: l.tax_ids.amount == 0).mapped('price_subtotal'))"/>
-			    </t>
                             <span t-esc="amount_except_line"
                                   t-options='{"widget": "float", "precision": get_digits}'/>
                             <t t-set="total_amount_amount_except" t-value="total_amount_amount_except + amount_except_line"/>
@@ -623,20 +621,19 @@
                         <div style="width:15%">
                             <span t-esc="line.payment_concept_id.name">--</span>
                         </div>
-                        <!-- Total Factura -->
+                        <!-- Total Factura (Supervisado) -->
                         <div style="width:15%">
-			    <t t-if="foreign_currency_is_vef">
-                            	<span t-field="line.foreign_invoice_total"
-                                      t-options='{"widget": "float", "precision": get_digits}'>
-                                    --
-                            	</span>
-		    	    </t>
-			    <t t-else="">
-                            	<span t-field="line.invoice_total"
-                                      t-options='{"widget": "float", "precision": get_digits}'>
-                                    --
-                            	</span>
-		    	    </t>
+                            <t t-if="foreign_currency_is_vef">
+                                <t t-set="amount_tax_total" t-value="sum(line.move_id.line_ids.filtered(lambda x: x.display_type == 'tax').mapped('foreign_balance'))"/>
+                                <t t-set="safe_islr_total" t-value="line.foreign_invoice_total if line.foreign_invoice_total > 0 else (line.foreign_invoice_amount + abs(amount_tax_total))"/>
+                                <span t-esc="safe_islr_total"
+                                      t-options='{"widget": "float", "precision": get_digits}'/>
+                            </t>
+                            <t t-else="">
+                                <t t-set="safe_islr_total" t-value="line.invoice_total if line.invoice_total > 0 else line.move_id.amount_total"/>
+                                <span t-esc="safe_islr_total"
+                                      t-options='{"widget": "float", "precision": get_digits}'/>
+                            </t>
                         </div>
                         <!-- Base de Retención -->
                         <div style="width:15%">
