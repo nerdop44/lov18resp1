@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="view_account_invoice_report_pivot_binaural_invoice" model="ir.ui.view">
+    <record id="view_account_invoice_report_pivot_binaural_invoice" model="ir.ui.view">
       <field name="name">view.account.invoice.report.pivot.binaural.invoice</field>
       <field name="model">account.invoice.report</field>
       <field name="inherit_id" ref="account.view_account_invoice_report_pivot"/>
@@ -26,5 +25,4 @@
         </graph>
       </field>
     </record>
-    </data>
 </odoo>

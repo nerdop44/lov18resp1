@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="res_config_settings_l10n_ve_rate" model="ir.ui.view">
+    <record id="res_config_settings_l10n_ve_rate" model="ir.ui.view">
       <field name="name">res.config.settings.binaural.rate</field>
       <field name="model">res.config.settings</field>
       <field name="inherit_id" ref="l10n_ve_invoice.res_config_settings_binaural_invoice" />
@@ -112,5 +111,4 @@
         </xpath>
       </field>
     </record>
-    </data>
 </odoo>

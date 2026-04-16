@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <template id="binaural_accountant_inherit_report_payment_receipt_document" inherit_id="account.report_payment_receipt_document">
+    <template id="binaural_accountant_inherit_report_payment_receipt_document" inherit_id="account.report_payment_receipt_document">
 			<xpath expr="//table" position="before">
 				<div class="row mb64">
 					<div class="col-6" t-if="o.partner_bank_id">
@@ -33,5 +32,4 @@
 				</div>
 			</xpath>
 		</template>
-    </data>
 </odoo>

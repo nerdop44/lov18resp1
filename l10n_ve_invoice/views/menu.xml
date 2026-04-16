@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="ir_invoice_correlative" model="ir.actions.act_window">
+    <record id="ir_invoice_correlative" model="ir.actions.act_window">
       <field name="name">control number</field>
       <field name="type">ir.actions.act_window</field>
       <field name="res_model">ir.sequence</field>
@@ -17,5 +16,4 @@
     parent="account.menu_finance_receivables"
     action="ir_invoice_correlative"
     />
-    </data>
 </odoo>

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="account_invoices_details_views" model="ir.ui.view">
+    <record id="account_invoices_details_views" model="ir.ui.view">
     <field name="name">account.invoices.details.view</field>
     <field name="model">account.invoices.details</field>
     <field name="type">form</field>
@@ -34,5 +33,4 @@
   </record>
 
   <menuitem action="action_account_invoices_details" id="account_report_detail_sale_menu" parent="account.menu_finance_reports" sequence="5"/>
-    </data>
 </odoo>

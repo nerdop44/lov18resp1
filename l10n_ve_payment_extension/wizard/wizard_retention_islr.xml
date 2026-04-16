@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="wizard_retention_islr_view" model="ir.ui.view">
+    <record id="wizard_retention_islr_view" model="ir.ui.view">
 			<field name="name">wizard.retention.islr.view</field>
 			<field name="model">wizard.retention.islr</field>
 			<field name="arch" type="xml">
@@ -30,5 +29,4 @@
 			<field name="target">new</field>
 			<field name="context">{'default_report': 'islr'}</field>
 		</record>
-    </data>
 </odoo>

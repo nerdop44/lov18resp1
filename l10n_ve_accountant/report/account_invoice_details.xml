@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="action_account_invoices_details_report" model="ir.actions.report">
+    <record id="action_account_invoices_details_report" model="ir.actions.report">
     <field name="name">Sale Details</field>
     <field name="model">account.invoices.details</field>
     <field name="report_type">qweb-pdf</field>
@@ -284,5 +283,4 @@
     </t>
     </t>
   </template>
-    </data>
 </odoo>

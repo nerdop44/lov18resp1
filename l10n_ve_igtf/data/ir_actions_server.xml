@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="action_fix_bi_igtf_invoices" model="ir.actions.server">
+    <record id="action_fix_bi_igtf_invoices" model="ir.actions.server">
     <field name="name">Fix Binaural BI IGTF Invoices</field>
     <field name="model_id" ref="model_account_move"/>
     <field name="binding_model_id" ref="model_account_move"/>
@@ -11,5 +10,4 @@ for rec in records:
   rec.recalculate_bi_igtf()
     </field>
   </record>
-    </data>
 </odoo>

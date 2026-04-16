@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="account_fiscal_year_closing_template_inherit_binaural" model="ir.ui.view">
+    <record id="account_fiscal_year_closing_template_inherit_binaural" model="ir.ui.view">
     <field name="name">account.fiscal.year.closing.template.view.form.inherit</field>
     <field name="model">account.fiscalyear.closing.template</field>
     <field name="inherit_id" ref="account_fiscal_year_closing.view_account_fiscalyear_closing_template_form"/>
@@ -14,5 +13,4 @@
       </xpath>
     </field>
   </record>
-    </data>
 </odoo>

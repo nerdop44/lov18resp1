@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="view_retention_municipal_form_binaural_payment_extension" model="ir.ui.view">
+    <record id="view_retention_municipal_form_binaural_payment_extension" model="ir.ui.view">
 			<field name="name">Retention Municipal client form</field>
 			<field name="model">account.retention</field>
 			<field name="type">form</field>
@@ -143,5 +142,4 @@
 			<field name="context">{"default_type":'in_invoice', "default_type_retention":'municipal'}</field>
 			<field name="domain">[('type_retention', '=', 'municipal'), ('type', '=', 'in_invoice')]</field>
 		</record>
-    </data>
 </odoo>

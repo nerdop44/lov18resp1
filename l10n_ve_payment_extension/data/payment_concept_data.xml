@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <data noupdate="1">
-        <record id="payment_concept_one_binaural_payment_extension" model="payment.concept">
+<odoo noupdate="1">
+    <record id="payment_concept_one_binaural_payment_extension" model="payment.concept">
       <field name="name">Honorarios Profesionales Pagados a</field>
       <field name="status">True</field>
       <field name="line_payment_concept_ids" eval="[
@@ -224,5 +223,4 @@
         'type_person_id': ref('type_person_four_binaural_payment_extension')
       })]"/>
     </record>
-    </data>
 </odoo>

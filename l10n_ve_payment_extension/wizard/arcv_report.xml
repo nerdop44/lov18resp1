@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="arcv_report_form_view" model="ir.ui.view">
+    <record id="arcv_report_form_view" model="ir.ui.view">
     <field name="name">Genrate ARCV Voucher</field>
     <field name="model">arcv.report</field>
     <field name="arch" type="xml">
@@ -31,5 +30,4 @@
     <field name="view_mode">form</field>
     <field name="target">new</field>
   </record>
-    </data>
 </odoo>

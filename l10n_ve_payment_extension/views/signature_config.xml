@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="view_signature_config_tree_binaural_payment_extension" model="ir.ui.view">
+    <record id="view_signature_config_tree_binaural_payment_extension" model="ir.ui.view">
       <field name="name">view.signature.config.tree.binaural.payment.extension</field>
       <field name="model">signature.config</field>
       <field name="arch" type="xml">
@@ -51,5 +50,4 @@
       <field name="view_mode">list,kanban,form</field>
       <field name="context">{"search_default_active":True}</field>
     </record>
-    </data>
 </odoo>

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="wizard_report_municipality_retentions_report_view" model="ir.ui.view">
+    <record id="wizard_report_municipality_retentions_report_view" model="ir.ui.view">
     <field name="name">municipal.retention.xlsx.report.view</field>
     <field name="model">municipal.retention.xlsx.report</field>
     <field name="arch" type="xml">
@@ -27,5 +26,4 @@
     <field name="view_mode">form</field>
     <field name="target">new</field>
   </record>
-    </data>
 </odoo>

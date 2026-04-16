@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="product_template_attribute_value_dual_currency_tree" model="ir.ui.view">
+    <record id="product_template_attribute_value_dual_currency_tree" model="ir.ui.view">
       <field name="name">product_template_attribute_value_tree.dual_currency</field>
       <field name="model">product.template.attribute.value</field>
       <field name="inherit_id" ref="product.product_template_attribute_value_view_tree"/>
@@ -24,5 +23,4 @@
          </xpath>
       </field>
     </record>
-    </data>
 </odoo>

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <data noupdate="1">
-        <record id="res_country_parish_1" model="res.country.parish">
+<odoo noupdate="1">
+    <record id="res_country_parish_1" model="res.country.parish">
    <field name="name">Ocumare del Tuy</field>
    <field name="code">01</field>
    <field name="municipality_id" ref="res_country_municipality_187"/>
@@ -9558,5 +9557,4 @@
    <field name="code">1319</field>
    <field name="municipality_id" ref="res_country_municipality_171"/>
   </record>
-    </data>
 </odoo>

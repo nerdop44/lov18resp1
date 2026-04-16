@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <!-- <template id="template_binaural_invoce_report_invoice_document" inherit_id="account.report_invoice_document"> -->
+    <!-- <template id="template_binaural_invoce_report_invoice_document" inherit_id="account.report_invoice_document"> -->
   <!--   <xpath expr="//div[@class='col-auto col-3 mw-100 mb-2'][3]" position="replace"> -->
   <!--   <div class="col-auto col-3 mw-100 mb-2" t-if="o.invoice_origin" name="origin"> -->
   <!--     <strong>Nro de Pedido:</strong> -->
@@ -9,5 +8,4 @@
   <!--   </div> -->
   <!--   </xpath> -->
   <!-- </template> -->
-    </data>
 </odoo>

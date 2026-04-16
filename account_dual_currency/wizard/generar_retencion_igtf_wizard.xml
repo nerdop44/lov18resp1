@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="generar_retencion_igtf_wizard" model="ir.ui.view">
+    <record id="generar_retencion_igtf_wizard" model="ir.ui.view">
       <field name="name">Generar Retención IGTF Wizard</field>
       <field name="model">generar.igtf.wizard</field>
       <field name="arch" type="xml">
@@ -30,5 +29,4 @@
       </field>
 
     </record>
-    </data>
 </odoo>

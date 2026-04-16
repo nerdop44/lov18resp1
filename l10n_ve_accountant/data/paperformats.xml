@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <data noupdate="1">
-        <record id="paperformat_account_related" model="report.paperformat">
+<odoo noupdate="1">
+    <record id="paperformat_account_related" model="report.paperformat">
    <field name="name">Letter Account Move Related</field>
    <field name="default" eval="True" />
    <field name="format">Letter</field>
@@ -30,5 +29,4 @@
    <field name="header_line" eval="False"/>
    <field name="header_spacing">47</field>
   </record>
-    </data>
 </odoo>

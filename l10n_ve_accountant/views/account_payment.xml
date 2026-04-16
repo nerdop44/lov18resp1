@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="view_account_payment_form_binaural" model="ir.ui.view">
+    <record id="view_account_payment_form_binaural" model="ir.ui.view">
     <field name="name">view.account.payment.form.binaural</field>
     <field name="model">account.payment</field>
     <field name="inherit_id" ref="account.view_account_payment_form" />
@@ -17,5 +16,4 @@
       </field>
     </field>
   </record>
-    </data>
 </odoo>
