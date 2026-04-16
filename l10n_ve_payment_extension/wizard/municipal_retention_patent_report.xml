@@ -1,8 +1,5 @@
 
-<odoo>
-<data>
-
-    <record id="wizard_report_municipal_retention_report_patent_view" model="ir.ui.view">
+<odoo><record id="wizard_report_municipal_retention_report_patent_view" model="ir.ui.view">
         <field name="name">municipal.retention.patent.report.view</field>
         <field name="model">municipal.retention.patent.report</field>
         <field name="arch" type="xml">
@@ -28,7 +25,4 @@
         <field name="res_model">municipal.retention.patent.report</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
-    </record>
-
-</data>
-</odoo>
+    </record></odoo>

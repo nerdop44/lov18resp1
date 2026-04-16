@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<odoo>
-    <data>
-        <record id="account_payment_register_dual_currency" model="ir.ui.view">
+<odoo><record id="account_payment_register_dual_currency" model="ir.ui.view">
             <field name="name">Dual Currency: account.payment.register.form</field>
             <field name="model">account.payment.register</field>
             <field name="inherit_id" ref="account.view_account_payment_register_form"/>
@@ -50,6 +48,4 @@
                       <field name="payment_difference_usd" readonly="1" force_save="1" invisible="currency_id_name == 'VEF' or payment_difference &lt; 0"/>
                 </xpath>
             </field>
-        </record>
-    </data>
-</odoo>
+        </record></odoo>

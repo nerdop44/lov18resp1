@@ -1,7 +1,4 @@
-<odoo>
-<data>
-
-	<record id="view_company_form" model="ir.ui.view">
+<odoo><record id="view_company_form" model="ir.ui.view">
 		<field name="name">binaural.payment.extensionres.company.form</field>
 		<field name="model">res.company</field>
 		<field name="inherit_id" ref="base.view_company_form" />
@@ -22,7 +19,4 @@
 			</notebook>
 
 		</field>
-	</record>
-    
-</data>
-</odoo>
+	</record></odoo>

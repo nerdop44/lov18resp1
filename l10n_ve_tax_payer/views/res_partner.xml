@@ -1,7 +1,5 @@
 
-<odoo>
-    <data>
-        <record id="res_partner_binaural_taxpayer" model="ir.ui.view">
+<odoo><record id="res_partner_binaural_taxpayer" model="ir.ui.view">
             <field name="name">res.partner.binaural.taxpayer</field>
             <field name="model">res.partner</field>
             <field name="inherit_id" ref="base.view_partner_form"/>
@@ -10,6 +8,4 @@
                     <field name="taxpayer_type" required="1" />
                 </xpath>
             </field>
-        </record>
-    </data>
-</odoo>
+        </record></odoo>

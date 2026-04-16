@@ -1,8 +1,5 @@
 
-<odoo>
-<data>
-
-    <record id="retention_restricted_multi_company" model="ir.rule">
+<odoo><record id="retention_restricted_multi_company" model="ir.rule">
         <field name="name">Account Retention multi-company</field>
         <field name="model_id" ref="model_account_retention"/>
         <field name="global" eval="True"/>
@@ -18,7 +15,4 @@
         <field name="domain_force">
             ['|',('company_id','=',False),('company_id', 'in', company_ids)]
         </field>
-    </record>
-
-</data>
-</odoo>
+    </record></odoo>

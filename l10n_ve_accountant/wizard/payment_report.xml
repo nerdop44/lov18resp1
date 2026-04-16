@@ -1,8 +1,5 @@
 
-<odoo>
-<data>
-
-    <record id="form_wizard_all_payments" model="ir.ui.view">
+<odoo><record id="form_wizard_all_payments" model="ir.ui.view">
         <field name="name">Payment report</field>
         <field name="model">payment.report</field>
         <field name="arch" type="xml">
@@ -39,7 +36,4 @@
             id="bin_payment_all_report"
             parent="account.menu_finance_reports"
             action="action_report_all_payments_view"
-        />
-
-</data>
-</odoo>
+        /></odoo>

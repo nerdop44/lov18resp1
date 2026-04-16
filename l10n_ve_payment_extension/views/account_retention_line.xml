@@ -1,8 +1,4 @@
-<odoo>
-
-    <data>
-
-        <record id="view_account_retention_line_tree_binaural_payment_extension" model="ir.ui.view">
+<odoo><record id="view_account_retention_line_tree_binaural_payment_extension" model="ir.ui.view">
             <field name="name">views.account.retention.line.tree.binaural.payment.extension</field>
             <field name="model">account.retention.line</field>
             <field name="type">list</field> <!-- Debe permanecer como "tree" -->
@@ -41,6 +37,4 @@
                     </group>
                 </form>
             </field>
-        </record>
-    </data>
-</odoo>
+        </record></odoo>

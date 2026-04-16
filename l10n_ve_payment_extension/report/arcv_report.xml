@@ -1,6 +1,4 @@
-<odoo>
-    <data>
-	<record id="action_report_arcv" model="ir.actions.report">
+<odoo><record id="action_report_arcv" model="ir.actions.report">
 	   <field name="name">ARCV Report</field>
 	   <field name="model">arcv.report</field>
 	   <field name="report_type">qweb-pdf</field>
@@ -237,6 +235,4 @@
                     </t>
                 </t>
             </t>
-        </template>
-    </data>
-</odoo>
+        </template></odoo>

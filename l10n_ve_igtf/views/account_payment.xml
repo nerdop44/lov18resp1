@@ -1,8 +1,5 @@
 
-<odoo>
-
-    <data>
-        <record id="account_payment_igtf_view_form" model="ir.ui.view">
+<odoo><record id="account_payment_igtf_view_form" model="ir.ui.view">
             <field name="name">account.payment.igtf.view.form</field>
             <field name="model">account.payment</field>
             <field name="inherit_id" ref="account.view_account_payment_form"/>
@@ -17,8 +14,4 @@
                 </group>
             </xpath>
             </field>
-        </record>
-    </data>
-    
-
-</odoo>
+        </record></odoo>

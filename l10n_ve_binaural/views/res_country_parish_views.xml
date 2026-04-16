@@ -1,6 +1,4 @@
-<odoo>
-  <data>
-    <!-- TREE -->
+<odoo><!-- TREE -->
     <record id="view_res_country_parish_tree" model="ir.ui.view">
       <field name="name">res.country.parish.tree</field>
       <field name="model">res.country.parish</field>
@@ -35,6 +33,4 @@
       <field name="name">Parish</field>
       <field name="res_model">res.country.parish</field>
       <field name="view_mode">list,form</field>
-    </record>
-  </data>
-</odoo>
+    </record></odoo>

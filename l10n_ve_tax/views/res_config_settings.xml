@@ -1,6 +1,4 @@
-<odoo>
-    <data>
-        <record id="res_config_settings_binaural_taxes" model="ir.ui.view">
+<odoo><record id="res_config_settings_binaural_taxes" model="ir.ui.view">
             <field name="name">res.config.settings.binaural.rate</field>
             <field name="model">res.config.settings</field>
             <field name="inherit_id" ref="l10n_ve_base.res_config_settings_view_form_binaural_base" />
@@ -201,6 +199,4 @@
 
                 </xpath>
             </field>
-        </record>
-    </data>
-</odoo>
+        </record></odoo>

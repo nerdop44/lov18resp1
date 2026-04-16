@@ -1,8 +1,5 @@
 
-<odoo>
-	<data>
-		
-		<record id="account_payment_register_form_binaural_payment_extension" model="ir.ui.view">
+<odoo><record id="account_payment_register_form_binaural_payment_extension" model="ir.ui.view">
 			<field name="name">account.payment.register.form</field>
 			<field name="model">account.payment.register</field>
 			<field name="inherit_id" ref="account.view_account_payment_register_form"/>
@@ -72,7 +69,4 @@
 				</group>-->
 		
 			</field>
-		</record>
-	
-	</data>
-</odoo>
+		</record></odoo>

@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<odoo>
-    <data>
-        <!--Heredar la vista account_budget.crossovered_budget_view_form-->
+<odoo><!--Heredar la vista account_budget.crossovered_budget_view_form-->
         <record id="crossovered_budget_view_form_inherit" model="ir.ui.view">
             <field name="name">crossovered_budget_view_form_inherit</field>
             <field name="model">crossovered.budget</field>
@@ -35,7 +33,4 @@
                     <field name="currency_id_dif" readonly="1" invisible="1"/>
                 </xpath>
             </field>
-        </record>
-
-    </data>
-</odoo>
+        </record></odoo>

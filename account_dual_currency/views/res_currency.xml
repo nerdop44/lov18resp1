@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<odoo>
-<data>
-        <record id="view_currency_form_inherit_views_ve" model="ir.ui.view">
+<odoo><record id="view_currency_form_inherit_views_ve" model="ir.ui.view">
             <field name="name">view_currency_form_inherit_views_ve</field>
             <field name="model">res.currency</field>
             <field name="inherit_id" ref="base.view_currency_form"/>
@@ -56,7 +54,4 @@
                 </xpath>
 
          </field>
-       </record>
-
-</data>
-</odoo>
+       </record></odoo>

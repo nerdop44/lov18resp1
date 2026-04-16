@@ -1,8 +1,5 @@
 
-<odoo>
-    <data>
-        
-        <record id="account_payment_view_form_binaural_payment_extension" model="ir.ui.view">
+<odoo><record id="account_payment_view_form_binaural_payment_extension" model="ir.ui.view">
             <field name="name">account_payment_view_form_binaural_payment_extension</field>
             <field name="model">account.payment</field>
             <field name="inherit_id" ref="account.view_account_payment_form"/>
@@ -25,7 +22,4 @@
                     </notebook>
                 </xpath>
             </field>
-        </record>
-    
-    </data>
-</odoo>
+        </record></odoo>

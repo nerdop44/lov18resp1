@@ -1,7 +1,4 @@
-<odoo>
-<data>
-
-	<record id="library_rent_wizard_form" model="ir.ui.view">
+<odoo><record id="library_rent_wizard_form" model="ir.ui.view">
 		<field name="name">Generar Comprobante</field>
 		<field name="model">wizard.retention.iva</field>
 		<field name="arch" type="xml">
@@ -27,7 +24,4 @@
 		<field name="res_model">wizard.retention.iva</field>
 		<field name="view_mode">form</field>
 		<field name="target">new</field>
-	</record>
-    
-</data>
-</odoo>
+	</record></odoo>

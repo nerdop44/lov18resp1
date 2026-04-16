@@ -1,6 +1,4 @@
-<odoo>
-<data>
-    <record id="account_invoices_details_views" model="ir.ui.view">
+<odoo><record id="account_invoices_details_views" model="ir.ui.view">
         <field name="name">account.invoices.details.view</field>
         <field name="model">account.invoices.details</field>
         <field name="type">form</field>
@@ -32,6 +30,4 @@
         <field name="view_id" ref="l10n_ve_accountant.account_invoices_details_views"/>
     </record>
 
-    <menuitem action="action_account_invoices_details" id="account_report_detail_sale_menu" parent="account.menu_finance_reports" sequence="5"/>
-</data>
-</odoo>
+    <menuitem action="action_account_invoices_details" id="account_report_detail_sale_menu" parent="account.menu_finance_reports" sequence="5"/></odoo>

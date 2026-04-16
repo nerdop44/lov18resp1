@@ -1,7 +1,5 @@
 
-<odoo>
-    <data>
-        <record id="wizard_binaural_facturacion_reportes_view" model="ir.ui.view">
+<odoo><record id="wizard_binaural_facturacion_reportes_view" model="ir.ui.view">
             <field name="name">wizard.accounting.reports.view</field>
             <field name="model">wizard.accounting.reports</field>
             <field name="arch" type="xml">
@@ -43,6 +41,4 @@
 
         <menuitem id="account_report_menu" parent="account.menu_finance_reports" sequence="5" name="Accounting Reports"/>
         <menuitem action="action_accounting_report_purchase" id="account_report_purchase_menu" parent="account_report_menu" sequence="5"/>
-        <menuitem action="action_accounting_report_sale" id="account_report_sale_menu" parent="account_report_menu" sequence="5"/>
-    </data>
-</odoo>
+        <menuitem action="action_accounting_report_sale" id="account_report_sale_menu" parent="account_report_menu" sequence="5"/></odoo>

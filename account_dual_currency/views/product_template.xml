@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<odoo>
-    <data>
-
-        <record id="product_variant_easy_edit_view_dual_currency" model="ir.ui.view">
+<odoo><record id="product_variant_easy_edit_view_dual_currency" model="ir.ui.view">
             <field name="name">product.product.view.form.easy dual currency</field>
             <field name="model">product.product</field>
             <field name="inherit_id" ref="product.product_variant_easy_edit_view"/>
@@ -96,9 +93,4 @@
                     </div>
                 </xpath>
             </field>
-        </record>
-
-
-
-    </data>
-</odoo>
+        </record></odoo>

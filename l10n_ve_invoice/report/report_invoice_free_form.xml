@@ -1,8 +1,5 @@
 
-<odoo>
-
-    <data>
-        <record id="action_invoice_free_form_l10n_ve_invoice" model="ir.actions.report">
+<odoo><record id="action_invoice_free_form_l10n_ve_invoice" model="ir.actions.report">
             <field name="name">Forma Libre Original</field>
             <field name="model">account.move</field>
             <field name="report_type">qweb-pdf</field>
@@ -375,7 +372,4 @@
             <field name="binding_model_id" ref="account.model_account_move"/>
             <field name="binding_type">report</field>
             <field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
-        </record>
-    </data>
-
-</odoo>
+        </record></odoo>

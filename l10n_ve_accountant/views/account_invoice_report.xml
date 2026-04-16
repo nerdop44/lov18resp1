@@ -1,9 +1,5 @@
 
-<odoo>
-
-    <data>
-
-        <record id="view_account_invoice_report_pivot_binaural_invoice" model="ir.ui.view">
+<odoo><record id="view_account_invoice_report_pivot_binaural_invoice" model="ir.ui.view">
             <field name="name">view.account.invoice.report.pivot.binaural.invoice</field>
             <field name="model">account.invoice.report</field>
             <field name="inherit_id" ref="account.view_account_invoice_report_pivot"/>
@@ -27,9 +23,4 @@
                     <field name="foreign_price_total" />
                 </graph>
             </field>
-        </record>
-
-    </data>
-    
-
-</odoo>
+        </record></odoo>

@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- Copyright 2016 Antonio Espinosa <antonio.espinosa@tecnativa.com>
      License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
-<odoo noupdate="1">
-<data>
-
-    <record id="fiscalyear_closing_multi_company_rule" model="ir.rule">
+<odoo noupdate="1"><record id="fiscalyear_closing_multi_company_rule" model="ir.rule">
         <field name="name">Fiscal year closing multi-company</field>
         <field name="model_id" ref="model_account_fiscalyear_closing" />
         <field name="global" eval="True" />
@@ -20,7 +17,4 @@
         <field
             name="domain_force"
         >['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
-    </record>
-
-</data>
-</odoo>
+    </record></odoo>

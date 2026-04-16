@@ -1,6 +1,5 @@
 
-<odoo>
-    <data noupdate="1">
+<odoo><data noupdate="1">
         <record id="payment_concept_one_binaural_payment_extension" model="payment.concept">
             <field name="name">Honorarios Profesionales Pagados a</field>
             <field name="status">True</field>
@@ -223,6 +222,4 @@
                 'tariff_id': ref('fees_retention_data_percentage_one_binaural_payment_extension'),
                 'type_person_id': ref('type_person_four_binaural_payment_extension')
             })]"/>
-        </record>
-    </data>
-</odoo>
+        </record></odoo>

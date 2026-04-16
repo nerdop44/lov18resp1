@@ -1,5 +1,4 @@
-<odoo>
-    <data noupdate="1">
+<odoo><data noupdate="1">
         <record id="paper_format_retention_iva_voucher" model="report.paperformat">
             <field name="name">paperformat.oc.report</field>
             <field name="default" eval="True"/>
@@ -30,6 +29,4 @@
             <field name="header_line" eval="False"/>
             <field name="header_spacing">20</field>
             <field name="dpi">90</field>
-        </record>
-    </data>
-</odoo>
+        </record></odoo>

@@ -1,8 +1,5 @@
 
-<odoo>
-<data>
-
-    <record id="view_account_payment_register_form_binaural_invoice" model="ir.ui.view">
+<odoo><record id="view_account_payment_register_form_binaural_invoice" model="ir.ui.view">
         <field name="name">view.account.payment.register.form.binaural.invoice</field>
         <field name="model">account.payment.register</field>
         <field name="inherit_id" ref="account.view_account_payment_register_form"/>
@@ -20,7 +17,4 @@
 		</div>
             </xpath>
         </field>
-    </record>
-
-</data>
-</odoo>
+    </record></odoo>
