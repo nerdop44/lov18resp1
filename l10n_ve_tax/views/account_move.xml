@@ -1,4 +1,5 @@
 <odoo>
+<data>
     <record id="view_account_move_form_binaural_tax" model="ir.ui.view">
         <field name="name">view.account.move.form.binaural.tax</field>
         <field name="model">account.move</field>
@@ -39,4 +40,5 @@
             </xpath>
         </field>
     </record>
+</data>
 </odoo>

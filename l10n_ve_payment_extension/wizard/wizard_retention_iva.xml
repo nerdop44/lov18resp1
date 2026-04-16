@@ -1,4 +1,5 @@
 <odoo>
+<data>
 
 	<record id="library_rent_wizard_form" model="ir.ui.view">
 		<field name="name">Generar Comprobante</field>
@@ -28,4 +29,5 @@
 		<field name="target">new</field>
 	</record>
     
+</data>
 </odoo>

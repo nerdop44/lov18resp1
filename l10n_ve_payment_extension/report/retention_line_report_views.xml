@@ -1,4 +1,5 @@
 <odoo>
+<data>
 
 	<record id="view_retention_line_report_search" model="ir.ui.view">
 		<field name="name">retention.line.report.search</field>
@@ -51,4 +52,5 @@
 		<field name="context">{"search_default_filter_type_supplier": 1}</field>
 	</record>
 
+</data>
 </odoo>

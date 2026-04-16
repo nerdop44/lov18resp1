@@ -1,4 +1,5 @@
 <odoo>
+<data>
 
     <record id="view_form_product_category" model="ir.ui.view">
         <field name="name">product.category.binaural.extend.ciu</field>
@@ -13,4 +14,5 @@
         </field>
     </record>
     
+</data>
 </odoo>

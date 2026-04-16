@@ -1,4 +1,5 @@
 <odoo>
+<data>
     <record id="view_move_form" model="ir.ui.view">
         <field name="name">account.move.form</field>
         <field name="model">account.move</field>
@@ -24,4 +25,5 @@
             </filter>
         </field>
     </record>
+</data>
 </odoo>

@@ -1,5 +1,6 @@
 
 <odoo>
+<data>
 
     <record id="wizard_report_municipal_retention_report_patent_view" model="ir.ui.view">
         <field name="name">municipal.retention.patent.report.view</field>
@@ -29,4 +30,5 @@
         <field name="target">new</field>
     </record>
 
+</data>
 </odoo>

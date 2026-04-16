@@ -1,5 +1,6 @@
 
 <odoo>
+<data>
     <record id="wizard_report_municipality_retentions_report_view" model="ir.ui.view">
         <field name="name">municipal.retention.xlsx.report.view</field>
         <field name="model">municipal.retention.xlsx.report</field>
@@ -26,4 +27,5 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>
+</data>
 </odoo>

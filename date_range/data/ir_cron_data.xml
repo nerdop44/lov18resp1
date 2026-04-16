@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <odoo noupdate="1">
+<data>
     <record model="ir.cron" id="ir_cron_autocreate">
         <field name="name">Auto-generate date ranges</field>
         <field name="interval_number">1</field>
@@ -9,4 +10,5 @@
         <field name="state">code</field>
         <field name="code">model.autogenerate_ranges()</field>
     </record>
+</data>
 </odoo>

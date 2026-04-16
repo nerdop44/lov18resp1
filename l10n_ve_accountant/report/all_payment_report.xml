@@ -1,5 +1,6 @@
 
 <odoo>
+<data>
 
     <record id="action_report_all_payments" model="ir.actions.report">
         <field name="name">Informe de pagos</field>
@@ -154,4 +155,5 @@
 	        </t>
     </template>
 
+</data>
 </odoo>

@@ -1,5 +1,6 @@
 
 <odoo>
+<data>
 
         <record id="ir_invoice_correlative" model="ir.actions.act_window">
             <field name="name">control number</field>
@@ -18,4 +19,5 @@
         action="ir_invoice_correlative"
         />
 
+</data>
 </odoo>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+<data>
         <record id="view_currency_form_inherit_views_ve" model="ir.ui.view">
             <field name="name">view_currency_form_inherit_views_ve</field>
             <field name="model">res.currency</field>
@@ -57,4 +58,5 @@
          </field>
        </record>
 
+</data>
 </odoo>

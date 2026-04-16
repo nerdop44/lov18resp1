@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+<data>
     <record id="account_analytic_account_dual_currency_form" model="ir.ui.view">
             <field name="name">account.analytic.line.dual_currency form</field>
             <field name="model">account.analytic.account</field>
@@ -39,4 +40,5 @@
             </field>
     </record>
 
+</data>
 </odoo>

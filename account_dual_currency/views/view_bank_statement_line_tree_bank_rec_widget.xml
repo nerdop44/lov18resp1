@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+<data>
     <record id="view_bank_statement_line_tree_bank_rec_widget_dual" model="ir.ui.view">
         <field name="name">view_bank_statement_line_tree_bank_rec_widget_dual</field>
         <field name="model">account.bank.statement.line</field>
@@ -13,4 +14,5 @@
         </field>
     </record>
 
+</data>
 </odoo>
