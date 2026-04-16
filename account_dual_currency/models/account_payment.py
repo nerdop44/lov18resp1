@@ -6,13 +6,7 @@ from odoo.exceptions import UserError
 class AccountPayment(models.Model):
     _inherit = 'account.payment'
 
-    def _valid_field_parameter(self, field_name, parameter):
-        return super()._valid_field_parameter(field_name, parameter)
-
-
-    tax_today = fields.Float(string="Tasa de Pago", default=lambda self: self._get_default_tasa())
-
-    # Alias de compatibilidad para módulos que aún usan la nomenclatura v16
+    # Campos de compatibilidad (Alias para evitar errores de validación de vista)
     foreign_rate = fields.Float(related='tax_today', readonly=False, string="Tasa (Alias)")
     foreign_inverse_rate = fields.Float(string="Tasa Inversa (Alias)", compute="_compute_foreign_inverse_rate")
 
@@ -21,6 +15,13 @@ class AccountPayment(models.Model):
         for rec in self:
             rec.foreign_inverse_rate = (1 / rec.tax_today) if rec.tax_today else 0
 
+
+
+    def _valid_field_parameter(self, field_name, parameter):
+        return super()._valid_field_parameter(field_name, parameter)
+
+
+    tax_today = fields.Float(string="Tasa de Pago", default=lambda self: self._get_default_tasa())
     currency_id_dif = fields.Many2one("res.currency",
                                       string="Divisa de Referencia",
                                       default=lambda self: self.env.company.currency_id_dif )

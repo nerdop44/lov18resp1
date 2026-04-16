@@ -20,6 +20,17 @@ import json
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
+    # Campos de compatibilidad (Alias para evitar errores de validación de vista)
+    foreign_rate = fields.Float(related='tax_today', readonly=False, string="Tasa (Alias)")
+    foreign_inverse_rate = fields.Float(string="Tasa Inversa (Alias)", compute="_compute_foreign_inverse_rate")
+
+    @api.depends('tax_today')
+    def _compute_foreign_inverse_rate(self):
+        for rec in self:
+            rec.foreign_inverse_rate = (1 / rec.tax_today) if rec.tax_today else 0
+
+
+
     def _valid_field_parameter(self, field_name, parameter):
         return super()._valid_field_parameter(field_name, parameter)
 
@@ -32,16 +43,6 @@ class AccountMove(models.Model):
     # Campos de compatibilidad (Alias para evitar errores de validación de vista)
     currency_vef_id = fields.Many2one("res.currency", related="currency_id_dif", string="Moneda VEF (Compatibilidad)")
     vef_currency_id = fields.Many2one("res.currency", related="currency_id_dif", string="Moneda VEF (Compatibilidad 2)")
-
-    # Alias de compatibilidad para módulos que aún usan la nomenclatura v16
-    foreign_rate = fields.Float(related='tax_today', readonly=False, string="Tasa (Alias)")
-    foreign_inverse_rate = fields.Float(string="Tasa Inversa (Alias)", compute="_compute_foreign_inverse_rate")
-
-    @api.depends('tax_today')
-    def _compute_foreign_inverse_rate(self):
-        for rec in self:
-            rec.foreign_inverse_rate = (1 / rec.tax_today) if rec.tax_today else 0
-
 
     acuerdo_moneda = fields.Boolean(string="Acuerdo de Factura Bs.", default=False)
 

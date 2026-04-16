@@ -9,7 +9,6 @@
     "category": "Accounting/Localizations/Account Chart",
     # any module necessary for this one to work correctly
     "depends": [
-        "account_dual_currency",
         "l10n_ve_base",
         #"l10n_ve_accountant",
         "l10n_ve_contact",

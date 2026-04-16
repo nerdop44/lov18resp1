@@ -221,7 +221,7 @@ msgid "Cant"
 msgstr ""
 
 #. module: l10n_ve_invoice
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_invoice/wizard/accounting_reports.py:0
 #: code:addons/l10n_ve_invoice/wizard/accounting_reports.py:0
 #, python-format
@@ -249,7 +249,7 @@ msgid "Config Settings"
 msgstr "Ajustes de configuración"
 
 #. module: l10n_ve_invoice
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_invoice/models/account_move.py:0
 #, python-format
 msgid ""
@@ -586,7 +586,7 @@ msgid "Telf:"
 msgstr ""
 
 #. module: l10n_ve_invoice
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_invoice/models/account_move.py:0
 #, python-format
 msgid ""
@@ -596,7 +596,7 @@ msgstr ""
 "contingencia"
 
 #. module: l10n_ve_invoice
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_invoice/models/account_move.py:0
 #, python-format
 msgid "The sale's series sequence must be in the selected journal."
@@ -640,7 +640,7 @@ msgid "Wizard para generar reportes de libro de compra y ventas"
 msgstr ""
 
 #. module: l10n_ve_invoice
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_invoice/models/account_move.py:0
 #, python-format
 msgid "You can not add more than %s products to the invoice."

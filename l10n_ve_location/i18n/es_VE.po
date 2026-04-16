@@ -134,7 +134,7 @@ msgid "State"
 msgstr "Estado"
 
 #. module: l10n_ve_location
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_location/models/res_country_municipality.py:0
 #, python-format
 msgid "The municipality is already registered"

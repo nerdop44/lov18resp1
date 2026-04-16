@@ -172,7 +172,7 @@ msgid "Closing types"
 msgstr "Tipos de cierre"
 
 #. module: account_fiscal_year_closing
-#. odoo-python
+# odoo-python
 #: code:addons/account_fiscal_year_closing/models/account_fiscalyear_closing.py:0
 #: model:ir.model.constraint,message:account_fiscal_year_closing.constraint_account_fiscalyear_closing_config_code_uniq
 #: model:ir.model.constraint,message:account_fiscal_year_closing.constraint_account_fiscalyear_closing_config_template_code_uniq
@@ -377,20 +377,20 @@ msgid "Fiscal closing"
 msgstr "Cierre fiscal"
 
 #. module: account_fiscal_year_closing
-#. odoo-python
+# odoo-python
 #: code:addons/account_fiscal_year_closing/models/account_fiscalyear_closing.py:0
 #, python-format
 msgid "Fiscal closing move lines"
 msgstr "Cierre fiscal lineas movimiento"
 
 #. module: account_fiscal_year_closing
-#. odoo-python
+# odoo-python
 #: code:addons/account_fiscal_year_closing/models/account_fiscalyear_closing.py:0
 #, python-format
 msgid "Fiscal closing moves"
 msgstr "Cierre fiscal movimientos"
 
-#. module: l10n_ve_account_fiscalyear_closing
+#. module: account_fiscal_year_closing, l10n_ve_account_fiscalyear_closing
 #: model:ir.model,name:l10n_ve_account_fiscalyear_closing.model_account_fiscalyear_closing
 #: model:ir.model.fields,field_description:account_fiscal_year_closing.field_account_bank_statement_line__fyc_id
 #: model:ir.model.fields,field_description:account_fiscal_year_closing.field_account_move__fyc_id
@@ -650,7 +650,7 @@ msgid "Name"
 msgstr "Nombre"
 
 #. module: account_fiscal_year_closing
-#. odoo-python
+# odoo-python
 #: code:addons/account_fiscal_year_closing/models/account_fiscalyear_closing.py:0
 #, python-format
 msgid "No destination account '%s' found."
@@ -671,7 +671,7 @@ msgid "Non-current Liabilities"
 msgstr "Pasivos no circulantes"
 
 #. module: account_fiscal_year_closing
-#. odoo-python
+# odoo-python
 #: code:addons/account_fiscal_year_closing/models/account_move.py:0
 #, python-format
 msgid "None"
@@ -685,7 +685,7 @@ msgid "Off-Balance Sheet"
 msgstr "Hoja fuera de balance"
 
 #. module: account_fiscal_year_closing
-#. odoo-python
+# odoo-python
 #: code:addons/account_fiscal_year_closing/models/account_fiscalyear_closing.py:0
 #, python-format
 msgid "One or more draft moves found: \n"
@@ -770,14 +770,14 @@ msgid "Reference"
 msgstr "Referencia"
 
 #. module: account_fiscal_year_closing
-#. odoo-python
+# odoo-python
 #: code:addons/account_fiscal_year_closing/models/account_fiscalyear_closing.py:0
 #, python-format
 msgid "Result"
 msgstr "Resultado"
 
 #. module: l10n_ve_account_fiscalyear_closing
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_account_fiscalyear_closing/models/account_fiscalyear_closing.py:0
 #, python-format
 msgid "Se encontraron uno o más movimientos sin asentar: \n"
@@ -817,7 +817,7 @@ msgid "The chart template for the company (if any)"
 msgstr "Plantilla gráfica para la empresa (si existe)"
 
 #. module: account_fiscal_year_closing
-#. odoo-python
+# odoo-python
 #: code:addons/account_fiscal_year_closing/models/account_fiscalyear_closing.py:0
 #: model:ir.model.constraint,message:account_fiscal_year_closing.constraint_account_fiscalyear_closing_year_company_uniq
 #, python-format
@@ -875,7 +875,7 @@ msgid "Un-reconciled"
 msgstr "Sin reconciliar"
 
 #. module: account_fiscal_year_closing
-#. odoo-python
+# odoo-python
 #: code:addons/account_fiscal_year_closing/models/account_fiscalyear_closing.py:0
 #, python-format
 msgid "Unbalanced journal entry found"
@@ -904,7 +904,7 @@ msgid "Year"
 msgstr "Año"
 
 #. module: account_fiscal_year_closing
-#. odoo-python
+# odoo-python
 #: code:addons/account_fiscal_year_closing/models/account_fiscalyear_closing.py:0
 #, python-format
 msgid "You can't remove any closing that is not in draft or cancelled state."

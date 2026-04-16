@@ -20,13 +20,13 @@ msgstr ""
 "X-Generator: Weblate 4.17\n"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/models/date_range.py:0
 msgid "%(name)s is not a valid range (%(date_start)s > %(date_end)s)"
 msgstr "%(name)s n’est pas une plage valide (%(date_start)s > %(date_end)s)"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/models/date_range.py:0
 msgid "%(thisname)s overlaps %(dtname)s"
 msgstr "%(thisname)s chevauche %(dtname)s"
@@ -246,7 +246,7 @@ msgstr ""
 "Si coché, les plages de dates du même type ne doivent pas se chevaucher."
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/wizard/date_range_generator.py:0
 msgid "Invalid name expression: %s"
 msgstr "Expression non valide pour le nom : %s"
@@ -278,7 +278,7 @@ msgid "Name"
 msgstr "Nom"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/wizard/date_range_generator.py:0
 msgid "No ranges to generate with these settings"
 msgstr "Aucune plage à générer avec ces paramètres"
@@ -299,19 +299,19 @@ msgid "Parameters"
 msgstr "Paramètres"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/models/date_range_search_mixin.py:0
 msgid "Period"
 msgstr "Période"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/wizard/date_range_generator.py:0
 msgid "Please enter an end date, or the number of ranges to generate."
 msgstr "Veuillez saisir une date de fin ou le nombre de plages à générer."
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/wizard/date_range_generator.py:0
 msgid "Please set a prefix or an expression to generate the range names."
 msgstr ""
@@ -353,7 +353,7 @@ msgid "Start date"
 msgstr "Date de début"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/wizard/date_range_generator.py:0
 msgid ""
 "The Company in the Date Range Generator and in Date Range Type must be the "
@@ -392,7 +392,7 @@ msgid "Until"
 msgstr "Jusqu'à"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/models/date_range_type.py:0
 msgid ""
 "You cannot change the company, as this Date Range Type is assigned to Date "

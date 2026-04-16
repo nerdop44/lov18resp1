@@ -61,7 +61,7 @@ msgstr ""
 "                                    </span>"
 
 #. module: l10n_ve_contact
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_contact/models/res_partner.py:0
 #, python-format
 msgid "A partner with the same email address already exists for this company."
@@ -69,7 +69,7 @@ msgstr ""
 "Ya existe un usuario con el mismo correo electrónico para esta compañía."
 
 #. module: l10n_ve_contact
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_contact/models/res_partner.py:0
 #, python-format
 msgid "A partner with the same email already exists."
@@ -113,7 +113,7 @@ msgid "Prefix of the VAT number"
 msgstr "Tipo de documento"
 
 #. module: l10n_ve_contact
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_contact/models/res_partner.py:0
 #, python-format
 msgid "The vat field only accepts numbers"

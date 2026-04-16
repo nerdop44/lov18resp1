@@ -20,13 +20,13 @@ msgstr ""
 "X-Generator: Weblate 5.10.4\n"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/models/date_range.py:0
 msgid "%(name)s is not a valid range (%(date_start)s > %(date_end)s)"
 msgstr "%(name)s は有効な範囲ではありません (%(date_start)s > %(date_end)s)"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/models/date_range.py:0
 msgid "%(thisname)s overlaps %(dtname)s"
 msgstr "%(thisname)s は %(dtname)s と重複しています"
@@ -244,7 +244,7 @@ msgid "If set, date ranges of same type must not overlap."
 msgstr "設定された場合、同じタイプの日付範囲は重複できません。"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/wizard/date_range_generator.py:0
 msgid "Invalid name expression: %s"
 msgstr "無効な名前表現: %s"
@@ -275,7 +275,7 @@ msgid "Name"
 msgstr "名称"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/wizard/date_range_generator.py:0
 msgid "No ranges to generate with these settings"
 msgstr "これらの設定で生成する範囲はありません"
@@ -296,19 +296,19 @@ msgid "Parameters"
 msgstr "パラメータ"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/models/date_range_search_mixin.py:0
 msgid "Period"
 msgstr "期間"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/wizard/date_range_generator.py:0
 msgid "Please enter an end date, or the number of ranges to generate."
 msgstr "終了日を入力するか、生成する範囲の数を入力してください。"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/wizard/date_range_generator.py:0
 msgid "Please set a prefix or an expression to generate the range names."
 msgstr "範囲名を生成するためのプレフィクスまたは式を設定してください。"
@@ -348,7 +348,7 @@ msgid "Start date"
 msgstr "開始日"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/wizard/date_range_generator.py:0
 msgid ""
 "The Company in the Date Range Generator and in Date Range Type must be the "
@@ -386,7 +386,7 @@ msgid "Until"
 msgstr "終了"
 
 #. module: date_range
-#. odoo-python
+# odoo-python
 #: code:addons/date_range/models/date_range_type.py:0
 msgid ""
 "You cannot change the company, as this Date Range Type is assigned to Date "

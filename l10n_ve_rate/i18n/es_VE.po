@@ -77,7 +77,7 @@ msgstr ""
 "                                copia contable en la moneda seleccionada"
 
 #. module: l10n_ve_rate
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_rate/models/res_company.py:0
 #, python-format
 msgid ""
@@ -88,7 +88,7 @@ msgstr ""
 "foránea."
 
 #. module: l10n_ve_rate
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_rate/models/res_config_settings.py:0
 #: code:addons/l10n_ve_rate/models/res_config_settings.py:0
 #, python-format

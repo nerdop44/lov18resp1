@@ -47,7 +47,7 @@ msgid "Config Settings"
 msgstr "Ajustes de configuración"
 
 #. module: l10n_ve_tax
-#. odoo-javascript
+# odoo-javascript
 #: code:addons/l10n_ve_tax/static/src/components/tax_totals/tax_totals.xml:0
 #: code:addons/l10n_ve_tax/static/src/components/tax_totals/tax_totals.xml:0
 #, python-format
@@ -119,7 +119,7 @@ msgid "No Deductible Reduced Aliquot Purchase"
 msgstr "No Deducible Aliquota Reducida (Compra)"
 
 #. module: l10n_ve_tax
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_tax/models/account_tax.py:0
 #, python-format
 msgid "No foreign currency configured in the company"
@@ -188,7 +188,7 @@ msgid "Show discount on moves"
 msgstr "Mostrar descuento en facturas"
 
 #. module: l10n_ve_tax
-#. odoo-javascript
+# odoo-javascript
 #: code:addons/l10n_ve_tax/static/src/components/tax_totals/tax_totals.xml:0
 #: code:addons/l10n_ve_tax/static/src/components/tax_totals/tax_totals.xml:0
 #, python-format
@@ -215,7 +215,7 @@ msgid "Taxes Configuration"
 msgstr "Configuración de impuestos"
 
 #. module: l10n_ve_tax
-#. odoo-javascript
+# odoo-javascript
 #: code:addons/l10n_ve_tax/static/src/components/tax_totals/tax_totals.xml:0
 #, python-format
 msgid "Total"

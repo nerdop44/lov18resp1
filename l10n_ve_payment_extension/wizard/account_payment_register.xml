@@ -6,16 +6,15 @@
 			<field name="name">account.payment.register.form</field>
 			<field name="model">account.payment.register</field>
 			<field name="inherit_id" ref="account.view_account_payment_register_form"/>
-			<field name="priority">99</field>
 			<field name="arch" type="xml">
 
 				<field name="journal_id" position="attributes">
 					<attribute name="readonly">not edit_retention_fields</attribute>
 				</field>
 				
-				<xpath expr="//field[@name='foreign_rate' or @name='tax_today']" position="attributes">
+				<field name="foreign_rate" position="attributes">
 					<attribute name="readonly">not edit_retention_fields</attribute>
-				</xpath>
+				</field>
 				
 				<field name="journal_id" position="before">
 					<field name="is_retention" invisible="not is_out_invoice"/></field>

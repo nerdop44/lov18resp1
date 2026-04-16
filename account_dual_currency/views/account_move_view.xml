@@ -18,6 +18,7 @@
                     <field name="tax_today_edited" />
                     <field name="tax_today" string="Tasa de Factura" readonly="[('edit_trm', '=', False)]"/>
                     <field name="foreign_rate" invisible="1"/>
+
                     <field name="same_currency" invisible="1"/>
                     <field name="verificar_pagos" invisible="1"/>
                 </xpath>

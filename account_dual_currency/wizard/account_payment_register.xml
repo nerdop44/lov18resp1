@@ -5,7 +5,6 @@
             <field name="name">Dual Currency: account.payment.register.form</field>
             <field name="model">account.payment.register</field>
             <field name="inherit_id" ref="account.view_account_payment_register_form"/>
-            <field name="priority">1</field>
             <field name="arch" type="xml">
                 <xpath expr="//label[@for='amount']" position="before">
                      <field name="currency_id_dif" invisible="1"/>
@@ -13,6 +12,7 @@
                      <field name="tax_invoice" readonly="1"/>
                      <field name="tax_today"/>
                      <field name="foreign_rate" invisible="1"/>
+
                 </xpath>
                 <!--<xpath expr="//field[@name='payment_date']" position="before">
                      <field name="currency_id_name" invisible="1"/>

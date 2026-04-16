@@ -16,7 +16,7 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. module: l10n_ve_igtf
-#. odoo-javascript
+# odoo-javascript
 #: code:addons/l10n_ve_igtf/static/src/components/tax_totals/tax_totals.xml:0
 #: code:addons/l10n_ve_igtf/static/src/components/tax_totals/tax_totals.xml:0
 #: code:addons/l10n_ve_igtf/static/src/components/tax_totals/tax_totals.xml:0
@@ -33,7 +33,7 @@ msgid ""
 msgstr ""
 
 #. module: l10n_ve_igtf
-#. odoo-javascript
+# odoo-javascript
 #: code:addons/l10n_ve_igtf/static/src/components/tax_totals/tax_totals.xml:0
 #: code:addons/l10n_ve_igtf/static/src/components/tax_totals/tax_totals.xml:0
 #: code:addons/l10n_ve_igtf/static/src/components/tax_totals/tax_totals.xml:0
@@ -76,7 +76,7 @@ msgid "Formal"
 msgstr ""
 
 #. module: l10n_ve_igtf
-#. odoo-javascript
+# odoo-javascript
 #: code:addons/l10n_ve_igtf/static/src/components/tax_totals/tax_totals.xml:0
 #: code:addons/l10n_ve_igtf/static/src/components/tax_totals/tax_totals.xml:0
 #: code:addons/l10n_ve_igtf/static/src/components/tax_totals/tax_totals.xml:0
@@ -235,7 +235,7 @@ msgid "Taxpayer Type"
 msgstr "Tipo de contribuyente"
 
 #. module: l10n_ve_igtf
-#. odoo-javascript
+# odoo-javascript
 #: code:addons/l10n_ve_igtf/static/src/components/tax_totals/tax_totals.xml:0
 #: code:addons/l10n_ve_igtf/static/src/components/tax_totals/tax_totals.xml:0
 #, python-format
@@ -298,7 +298,7 @@ msgid "IGTF Percentage"
 msgstr "Porcentaje de IGTF"
 
 #. module: l10n_ve_igtf
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_igtf/models/account_payment.py:0
 #: code:addons/l10n_ve_igtf/models/account_payment.py:0
 #, python-format

@@ -336,7 +336,7 @@ msgid "Foreign Currency"
 msgstr "Moneda alterna"
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #, python-format
 msgid "Foreign Currency "
@@ -465,7 +465,7 @@ msgid "Foreign price total"
 msgstr "Total alterno"
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/report/all_payment_report.py:0
 #, python-format
 msgid "Form content is missing, this report cannot be printed."
@@ -504,14 +504,14 @@ msgid "Informe de pagos"
 msgstr ""
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/report/account_invoice_details_report.py:0
 #, python-format
 msgid "Instant payment"
 msgstr "Contado"
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/report/account_invoice_details_report.py:0
 #, python-format
 msgid "Invoices"
@@ -607,7 +607,7 @@ msgid "Net Amount"
 msgstr "Monto neto"
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/sale_order.py:0
 #, python-format
 msgid ""
@@ -619,7 +619,7 @@ msgid ""
 msgstr ""
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #, python-format
 msgid ""
@@ -725,7 +725,7 @@ msgid "Recompute foreign debit and credit of journal entries"
 msgstr "Recalcular debito y credito alterno de apuntes contables"
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/report/account_invoice_details_report.py:0
 #, python-format
 msgid "Refund"
@@ -803,7 +803,7 @@ msgstr ""
 "multi-divisa."
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #, python-format
@@ -818,14 +818,14 @@ msgid "The rate of the payment"
 msgstr "La tasa del pago"
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move_line.py:0
 #, python-format
 msgid "The rate should be greater than zero"
 msgstr "La tasa debe ser superior a cero."
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/report/account_invoice_details_report.py:0
 #, python-format
 msgid ""
@@ -833,7 +833,7 @@ msgid ""
 msgstr "La zona horaria no está registrada, accede a tu perfil y configúrala."
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #, python-format
 msgid "This product must have only one tax."
@@ -919,14 +919,14 @@ msgstr ""
 "alterno"
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #, python-format
 msgid "You can only register payments for one foreign rate at a time."
 msgstr "Solo puedes registrar pagos para una tasa alterna a la vez."
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #, python-format
 msgid "You cannot place a currency other than the base of the system."
@@ -953,7 +953,7 @@ msgid "cuenta"
 msgstr ""
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/report/account_report.py:0
 #, python-format
 msgid "docids empty"
@@ -1020,14 +1020,14 @@ msgid "to"
 msgstr "Hasta"
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move_line.py:0
 #, python-format
 msgid "The quantity entered cannot be negative"
 msgstr "La cantidad ingresada no puede ser negativa."
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #, python-format
@@ -1035,7 +1035,7 @@ msgid "All added lines must indicate the product."
 msgstr "Todas las líneas agregadas deben indicar el producto."
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #, python-format
@@ -1043,7 +1043,7 @@ msgid "The rate entered cannot be negative"
 msgstr "La tasa ingresada no puede ser negativa."
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #: code:addons/l10n_ve_accountant/models/account_move.py:0
 #, python-format
@@ -1055,7 +1055,7 @@ msgstr ""
 "nombre."
 
 #. module: l10n_ve_accountant
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_accountant/models/account_move_line.py:0
 #, python-format
 msgid "The price entered cannot be negative"

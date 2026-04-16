@@ -16,7 +16,7 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. module: l10n_ve_ref_bank
-#. odoo-python
+# odoo-python
 #: code:addons/l10n_ve_ref_bank/models/account_payment.py:0
 #, python-format
 msgid "A payment already exists with the same reference (memo)"

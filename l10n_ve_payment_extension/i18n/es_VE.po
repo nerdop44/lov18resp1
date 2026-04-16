@@ -423,7 +423,7 @@ msgid "Approve"
 msgstr "Aprobar"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "April"
@@ -446,7 +446,7 @@ msgid "Associated Payment Concept"
 msgstr "Concepto de pago asociado"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "August"
@@ -510,7 +510,7 @@ msgid "Cancelled"
 msgstr "Anulado"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/controllers/municipal_report.py:0
 #, python-format
 msgid "Cancelled Municipal Ret"
@@ -698,7 +698,7 @@ msgid "Date start"
 msgstr "Fecha de inicio"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "December"
@@ -770,7 +770,7 @@ msgid "Draft"
 msgstr "Borrador"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/controllers/municipal_report.py:0
 #, python-format
 msgid "Draft Municipal Ret %s"
@@ -827,7 +827,7 @@ msgid "Emitted"
 msgstr "Emitido"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/wizard/account_payment_register.py:0
 #: code:addons/binaural_payment_extension/wizard/account_payment_register.py:0
 #, python-format
@@ -835,14 +835,14 @@ msgid "Error"
 msgstr ""
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/payment_concept_line.py:0
 #, python-format
 msgid "Error in taxable base percentage field"
 msgstr "Error en el campo de porcentaje de base imponible"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/fees_retention.py:0
 #, python-format
 msgid "Error in the fees percentage field"
@@ -854,7 +854,7 @@ msgid "Fact Nro"
 msgstr ""
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "February"
@@ -1042,7 +1042,7 @@ msgid "ISLR Account"
 msgstr "Cuenta de Retención de ISLR"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention_line.py:0
 #: model:ir.ui.menu,name:l10n_ve_payment_extension.menu_retention_islr_client
 #: model:ir.ui.menu,name:l10n_ve_payment_extension.menu_retention_islr_supplier
@@ -1091,7 +1091,7 @@ msgid "IVA Account"
 msgstr "Cuenta de Retención IVA"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention_line.py:0
 #: model:ir.ui.menu,name:l10n_ve_payment_extension.menu_retention_iva_client
 #: model:ir.ui.menu,name:l10n_ve_payment_extension.menu_retention_iva_supplier
@@ -1192,7 +1192,7 @@ msgid "Información del impuesto retenido y enterado"
 msgstr ""
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid "Insert a number for the retention"
@@ -1270,7 +1270,7 @@ msgid "Iva Amount"
 msgstr "IVA"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid "Iva Retention"
@@ -1284,7 +1284,7 @@ msgid "Iva Voucher Number"
 msgstr "Comprobante de Retención de IVA"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "January"
@@ -1342,14 +1342,14 @@ msgid "Journal for Supplier Municipal Retentions"
 msgstr "Diario para Retenciones Municipales de Proveedores"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "July"
 msgstr "Julio"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "June"
@@ -1425,7 +1425,7 @@ msgid "Leave blank to compare only with the value \"start\""
 msgstr "Dejar en blanco para comparar solo con el valor \"inicio\""
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "March"
@@ -1437,7 +1437,7 @@ msgid "Masters"
 msgstr "Maestros"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "May"
@@ -1467,21 +1467,21 @@ msgid "Municipal Patent Report"
 msgstr "Reporte de Patente Municipal"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/controllers/municipal_report.py:0
 #, python-format
 msgid "Municipal Patent Report from {date_start} to {date_end}"
 msgstr "Reporte de Patente Municipal desde {date_start} hasta {date_end}"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/controllers/municipal_report.py:0
 #, python-format
 msgid "Municipal Ret {retention_name} {retention_date}"
 msgstr "Ret Municipal {retention_name} {retention_date}"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention_line.py:0
 #: model:ir.ui.menu,name:l10n_ve_payment_extension.menu_retention_municipal_client
 #: model:ir.ui.menu,name:l10n_ve_payment_extension.menu_retention_municipal_supplier
@@ -1508,7 +1508,7 @@ msgid "Municipal Retention Patent Report"
 msgstr "Reporte de Patente Municipal"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/controllers/municipal_report.py:0
 #, python-format
 msgid "Municipal Retention Report from {date_from} to {date_to}"
@@ -1542,7 +1542,7 @@ msgid "Municipal Voucher Number"
 msgstr "Comprobante de Retención Municipal"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/report/retention_voucher_report.py:0
 #, python-format
 msgid "Municipal retentions do not have PDF voucher. Please print the xslx"
@@ -1572,28 +1572,28 @@ msgid "Name"
 msgstr "Nombre"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/wizard/wizard_retention_islr.py:0
 #, python-format
 msgid "No data to export"
 msgstr "No hay datos para exportar"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/wizard/wizard_retention_iva.py:0
 #, python-format
 msgid "No retentions found for the selected period"
 msgstr "No se encontraron retenciones para el periodo seleccionado"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/wizard/wizard_retention_islr.py:0
 #, python-format
 msgid "No withholdings have been found in the selected period"
 msgstr "No se han encontrado retenciones en el periodo seleccionado"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "November"
@@ -1616,7 +1616,7 @@ msgid "Number Count"
 msgstr "Nro"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "October"
@@ -1806,7 +1806,7 @@ msgid "Register Payment"
 msgstr "Registrar pago"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_withholding_type.py:0
 #, python-format
 msgid "Remember to use comma (,) as decimal separator."
@@ -1834,7 +1834,7 @@ msgid "Retained tax"
 msgstr "Tarifa Retenida"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention_line.py:0
 #: model:ir.model,name:l10n_ve_payment_extension.model_account_retention
 #: model:ir.model.fields,field_description:l10n_ve_payment_extension.field_account_payment__retention_id
@@ -1950,14 +1950,14 @@ msgid "See payment concept code"
 msgstr "Ver código concepto de pago"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid "Select a payment concept"
 msgstr "Seleccione un concepto de pago"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid "Select a type person"
@@ -1969,7 +1969,7 @@ msgid "Seniat Reports"
 msgstr "Reportes del Seniat"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/utils/utils_retention.py:0
 #, python-format
 msgid "September"
@@ -2192,7 +2192,7 @@ msgid "The aliquot must be greater than zero"
 msgstr "La alícuota debe ser mayor a cero "
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_move.py:0
 #, python-format
 msgid ""
@@ -2202,35 +2202,35 @@ msgstr ""
 "factura."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_move.py:0
 #, python-format
 msgid "The amount of the retention must be greater than zero."
 msgstr "La base imponible de la retención debe ser mayor que cero"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/wizard/municipal_retention_xlsx_report.py:0
 #, python-format
 msgid "The company has no tax authorities name"
 msgstr "La compañía no tiene nombre de hacienda"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid "The company must have a customer ISLR retention journal configured."
 msgstr "La compañía debe tener un diario para retenciones de ISLR de cliente."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid "The company must have a customer IVA retention journal configured."
 msgstr "La compañía debe tener un diario para retenciones de IVA de cliente."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid ""
@@ -2239,7 +2239,7 @@ msgstr ""
 "La compañía debe tener un diario para retenciones municipales de cliente."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_move.py:0
 #, python-format
 msgid "The company must have a journal for ISLR supplier retention."
@@ -2247,7 +2247,7 @@ msgstr ""
 "La compañía debe tener un diario para retenciones de ISLR de proveedor."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_move.py:0
 #, python-format
 msgid "The company must have a journal for IVA supplier retention."
@@ -2255,7 +2255,7 @@ msgstr ""
 "La compañía debe tener un diario para retenciones de IVA de proveedor."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_move.py:0
 #, python-format
 msgid "The company must have a journal for municipal supplier retention."
@@ -2263,7 +2263,7 @@ msgstr ""
 "La compañía debe tener un diario para retenciones municipales de proveedor."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid "The company must have a supplier ISLR retention journal configured."
@@ -2271,7 +2271,7 @@ msgstr ""
 "La compañía debe tener un diario para retenciones de ISLR de proveedor."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid "The company must have a supplier IVA retention journal configured."
@@ -2279,7 +2279,7 @@ msgstr ""
 "La compañía debe tener un diario para retenciones de IVA de proveedor."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid ""
@@ -2299,56 +2299,56 @@ msgid "The condition of this taxpayer requires the withholding of"
 msgstr "La condición de este contribuyente requiere la retención del "
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/economic_branch.py:0
 #, python-format
 msgid "The economic branch is already registered"
 msgstr "La Rama Económica ya existe."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid "The invoice %s has no tax."
 msgstr "La factura %s no tiene impuesto"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_move.py:0
 #, python-format
 msgid "The invoice has no tax."
 msgstr "La factura no tiene impuesto"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_move.py:0
 #, python-format
 msgid "The partner has no withholding type."
 msgstr "El contacto no tiene tipo de retención"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_move.py:0
 #, python-format
 msgid "The partner must have a type of person"
 msgstr "El partner debe tener tipo de persona"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/fees_retention.py:0
 #, python-format
 msgid "The percentage of fees cannot be greater than 100%.\n"
 msgstr "El porcentaje de las tarifas no puede ser mayor que 100%"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/fees_retention.py:0
 #, python-format
 msgid "The rate percentage cannot be negative.\n"
 msgstr "El porcentaje de retención no puede ser negativo."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention_line.py:0
 #, python-format
 msgid ""
@@ -2358,28 +2358,28 @@ msgstr ""
 "El monto total de la retención es mayor que el monto residual de la factura."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/payment_concept.py:0
 #, python-format
 msgid "The type of person cannot be repeated."
 msgstr "El tipo de persona no puede repetirse."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid "There are no invoices with taxes to be retained for the customer."
 msgstr "No hay facturas con impuestos para ser retenidos para el cliente."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid "There are no invoices with taxes to be retained for the supplier."
 msgstr "No hay facturas con impuestos para ser retenidos para el proveedor."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/wizard/municipal_retention_xlsx_report.py:0
 #, python-format
 msgid "There are no supplier municipal retentions for the given date range."
@@ -2395,7 +2395,7 @@ msgid ""
 msgstr "No puede haber dos registros con el mismo código para el municipio."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/controllers/municipal_report.py:0
 #: code:addons/binaural_payment_extension/wizard/municipal_retention_patent_report.py:0
 #, python-format
@@ -2403,7 +2403,7 @@ msgid "There is no data to show"
 msgstr "No hay datos que mostrar"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/controllers/municipal_report.py:0
 #, python-format
 msgid "There is no data to show."
@@ -2513,7 +2513,7 @@ msgid "Voucher Number"
 msgstr "Nro de Comprobante"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_withholding_type.py:0
 #, python-format
 msgid "Warning"
@@ -2561,14 +2561,14 @@ msgid "You can not add withholdings with the same Value"
 msgstr "No puedes añadir retenciones con el mismo valor."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention_line.py:0
 #, python-format
 msgid "You can not create a retention with 0 amount."
 msgstr "No se puede crear una retención con montos en 0."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/wizard/account_payment_register.py:0
 #, python-format
 msgid ""
@@ -2579,7 +2579,7 @@ msgstr ""
 "una o más de ellas ya tienen una retención emitida."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/wizard/account_payment_register.py:0
 #, python-format
 msgid ""
@@ -2595,7 +2595,7 @@ msgid "You cannot add withholdings with the same name"
 msgstr "No puedes añadir retenciones con el mismo nombre."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/account_retention.py:0
 #, python-format
 msgid ""
@@ -2606,7 +2606,7 @@ msgstr ""
 "necesario anular la retención antes de ser eliminada."
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/product.py:0
 #, python-format
 msgid "You cannot select more than one CIU when you have just one subsidiary"
@@ -2619,14 +2619,14 @@ msgid "You may not register an economic sector with the same name."
 msgstr "No puedes registrar una Rama Económica con el mismo nombre "
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/wizard/wizard_retention_iva.py:0
 #, python-format
 msgid "You must enter a start and end date"
 msgstr "Debes ingresar una fecha de inicio y fin"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/fees_retention.py:0
 #, python-format
 msgid "You must enter the accumulated fees.\n"
@@ -2685,7 +2685,7 @@ msgid "tax incurred"
 msgstr "Impuesto retenido"
 
 #. module: binaural_payment_extension
-#. odoo-python
+# odoo-python
 #: code:addons/binaural_payment_extension/models/payment_concept_line.py:0
 #, python-format
 msgid "the percentage may not exceed 100% on the payment concept line"
