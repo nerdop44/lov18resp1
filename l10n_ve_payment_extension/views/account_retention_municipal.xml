@@ -43,22 +43,22 @@
 									<field name="aliquot" readonly="1" force_save="1" string="Alícuota (%)"/>
 									<!-- Montos siempre en VEF (Bs.) — Regla universal de retenciones venezolanas -->
 									<field name="foreign_invoice_total"
-										   widget="monetary"
-										   string="Total Factura (Bs.)"
-										   options="{'currency_field': 'foreign_currency_id'}"
-										   readonly="1"
-										   force_save="1"/>
+										  widget="monetary"
+										  string="Total Factura (Bs.)"
+										  options="{'currency_field': 'foreign_currency_id'}"
+										  readonly="1"
+										  force_save="1"/>
 									<field name="foreign_invoice_amount"
-										   widget="monetary"
-										   string="Base Imponible (Bs.)"
-										   options="{'currency_field': 'foreign_currency_id'}"
-										   force_save="1"/>
+										  widget="monetary"
+										  string="Base Imponible (Bs.)"
+										  options="{'currency_field': 'foreign_currency_id'}"
+										  force_save="1"/>
 									<field name="foreign_retention_amount"
-										   widget="monetary"
-										   string="Monto Retenido (Bs.)"
-										   options="{'currency_field': 'foreign_currency_id'}"
-										   force_save="1"
-										   readonly="parent.type == 'in_invoice'"/>
+										  widget="monetary"
+										  string="Monto Retenido (Bs.)"
+										  options="{'currency_field': 'foreign_currency_id'}"
+										  force_save="1"
+										  readonly="parent.type == 'in_invoice'"/>
 									<field name="foreign_currency_rate" optional="hide" string="Tasa"/>
 								</list>
 							</field>

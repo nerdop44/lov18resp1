@@ -6,7 +6,7 @@
 			<field name="inherit_id" ref="l10n_ve_base.res_config_settings_view_form_binaural_base"/>
 			<field name="arch" type="xml">
 				
-                <xpath expr="//app[@name='l10n_ve_base']" position="inside">
+        <xpath expr="//app[@name='l10n_ve_base']" position="inside">
 					<h2>Retention Journals</h2>
 					<div class="row mt16 o_settings_container" name="binaural_retention_journals_settings">\
 						<div class="o_setting_right_pane">

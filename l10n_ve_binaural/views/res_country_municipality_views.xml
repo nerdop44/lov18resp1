@@ -13,7 +13,7 @@
 			</field>
 		</record>
 		
-        <!-- FORM -->
+    <!-- FORM -->
 		<record id="view_res_country_municipality_form" model="ir.ui.view">
 			<field name="name">Municipality</field>
 			<field name="model">res.country.municipality</field>
@@ -32,7 +32,7 @@
 			</field>
 		</record>
 		
-        <!-- ACTION -->
+    <!-- ACTION -->
 		<record id="action_res_country_municipality" model="ir.actions.act_window">
 			<field name="name">Municipalities</field>
 			<field name="res_model">res.country.municipality</field>

@@ -69,7 +69,7 @@
 			</field>
 		</record>
 		
-        <record id="action_retention_islr_client" model="ir.actions.act_window">
+    <record id="action_retention_islr_client" model="ir.actions.act_window">
 			<field name="name">Retenciones ISLR Clientes</field>
 			<field name="res_model">account.retention</field>
 			<field name="binding_view_types">list</field>
@@ -78,7 +78,7 @@
 			<field name="domain">[('type_retention', '=', 'islr'), ('type', '=', 'out_invoice')]</field>
 		</record>
 		
-        <!--Configuracion de Vista: Retenciones ISLR Proveedor-->
+    <!--Configuracion de Vista: Retenciones ISLR Proveedor-->
 		<record id="action_retention_islr_supplier" model="ir.actions.act_window">
 			<field name="name">Retenciones ISLR Proveedores</field>
 			<field name="res_model">account.retention</field>

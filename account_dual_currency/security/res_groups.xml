@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo><record id="group_edit_trm" model="res.groups">
-            <field name="name">Editar Tasa Factura Venta</field>
-            <field name="comment">Permite editar tasa en facturas de venta</field>
-        </record></odoo>
+      <field name="name">Editar Tasa Factura Venta</field>
+      <field name="comment">Permite editar tasa en facturas de venta</field>
+    </record></odoo>
