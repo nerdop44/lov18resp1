@@ -1,5 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<odoo><record id="account_payment_dual_currency" model="ir.ui.view">
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="account_payment_dual_currency" model="ir.ui.view">
       <field name="name">Dual Currency: account.payment.form</field>
       <field name="model">account.payment</field>
       <field name="inherit_id" ref="account.view_account_payment_form"/>
@@ -29,4 +31,6 @@
           </group>
         </xpath>
       </field>
-    </record></odoo>
+    </record>
+    </data>
+</odoo>

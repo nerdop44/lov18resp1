@@ -1,6 +1,7 @@
-<?xml version="1.0" encoding="utf-8" ?>
-
-<odoo><record id="view_account_fiscalyear_closing_tree" model="ir.ui.view">
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_account_fiscalyear_closing_tree" model="ir.ui.view">
     <field name="name">account.fiscalyear.closing.tree</field>
     <field name="model">account.fiscalyear.closing</field>
     <field name="arch" type="xml">
@@ -206,4 +207,6 @@
     sequence="90"
     name="Fiscal year closings"
     action="action_account_fiscalyear_closing"
-  /></odoo>
+  />
+    </data>
+</odoo>

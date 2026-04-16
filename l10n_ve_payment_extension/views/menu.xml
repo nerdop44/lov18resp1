@@ -1,5 +1,7 @@
-
-<odoo><menuitem id="retention_configuration" name="Retention" parent="account.menu_finance_configuration" />
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <menuitem id="retention_configuration" name="Retention" parent="account.menu_finance_configuration" />
 
 		<menuitem id="master_configuration" name="Masters" parent="account.menu_finance_configuration" />
 
@@ -76,4 +78,6 @@
         parent="l10n_ve_payment_extension.seniat_reports" sequence="2" name="Municipal Patent Report" />
 
 		<menuitem id="municipal_supplier_retention_report_menu" action="municipal_supplier_retention_report_action" 
-        parent="l10n_ve_payment_extension.seniat_reports" sequence="1" name="Municipal supplier retention report" /></odoo>
+        parent="l10n_ve_payment_extension.seniat_reports" sequence="1" name="Municipal supplier retention report" />
+    </data>
+</odoo>

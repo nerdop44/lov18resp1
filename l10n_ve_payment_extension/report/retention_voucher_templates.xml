@@ -1,4 +1,7 @@
-<odoo><template id="report_iva_customer">
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="report_iva_customer">
     <!--Header-->
     <div class="container" style="font-size:12px !important;">
       <div class="row">
@@ -774,4 +777,6 @@
         </t>
       </t>
     </t>
-  </template></odoo>
+  </template>
+    </data>
+</odoo>

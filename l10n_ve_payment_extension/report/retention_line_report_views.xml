@@ -1,4 +1,7 @@
-<odoo><record id="view_retention_line_report_search" model="ir.ui.view">
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_retention_line_report_search" model="ir.ui.view">
 		<field name="name">retention.line.report.search</field>
 		<field name="model">retention.line.report</field>
 		<field name="arch" type="xml">
@@ -47,4 +50,6 @@
 		<field name="res_model">retention.line.report</field>
 		<field name="view_mode">list</field>
 		<field name="context">{"search_default_filter_type_supplier": 1}</field>
-	</record></odoo>
+	</record>
+    </data>
+</odoo>

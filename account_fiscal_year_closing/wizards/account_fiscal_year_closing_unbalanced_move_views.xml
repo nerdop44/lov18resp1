@@ -1,4 +1,7 @@
-<odoo><record
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record
     id="view_account_fiscalyear_closing_unbalanced_move_form"
     model="ir.ui.view"
   >
@@ -39,4 +42,6 @@
         </footer>
       </form>
     </field>
-  </record></odoo>
+  </record>
+    </data>
+</odoo>

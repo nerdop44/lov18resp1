@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo noupdate="1"><record id="invoice_correlative" model="ir.sequence">
+<odoo>
+    <data noupdate="1">
+        <record id="invoice_correlative" model="ir.sequence">
       <field name="name">Número de Control</field>
       <field name="code">invoice.correlative</field>
       <field name="padding">5</field>
@@ -10,4 +12,6 @@
       <field name="code">series.invoice.correlative</field>
       <field name="padding">5</field>
       <field name="active">False</field>
-    </record></odoo>
+    </record>
+    </data>
+</odoo>

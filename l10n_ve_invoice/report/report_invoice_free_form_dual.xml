@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo><!-- Action for Forma Libre (VEF) -->
+<odoo>
+    <data>
+        <!-- Action for Forma Libre (VEF) -->
     <record id="action_invoice_free_form_vef" model="ir.actions.report">
       <field name="name">Forma Libre (VEF)</field>
       <field name="model">account.move</field>
@@ -416,4 +418,6 @@
           </t>
         </t>
       </t>
-    </template></odoo>
+    </template>
+    </data>
+</odoo>

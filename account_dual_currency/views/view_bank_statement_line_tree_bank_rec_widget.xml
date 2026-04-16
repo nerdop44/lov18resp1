@@ -1,5 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<odoo><record id="view_bank_statement_line_tree_bank_rec_widget_dual" model="ir.ui.view">
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_bank_statement_line_tree_bank_rec_widget_dual" model="ir.ui.view">
     <field name="name">view_bank_statement_line_tree_bank_rec_widget_dual</field>
     <field name="model">account.bank.statement.line</field>
     <field name="inherit_id" ref="account_accountant.view_bank_statement_line_tree_bank_rec_widget"/>
@@ -10,4 +12,6 @@
         <field name="currency_id_dif_statement" invisible="1"/>
       </xpath>
     </field>
-  </record></odoo>
+  </record>
+    </data>
+</odoo>

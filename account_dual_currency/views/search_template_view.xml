@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo><template id="search_template_currency_dif_choose">
+<odoo>
+    <data>
+        <template id="search_template_currency_dif_choose">
 
       <button type="button" class="o-no-caret btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown">
         <span class="fa fa-money"/> Moneda:
@@ -24,4 +26,6 @@
           <t t-call="account_dual_currency.search_template_currency_dif_choose"/>
         </div>
       </xpath>
-    </template></odoo>
+    </template>
+    </data>
+</odoo>

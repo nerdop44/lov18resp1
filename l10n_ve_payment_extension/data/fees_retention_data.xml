@@ -1,5 +1,7 @@
-
-<odoo noupdate="1"><record id="fees_retention_data_substrat_binaural_payment_extension" model="fees.retention">
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="fees_retention_data_substrat_binaural_payment_extension" model="fees.retention">
       <field name="name">3% -(Bs. 1,00)</field>
       <field name="apply_subtracting">True</field>
       <field name="percentage">3</field>
@@ -86,4 +88,6 @@
         }
 
       )]" />
-    </record></odoo>
+    </record>
+    </data>
+</odoo>

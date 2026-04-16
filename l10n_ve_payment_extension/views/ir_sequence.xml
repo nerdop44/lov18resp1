@@ -1,5 +1,7 @@
-
-<odoo><record id="ir_sequence_form_iva" model="ir.actions.act_window">
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="ir_sequence_form_iva" model="ir.actions.act_window">
       <field name="name">Sequences_iva</field>
       <field name="type">ir.actions.act_window</field>
       <field name="res_model">ir.sequence</field>
@@ -24,4 +26,6 @@
       <field name="view_mode">list,form</field>
       <field name="res_id" eval="False"/>
       <field name="domain">[('code', '=','retention.municipal.control.number')]</field>
-    </record></odoo>
+    </record>
+    </data>
+</odoo>

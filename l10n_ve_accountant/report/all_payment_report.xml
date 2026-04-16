@@ -1,5 +1,7 @@
-
-<odoo><record id="action_report_all_payments" model="ir.actions.report">
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="action_report_all_payments" model="ir.actions.report">
     <field name="name">Informe de pagos</field>
     <field name="model">payment.report</field>
     <field name="report_type">qweb-pdf</field>
@@ -150,4 +152,6 @@
 		      </div>
 		    </xpath>
 	    </t>
-  </template></odoo>
+  </template>
+    </data>
+</odoo>

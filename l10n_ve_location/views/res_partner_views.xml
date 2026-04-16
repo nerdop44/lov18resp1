@@ -1,4 +1,7 @@
-<odoo><record id="view_form_res_partner_inherited" model="ir.ui.view">
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_form_res_partner_inherited" model="ir.ui.view">
 			<field name="name">Extension de cliente</field>
 			<field name="model">res.partner</field>
 			<field name="inherit_id" ref="base.view_partner_form" />
@@ -27,4 +30,6 @@
 
 			</field>
 			
-		</record></odoo>
+		</record>
+    </data>
+</odoo>

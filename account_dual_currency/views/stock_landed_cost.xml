@@ -1,5 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<odoo><record id='view_stock_landed_cost_form' model='ir.ui.view'>
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id='view_stock_landed_cost_form' model='ir.ui.view'>
     <field name="name">stock.landed.cost.form</field>
     <field name="model">stock.landed.cost</field>
     <field name="inherit_id" ref="stock_landed_costs.view_stock_landed_cost_form" />
@@ -47,4 +49,6 @@
         <field name="additional_landed_cost_usd" />
       </xpath>
     </field>
-  </record></odoo>
+  </record>
+    </data>
+</odoo>
