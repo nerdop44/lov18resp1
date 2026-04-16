@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="action_fix_bi_igtf_invoices" model="ir.actions.server">
     <field name="name">Fix Binaural BI IGTF Invoices</field>

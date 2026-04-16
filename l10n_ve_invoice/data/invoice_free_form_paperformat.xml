@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
     <record id="invoice_free_form_paperformat_binaural_invoice" model="report.paperformat">
       <field name="name">Free Form Paperformat</field>

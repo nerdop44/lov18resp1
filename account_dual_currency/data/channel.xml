@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record model="discuss.channel" id="trm_channel">
       <field name="name">Tasa de Cambio</field>

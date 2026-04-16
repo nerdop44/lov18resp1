@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="stock_valuation_layer_dual_currency_tree" model="ir.ui.view">
       <field name="name">stock_valuation_layer_tree.dual_currency</field>

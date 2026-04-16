@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="account_payment_view_form_binaural_payment_extension" model="ir.ui.view">
       <field name="name">account_payment_view_form_binaural_payment_extension</field>

@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="type_person_binaural_payment_extension" model="type.person">
       <field name="name">PN Residente</field>

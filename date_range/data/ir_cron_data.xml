@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
     <record model="ir.cron" id="ir_cron_autocreate">
     <field name="name">Auto-generate date ranges</field>

@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <template id="report_freeform_document" inherit_id="l10n_ve_invoice.report_freeform_document">
     <xpath expr="//div[@name='comment']" position="before">

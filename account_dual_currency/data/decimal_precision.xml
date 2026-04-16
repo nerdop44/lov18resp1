@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
     <record forcecreate="True" id="decimal_dual_currency" model="decimal.precision">
         <field name="name">Dual_Currency</field>

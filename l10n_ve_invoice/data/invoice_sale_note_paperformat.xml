@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
     <record id="invoice_sale_note_paperformat_binaural_invoice" model="report.paperformat">
       <field name="name">Sale Note Paperformat</field>

@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="view_tax_unit_tree_binaural_payment_extension" model="ir.ui.view">
       <field name="name">view.tax.unit.tree.binaural.payment.extension</field>

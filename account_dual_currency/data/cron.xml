@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="update_trm_res_currency" model="ir.cron">
       <field name="name">Actualizar Tasas</field>

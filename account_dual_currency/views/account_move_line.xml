@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="account_move_line_form_inherit_views_dual" model="ir.ui.view">
       <field name="name">account_move_line_form_inherit_views dual</field>

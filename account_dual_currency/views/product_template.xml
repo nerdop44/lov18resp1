@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="product_variant_easy_edit_view_dual_currency" model="ir.ui.view">
       <field name="name">product.product.view.form.easy dual currency</field>
