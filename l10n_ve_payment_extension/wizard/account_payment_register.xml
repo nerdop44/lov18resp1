@@ -12,7 +12,7 @@
 					<attribute name="readonly">not edit_retention_fields</attribute>
 				</field>
 				
-				<field name="foreign_rate" position="attributes">
+				<field name="tax_today" position="attributes">
 					<attribute name="readonly">not edit_retention_fields</attribute>
 				</field>
 				
