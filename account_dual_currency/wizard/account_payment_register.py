@@ -12,6 +12,16 @@ class AccountPaymentRegister(models.TransientModel):
 
     amount = fields.Monetary(currency_field='currency_id', store=True, readonly=False)
     tax_today = fields.Float(string="Tasa Actual")
+
+    # Alias de compatibilidad para módulos que aún usan la nomenclatura v16
+    foreign_rate = fields.Float(related='tax_today', readonly=False, string="Tasa (Alias)")
+    foreign_inverse_rate = fields.Float(string="Tasa Inversa (Alias)", compute="_compute_foreign_inverse_rate")
+
+    @api.depends('tax_today')
+    def _compute_foreign_inverse_rate(self):
+        for rec in self:
+            rec.foreign_inverse_rate = (1 / rec.tax_today) if rec.tax_today else 0
+
     tax_invoice = fields.Float(string="Tasa Factura")
     currency_id_dif = fields.Many2one("res.currency",string="Divisa de Referencia")
     currency_id_name = fields.Char(string="Nombre de Divisa", related="currency_id.name")

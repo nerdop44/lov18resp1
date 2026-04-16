@@ -11,6 +11,16 @@ class AccountPayment(models.Model):
 
 
     tax_today = fields.Float(string="Tasa de Pago", default=lambda self: self._get_default_tasa())
+
+    # Alias de compatibilidad para módulos que aún usan la nomenclatura v16
+    foreign_rate = fields.Float(related='tax_today', readonly=False, string="Tasa (Alias)")
+    foreign_inverse_rate = fields.Float(string="Tasa Inversa (Alias)", compute="_compute_foreign_inverse_rate")
+
+    @api.depends('tax_today')
+    def _compute_foreign_inverse_rate(self):
+        for rec in self:
+            rec.foreign_inverse_rate = (1 / rec.tax_today) if rec.tax_today else 0
+
     currency_id_dif = fields.Many2one("res.currency",
                                       string="Divisa de Referencia",
                                       default=lambda self: self.env.company.currency_id_dif )
