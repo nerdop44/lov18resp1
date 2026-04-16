@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- LIST-->
-		
     <record id="view_res_country_municipality_tree" model="ir.ui.view">
       <field name="name">Municipality</field>
       <field name="model">res.country.municipality</field>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!--LIST-->>
+    >
   <record id="view_res_country_parish_tree" model="ir.ui.view">
    <field name="name">res.country.parish.tree</field>
    <field name="model">res.country.parish</field>
