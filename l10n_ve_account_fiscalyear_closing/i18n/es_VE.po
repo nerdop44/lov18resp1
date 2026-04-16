@@ -390,7 +390,7 @@ msgstr "Cierre fiscal lineas movimiento"
 msgid "Fiscal closing moves"
 msgstr "Cierre fiscal movimientos"
 
-#. modules: account_fiscal_year_closing, l10n_ve_account_fiscalyear_closing
+#. module: l10n_ve_account_fiscalyear_closing
 #: model:ir.model,name:l10n_ve_account_fiscalyear_closing.model_account_fiscalyear_closing
 #: model:ir.model.fields,field_description:account_fiscal_year_closing.field_account_bank_statement_line__fyc_id
 #: model:ir.model.fields,field_description:account_fiscal_year_closing.field_account_move__fyc_id
