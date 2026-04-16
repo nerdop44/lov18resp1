@@ -11,6 +11,7 @@
                      <field name="amount_residual_usd" readonly="1"/>
                      <field name="tax_invoice" readonly="1"/>
                      <field name="tax_today"/>
+                     <field name="foreign_rate" invisible="1"/>
                 </xpath>
                 <!--<xpath expr="//field[@name='payment_date']" position="before">
                      <field name="currency_id_name" invisible="1"/>

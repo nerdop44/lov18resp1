@@ -9,6 +9,8 @@
                 <xpath expr="//field[@name='date']" position="before">
                      <field name="currency_equal" invisible="1"/>
                      <field name="tax_today" readonly="[('state', '!=', 'draft')]"/>
+                     <field name="foreign_rate" invisible="1"/>
+                     <field name="foreign_inverse_rate" invisible="1"/>
                      <field name="amount_local" readonly="1" force_save="1" invisible="[('currency_equal', '!=',  True)]"/>
                      <field name="amount_ref" readonly="1" force_save="1" invisible="[('currency_equal', '=',  True)]"/>
                      <field name="currency_id_dif" readonly="1" invisible="[('currency_equal', '=',  True)]"/>
