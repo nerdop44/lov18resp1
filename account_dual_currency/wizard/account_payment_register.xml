@@ -5,6 +5,7 @@
             <field name="name">Dual Currency: account.payment.register.form</field>
             <field name="model">account.payment.register</field>
             <field name="inherit_id" ref="account.view_account_payment_register_form"/>
+            <field name="priority">1</field>
             <field name="arch" type="xml">
                 <xpath expr="//label[@for='amount']" position="before">
                      <field name="currency_id_dif" invisible="1"/>
