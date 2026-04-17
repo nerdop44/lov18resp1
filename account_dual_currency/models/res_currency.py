@@ -214,10 +214,8 @@ class ResCurrency(models.Model):
 
             if nueva_tasa_bcv:
                 channel_id = self.env.ref('account_dual_currency.trm_channel')
-                company_ids = self.env['res.company'].search([])
                 today = fields.Date.context_today(self)
-                
-                for c in company_ids:
+                for c in self.env.companies:
                     # Obtener valor BCV de la moneda base de la compañía
                     base_bcv = c.currency_id.get_bcv() or 1.0
                     
@@ -230,20 +228,23 @@ class ResCurrency(models.Model):
                     tasa_actual = self.env['res.currency.rate'].sudo().search(
                         [('name', '=', today), ('currency_id', '=', rec.id), ('company_id', '=', c.id)], limit=1)
                     
-                    if not tasa_actual:
-                        self.env['res.currency.rate'].sudo().create({
-                                'currency_id': rec.id,
-                                'name': today,
-                                'rate': odoo_rate,
-                                'company_id': c.id,
-                        })
-                        nueva = True
-                    else:
-                        if abs(tasa_actual.rate - odoo_rate) > 0.000001:
-                            tasa_actual.rate = odoo_rate
+                    nueva = False
+                    try:
+                        if not tasa_actual:
+                            self.env['res.currency.rate'].sudo().create({
+                                    'currency_id': rec.id,
+                                    'name': today,
+                                    'rate': odoo_rate,
+                                    'company_id': c.id,
+                            })
                             nueva = True
                         else:
-                            nueva = False
+                            if abs(tasa_actual.rate - odoo_rate) > 0.000001:
+                                tasa_actual.rate = odoo_rate
+                                nueva = True
+                    except Exception as e:
+                        _logger.warning("No se pudo actualizar la tasa para la compañía %s: %s", c.name, e)
+                        continue
 
                     if nueva:
                         channel_id.message_post(
