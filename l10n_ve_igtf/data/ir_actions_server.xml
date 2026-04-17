@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
     <record id="action_fix_bi_igtf_invoices" model="ir.actions.server">
     <field name="name">Fix Binaural BI IGTF Invoices</field>
@@ -5,8 +6,8 @@
     <field name="binding_model_id" ref="model_account_move"/>
     <field name="state">code</field>
     <field name="code">
-for rec in records:
-  rec.recalculate_bi_igtf()
+    for rec in records:
+    rec.recalculate_bi_igtf()
     </field>
-  </record>
+    </record>
 </odoo>
