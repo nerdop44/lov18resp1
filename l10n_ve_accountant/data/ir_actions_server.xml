@@ -6,7 +6,7 @@
     <field name="binding_model_id" ref="model_account_payment" />
     <field name="state">code</field>
     <field name="code">
-    if records:
+if records:
     records._compute_rate()
     </field>
     </record>
@@ -17,9 +17,9 @@
     <field name="binding_model_id" ref="model_account_move" />
     <field name="state">code</field>
     <field name="code">
-    if records:
+if records:
     for record in records:
-    record.legacy_compute_line_ids_foreign_debit_and_credit()
+        record.legacy_compute_line_ids_foreign_debit_and_credit()
     </field>
     </record>
 
@@ -29,7 +29,7 @@
     <field name="binding_model_id" ref="account.model_account_move_line" />
     <field name="state">code</field>
     <field name="code">
-    for record in records:
+for record in records:
     record.abs_amount_lines_ids_adjust()
     </field>
     </record>
