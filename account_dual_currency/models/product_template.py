@@ -48,4 +48,25 @@ class Productos(models.Model):
                     if tasa:
                         rec.standard_price = rec.standard_price_usd * tasa.inverse_rate
 
-
+    @api.depends('taxes_id', 'list_price', 'list_price_usd')
+    def _compute_tax_string(self):
+        super()._compute_tax_string()
+        for template in self:
+            if template.tax_string and template.list_price_usd:
+                # Obtenemos la tasa actual
+                tasa_obj = self.env.company.currency_id_dif
+                if not tasa_obj:
+                    continue
+                
+                # Calculamos el precio con impuestos en Bs (usando list_price_usd que es el base en Bs)
+                taxes = template.taxes_id.compute_all(template.list_price_usd, tasa_obj, 1, product=template, partner=self.env.user.partner_id)
+                total_bs = taxes['total_included']
+                
+                # Formateamos el monto en Bs
+                formatted_bs = "{:,.2f}".format(total_bs).replace(",", "X").replace(".", ",").replace("X", ".")
+                
+                # Inyectamos en la cadena original
+                # Odoo 18 suele usar: "(= $ 1.363,00 impuestos incluidos)"
+                if 'impuestos incluidos' in template.tax_string:
+                    new_val = f" / Bs. {formatted_bs} impuestos incluidos"
+                    template.tax_string = template.tax_string.replace(" impuestos incluidos", new_val)
