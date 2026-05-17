@@ -29,3 +29,8 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.condition_withholding_id', readonly=False
     )
     code_visible=fields.Boolean(related='company_id.code_visible',readonly=False)
+    signature_stamp = fields.Binary(
+        related="company_id.signature_stamp",
+        string="Firma y Sello de la Empresa",
+        readonly=False,
+    )

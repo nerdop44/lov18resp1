@@ -136,16 +136,22 @@ class MunicipalRetentionXlsx(models.AbstractModel):
 
         worksheet2.write("F" + str(col2 + 12), "Firma del Beneficiario", boldWithBorderTop)
 
-        signature = self.env["signature.config"].search(
-            [("active", "=", True)], limit=1, order="id asc"
-        )
-
-        if any(signature) and signature.signature:
-            logo = tools.image_process(base64.b64decode(signature.signature), (200, 200))
+        if company.signature_stamp:
+            logo = tools.image_process(base64.b64decode(company.signature_stamp), (200, 200))
             image_signature = BytesIO(logo)
             worksheet2.insert_image(
                 "F" + str(col2 + 5), "image.png", {"image_data": image_signature}
             )
+        else:
+            signature = self.env["signature.config"].search(
+                [("active", "=", True)], limit=1, order="id asc"
+            )
+            if any(signature) and signature.signature:
+                logo = tools.image_process(base64.b64decode(signature.signature), (200, 200))
+                image_signature = BytesIO(logo)
+                worksheet2.insert_image(
+                    "F" + str(col2 + 5), "image.png", {"image_data": image_signature}
+                )
 
         workbook.close()
         data2 = data2.getvalue()

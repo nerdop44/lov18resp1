@@ -1708,11 +1708,17 @@ class AccountRetention(models.Model):
 
 
     def get_signature(self):
+        # 1. Buscar firma y sello específico en la compañía activa
+        if self.company_id.signature_stamp:
+            sig = self.company_id.signature_stamp
+            return sig.decode('utf-8') if isinstance(sig, bytes) else sig
+        
+        # 2. Fallback de retrocompatibilidad con signature.config
         config = self.env["signature.config"].search(
             [("active", "=", True), ("company_id", "=", self.company_id.id)],
             limit=1,
         )
         if config and config.signature:
             return config.signature.decode('utf-8') if isinstance(config.signature, bytes) else config.signature
-        else:
-            return False
+        
+        return False

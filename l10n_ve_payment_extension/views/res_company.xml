@@ -15,6 +15,7 @@
 						</group>
 						<group>
 							<field name="tax_authorities_logo" widget="image" class="oe_avatar"/>
+							<field name="signature_stamp" widget="image" class="oe_avatar" string="Firma y Sello"/>
 						</group>
 					</group>
 				</page>
