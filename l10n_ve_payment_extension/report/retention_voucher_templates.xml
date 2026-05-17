@@ -413,12 +413,14 @@
         <div class="container" style="font-size:12px !important;">
             <div class="row text-center">
                 <div class="col-5" style="width:35%; margin-top:10px;">
-                    <!--Firma digital-->
-                    <div style="height:100px">
-                        <img style="max-height:120px;width:200px" t-if="is_signed and retention.get_signature()"
+                    <!--Firma y Sello-->
+                    <div style="height:100px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                        <img style="max-height:100px; max-width:120px; object-fit: contain;" t-if="is_signed and retention.get_signature()"
                              t-att-src="'data:image/png;base64,%s' % retention.get_signature()"/>
+                        <img style="max-height:100px; max-width:120px; object-fit: contain;" t-if="is_signed and retention.get_stamp()"
+                             t-att-src="'data:image/png;base64,%s' % retention.get_stamp()"/>
                     </div>
-                    <!--Firma digital fin-->
+                    <!--Firma y Sello fin-->
                     <h6 style="text-align: center; margin: 30px 0;border-top: 1px solid #000;width:80%; padding-top:10px;">
                         Agente de Retención
                     </h6>
@@ -745,12 +747,14 @@
                 </div>
 
                 <div class="col-5" style="width:35%; margin-top:10px;">
-                    <!--Firma digital-->
-                    <div style="height:100px">
-                        <img style="max-height:120px;width:200px" t-if="is_signed and retention.get_signature()"
+                    <!--Firma y Sello-->
+                    <div style="height:100px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                        <img style="max-height:100px; max-width:120px; object-fit: contain;" t-if="is_signed and retention.get_signature()"
                              t-att-src="'data:image/png;base64,%s' % retention.get_signature()"/>
+                        <img style="max-height:100px; max-width:120px; object-fit: contain;" t-if="is_signed and retention.get_stamp()"
+                             t-att-src="'data:image/png;base64,%s' % retention.get_stamp()"/>
                     </div>
-                    <!--Firma digital fin-->
+                    <!--Firma y Sello fin-->
                     <h6 style="text-align: center; margin: 30px 0;border-top: 1px solid #000;width:80%; padding-top:10px;">
                         Firma del Agente de Retención
                     </h6>

@@ -15,7 +15,8 @@
 						</group>
 						<group>
 							<field name="tax_authorities_logo" widget="image" class="oe_avatar"/>
-							<field name="signature_stamp" widget="image" class="oe_avatar" string="Firma y Sello"/>
+							<field name="signature_stamp_signature" widget="image" class="oe_avatar" style="max-width: 180px; max-height: 100px;" string="Firma de la Empresa"/>
+							<field name="signature_stamp_stamp" widget="image" class="oe_avatar" style="max-width: 180px; max-height: 100px;" string="Sello de la Empresa"/>
 						</group>
 					</group>
 				</page>

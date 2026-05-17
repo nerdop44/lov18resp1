@@ -27,8 +27,12 @@
 		<menuitem name="Payment concept menu" id="menu_payment_concept" 
                 parent="l10n_ve_payment_extension.retention_configuration" action="action_payment_concept_binaural_payment_extension" />
 
-		<menuitem id="menu_retention_signature_config" name="Firma y Sello" 
+		<menuitem id="menu_retention_signature_config" name="Firma Electrónica" 
                 parent="l10n_ve_payment_extension.retention_configuration" action="action_configurate_signature" />
+
+		<menuitem id="menu_krill_signature_stamp" name="Firma y Sello" 
+                parent="l10n_ve_payment_extension.retention_configuration" action="action_krill_signature_stamp_wizard" />
+
 
 		<menuitem name="Tax unit" id="menu_retention_tax_unit" parent="l10n_ve_payment_extension.retention_configuration" 
                 action="action_tax_unit_binaural_payment_extension" />

@@ -38,8 +38,15 @@
 							<div class="o_setting_right_pane">
 								<span class="o_form_label">Firma y Sello de la Empresa</span>
 								<div class="text-muted">Rúbrica y sello húmedo en los comprobantes impresos</div>
-								<div class="content-group mt16">
-									<field name="signature_stamp" widget="image" class="oe_avatar" style="max-width: 200px; max-height: 120px;"/>
+								<div class="content-group mt16" style="display: flex; gap: 20px;">
+									<div>
+										<label for="signature_stamp_signature" string="Firma (Rúbrica)"/>
+										<field name="signature_stamp_signature" widget="image" class="oe_avatar" style="max-width: 150px; max-height: 90px;"/>
+									</div>
+									<div>
+										<label for="signature_stamp_stamp" string="Sello Húmedo"/>
+										<field name="signature_stamp_stamp" widget="image" class="oe_avatar" style="max-width: 150px; max-height: 90px;"/>
+									</div>
 								</div>
 							</div>
 						</div>
