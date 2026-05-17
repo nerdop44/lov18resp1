@@ -1713,6 +1713,6 @@ class AccountRetention(models.Model):
             limit=1,
         )
         if config and config.signature:
-            return config.signature.decode()
+            return config.signature.decode('utf-8') if isinstance(config.signature, bytes) else config.signature
         else:
             return False

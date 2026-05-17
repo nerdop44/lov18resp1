@@ -415,7 +415,7 @@
                 <div class="col-5" style="width:35%; margin-top:10px;">
                     <!--Firma digital-->
                     <div style="height:100px">
-                        <img style="max-height:120px;width:200px" t-if="retention.get_signature()"
+                        <img style="max-height:120px;width:200px" t-if="is_signed and retention.get_signature()"
                              t-att-src="'data:image/png;base64,%s' % retention.get_signature()"/>
                     </div>
                     <!--Firma digital fin-->
@@ -747,7 +747,7 @@
                 <div class="col-5" style="width:35%; margin-top:10px;">
                     <!--Firma digital-->
                     <div style="height:100px">
-                        <img style="max-height:120px;width:200px" t-if="retention.get_signature()"
+                        <img style="max-height:120px;width:200px" t-if="is_signed and retention.get_signature()"
                              t-att-src="'data:image/png;base64,%s' % retention.get_signature()"/>
                     </div>
                     <!--Firma digital fin-->
@@ -763,6 +763,23 @@
     <template id="retention_voucher_template">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="retention">
+                <t t-call="web.internal_layout">
+                    <div class="page">
+                        <t t-if="retention.type_retention == 'iva'">
+                            <t t-call="l10n_ve_payment_extension.report_iva_customer"/>
+                        </t>
+                        <t t-else="">
+                            <t t-call="l10n_ve_payment_extension.report_islr_customer"/>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+    <template id="retention_voucher_signed_template">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="retention">
+                <t t-set="is_signed" t-value="True"/>
                 <t t-call="web.internal_layout">
                     <div class="page">
                         <t t-if="retention.type_retention == 'iva'">
