@@ -67,10 +67,8 @@ class AccountMove(models.Model):
     @api.depends('partner_id')
     def _compute_intermediation_case_id(self):
         for move in self:
-            if move.move_type == 'in_invoice' and move.partner_id.intermediation_role_id:
-                # Si se utiliza relación directa, heredarla
-                move.intermediation_case_id = move.partner_id.intermediation_case_id.id
-            elif move.move_type == 'in_invoice' and move.partner_id.intermediation_case_id:
+            if move.move_type == 'in_invoice' and move.partner_id.intermediation_case_id:
                 move.intermediation_case_id = move.partner_id.intermediation_case_id.id
             else:
                 move.intermediation_case_id = False
+
