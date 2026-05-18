@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Caso 1: Agencias de Viaje y Turismo -->
+        <record id="intermediation_case_travel_agency" model="intermediation.case">
+            <field name="name">Agencias de Viaje y Turismo (Caso 1)</field>
+            <field name="iva_withholding_rate">75</field>
+            <field name="payment_concept_id" ref="l10n_ve_payment_extension.payment_concept_seven_binaural_payment_extension"/>
+            <field name="description">Regulado por las Providencias del SENIAT. Se retiene el IVA (75% o 100%) únicamente sobre la línea del Fee de Emisión o Comisión de la Agencia, declarando el pasaje/boleto de la aerolínea como exento (0% retención ISLR o tasa de transporte a nombre del intermediado).</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- Caso 2: Comisionistas y Agentes de Flete / Aduana -->
+        <record id="intermediation_case_commission_agent" model="intermediation.case">
+            <field name="name">Comisionistas, Corredores y Agentes de Flete (Caso 2)</field>
+            <field name="iva_withholding_rate">75</field>
+            <field name="payment_concept_id" ref="l10n_ve_payment_extension.payment_concept_seven_binaural_payment_extension"/>
+            <field name="description">Aplica para intermediarios en compra/venta de mercancías o servicios de carga. La retención se calcula exclusivamente sobre la comisión del comisionista, ignorando el valor del bien principal de terceros.</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- Caso 3: Agencias de Publicidad y Medios de Comunicación -->
+        <record id="intermediation_case_advertising_agency" model="intermediation.case">
+            <field name="name">Agencias de Publicidad y Medios (Caso 3)</field>
+            <field name="iva_withholding_rate">75</field>
+            <field name="payment_concept_id" ref="l10n_ve_payment_extension.payment_concept_six_binaural_payment_extension"/>
+            <field name="description">Se retiene el impuesto únicamente sobre los honorarios de la agencia por gestión de medios. El reembolso por el espacio físico publicitario contratado al medio de comunicación no sufre retención por este concepto.</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- Caso 4: Corredores y Sociedades de Seguros -->
+        <record id="intermediation_case_insurance_broker" model="intermediation.case">
+            <field name="name">Corredores y Sociedades de Seguros (Caso 4)</field>
+            <field name="iva_withholding_rate">75</field>
+            <field name="payment_concept_id" ref="l10n_ve_payment_extension.payment_concept_seven_binaural_payment_extension"/>
+            <field name="description">Aplica sobre la comisión devengada por corretaje de pólizas de seguros. La prima neta del seguro cobrada para la compañía aseguradora no sufre retención por intermediación.</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- Caso Especial: Intermediarios No Residentes / No Domiciliados -->
+        <record id="intermediation_case_foreign_broker" model="intermediation.case">
+            <field name="name">Brokers / Intermediarios Internacionales (No Residentes)</field>
+            <field name="iva_withholding_rate">0</field>
+            <field name="payment_concept_id" ref="l10n_ve_payment_extension.payment_concept_seven_binaural_payment_extension"/>
+            <field name="description">Para brokers ubicados en el exterior. El IVA es exento (0%) por no territorialidad, pero se practica retención directa de ISLR del 5% o 34% (según sea jurídica o natural) sobre el pago bruto transferido al exterior.</field>
+            <field name="active">True</field>
+        </record>
+    </data>
+</odoo>

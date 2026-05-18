@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Vista de Lista (Tree/List) -->
+        <record id="view_intermediation_case_tree" model="ir.ui.view">
+            <field name="name">intermediation.case.tree</field>
+            <field name="model">intermediation.case</field>
+            <field name="arch" type="xml">
+                <list string="Casos de Intermediación">
+                    <field name="name"/>
+                    <field name="iva_withholding_rate"/>
+                    <field name="payment_concept_id"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Vista de Formulario (Form) -->
+        <record id="view_intermediation_case_form" model="ir.ui.view">
+            <field name="name">intermediation.case.form</field>
+            <field name="model">intermediation.case</field>
+            <field name="arch" type="xml">
+                <form string="Caso de Intermediación">
+                    <sheet>
+                        <widget name="web_ribbon" title="Archivado" bg_color="text-danger" invisible="active"/>
+                        <div class="oe_title">
+                            <label for="name" class="oe_edit_only"/>
+                            <h1>
+                                <field name="name" placeholder="Ej. Agencias de Viaje y Turismo"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <group string="Configuración de Retención (Tramo Comisión)">
+                                <field name="iva_withholding_rate" widget="radio"/>
+                                <field name="payment_concept_id" required="1" options="{'no_create': True}"/>
+                                <field name="active" invisible="1"/>
+                            </group>
+                            <group string="Información Legal / Administrativa">
+                                <field name="description" placeholder="Ingrese detalles legales o comentarios de control interno..."/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Vista de Búsqueda (Search) -->
+        <record id="view_intermediation_case_search" model="ir.ui.view">
+            <field name="name">intermediation.case.search</field>
+            <field name="model">intermediation.case</field>
+            <field name="arch" type="xml">
+                <search string="Buscar Casos de Intermediación">
+                    <field name="name"/>
+                    <field name="payment_concept_id"/>
+                    <filter string="Archivados" name="inactive" domain="[('active', '=', False)]"/>
+                    <group expand="0" string="Agrupar por">
+                        <filter string="Tasa IVA Comisión" name="group_iva" context="{'group_by': 'iva_withholding_rate'}"/>
+                        <filter string="Concepto ISLR" name="group_islr" context="{'group_by': 'payment_concept_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- Acción de Ventana (Window Action) -->
+        <record id="action_intermediation_case" model="ir.actions.act_window">
+            <field name="name">Casos de Intermediación</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">intermediation.case</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_intermediation_case_search"/>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Cree su primer Caso de Intermediación Comercial.
+                </p>
+                <p>
+                    Aquí puede parametrizar las tasas de IVA, ISLR y base legal aplicables a los intermediarios (ej. agencias de viaje, corretaje de seguros, comisionistas) de forma 100% editable y dinámica.
+                </p>
+            </field>
+        </record>
+
+        <!-- Menú de Casos de Intermediación -->
+        <menuitem id="menu_intermediation_case"
+                  name="Casos de Intermediación"
+                  parent="l10n_ve_payment_extension.retention_configuration"
+                  action="action_intermediation_case"
+                  sequence="35"/>
+    </data>
+</odoo>
