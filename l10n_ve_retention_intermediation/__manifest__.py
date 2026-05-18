@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': 'Localización Venezolana - Retenciones por Intermediación',
+    'name': 'LocVe - Retenciones por Intermediación',
     'version': '1.0',
     'summary': 'Manejo dinámico y parametrizable del caso especial de retenciones de IVA e ISLR sobre intermediación comercial.',
     'description': """
@@ -10,7 +10,7 @@ Módulo oficial de la localización para gestionar el flujo contable y fiscal de
 - Emisión automática de comprobantes de retención para múltiples beneficiarios (Intermediario y prestador real de servicio) dentro de una misma factura mixta.
 - Cumplimiento de cuadratura en Libros de Compra, archivos TXT de IVA y XML de ISLR del SENIAT.
 """,
-    'author': 'Antigravity / Google Deepmind Team & Krill Energy',
+    'author': 'Ing. Nerdo Jose Pulido Aguirre',
     'category': 'Accounting/Localizations/Accountant',
     'depends': [
         'l10n_ve_payment_extension',
@@ -28,3 +28,4 @@ Módulo oficial de la localización para gestionar el flujo contable y fiscal de
     'application': False,
     'license': 'LGPL-3',
 }
+
