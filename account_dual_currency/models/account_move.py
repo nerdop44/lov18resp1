@@ -105,7 +105,8 @@ class AccountMove(models.Model):
         for move in self:
             asset = move.asset_id or move.reversed_entry_id.asset_id  # reversed moves are created before being assigned to the asset
             if asset:
-                account = asset.account_depreciation_expense_id if asset.asset_type != 'sale' else asset.account_depreciation_id
+                asset_type = getattr(asset, 'asset_type', 'purchase')
+                account = asset.account_depreciation_expense_id if asset_type != 'sale' else asset.account_depreciation_id
                 asset_depreciation = sum(
                     move.line_ids.filtered(lambda l: l.account_id == account).mapped('balance_usd')
                 )
@@ -137,7 +138,8 @@ class AccountMove(models.Model):
         for move in self:
             asset = move.asset_id
             amount = abs(move.depreciation_value_ref)
-            account = asset.account_depreciation_expense_id if asset.asset_type != 'sale' else asset.account_depreciation_id
+            asset_type = getattr(asset, 'asset_type', 'purchase')
+            account = asset.account_depreciation_expense_id if asset_type != 'sale' else asset.account_depreciation_id
             move.write({'line_ids': [
                 Command.update(line.id, {
                     'balance_usd': amount if line.account_id == account else -amount,

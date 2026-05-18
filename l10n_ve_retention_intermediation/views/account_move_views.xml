@@ -6,8 +6,8 @@
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
-                <!-- 1. Inyectar campos de intermediación en la cabecera derecha de la factura -->
-                <xpath expr="//field[@name='partner_id']" position="after">
+                <!-- 1. Inyectar campos de intermediación de forma responsiva y alineada en la cabecera de la factura -->
+                <xpath expr="//group[@id='header_left_group']" position="inside">
                     <!-- Campo técnico para control de visibilidad en UI -->
                     <field name="partner_is_intermediary" invisible="1"/>
                     
