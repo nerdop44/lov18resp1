@@ -16,16 +16,17 @@
                     <!-- Campo técnico para control de visibilidad en UI -->
                     <field name="partner_is_intermediary" invisible="1"/>
                     
-                    <field name="is_intermediation" 
-                           string="¿Es Factura de Intermediación?"
-                           invisible="not partner_is_intermediary"
-                           widget="boolean_toggle"/>
-                           
-                    <field name="intermediation_case_id"
-                           string="Caso de Intermediación"
-                           invisible="not is_intermediation"
-                           required="is_intermediation"
-                           options="{'no_create': True, 'no_edit': True}"/>
+                    <group string="Intermediación Comercial" invisible="not partner_is_intermediary">
+                        <field name="is_intermediation" 
+                               string="¿Es Factura de Intermediación?"
+                               widget="boolean_toggle"/>
+                               
+                        <field name="intermediation_case_id"
+                               string="Caso de Intermediación"
+                               invisible="not is_intermediation"
+                               required="is_intermediation"
+                               options="{'no_create': True, 'no_edit': True}"/>
+                    </group>
                 </xpath>
  
                 <!-- 2. Inyectar columnas especiales en la cuadrícula de líneas de la factura (usando list[last()]) -->
