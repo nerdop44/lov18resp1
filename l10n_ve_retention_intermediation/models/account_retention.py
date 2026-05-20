@@ -7,6 +7,46 @@ _logger = logging.getLogger(__name__)
 class AccountRetention(models.Model):
     _inherit = 'account.retention'
 
+    is_intermediation = fields.Boolean(
+        string="Es Intermediación",
+        compute="_compute_is_intermediation"
+    )
+    
+    intermediation_warning = fields.Html(
+        string="Aviso de Intermediación",
+        compute="_compute_intermediation_warning"
+    )
+
+    @api.depends('retention_line_ids.move_id.is_intermediation')
+    def _compute_is_intermediation(self):
+        for retention in self:
+            retention.is_intermediation = any(line.move_id.is_intermediation for line in retention.retention_line_ids if line.move_id)
+
+    @api.depends('is_intermediation', 'retention_line_ids.move_id', 'partner_id')
+    def _compute_intermediation_warning(self):
+        for retention in self:
+            if retention.is_intermediation:
+                moves = retention.retention_line_ids.mapped('move_id').filtered(lambda m: m.is_intermediation)
+                if moves:
+                    move = moves[0]
+                    is_agency = retention.partner_id == move.partner_id
+                    
+                    msg = "<div class='alert alert-info' style='margin-bottom: 10px;'>"
+                    if is_agency:
+                        msg += f"📢 <strong>Comprobante de Retención de Intermediación Comercial.</strong><br/>"
+                        msg += f"Este comprobante corresponde a la comisión/fee de intermediación del proveedor: <strong>{retention.partner_id.name}</strong>.<br/>"
+                        msg += f"Factura de origen: <strong>{move.name or move.ref or ''}</strong>."
+                    else:
+                        msg += f"📢 <strong>Comprobante de Retención por Intermediación de Terceros.</strong><br/>"
+                        msg += f"Este comprobante corresponde a la retención realizada a cuenta del proveedor/aerolínea principal: <strong>{retention.partner_id.name}</strong>.<br/>"
+                        msg += f"Factura de origen (tramitada por {move.partner_id.name}): <strong>{move.name or move.ref or ''}</strong>."
+                    msg += "</div>"
+                    retention.intermediation_warning = msg
+                else:
+                    retention.intermediation_warning = False
+            else:
+                retention.intermediation_warning = False
+
     @api.model
     def compute_retention_lines_data(self, invoice_id, payment=None):
         """

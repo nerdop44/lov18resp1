@@ -15,6 +15,7 @@ Módulo oficial de la localización para gestionar el flujo contable y fiscal de
     'depends': [
         'l10n_ve_payment_extension',
         'account_dual_currency',
+        'l10n_ve_tax',
     ],
     'data': [
         'security/ir.model.access.csv',
@@ -22,9 +23,10 @@ Módulo oficial de la localización para gestionar el flujo contable y fiscal de
         'views/intermediation_case_views.xml',
         'views/res_partner_views.xml',
         'views/account_move_views.xml',
+        'views/account_retention_views.xml',
     ],
     'installable': True,
-    'auto_install': False,
+    'auto_install': True,
     'application': False,
     'license': 'LGPL-3',
 }

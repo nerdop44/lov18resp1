@@ -6,6 +6,11 @@
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
+                <!-- Inyectar aviso reactivo sobre el notebook de las líneas de factura -->
+                <xpath expr="//notebook" position="before">
+                    <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
+                </xpath>
+
                 <!-- 1. Inyectar campos de intermediación de forma responsiva y alineada en la cabecera de la factura -->
                 <xpath expr="//group[@id='header_left_group']" position="inside">
                     <!-- Campo técnico para control de visibilidad en UI -->
@@ -22,12 +27,13 @@
                            required="is_intermediation"
                            options="{'no_create': True, 'no_edit': True}"/>
                 </xpath>
-
-                <!-- 2. Inyectar columnas especiales en la cuadrícula de líneas de la factura -->
-                <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='price_subtotal']" position="before">
+ 
+                <!-- 2. Inyectar columnas especiales en la cuadrícula de líneas de la factura (usando list[last()]) -->
+                <xpath expr="//field[@name='invoice_line_ids']/list[last()]/field[@name='price_subtotal']" position="before">
                     <field name="is_intermediation_commission"
                            string="¿Es Comisión?"
                            column_invisible="not parent.is_intermediation"
+                           help="Marque si esta línea corresponde al honorario o comisión de la Agencia."
                            optional="show"/>
                            
                     <field name="mediated_partner_id"
@@ -35,6 +41,7 @@
                            column_invisible="not parent.is_intermediation"
                            options="{'no_create': True}"
                            domain="[('is_intermediary', '=', True)]"
+                           help="Asigne el prestador de servicio real (ej. la aerolínea nacional). Deje en blanco para aerolíneas internacionales (vuelos internacionales) exentos de retención."
                            optional="show"/>
                 </xpath>
             </field>
