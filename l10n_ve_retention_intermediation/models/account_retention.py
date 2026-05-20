@@ -61,7 +61,7 @@ class AccountRetention(models.Model):
 
         # Determinar alícuota de retención de IVA según la parametrización del caso o fuerza
         withholding_rate = 75.0
-        if invoice_id.partner_id.force_100_retention or not invoice_id.partner_id.rif_valid:
+        if invoice_id.partner_id.force_100_retention:
             withholding_rate = 100.0
         elif invoice_id.intermediation_case_id:
             withholding_rate = float(invoice_id.intermediation_case_id.iva_withholding_rate)
