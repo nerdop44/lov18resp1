@@ -52,7 +52,7 @@ class AccountMove(models.Model):
     partner_is_intermediary = fields.Boolean(
         string="Proveedor es Intermediario",
         related="partner_id.is_intermediary",
-        store=True,
+        store=False,
         readonly=True
     )
 
