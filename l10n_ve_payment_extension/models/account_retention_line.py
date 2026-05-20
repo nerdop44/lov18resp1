@@ -153,7 +153,7 @@ class AccountRetentionLine(models.Model):
             # Regla v62: Montos en VEF (Bolívares) con tasa dual explícita
             invoice_rate = invoice.tax_today or 1.0
             today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
-            used_rate = today_rate if parent_retention.use_today_rate else invoice_rate
+            used_rate = today_rate if self.retention_id.use_today_rate else invoice_rate
             
             company_currency = self.env.company.currency_id
             invoice_currency = invoice.currency_id
