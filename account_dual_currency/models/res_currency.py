@@ -129,43 +129,37 @@ class ResCurrency(models.Model):
     def get_bcv(self):
         url = "https://www.bcv.org.ve/"
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                          'AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/58.0.3029.110 Safari/537.36'
         }
         try:
-            req = requests.get(url, headers=headers, verify=False, timeout=10)
+            req = requests.get(url, headers=headers, verify=False, timeout=25)
         except Exception as e:
             return False
 
-        status_code = req.status_code
-        if status_code == 200:
+        if req.status_code == 200:
             html = BeautifulSoup(req.text, "html.parser")
-            # Dolar
+
+            # --- USD ---
             dolar_tag = html.find('div', {'id': 'dolar'})
             if not dolar_tag:
                 return False
-            dolar = str(dolar_tag.find('strong')).split()
-            # Handle potential parsing errors if format changes
-            if len(dolar) < 2:
-                return False
-            dolar = str.replace(dolar[1], '.', '')
             try:
-                val_usd = float(str.replace(dolar, ',', '.'))
-            except ValueError:
+                val_usd_str = dolar_tag.find('strong').text.strip()
+                val_usd = float(val_usd_str.replace('.', '').replace(',', '.'))
+            except Exception:
                 return False
 
-            # Euro
+            # --- EUR ---
             euro_tag = html.find('div', {'id': 'euro'})
             if not euro_tag:
                 val_eur = 0.0
             else:
-                euro = str(euro_tag.find('strong')).split()
-                if len(euro) > 1:
-                    euro = str.replace(euro[1], '.', '')
-                    try:
-                        val_eur = float(str.replace(euro, ',', '.'))
-                    except ValueError:
-                        val_eur = 0.0
-                else:
+                try:
+                    val_eur_str = euro_tag.find('strong').text.strip()
+                    val_eur = float(val_eur_str.replace('.', '').replace(',', '.'))
+                except Exception:
                     val_eur = 0.0
 
             curr_name = self.name
@@ -174,9 +168,6 @@ class ResCurrency(models.Model):
             elif curr_name == 'EUR':
                 return val_eur
             elif curr_name in ['VES', 'VEF']:
-                 # If we are strictly asking for VES rate, it's 1. 
-                 # But if we want the "Dolar" value, we should probably ask for USD currency.
-                 # For now, return 1.0 as standard behaviour, but get_trm_systray handles the fallback.
                 return 1.0
             else:
                 return False

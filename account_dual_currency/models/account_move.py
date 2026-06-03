@@ -552,7 +552,21 @@ class AccountMove(models.Model):
         return partial_values_list
 
     def js_assign_outstanding_line(self, line_id):
+        for line in self.line_ids:
+            if line.debit_usd == 0 and line.debit != 0:
+                line._debit_usd()
+            if line.credit_usd == 0 and line.credit != 0:
+                line._credit_usd()
+            line._compute_balance_usd()
+            line._compute_amount_residual_usd()
+
         lines = self.env['account.move.line'].browse(line_id)
+
+        lines._debit_usd()
+        lines._credit_usd()
+        lines._compute_balance_usd()
+        lines._compute_amount_residual_usd()
+
         lines += self.line_ids.filtered(lambda line: line.account_id == lines[0].account_id and not line.reconciled)
         lines._compute_amount_residual_usd()
         res = super(AccountMove, self).js_assign_outstanding_line(line_id)
