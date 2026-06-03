@@ -127,6 +127,10 @@ class ResCurrency(models.Model):
             )
 
     def get_bcv(self):
+        curr_name = self.name
+        if curr_name in ['VES', 'VEF']:
+            return 1.0
+
         url = "https://www.bcv.org.ve/"
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -162,13 +166,10 @@ class ResCurrency(models.Model):
                 except Exception:
                     val_eur = 0.0
 
-            curr_name = self.name
             if curr_name == 'USD':
                 return val_usd
             elif curr_name == 'EUR':
                 return val_eur
-            elif curr_name in ['VES', 'VEF']:
-                return 1.0
             else:
                 return False
         else:
@@ -213,38 +214,56 @@ class ResCurrency(models.Model):
                     base_bcv = c.currency_id.get_bcv() or 1.0
                     
                     # Cálculo de la tasa Odoo: (Valor BCV Base / Valor BCV Destino)
-                    # Ej: Base VES (1.0), Destino USD (36.5) -> Rate = 1/36.5 = 0.027...
-                    # Ej: Base USD (36.5), Destino VES (1.0) -> Rate = 36.5/1 = 36.5
                     odoo_rate = base_bcv / nueva_tasa_bcv
                     
-                    # Buscar tasa existente para hoy
-                    tasa_actual = self.env['res.currency.rate'].sudo().search(
-                        [('name', '=', today), ('currency_id', '=', rec.id), ('company_id', '=', c.id)], limit=1)
+                    # Buscar la última tasa registrada para calcular la brecha temporal
+                    last_rate_rec = self.env['res.currency.rate'].sudo().search(
+                        [('currency_id', '=', rec.id), ('company_id', '=', c.id)],
+                        order='name desc', limit=1)
                     
-                    if not tasa_actual:
-                        self.env['res.currency.rate'].sudo().create({
-                                'currency_id': rec.id,
-                                'name': today,
-                                'rate': odoo_rate,
-                                'company_id': c.id,
-                        })
-                        nueva = True
+                    dates_to_update = []
+                    if last_rate_rec:
+                        last_date = last_rate_rec.name
+                        current_date = last_date + timedelta(days=1)
+                        # Limitar la actualización a un máximo de 30 días pasados por seguridad
+                        max_past_date = today - timedelta(days=30)
+                        if current_date < max_past_date:
+                            current_date = max_past_date
+                        
+                        while current_date <= today:
+                            dates_to_update.append(current_date)
+                            current_date += timedelta(days=1)
                     else:
-                        if abs(tasa_actual.rate - odoo_rate) > 0.000001:
-                            tasa_actual.rate = odoo_rate
+                        dates_to_update.append(today)
+
+                    for d in dates_to_update:
+                        tasa_actual = self.env['res.currency.rate'].sudo().search(
+                            [('name', '=', d), ('currency_id', '=', rec.id), ('company_id', '=', c.id)], limit=1)
+                        
+                        nueva = False
+                        if not tasa_actual:
+                            self.env['res.currency.rate'].sudo().create({
+                                    'currency_id': rec.id,
+                                    'name': d,
+                                    'rate': odoo_rate,
+                                    'company_id': c.id,
+                            })
                             nueva = True
                         else:
-                            nueva = False
+                            if abs(tasa_actual.rate - odoo_rate) > 0.000001:
+                                tasa_actual.rate = odoo_rate
+                                nueva = True
 
-                    if nueva:
-                        channel_id.message_post(
-                            body="Tasa de cambio actualizada para %s (%s): %s (en %s), servidor %s a las %s." % (
-                                rec.name, c.name, odoo_rate, c.currency_id.name, rec.server,
-                                datetime.strftime(fields.Datetime.context_timestamp(self, datetime.now()),
-                                                  "%d-%m-%Y %H:%M:%S")),
-                            message_type='notification',
-                            subtype_xmlid='mail.mt_comment',
-                        )
+                        if nueva:
+                            channel_id.message_post(
+                                body="Tasa de cambio actualizada para %s (%s): %s (en %s), servidor %s a las %s para la fecha %s." % (
+                                    rec.name, c.name, odoo_rate, c.currency_id.name, rec.server,
+                                    datetime.strftime(fields.Datetime.context_timestamp(self, datetime.now()),
+                                                      "%d-%m-%Y %H:%M:%S"),
+                                    d.strftime("%d-%m-%Y")),
+                                message_type='notification',
+                                subtype_xmlid='mail.mt_comment',
+                            )
                 if rec.act_productos:
                     rec.actualizar_productos()
 
