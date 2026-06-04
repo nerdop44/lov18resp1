@@ -206,7 +206,7 @@ class ResCurrency(models.Model):
 
             if nueva_tasa_bcv:
                 channel_id = self.env.ref('account_dual_currency.trm_channel')
-                company_ids = self.env['res.company'].search([])
+                company_ids = self.env['res.company'].search([]).mapped('root_id')
                 today = fields.Date.context_today(self)
                 
                 for c in company_ids:
@@ -256,7 +256,7 @@ class ResCurrency(models.Model):
                 continue
                 
             today = fields.Date.context_today(self)
-            company_ids = self.env['res.company'].search([])
+            company_ids = self.env['res.company'].search([]).mapped('root_id')
             channel_id = self.env.ref('account_dual_currency.trm_channel')
             
             # 1. Determinar URL histórica según moneda
