@@ -1,5 +1,6 @@
-from odoo import api, fields, models, Command
+from odoo import api, fields, models, Command, _
 from odoo.tools.float_utils import float_round
+from odoo.exceptions import ValidationError
 
 
 class AccountPayment(models.Model):
@@ -103,6 +104,10 @@ class AccountPayment(models.Model):
             if not move:
                 continue
             
+            # Solo renombrar si el asiento aún está en borrador
+            if move.state != 'draft':
+                continue
+            
             # 1. Maintain existing naming convention
             move_name = (
                 account_move_name_by_retention_type[payment.retention_id.type_retention]
@@ -202,3 +207,10 @@ class AccountPayment(models.Model):
                     )
                 )
             )
+
+    def action_post(self):
+        for payment in self:
+            if payment.is_retention and payment.retention_id and payment.retention_id.state == 'draft':
+                if not self._context.get('skip_retention_state_check'):
+                    raise ValidationError(_("No puede contabilizar un pago de retención si la retención asociada aún se encuentra en estado Borrador."))
+        return super().action_post()

@@ -17,7 +17,7 @@ class ResCurrency(models.Model):
     sincronizar = fields.Boolean(string="Sincronizar", default=False)
 
     # campo listado de servidores, bcv o dolar today
-    server = fields.Selection([('bcv', 'BCV'), ('dolar_today', 'Dolar Today Promedio')], string='Servidor',
+    server = fields.Selection([('bcv', 'BCV')], string='Servidor',
                               default='bcv')
 
     act_productos = fields.Boolean(string="Actualizar Productos", default=False)
@@ -127,57 +127,49 @@ class ResCurrency(models.Model):
             )
 
     def get_bcv(self):
+        curr_name = self.name
+        if curr_name in ['VES', 'VEF']:
+            return 1.0
+
         url = "https://www.bcv.org.ve/"
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                          'AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/58.0.3029.110 Safari/537.36'
         }
         try:
-            req = requests.get(url, headers=headers, verify=False, timeout=10)
+            req = requests.get(url, headers=headers, verify=False, timeout=25)
         except Exception as e:
             return False
 
-        status_code = req.status_code
-        if status_code == 200:
+        if req.status_code == 200:
             html = BeautifulSoup(req.text, "html.parser")
-            # Dolar
+
+            # --- USD ---
             dolar_tag = html.find('div', {'id': 'dolar'})
             if not dolar_tag:
                 return False
-            dolar = str(dolar_tag.find('strong')).split()
-            # Handle potential parsing errors if format changes
-            if len(dolar) < 2:
-                return False
-            dolar = str.replace(dolar[1], '.', '')
             try:
-                val_usd = float(str.replace(dolar, ',', '.'))
-            except ValueError:
+                val_usd_str = dolar_tag.find('strong').text.strip()
+                val_usd = float(val_usd_str.replace('.', '').replace(',', '.'))
+            except Exception:
                 return False
 
-            # Euro
+            # --- EUR ---
             euro_tag = html.find('div', {'id': 'euro'})
             if not euro_tag:
                 val_eur = 0.0
             else:
-                euro = str(euro_tag.find('strong')).split()
-                if len(euro) > 1:
-                    euro = str.replace(euro[1], '.', '')
-                    try:
-                        val_eur = float(str.replace(euro, ',', '.'))
-                    except ValueError:
-                        val_eur = 0.0
-                else:
+                try:
+                    val_eur_str = euro_tag.find('strong').text.strip()
+                    val_eur = float(val_eur_str.replace('.', '').replace(',', '.'))
+                except Exception:
                     val_eur = 0.0
 
-            curr_name = self.name
             if curr_name == 'USD':
                 return val_usd
             elif curr_name == 'EUR':
                 return val_eur
-            elif curr_name in ['VES', 'VEF']:
-                 # If we are strictly asking for VES rate, it's 1. 
-                 # But if we want the "Dolar" value, we should probably ask for USD currency.
-                 # For now, return 1.0 as standard behaviour, but get_trm_systray handles the fallback.
-                return 1.0
             else:
                 return False
         else:
@@ -214,49 +206,179 @@ class ResCurrency(models.Model):
 
             if nueva_tasa_bcv:
                 channel_id = self.env.ref('account_dual_currency.trm_channel')
+                company_ids = self.env['res.company'].search([]).mapped('root_id')
                 today = fields.Date.context_today(self)
-                for c in self.env.companies:
+                
+                for c in company_ids:
                     # Obtener valor BCV de la moneda base de la compañía
                     base_bcv = c.currency_id.get_bcv() or 1.0
                     
                     # Cálculo de la tasa Odoo: (Valor BCV Base / Valor BCV Destino)
-                    # Ej: Base VES (1.0), Destino USD (36.5) -> Rate = 1/36.5 = 0.027...
-                    # Ej: Base USD (36.5), Destino VES (1.0) -> Rate = 36.5/1 = 36.5
                     odoo_rate = base_bcv / nueva_tasa_bcv
                     
-                    # Buscar tasa existente para hoy
-                    tasa_actual = self.env['res.currency.rate'].sudo().search(
-                        [('name', '=', today), ('currency_id', '=', rec.id), ('company_id', '=', c.id)], limit=1)
+                    # Solo creamos o actualizamos la tasa del día de hoy
+                    tasa_actual = self.env['res.currency.rate'].sudo().search([
+                        ('name', '=', today),
+                        ('currency_id', '=', rec.id),
+                        ('company_id', '=', c.id)
+                    ], limit=1)
                     
                     nueva = False
-                    try:
-                        if not tasa_actual:
-                            self.env['res.currency.rate'].sudo().create({
-                                    'currency_id': rec.id,
-                                    'name': today,
-                                    'rate': odoo_rate,
-                                    'company_id': c.id,
-                            })
+                    if not tasa_actual:
+                        self.env['res.currency.rate'].sudo().create({
+                                'currency_id': rec.id,
+                                'name': today,
+                                'rate': odoo_rate,
+                                'company_id': c.id,
+                        })
+                        nueva = True
+                    else:
+                        if abs(tasa_actual.rate - odoo_rate) > 0.000001:
+                            tasa_actual.rate = odoo_rate
                             nueva = True
-                        else:
-                            if abs(tasa_actual.rate - odoo_rate) > 0.000001:
-                                tasa_actual.rate = odoo_rate
-                                nueva = True
-                    except Exception as e:
-                        _logger.warning("No se pudo actualizar la tasa para la compañía %s: %s", c.name, e)
-                        continue
 
                     if nueva:
                         channel_id.message_post(
-                            body="Tasa de cambio actualizada para %s (%s): %s (en %s), servidor %s a las %s." % (
+                            body="Tasa de cambio actualizada para %s (%s): %s (en %s), servidor %s a las %s para la fecha %s." % (
                                 rec.name, c.name, odoo_rate, c.currency_id.name, rec.server,
                                 datetime.strftime(fields.Datetime.context_timestamp(self, datetime.now()),
-                                                  "%d-%m-%Y %H:%M:%S")),
+                                                  "%d-%m-%Y %H:%M:%S"),
+                                today.strftime("%d-%m-%Y")),
                             message_type='notification',
                             subtype_xmlid='mail.mt_comment',
                         )
                 if rec.act_productos:
                     rec.actualizar_productos()
+
+    def recuperar_tasas_historicas(self):
+        # 1. Consultar historial de tasas desde DolarApi para USD y EUR
+        usd_history = {}
+        eur_history = {}
+        
+        # Obtener Histórico USD
+        try:
+            req_usd = requests.get('https://ve.dolarapi.com/v1/historicos/dolares/oficial', verify=False, timeout=15)
+            if req_usd.status_code == 200:
+                for entry in req_usd.json():
+                    fecha_str = entry.get('fecha')
+                    promedio = entry.get('promedio')
+                    if fecha_str and promedio:
+                        usd_history[fecha_str] = float(promedio)
+        except Exception as e:
+            _logger.error("Error al obtener histórico de USD desde DolarApi: %s", e)
+
+        # Obtener Histórico EUR
+        try:
+            req_eur = requests.get('https://ve.dolarapi.com/v1/historicos/euros/oficial', verify=False, timeout=15)
+            if req_eur.status_code == 200:
+                for entry in req_eur.json():
+                    fecha_str = entry.get('fecha')
+                    promedio = entry.get('promedio')
+                    if fecha_str and promedio:
+                        eur_history[fecha_str] = float(promedio)
+        except Exception as e:
+            _logger.error("Error al obtener histórico de EUR desde DolarApi: %s", e)
+
+        if not usd_history and not eur_history:
+            _logger.warning("No se pudo obtener ningún historial de tasas de DolarApi.")
+            return
+
+        def get_rate_val(currency_name, date_str):
+            if currency_name in ['VES', 'VEF']:
+                return 1.0
+            elif currency_name == 'USD':
+                return usd_history.get(date_str)
+            elif currency_name == 'EUR':
+                return eur_history.get(date_str)
+            return None
+
+        today = fields.Date.context_today(self)
+        company_ids = self.env['res.company'].search([]).mapped('root_id')
+        channel_id = self.env.ref('account_dual_currency.trm_channel')
+
+        for rec in self:
+            for c in company_ids:
+                # La moneda debe ser la moneda base de la compañía o la moneda diferencial/alterna
+                if rec != c.currency_id and rec != c.currency_id_dif:
+                    continue
+
+                # Obtener la última tasa registrada de la moneda actual para esta compañía
+                last_rate_rec = self.env['res.currency.rate'].sudo().search([
+                    ('currency_id', '=', rec.id),
+                    ('company_id', '=', c.id)
+                ], order='name desc', limit=1)
+                
+                dates_to_update = []
+                if last_rate_rec:
+                    last_date = last_rate_rec.name
+                    current_date = last_date + timedelta(days=1)
+                    max_past_date = today - timedelta(days=30)
+                    if current_date < max_past_date:
+                        current_date = max_past_date
+                    
+                    while current_date <= today:
+                        dates_to_update.append(current_date)
+                        current_date += timedelta(days=1)
+                else:
+                    # Si no hay tasas previas, tomamos los últimos 30 días
+                    current_date = today - timedelta(days=30)
+                    while current_date <= today:
+                        dates_to_update.append(current_date)
+                        current_date += timedelta(days=1)
+
+                for d in dates_to_update:
+                    # Buscar tasa en el historial (retrocediendo hasta 5 días para fines de semana/feriados)
+                    base_rate_val = None
+                    rec_rate_val = None
+                    
+                    for offset in range(5):
+                        check_date = d - timedelta(days=offset)
+                        check_date_str = check_date.strftime("%Y-%m-%d")
+                        base_rate_val = get_rate_val(c.currency_id.name, check_date_str)
+                        if base_rate_val:
+                            break
+                            
+                    for offset in range(5):
+                        check_date = d - timedelta(days=offset)
+                        check_date_str = check_date.strftime("%Y-%m-%d")
+                        rec_rate_val = get_rate_val(rec.name, check_date_str)
+                        if rec_rate_val:
+                            break
+
+                    if not base_rate_val or not rec_rate_val:
+                        continue  # Si falta algún valor histórico, saltamos el día
+                    
+                    odoo_rate = base_rate_val / rec_rate_val
+                    
+                    tasa_actual = self.env['res.currency.rate'].sudo().search([
+                        ('name', '=', d),
+                        ('currency_id', '=', rec.id),
+                        ('company_id', '=', c.id)
+                    ], limit=1)
+                    
+                    nueva = False
+                    if not tasa_actual:
+                        self.env['res.currency.rate'].sudo().create({
+                            'currency_id': rec.id,
+                            'name': d,
+                            'rate': odoo_rate,
+                            'company_id': c.id,
+                        })
+                        nueva = True
+                    else:
+                        if abs(tasa_actual.rate - odoo_rate) > 0.000001:
+                            tasa_actual.rate = odoo_rate
+                            nueva = True
+                            
+                    if nueva:
+                        channel_id.message_post(
+                            body="Tasa HISTÓRICA recuperada para %s (%s): %s para la fecha %s." % (
+                                rec.name, c.name, odoo_rate, d.strftime("%d-%m-%Y")),
+                            message_type='notification',
+                            subtype_xmlid='mail.mt_comment',
+                        )
+            if rec.act_productos:
+                rec.actualizar_productos()
 
 
 

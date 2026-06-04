@@ -40,3 +40,5 @@ class ResCompany(models.Model):
         string="The condition of this taxpayer requires the withholding of",
     )
     code_visible=fields.Boolean(string="See payment concept code")
+    signature_stamp_signature = fields.Binary(string="Firma de la Empresa")
+    signature_stamp_stamp = fields.Binary(string="Sello de la Empresa")

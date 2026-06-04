@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Heredar vista de formulario de Retención IVA para agregar alerta de intermediación -->
+        <record id="view_retention_iva_form_inherit_intermediation" model="ir.ui.view">
+            <field name="name">account.retention.iva.form.inherit.intermediation</field>
+            <field name="model">account.retention</field>
+            <field name="inherit_id" ref="l10n_ve_payment_extension.view_retention_iva_form_binaural_payment_extension"/>
+            <field name="arch" type="xml">
+                <xpath expr="//group[1]" position="before">
+                    <field name="is_intermediation" invisible="1"/>
+                    <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Heredar vista de formulario de Retención ISLR para agregar alerta de intermediación -->
+        <record id="view_retention_islr_form_inherit_intermediation" model="ir.ui.view">
+            <field name="name">account.retention.islr.form.inherit.intermediation</field>
+            <field name="model">account.retention</field>
+            <field name="inherit_id" ref="l10n_ve_payment_extension.view_retention_islr_form_binaural_payment_extension"/>
+            <field name="arch" type="xml">
+                <xpath expr="//group[1]" position="before">
+                    <field name="is_intermediation" invisible="1"/>
+                    <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Heredar vista de formulario de Retención Municipal para agregar alerta de intermediación -->
+        <record id="view_retention_municipal_form_inherit_intermediation" model="ir.ui.view">
+            <field name="name">account.retention.municipal.form.inherit.intermediation</field>
+            <field name="model">account.retention</field>
+            <field name="inherit_id" ref="l10n_ve_payment_extension.view_retention_municipal_form_binaural_payment_extension"/>
+            <field name="arch" type="xml">
+                <xpath expr="//group[1]" position="before">
+                    <field name="is_intermediation" invisible="1"/>
+                    <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

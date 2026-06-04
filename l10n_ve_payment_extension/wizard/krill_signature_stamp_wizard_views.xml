@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_krill_signature_stamp_wizard_form" model="ir.ui.view">
+            <field name="name">krill.signature.stamp.wizard.form</field>
+            <field name="model">krill.signature.stamp.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Firma y Sello de la Empresa">
+                    <sheet string="Firma y Sello">
+                        <div class="alert alert-info" role="alert" style="margin-bottom: 20px;">
+                            Suba por separado la Firma y el Sello Húmedo de la Empresa. Ambos elementos se estamparán de manera automática en los comprobantes de retención correspondientes.
+                        </div>
+                        <group>
+                            <group>
+                                <field name="company_id" readonly="1" options="{'no_open': True}"/>
+                            </group>
+                            <group>
+                            </group>
+                        </group>
+                        <group>
+                            <group string="Firma de la Empresa">
+                                <field name="signature" widget="image" class="oe_avatar" style="max-width: 200px; max-height: 120px;" nolabel="1"/>
+                            </group>
+                            <group string="Sello de la Empresa">
+                                <field name="stamp" widget="image" class="oe_avatar" style="max-width: 200px; max-height: 120px;" nolabel="1"/>
+                            </group>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button name="action_save" string="Guardar Firma y Sello" type="object" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_krill_signature_stamp_wizard" model="ir.actions.act_window">
+            <field name="name">Firma y Sello</field>
+            <field name="res_model">krill.signature.stamp.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+    </data>
+</odoo>

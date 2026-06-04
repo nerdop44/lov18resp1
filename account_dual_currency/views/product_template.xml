@@ -17,8 +17,11 @@
     <field name="model">product.template</field>
     <field name="inherit_id" ref="product.product_template_form_view"/>
     <field name="arch" type="xml">
-    <xpath expr="//field[@name='taxes_id']" position="before">
-    <field name="list_price_usd" />
+    <xpath expr="//label[@for='list_price']" position="attributes">
+        <attribute name="string">Precio de venta ($)</attribute>
+    </xpath>
+    <xpath expr="//field[@name='list_price']/.." position="after">
+        <field name="list_price_usd" string="Precio de venta (Bs)" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
     </xpath>
     <xpath expr="//div[@name='standard_price_uom']" position="after">
     <field name="currency_id_dif" invisible="1"/>
@@ -88,13 +91,13 @@
     <field name="list_price_usd"/>
     <field name="currency_id_dif" invisible="1"/>
     </xpath>
-    <xpath expr="//field[@name='list_price']/.." position="after">
+    <xpath expr="//field[@name='list_price']/.." position="replace">
     <div name="product_lst_price_bs" class="mt-1">
-        <span class="fw-bold" style="color: #00A09D;">Precio Bs: </span>
+        <span class="fw-bold" style="color: #00A09D;">Precio ($): </span>
         <field name="list_price" widget="monetary"/>
     </div>
     <div name="product_lst_price_usd" class="mt-1" invisible="not list_price_usd">
-        <span class="fw-bold" style="color: #714B91;">Precio $: </span>
+        <span class="fw-bold" style="color: #714B91;">Precio (Bs): </span>
         <field name="list_price_usd" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
     </div>
     </xpath>

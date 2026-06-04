@@ -2010,17 +2010,17 @@ msgstr "Secuencias Municipales"
 #: model_terms:ir.ui.view,arch_db:l10n_ve_payment_extension.view_signature_config_form_binaural_payment_extension
 #: model_terms:ir.ui.view,arch_db:l10n_ve_payment_extension.view_signature_config_search_binaural_payment_extension
 msgid "Signature"
-msgstr "Firma Electrónica"
+msgstr "Firma y Sello"
 
 #. module: binaural_payment_extension
 #: model:ir.model,name:l10n_ve_payment_extension.model_signature_config
 msgid "Signature and e-mail configuration "
-msgstr "Configuración de Firma y Correo Electrónico"
+msgstr "Configuración de Firma y Sello"
 
 #. module: binaural_payment_extension
 #: model:ir.actions.act_window,name:l10n_ve_payment_extension.action_configurate_signature
 msgid "Signature config"
-msgstr "Configuración de Firma Electronica"
+msgstr "Firma y Sello"
 
 #. module: binaural_payment_extension
 #: model:ir.model.fields,field_description:l10n_ve_payment_extension.field_account_retention__partner_id
@@ -2672,7 +2672,7 @@ msgstr "Linea de Retención"
 #. module: binaural_payment_extension
 #: model:ir.ui.menu,name:l10n_ve_payment_extension.menu_retention_signature_config
 msgid "signature"
-msgstr "Firma Electrónica"
+msgstr "Firma y Sello"
 
 #. module: binaural_payment_extension
 #: model_terms:ir.ui.view,arch_db:l10n_ve_payment_extension.view_fees_retention_search_binaural_payment_extension
@@ -2690,3 +2690,30 @@ msgstr "Impuesto retenido"
 #, python-format
 msgid "the percentage may not exceed 100% on the payment concept line"
 msgstr "El porcentaje no puede exceder el 100% en la linea de pago."
+
+#. module: l10n_ve_payment_extension
+#: model:ir.model.fields,field_description:l10n_ve_payment_extension.field_res_company__signature_stamp_signature
+#: model:ir.model.fields,field_description:l10n_ve_payment_extension.field_res_config_settings__signature_stamp_signature
+msgid "Signature Stamp Signature"
+msgstr "Firma de la Empresa"
+
+#. module: l10n_ve_payment_extension
+#: model:ir.model.fields,field_description:l10n_ve_payment_extension.field_res_company__signature_stamp_stamp
+#: model:ir.model.fields,field_description:l10n_ve_payment_extension.field_res_config_settings__signature_stamp_stamp
+msgid "Signature Stamp Stamp"
+msgstr "Sello de la Empresa"
+
+#. module: l10n_ve_payment_extension
+#: model:ir.actions.report,name:l10n_ve_payment_extension.retention_voucher_action
+msgid "Comprobante de Retención"
+msgstr "Comprobante de Retención"
+
+#. module: l10n_ve_payment_extension
+#: model:ir.actions.report,name:l10n_ve_payment_extension.retention_voucher_signed_action
+msgid "Comprobante de Retención (Con Firma y Sello)"
+msgstr "Comprobante de Retención (Con Firma y Sello)"
+
+#. module: l10n_ve_payment_extension
+#: model:ir.ui.menu,name:l10n_ve_payment_extension.menu_krill_signature_stamp
+msgid "Firma y Sello"
+msgstr "Firma y Sello"

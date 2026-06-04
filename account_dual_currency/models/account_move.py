@@ -116,7 +116,8 @@ class AccountMove(models.Model):
         for move in self:
             asset = move.asset_id or move.reversed_entry_id.asset_id  # reversed moves are created before being assigned to the asset
             if asset:
-                account = asset.account_depreciation_expense_id if asset.asset_type != 'sale' else asset.account_depreciation_id
+                asset_type = getattr(asset, 'asset_type', 'purchase')
+                account = asset.account_depreciation_expense_id if asset_type != 'sale' else asset.account_depreciation_id
                 asset_depreciation = sum(
                     move.line_ids.filtered(lambda l: l.account_id == account).mapped('balance_usd')
                 )
@@ -148,7 +149,8 @@ class AccountMove(models.Model):
         for move in self:
             asset = move.asset_id
             amount = abs(move.depreciation_value_ref)
-            account = asset.account_depreciation_expense_id if asset.asset_type != 'sale' else asset.account_depreciation_id
+            asset_type = getattr(asset, 'asset_type', 'purchase')
+            account = asset.account_depreciation_expense_id if asset_type != 'sale' else asset.account_depreciation_id
             move.write({'line_ids': [
                 Command.update(line.id, {
                     'balance_usd': amount if line.account_id == account else -amount,
@@ -199,7 +201,7 @@ class AccountMove(models.Model):
                                 company_id = journal_id.company_id
                                 l[2]['currency_id'] = company_id.currency_id.id
                                 l[2]['debit'] = l[2]['balance'] if l[2]['balance'] > 0 else 0
-                                l[2]['credit'] = l[2]['balance'] if l[2]['balance'] < 0 else 0
+                                l[2]['credit'] = abs(l[2]['balance']) if l[2]['balance'] < 0 else 0
                                 l[2]['partner_id'] = None
                                 l[2]['amount_currency'] = l[2]['balance']
                                 line_ids.append(l)
@@ -564,8 +566,8 @@ class AccountMove(models.Model):
     def js_assign_outstanding_line(self, line_id):
         lines = self.env['account.move.line'].browse(line_id)
         lines += self.line_ids.filtered(lambda line: line.account_id == lines[0].account_id and not line.reconciled)
-        lines._compute_amount_residual_usd()
         res = super(AccountMove, self).js_assign_outstanding_line(line_id)
+        lines._compute_amount_residual_usd()
         return res
 
 
@@ -587,7 +589,7 @@ class AccountMove(models.Model):
                 ('parent_state', '=', 'posted'),
                 ('partner_id', '=', move.commercial_partner_id.id),
                 ('reconciled', '=', False),
-                '|','|', ('amount_residual', '!=', 0.0), ('amount_residual_usd', '!=', 0.0),('amount_residual_currency', '!=', 0.0),
+                '|', ('amount_residual', '!=', 0.0), ('amount_residual_currency', '!=', 0.0),
             ]
 
             payments_widget_vals = {'outstanding': True, 'content': [], 'move_id': move.id}
@@ -628,7 +630,7 @@ class AccountMove(models.Model):
                     )
                     amount_usd = abs(line.amount_residual_usd)
 
-                if move.currency_id.is_zero(amount) and amount_usd == 0:
+                if move.currency_id.is_zero(amount):
                     continue
 
                 payments_widget_vals['content'].append({
