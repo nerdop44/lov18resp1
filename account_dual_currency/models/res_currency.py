@@ -17,7 +17,7 @@ class ResCurrency(models.Model):
     sincronizar = fields.Boolean(string="Sincronizar", default=False)
 
     # campo listado de servidores, bcv o dolar today
-    server = fields.Selection([('bcv', 'BCV'), ('dolar_today', 'Dolar Today Promedio')], string='Servidor',
+    server = fields.Selection([('bcv', 'BCV')], string='Servidor',
                               default='bcv')
 
     act_productos = fields.Boolean(string="Actualizar Productos", default=False)
