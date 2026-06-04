@@ -9,6 +9,7 @@
     "version": "18.0.1.0.92",
     "depends": [
         "base",
+        "account_dual_currency",
         "l10n_ve_rate",
         "l10n_ve_tax",
         "l10n_ve_invoice",

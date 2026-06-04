@@ -11,6 +11,7 @@
     "depends": [
         "base",
         "account",
+        "account_dual_currency",
         "l10n_ve_rate",
         "l10n_ve_accountant",
         "l10n_ve_invoice",
