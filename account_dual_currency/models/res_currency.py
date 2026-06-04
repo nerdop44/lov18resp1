@@ -251,42 +251,58 @@ class ResCurrency(models.Model):
                     rec.actualizar_productos()
 
     def recuperar_tasas_historicas(self):
+        # 1. Consultar historial de tasas desde DolarApi para USD y EUR
+        usd_history = {}
+        eur_history = {}
+        
+        # Obtener Histórico USD
+        try:
+            req_usd = requests.get('https://ve.dolarapi.com/v1/historicos/dolares/oficial', verify=False, timeout=15)
+            if req_usd.status_code == 200:
+                for entry in req_usd.json():
+                    fecha_str = entry.get('fecha')
+                    promedio = entry.get('promedio')
+                    if fecha_str and promedio:
+                        usd_history[fecha_str] = float(promedio)
+        except Exception as e:
+            _logger.error("Error al obtener histórico de USD desde DolarApi: %s", e)
+
+        # Obtener Histórico EUR
+        try:
+            req_eur = requests.get('https://ve.dolarapi.com/v1/historicos/euros/oficial', verify=False, timeout=15)
+            if req_eur.status_code == 200:
+                for entry in req_eur.json():
+                    fecha_str = entry.get('fecha')
+                    promedio = entry.get('promedio')
+                    if fecha_str and promedio:
+                        eur_history[fecha_str] = float(promedio)
+        except Exception as e:
+            _logger.error("Error al obtener histórico de EUR desde DolarApi: %s", e)
+
+        if not usd_history and not eur_history:
+            _logger.warning("No se pudo obtener ningún historial de tasas de DolarApi.")
+            return
+
+        def get_rate_val(currency_name, date_str):
+            if currency_name in ['VES', 'VEF']:
+                return 1.0
+            elif currency_name == 'USD':
+                return usd_history.get(date_str)
+            elif currency_name == 'EUR':
+                return eur_history.get(date_str)
+            return None
+
+        today = fields.Date.context_today(self)
+        company_ids = self.env['res.company'].search([]).mapped('root_id')
+        channel_id = self.env.ref('account_dual_currency.trm_channel')
+
         for rec in self:
-            if rec.name in ['VES', 'VEF']:
-                continue
-                
-            today = fields.Date.context_today(self)
-            company_ids = self.env['res.company'].search([]).mapped('root_id')
-            channel_id = self.env.ref('account_dual_currency.trm_channel')
-            
-            # 1. Determinar URL histórica según moneda
-            if rec.name == 'USD':
-                url = 'https://ve.dolarapi.com/v1/historicos/dolares/oficial'
-            elif rec.name == 'EUR':
-                url = 'https://ve.dolarapi.com/v1/historicos/euros/oficial'
-            else:
-                continue
-                
-            # 2. Consultar historial de tasas
-            historical_rates = {}
-            try:
-                req = requests.get(url, verify=False, timeout=15)
-                if req.status_code == 200:
-                    data = req.json()
-                    for entry in data:
-                        fecha_str = entry.get('fecha')
-                        promedio = entry.get('promedio')
-                        if fecha_str and promedio:
-                            historical_rates[fecha_str] = float(promedio)
-            except Exception as e:
-                _logger.error("Error al obtener histórico de tasas de DolarApi: %s", e)
-                continue
-
-            if not historical_rates:
-                continue
-
             for c in company_ids:
-                # Obtener la última tasa registrada en el sistema
+                # La moneda debe ser la moneda base de la compañía o la moneda diferencial/alterna
+                if rec != c.currency_id and rec != c.currency_id_dif:
+                    continue
+
+                # Obtener la última tasa registrada de la moneda actual para esta compañía
                 last_rate_rec = self.env['res.currency.rate'].sudo().search([
                     ('currency_id', '=', rec.id),
                     ('company_id', '=', c.id)
@@ -304,23 +320,35 @@ class ResCurrency(models.Model):
                         dates_to_update.append(current_date)
                         current_date += timedelta(days=1)
                 else:
-                    dates_to_update.append(today)
+                    # Si no hay tasas previas, tomamos los últimos 30 días
+                    current_date = today - timedelta(days=30)
+                    while current_date <= today:
+                        dates_to_update.append(current_date)
+                        current_date += timedelta(days=1)
 
                 for d in dates_to_update:
-                    # 3. Buscar tasa en el historial (retrocediendo hasta 5 días para fines de semana/feriados)
-                    rate_val = None
+                    # Buscar tasa en el historial (retrocediendo hasta 5 días para fines de semana/feriados)
+                    base_rate_val = None
+                    rec_rate_val = None
+                    
                     for offset in range(5):
                         check_date = d - timedelta(days=offset)
                         check_date_str = check_date.strftime("%Y-%m-%d")
-                        if check_date_str in historical_rates:
-                            rate_val = historical_rates[check_date_str]
+                        base_rate_val = get_rate_val(c.currency_id.name, check_date_str)
+                        if base_rate_val:
                             break
+                            
+                    for offset in range(5):
+                        check_date = d - timedelta(days=offset)
+                        check_date_str = check_date.strftime("%Y-%m-%d")
+                        rec_rate_val = get_rate_val(rec.name, check_date_str)
+                        if rec_rate_val:
+                            break
+
+                    if not base_rate_val or not rec_rate_val:
+                        continue  # Si falta algún valor histórico, saltamos el día
                     
-                    if not rate_val:
-                        continue  # Si no hay registro histórico, ignoramos
-                    
-                    base_bcv = c.currency_id.get_bcv() or 1.0
-                    odoo_rate = base_bcv / rate_val
+                    odoo_rate = base_rate_val / rec_rate_val
                     
                     tasa_actual = self.env['res.currency.rate'].sudo().search([
                         ('name', '=', d),
