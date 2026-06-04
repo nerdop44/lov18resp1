@@ -1044,8 +1044,26 @@ class AccountRetention(models.Model):
 #                        retention._create_payments_from_retention_lines()  # Método existente para IVA/municipal
 
                 # Procesar cada pago con contexto seguro (se mantiene igual)
-                for payment in retention.payment_ids.with_context(skip_manually_modified_check=True):
+                for payment in retention.payment_ids.with_context(
+                    skip_manually_modified_check=True,
+                    skip_retention_state_check=True
+                ):
                     _logger.info(f"Procesando pago {payment.id}")
+                    if payment.state == 'draft' and retention.number:
+                        payment.write({'memo': f"Retención {retention.number}"})
+                        
+                    if not payment.outstanding_account_id:
+                        journal = payment.journal_id
+                        pm_account = False
+                        if payment.payment_method_line_id and hasattr(payment.payment_method_line_id, 'payment_account_id'):
+                            pm_account = payment.payment_method_line_id.payment_account_id
+                            
+                        outstanding = pm_account or journal.default_account_id
+                        if outstanding:
+                            payment.outstanding_account_id = outstanding
+                        elif payment.payment_method_line_id.payment_account_id:
+                            payment.outstanding_account_id = payment.payment_method_line_id.payment_account_id
+
                     if not payment.move_id:
                         if hasattr(payment, 'action_create'):
                             _logger.info("Creando asiento contable para el pago")
@@ -1063,6 +1081,15 @@ class AccountRetention(models.Model):
                     _logger.info(f"Asignando número de comprobante a {len(move_ids)} facturas")
                     retention.set_voucher_number_in_invoice(move_ids, retention)
 
+                # Reconciliación Automática
+                try:
+                    retention._reconcile_all_payments()
+                    _logger.info(f"Reconciliación completada para retención {retention.id}")
+                except Exception as e:
+                    _logger.warning(
+                        f"Reconciliación automática no completada para retención {retention.id}: {e}. "
+                        "Las líneas se pueden reconciliar manualmente desde la factura."
+                    )
 
                 # Actualizar estado de la retención (se mantiene igual)
                 retention.write({'state': 'emitted'})
@@ -1478,6 +1505,7 @@ class AccountRetention(models.Model):
         else:
             _logger.warning(f"compute_retention_lines_data: El atributo 'name' NO EXISTE.")
         # --- INICIO DE LA VALIDACIÓN CRÍTICA ---
+        foreign_rate = invoice_id.foreign_rate
         if invoice_id.currency_id != self.env.company.currency_id and (not foreign_rate or foreign_rate == 0.0):
             _logger.error(
                 f"Tasa de cambio extranjera (foreign_rate) es cero o nula para la factura {invoice_id.display_name} "

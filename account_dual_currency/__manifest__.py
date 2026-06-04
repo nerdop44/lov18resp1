@@ -44,6 +44,7 @@
         'views/account_journal_dashboard.xml',
         'data/decimal_precision.xml',
         'data/cron.xml',
+        'views/ir_cron_views.xml',
         'data/channel.xml',
         'views/effective_date_change.xml',
         'views/product_template_attribute_value.xml',

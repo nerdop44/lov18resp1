@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="ir_cron_view_form_inherit_historical_rates" model="ir.ui.view">
+        <field name="name">ir.cron.view.form.inherit.historical.rates</field>
+        <field name="model">ir.cron</field>
+        <field name="inherit_id" ref="base.ir_cron_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='method_direct_trigger']" position="after">
+                <button name="action_recuperar_tasas_historicas" 
+                        string="Recuperar Tasas Históricas (BCV)" 
+                        type="object" 
+                        class="btn-secondary" 
+                        invisible="code != 'model._cron_actualizar_tasa()'"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
