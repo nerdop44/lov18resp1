@@ -12,9 +12,9 @@
 					<attribute name="readonly">not edit_retention_fields</attribute>
 				</field>
 				
-				<field name="foreign_rate" position="attributes">
+				<xpath expr="//field[@name='foreign_rate']" position="attributes">
 					<attribute name="readonly">not edit_retention_fields</attribute>
-				</field>
+				</xpath>
 				
 				<field name="journal_id" position="before">
 					<field name="is_retention" invisible="not is_out_invoice"/></field>
