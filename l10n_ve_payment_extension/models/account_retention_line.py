@@ -153,27 +153,47 @@ class AccountRetentionLine(models.Model):
             # Regla v62: Montos en VEF (Bolívares) con tasa dual explícita
             invoice_rate = invoice.tax_today or 1.0
             today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
-            used_rate = today_rate if self.retention_id.use_today_rate else invoice_rate
+            use_today_rate = self.retention_id.use_today_rate if self.retention_id else False
+            used_rate = today_rate if use_today_rate else invoice_rate
             
             company_currency = self.env.company.currency_id
             invoice_currency = invoice.currency_id
             vef_currency = self.foreign_currency_id or company_currency
+            if not vef_currency or vef_currency.name not in ('VEF', 'VES'):
+                company_dif_currency = self.env.company.currency_id_dif
+                if company_currency.name in ('VEF', 'VES'):
+                    vef_currency = company_currency
+                elif company_dif_currency and company_dif_currency.name in ('VEF', 'VES'):
+                    vef_currency = company_dif_currency
+                else:
+                    vef_currency = self.env['res.currency'].search([('name', 'in', ('VES', 'VEF'))], limit=1) or company_currency
             
             if invoice_currency == vef_currency:
                 self.foreign_invoice_amount = abs(invoice.amount_untaxed_signed)
                 self.foreign_invoice_total = abs(invoice.amount_total_signed)
+                self.foreign_iva_amount = tax_totals.get('amount_tax', 0.0)
             else:
                 self.foreign_invoice_amount = invoice.amount_untaxed * used_rate
                 self.foreign_invoice_total = invoice.amount_total * used_rate
+                self.foreign_iva_amount = tax_totals.get('amount_tax', 0.0) * used_rate
             
-            # Poblar los campos de IVA directamente (Estimación proporcional si no hay campo signed de tax)
             self.iva_amount = tax_totals.get('amount_tax', 0.0)
-            self.foreign_iva_amount = self.foreign_invoice_total - self.foreign_invoice_amount
-
             self.foreign_currency_rate = invoice.foreign_rate or 1.0
 
             self.is_retention_client = invoice.move_type in ('out_invoice', 'out_refund', 'out_debit')
             self.invoice_type = invoice.move_type
+
+            # Obtener porcentaje de retención del partner y alícuota de impuesto para IVA
+            type_retention = self.retention_id.type_retention if self.retention_id else 'iva'
+            if type_retention == 'iva':
+                withholding_amount = invoice.partner_id.withholding_type_id.value or 0.0
+                self.related_percentage_tax_base = withholding_amount
+                
+                tax_ids = invoice.invoice_line_ids.filtered(lambda l: l.tax_ids and l.tax_ids[0].amount > 0).mapped("tax_ids")
+                self.aliquot = tax_ids[0].amount if tax_ids else 0.0
+                
+                self.retention_amount = self.iva_amount * (withholding_amount / 100)
+                self.foreign_retention_amount = self.foreign_iva_amount * (withholding_amount / 100)
 
         else:
             # Limpiar los campos si no hay factura seleccionada
@@ -357,11 +377,11 @@ class AccountRetentionLine(models.Model):
         - foreign_retention_amount: SIEMPRE en VEF (Bs.)
           foreign_invoice_amount ya fue asignado en VEF por _compute_related_fields
         """
-        islr_supplier_retention_lines = self.filtered(
+        islr_retention_lines = self.filtered(
             lambda l: (not l.retention_id and l.payment_concept_id)
-            or (l.retention_id.type_retention == "islr" and l.retention_id.type == "in_invoice")
+            or (l.retention_id.type_retention == "islr")
         )
-        for record in islr_supplier_retention_lines:
+        for record in islr_retention_lines:
             foreign_rate = record.move_id.foreign_rate or 1.0
 
             # Retención en moneda empresa

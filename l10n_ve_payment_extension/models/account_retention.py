@@ -297,7 +297,7 @@ class AccountRetention(models.Model):
                 _("There are no invoices with taxes to be retained for the supplier.")
             )
         self.clear_retention()
-        lines = load_retention_lines(invoices_with_taxes, self.env["account.retention"])
+        lines = load_retention_lines(invoices_with_taxes, self)
 
         lines_per_invoice_counter = defaultdict(int)
         for line in lines:
@@ -336,7 +336,7 @@ class AccountRetention(models.Model):
                 _("There are no invoices with taxes to be retained for the customer.")
             )
         self.clear_retention()
-        lines = load_retention_lines(invoices_with_taxes, self.env["account.retention"])
+        lines = load_retention_lines(invoices_with_taxes, self)
 
         lines_per_invoice_counter = defaultdict(int)
         for line in lines:
@@ -489,10 +489,13 @@ class AccountRetention(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         res = super().create(vals_list)
+        res._safe_create_payments()
         return res
 
     def write(self, vals):
         res = super().write(vals)
+        if "retention_line_ids" in vals or "partner_id" in vals:
+            self._safe_create_payments()
         return res
 
     def action_generate_payment(self):
@@ -1555,7 +1558,17 @@ class AccountRetention(models.Model):
 
             # Identificar el VEF como moneda objetivo de retención
             # Usamos la moneda configurada en la retención (default VEF)
-            vef_currency = self.foreign_currency_id or self.env.company.currency_id
+            vef_currency = (self.foreign_currency_id if self else False)
+            if not vef_currency:
+                company_currency = self.env.company.currency_id
+                company_dif_currency = self.env.company.currency_id_dif
+                if company_currency.name in ('VEF', 'VES'):
+                    vef_currency = company_currency
+                elif company_dif_currency and company_dif_currency.name in ('VEF', 'VES'):
+                    vef_currency = company_dif_currency
+                else:
+                    vef_currency = self.env['res.currency'].search([('name', 'in', ('VES', 'VEF'))], limit=1)
+
             invoice_currency = invoice_id.currency_id
 
             # Tasa de la factura (moneda empresa → VEF)
@@ -1568,7 +1581,8 @@ class AccountRetention(models.Model):
             )
 
             # Regla v62: Determinar la tasa a usar (Priorizar tasa BCV de la factura)
-            rate_date = fields.Date.today() if self.use_today_rate else (invoice_id.invoice_date or fields.Date.today())
+            use_today_rate = self.use_today_rate if (self and hasattr(self, 'use_today_rate')) else False
+            rate_date = fields.Date.today() if use_today_rate else (invoice_id.invoice_date or fields.Date.today())
             company_currency = self.env.company.currency_id
             
             # Tasa guardada en la factura por account_dual_currency
@@ -1576,7 +1590,7 @@ class AccountRetention(models.Model):
             # Tasa de hoy desde la configuración de moneda dual de la empresa
             today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
             
-            used_rate = today_rate if self.use_today_rate else invoice_rate
+            used_rate = today_rate if use_today_rate else invoice_rate
             
             # Montos globales en VEF (Regla v62: Conversión Manual con Tasa Dual)
             if invoice_currency == vef_currency:
