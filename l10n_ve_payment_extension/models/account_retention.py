@@ -15,16 +15,54 @@ class AccountRetention(models.Model):
     _description = "Retention"
     _check_company_auto = True
 
+    @api.model
+    def _get_default_foreign_currency(self):
+        company = self.env.company
+        if company.currency_id_dif and company.currency_id_dif.name in ('VES', 'VEF') and company.currency_id_dif.active:
+            return company.currency_id_dif.id
+        if company.currency_id.name in ('VES', 'VEF') and company.currency_id.active:
+            return company.currency_id.id
+        ves = self.env['res.currency'].search([('name', '=', 'VES'), ('active', '=', True)], limit=1)
+        if ves:
+            return ves.id
+        vef = self.env['res.currency'].search([('name', '=', 'VEF'), ('active', '=', True)], limit=1)
+        if vef:
+            return vef.id
+        try:
+            return self.env.ref("base.VES").id
+        except Exception:
+            try:
+                return self.env.ref("base.VEF").id
+            except Exception:
+                return False
+
+    def _get_vef_currency(self):
+        self.ensure_one()
+        if self.foreign_currency_id and self.foreign_currency_id.name in ('VES', 'VEF') and self.foreign_currency_id.active:
+            return self.foreign_currency_id
+        company = self.company_id or self.env.company
+        if company.currency_id_dif and company.currency_id_dif.name in ('VES', 'VEF') and company.currency_id_dif.active:
+            return company.currency_id_dif
+        if company.currency_id.name in ('VES', 'VEF') and company.currency_id.active:
+            return company.currency_id
+        ves = self.env['res.currency'].search([('name', '=', 'VES'), ('active', '=', True)], limit=1)
+        if ves:
+            return ves
+        vef = self.env['res.currency'].search([('name', '=', 'VEF'), ('active', '=', True)], limit=1)
+        if vef:
+            return vef
+        return self.foreign_currency_id or company.currency_id
+
     company_currency_id = fields.Many2one(
         "res.currency",
         default=lambda self: self.env.company.currency_id.id,
     )
     foreign_currency_id = fields.Many2one(
         "res.currency",
-        default=lambda self: self.env.ref("base.VEF").id,
+        default=_get_default_foreign_currency,
     )
     base_currency_is_vef = fields.Boolean(
-        default=lambda self: self.env.company.currency_id == self.env.ref("base.VEF"),
+        default=lambda self: self.env.company.currency_id.name in ('VEF', 'VES'),
     )
     use_today_rate = fields.Boolean(
         string="Utilizar Tasa de Hoy:",
@@ -494,8 +532,10 @@ class AccountRetention(models.Model):
 
     def write(self, vals):
         res = super().write(vals)
-        if "retention_line_ids" in vals or "partner_id" in vals:
-            self._safe_create_payments()
+        # Sincronizar siempre los pagos en borrador si la retención está en estado borrador (draft)
+        draft_retentions = self.filtered(lambda r: r.state == 'draft')
+        if draft_retentions:
+            draft_retentions._safe_create_payments()
         return res
 
     def action_generate_payment(self):
@@ -604,7 +644,7 @@ class AccountRetention(models.Model):
                 payment_type = "inbound" if partner_type == "supplier" else "outbound"
 
             # Moneda del pago: VEF (Regla universal venezolana)
-            currency_vef = self.foreign_currency_id or self.env.company.currency_id
+            currency_vef = self._get_vef_currency()
             # Monto en VEF
             total_retention_vef = sum(lines.mapped("foreign_retention_amount"))
             # Tasa
@@ -934,7 +974,7 @@ class AccountRetention(models.Model):
         # 2. Iterar sobre los pagos requeridos para crear o actualizar
         for (concept, move), lines in lines_by_concept_and_move.items():
             # Moneda VEF
-            currency_vef = self.foreign_currency_id or self.env.company.currency_id
+            currency_vef = self._get_vef_currency()
             total_retention_vef = sum(lines.mapped('foreign_retention_amount'))
             
             if currency_vef.is_zero(total_retention_vef):
@@ -1558,16 +1598,9 @@ class AccountRetention(models.Model):
 
             # Identificar el VEF como moneda objetivo de retención
             # Usamos la moneda configurada en la retención (default VEF)
-            vef_currency = (self.foreign_currency_id if self else False)
-            if not vef_currency:
-                company_currency = self.env.company.currency_id
-                company_dif_currency = self.env.company.currency_id_dif
-                if company_currency.name in ('VEF', 'VES'):
-                    vef_currency = company_currency
-                elif company_dif_currency and company_dif_currency.name in ('VEF', 'VES'):
-                    vef_currency = company_dif_currency
-                else:
-                    vef_currency = self.env['res.currency'].search([('name', 'in', ('VES', 'VEF'))], limit=1)
+            vef_currency = self._get_vef_currency() if self else self.env['account.retention']._get_default_foreign_currency()
+            if isinstance(vef_currency, int):
+                vef_currency = self.env['res.currency'].browse(vef_currency)
 
             invoice_currency = invoice_id.currency_id
 

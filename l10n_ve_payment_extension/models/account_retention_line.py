@@ -11,6 +11,36 @@ class AccountRetentionLine(models.Model):
 
     check_company = True
 
+    def _get_vef_currency(self):
+        # 1. Moneda de la retención
+        if self.foreign_currency_id and self.foreign_currency_id.name in ('VES', 'VEF') and self.foreign_currency_id.active:
+            return self.foreign_currency_id
+        
+        # 2. Moneda de la retención padre
+        if self.retention_id:
+            parent_curr = self.retention_id._get_vef_currency()
+            if parent_curr:
+                return parent_curr
+
+        # 3. Moneda dual de la compañía
+        company = self.company_id or self.env.company
+        if company.currency_id_dif and company.currency_id_dif.name in ('VES', 'VEF') and company.currency_id_dif.active:
+            return company.currency_id_dif
+        if company.currency_id.name in ('VES', 'VEF') and company.currency_id.active:
+            return company.currency_id
+        
+        # 4. Buscar VES activa en el sistema
+        ves = self.env['res.currency'].search([('name', '=', 'VES'), ('active', '=', True)], limit=1)
+        if ves:
+            return ves
+        
+        # 5. Buscar VEF activa en el sistema
+        vef = self.env['res.currency'].search([('name', '=', 'VEF'), ('active', '=', True)], limit=1)
+        if vef:
+            return vef
+            
+        return self.foreign_currency_id or company.currency_id
+
     name = fields.Char(
         string="Description", required=True, compute="_compute_name", store=True, readonly=False
     )
@@ -158,15 +188,7 @@ class AccountRetentionLine(models.Model):
             
             company_currency = self.env.company.currency_id
             invoice_currency = invoice.currency_id
-            vef_currency = self.foreign_currency_id or company_currency
-            if not vef_currency or vef_currency.name not in ('VEF', 'VES'):
-                company_dif_currency = self.env.company.currency_id_dif
-                if company_currency.name in ('VEF', 'VES'):
-                    vef_currency = company_currency
-                elif company_dif_currency and company_dif_currency.name in ('VEF', 'VES'):
-                    vef_currency = company_dif_currency
-                else:
-                    vef_currency = self.env['res.currency'].search([('name', 'in', ('VES', 'VEF'))], limit=1) or company_currency
+            vef_currency = self._get_vef_currency()
             
             if invoice_currency == vef_currency:
                 self.foreign_invoice_amount = abs(invoice.amount_untaxed_signed)
@@ -273,11 +295,9 @@ class AccountRetentionLine(models.Model):
             # =====================================================================
             # REGLA UNIVERSAL VENEZOLANA: montos siempre en VEF para retenciones
             # =====================================================================
-            vef_currency = self.foreign_currency_id or self.env.company.currency_id
+            vef_currency = record._get_vef_currency()
             invoice_currency = record.move_id.currency_id
-            invoice_is_in_vef = (vef_currency and invoice_currency == vef_currency) or (
-                not vef_currency and invoice_currency == self.env.company.currency_id
-            )
+            invoice_is_in_vef = vef_currency and invoice_currency == vef_currency
             foreign_rate = record.move_id.foreign_rate or 1.0
 
             # Montos en moneda empresa (Bs.)
@@ -330,27 +350,37 @@ class AccountRetentionLine(models.Model):
                 
     @api.depends("invoice_amount", "foreign_invoice_amount", "foreign_currency_rate")
     def _compute_amounts(self):
-        base_currency_is_vef = self.env.company.currency_id == self.env.ref("base.VEF")
-        if not base_currency_is_vef:
-            for record in self:
-                if not record.move_id:
-                    continue
-                tax_totals = record.move_id.tax_totals or {}
-                amount_untaxed = tax_totals.get('amount_untaxed', 0)
-                foreign_amount_untaxed = tax_totals.get('foreign_amount_untaxed', amount_untaxed)
+        for record in self:
+            if not record.move_id:
+                continue
+            
+            # Para ISLR, el cálculo de _compute_related_fields ya definió de forma precisa y robusta los importes.
+            if record.retention_id and record.retention_id.type_retention == 'islr':
+                continue
 
-                if not record.retention_id or record.retention_id.type == "in_invoice":
-                    record.invoice_amount = amount_untaxed
-                    record.foreign_invoice_amount = foreign_amount_untaxed
-                    # No break here, as it should apply to all lines in the recordset
-        else:
-             for record in self:
-                 if not record.move_id:
-                     continue
-                 tax_totals = record.move_id.tax_totals or {}
-                 if not record.retention_id or record.retention_id.type == "in_invoice":
-                     record.invoice_amount = tax_totals.get("amount_untaxed", 0)
-                     record.foreign_invoice_amount = tax_totals.get("foreign_amount_untaxed", record.invoice_amount)
+            # Si no es de proveedor, no sobreescribir
+            if record.retention_id and record.retention_id.type != "in_invoice":
+                continue
+
+            tax_totals = record.move_id.tax_totals or {}
+            amount_untaxed = tax_totals.get('amount_untaxed', 0)
+            
+            # Resolver la moneda en bolívares de forma robusta
+            vef_currency = record._get_vef_currency()
+            invoice_currency = record.move_id.currency_id
+            
+            invoice_rate = record.move_id.tax_today or 1.0
+            today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
+            use_today_rate = record.retention_id.use_today_rate if record.retention_id else False
+            used_rate = today_rate if use_today_rate else invoice_rate
+            
+            if invoice_currency == vef_currency:
+                foreign_amount_untaxed = abs(record.move_id.amount_untaxed_signed)
+            else:
+                foreign_amount_untaxed = record.move_id.amount_untaxed * used_rate
+                
+            record.invoice_amount = amount_untaxed
+            record.foreign_invoice_amount = foreign_amount_untaxed
 
     @api.onchange(
         "invoice_amount",
