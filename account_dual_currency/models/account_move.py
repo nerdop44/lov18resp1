@@ -91,6 +91,7 @@ class AccountMove(models.Model):
         res = super(AccountMove, self)._post(soft=soft)
         for move in self:
             move._verificar_pagos()
+        return res
 
     @api.depends('asset_id', 'depreciation_value', 'asset_id.total_depreciable_value', 'asset_id.already_depreciated_amount_import')
     def _compute_depreciation_cumulative_value(self):
