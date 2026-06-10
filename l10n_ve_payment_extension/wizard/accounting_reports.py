@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import xlsxwriter
-from odoo import _, api, models
+from odoo import _, api, fields, models
 from odoo.osv import expression
 
 import logging
@@ -239,41 +239,51 @@ class WizardAccountingReports(models.TransientModel):
         ):
             return 0.0
 
-        company_currency_is_vef = self.env.company.currency_id.name in ("VES", "VEF")
+        company_currency = self.env.company.currency_id
+        company_currency_is_vef = company_currency.name in ("VES", "VEF")
         retention_amount = sum(lines.mapped("retention_amount"))
         foreign_retention_amount = sum(lines.mapped("foreign_retention_amount"))
         
-        # Determine the exchange rate from the retention line or invoice move
-        rate = lines[0].foreign_currency_rate or lines[0].move_id.foreign_rate or 1.0
+        # 1. Obtain native exchange rate from Odoo database using _convert API
+        move = lines[0].move_id
+        invoice_currency = move.currency_id
+        
+        rate = 1.0
+        if invoice_currency != company_currency:
+            try:
+                rate = invoice_currency._convert(
+                    1.0,
+                    company_currency,
+                    move.company_id,
+                    move.invoice_date or move.date or fields.Date.today()
+                )
+            except Exception:
+                rate = move.tax_today or lines[0].foreign_currency_rate or move.foreign_rate or 1.0
+        else:
+            rate = 1.0
+            
         if rate <= 0.0:
             rate = 1.0
 
-        if company_currency_is_vef:
-            if is_check_currency_system:
-                # System currency (VES): If both fields are equal and rate > 1, convert USD to VES
-                if abs(foreign_retention_amount - retention_amount) < 0.01 and rate > 1.0:
-                    return retention_amount * rate
-                return max(foreign_retention_amount, retention_amount * rate) if rate > 1.0 else foreign_retention_amount
+        # 2. Magnitude-based classification and self-healing
+        if abs(foreign_retention_amount - retention_amount) < 0.01:
+            # If both fields are identical (corrupted USD-USD)
+            if company_currency_is_vef:
+                ves_val = retention_amount * rate if rate > 1.0 else retention_amount
+                usd_val = retention_amount
             else:
-                # Alternate currency (USD): If both fields are equal, return the amount directly (USD)
-                if abs(foreign_retention_amount - retention_amount) < 0.01:
-                    return retention_amount
-                if foreign_retention_amount > retention_amount and rate > 1.0:
-                    return foreign_retention_amount / rate
-                return retention_amount
+                ves_val = retention_amount
+                usd_val = retention_amount / rate if rate > 1.0 else retention_amount
         else:
-            if is_check_currency_system:
-                # System currency (USD): If both fields are equal, return USD amount directly
-                if abs(foreign_retention_amount - retention_amount) < 0.01:
-                    return retention_amount
-                if foreign_retention_amount > retention_amount and rate > 1.0:
-                    return foreign_retention_amount / rate
-                return retention_amount
-            else:
-                # Alternate currency (VES): If both fields are equal and rate > 1, convert to VES
-                if abs(foreign_retention_amount - retention_amount) < 0.01 and rate > 1.0:
-                    return retention_amount * rate
-                return max(foreign_retention_amount, retention_amount * rate) if rate > 1.0 else foreign_retention_amount
+            # Classification based on physical magnitude
+            ves_val = max(retention_amount, foreign_retention_amount)
+            usd_val = min(retention_amount, foreign_retention_amount)
+
+        # 3. Reactively return according to requested currency
+        if company_currency_is_vef:
+            return ves_val if is_check_currency_system else usd_val
+        else:
+            return usd_val if is_check_currency_system else ves_val
 
     def _check_future_retention_dates(self, cmp_date):
         return cmp_date < self.date_from or cmp_date > self.date_to

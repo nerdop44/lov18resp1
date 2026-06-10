@@ -205,34 +205,31 @@ class TestRetentionFixes(unittest.TestCase):
         self.assertEqual(total_purchases_iva_bin_ref, -116.0) # Correct negative value for binaural
 
     def test_corrupt_usd_usd_retention_resolution(self):
-        # Helper to simulate _sum_retention_total with the new logic
+        # Helper to simulate _sum_retention_total with the magnitude-based logic
         def sum_retention_total_sim(retention_amount, foreign_retention_amount, rate, currency_system, company_currency):
             company_currency_is_vef = company_currency in ("VES", "VEF")
             if rate <= 0.0:
                 rate = 1.0
 
-            if company_currency_is_vef:
-                if currency_system:
-                    if abs(foreign_retention_amount - retention_amount) < 0.01 and rate > 1.0:
-                        return retention_amount * rate
-                    return max(foreign_retention_amount, retention_amount * rate) if rate > 1.0 else foreign_retention_amount
+            # 2. Magnitude-based classification and self-healing
+            if abs(foreign_retention_amount - retention_amount) < 0.01:
+                # If both fields are identical (corrupted USD-USD)
+                if company_currency_is_vef:
+                    ves_val = retention_amount * rate if rate > 1.0 else retention_amount
+                    usd_val = retention_amount
                 else:
-                    if abs(foreign_retention_amount - retention_amount) < 0.01:
-                        return retention_amount
-                    if foreign_retention_amount > retention_amount and rate > 1.0:
-                        return foreign_retention_amount / rate
-                    return retention_amount
+                    ves_val = retention_amount
+                    usd_val = retention_amount / rate if rate > 1.0 else retention_amount
             else:
-                if currency_system:
-                    if abs(foreign_retention_amount - retention_amount) < 0.01:
-                        return retention_amount
-                    if foreign_retention_amount > retention_amount and rate > 1.0:
-                        return foreign_retention_amount / rate
-                    return retention_amount
-                else:
-                    if abs(foreign_retention_amount - retention_amount) < 0.01 and rate > 1.0:
-                        return retention_amount * rate
-                    return max(foreign_retention_amount, retention_amount * rate) if rate > 1.0 else foreign_retention_amount
+                # Classification based on physical magnitude
+                ves_val = max(retention_amount, foreign_retention_amount)
+                usd_val = min(retention_amount, foreign_retention_amount)
+
+            # 3. Reactively return according to requested currency
+            if company_currency_is_vef:
+                return ves_val if currency_system else usd_val
+            else:
+                return usd_val if currency_system else ves_val
 
         # Case 1: Corrupt line in VES company (both fields stored 55.51 USD, rate = 381.13)
         # System Currency (VES) report should resolve to 55.51 * 381.13 = 21156.5263 Bs.
@@ -243,12 +240,19 @@ class TestRetentionFixes(unittest.TestCase):
         val_usd = sum_retention_total_sim(55.51, 55.51, 381.13, currency_system=False, company_currency="VES")
         self.assertEqual(val_usd, 55.51)
 
-        # Case 2: Correctly stored line (retention_amount = 55.51 USD, foreign_retention_amount = 21156.88 Bs.)
+        # Case 2: Inverted line (retention_amount = 55.51 USD, foreign_retention_amount = 21156.88 Bs.)
         val_ves_correct = sum_retention_total_sim(55.51, 21156.88, 381.13, currency_system=True, company_currency="VES")
         self.assertEqual(val_ves_correct, 21156.88)
 
         val_usd_correct = sum_retention_total_sim(55.51, 21156.88, 381.13, currency_system=False, company_currency="VES")
-        self.assertAlmostEqual(val_usd_correct, 55.51, places=2)
+        self.assertEqual(val_usd_correct, 55.51)
+
+        # Case 3: Correct/non-inverted line (retention_amount = 21156.88 Bs., foreign_retention_amount = 55.51 USD)
+        val_ves_non_inv = sum_retention_total_sim(21156.88, 55.51, 381.13, currency_system=True, company_currency="VES")
+        self.assertEqual(val_ves_non_inv, 21156.88)
+
+        val_usd_non_inv = sum_retention_total_sim(21156.88, 55.51, 381.13, currency_system=False, company_currency="VES")
+        self.assertEqual(val_usd_non_inv, 55.51)
 
 if __name__ == "__main__":
     unittest.main()
