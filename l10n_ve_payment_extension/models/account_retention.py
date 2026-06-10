@@ -1549,20 +1549,25 @@ class AccountRetention(models.Model):
                 total_groups = len(subtotal_tax_groups)
 
                 for idx, tax_group_data in enumerate(subtotal_tax_groups):
-                    tax = tax_ids.filtered(lambda t: t.tax_group_id.id == tax_group_data.get("id"))
+                    group_id = tax_group_data.get("tax_group_id") or tax_group_data.get("id")
+                    tax = tax_ids.filtered(lambda t: t.tax_group_id.id == group_id)
                     if not tax:
-                        _logger.warning(f"compute_retention_lines_data: No se encontró impuesto para el grupo ID {tax_group_data.get('id')}.")
+                        _logger.warning(f"compute_retention_lines_data: No se encontró impuesto para el grupo ID {group_id}.")
                         continue
                     tax = tax[0]
                     _logger.warning(f"compute_retention_lines_data: Impuesto: ID {tax.id}, Nombre {tax.name}")
 
-                    # Montos en la moneda de empresa (En este caso, siempre Bs. para Devenalsa)
-                    # Odoo 18: base_amount es moneda empresa, base_amount_currency es moneda factura.
-                    invoice_amount_company = tax_group_data.get(
-                        "base_amount", tax_group_data.get("base_amount_currency", 0.0)
+                    # Montos en la moneda de empresa
+                    # Odoo 18: tax_group_base_amount y tax_group_amount. Con fallbacks para compatibilidad.
+                    invoice_amount_company = (
+                        tax_group_data.get("tax_group_base_amount")
+                        or tax_group_data.get("base_amount")
+                        or tax_group_data.get("base_amount_currency", 0.0)
                     )
-                    iva_amount_company = tax_group_data.get(
-                        "tax_amount", tax_group_data.get("tax_amount_currency", 0.0)
+                    iva_amount_company = (
+                        tax_group_data.get("tax_group_amount")
+                        or tax_group_data.get("tax_amount")
+                        or tax_group_data.get("tax_amount_currency", 0.0)
                     )
 
                     # ==========================================================
@@ -1583,7 +1588,11 @@ class AccountRetention(models.Model):
                             vef_iva_amount = global_vef_total - global_vef_untaxed
                         else:
                             # Múltiples grupos: calcular proporcional al porcentaje del grupo sobre el total
-                            total_company_untaxed = tax_totals.get("base_amount_currency", tax_totals.get("base_amount", 1.0)) or 1.0
+                            total_company_untaxed = (
+                                tax_totals.get("base_amount_currency")
+                                or tax_totals.get("base_amount")
+                                or tax_totals.get("amount_untaxed", 1.0)
+                            ) or 1.0
                             proportion = invoice_amount_company / total_company_untaxed if total_company_untaxed else 0.0
                             vef_invoice_amount = global_vef_untaxed * proportion
                             vef_iva_amount = (global_vef_total - global_vef_untaxed) * proportion

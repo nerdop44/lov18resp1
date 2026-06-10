@@ -223,10 +223,19 @@ class WizardAccountingReports(models.TransientModel):
             or lines.move_id.state == "cancel"
         ):
             return 0.0
-        if not is_check_currency_system:
-            return sum(lines.mapped("foreign_retention_amount"))
 
-        return sum(lines.mapped("retention_amount"))
+        company_currency_is_vef = self.env.company.currency_id.name in ("VES", "VEF")
+
+        if company_currency_is_vef:
+            if is_check_currency_system:
+                return sum(lines.mapped("foreign_retention_amount"))
+            else:
+                return sum(lines.mapped("retention_amount"))
+        else:
+            if is_check_currency_system:
+                return sum(lines.mapped("retention_amount"))
+            else:
+                return sum(lines.mapped("foreign_retention_amount"))
 
     def _check_future_retention_dates(self, cmp_date):
         return cmp_date < self.date_from or cmp_date > self.date_to
