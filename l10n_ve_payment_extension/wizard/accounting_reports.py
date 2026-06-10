@@ -144,6 +144,21 @@ class WizardAccountingReports(models.TransientModel):
 
         domain = self._get_retention_domain()
         retention_ids = retention.search(domain)
+        
+        # Self-healing routine: Automatically detect and repair historical zero values
+        zero_lines = retention_ids.mapped("retention_line_ids").filtered(
+            lambda l: l.retention_amount == 0.0 and l.foreign_retention_amount > 0.0
+        )
+        if zero_lines:
+            _logger.warning("Self-healing: Found %s IVA retention lines with zero retention_amount. Repairing...", len(zero_lines))
+            for line in zero_lines:
+                company_currency_is_vef = line.company_id.currency_id.name in ("VES", "VEF")
+                if company_currency_is_vef:
+                    line.write({"retention_amount": line.foreign_retention_amount})
+                else:
+                    rate = line.foreign_currency_rate or 1.0
+                    line.write({"retention_amount": line.foreign_retention_amount / rate if rate else 0.0})
+
         moves = retention_ids.mapped("retention_line_ids.move_id")
         res_moves |= moves
 
