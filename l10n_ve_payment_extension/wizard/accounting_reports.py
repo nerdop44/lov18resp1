@@ -196,12 +196,13 @@ class WizardAccountingReports(models.TransientModel):
         
         # Tomamos datos del primer comprobante válido encontrado
         main_ret = ret_lines[0].retention_id
-        ret_vals["date_retention"] = self._format_date(main_ret.date)
+        ret_vals["date_retention"] = self._format_date(main_ret.date if is_purchase else main_ret.date_accounting)
         ret_vals["number_retention"] = move.iva_voucher_number or main_ret.number
 
         total_retained = 0
         for ret_line in ret_lines:
-            if ret_line and self._check_future_retention_dates(ret_line.retention_id.date_accounting):
+            ret_date = ret_line.retention_id.date if is_purchase else ret_line.retention_id.date_accounting
+            if ret_line and self._check_future_retention_dates(ret_date):
                 continue
             
             total_retained += self._sum_retention_total(ret_line)
@@ -213,11 +214,12 @@ class WizardAccountingReports(models.TransientModel):
     def _sum_retention_total(self, lines):
         is_check_currency_system = self.currency_system
         retention = lines.mapped("retention_id")
+        is_purchase = self.report == "purchase"
+        ret_date = retention.date if is_purchase else retention.date_accounting
 
         if (
-            self.report == "purchase"
-            and retention
-            and self._check_future_retention_dates(retention.date)
+            retention
+            and self._check_future_retention_dates(ret_date)
             or lines.move_id.state == "cancel"
         ):
             return 0.0

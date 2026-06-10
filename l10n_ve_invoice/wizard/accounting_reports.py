@@ -87,7 +87,7 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             "accounting_date": self._format_date(move.date),
             "vat": move.vat,
             "partner_name": move.invoice_partner_display_name,
-            "document_number": move.name,
+            "document_number": move.ref or move.name,
             "move_type": self._determinate_type(move.move_type),
             "transaction_type": self._determinate_transaction_type(move),
             "number_invoice_affected": move.reversed_entry_id.name or "--",
@@ -1064,7 +1064,7 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
         )
 
         name_columns = self.sale_book_fields()
-        total_idx = 0
+        total_idx = INIT_LINES
 
         for index, field in enumerate(name_columns):
             worksheet.set_column(index, index, len(field.get("name")) + 2)
@@ -1187,7 +1187,7 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
                 )
 
         name_columns = self.purchase_book_fields()
-        total_idx = 0
+        total_idx = INIT_LINES
 
         for index, field in enumerate(name_columns):
             worksheet.set_column(index, index, len(field.get("name")) + 2)
