@@ -123,7 +123,7 @@ class WizardAccountingReports(models.TransientModel):
 
     def _get_retention_domain(self):
         is_purchase = self.report == "purchase"
-        field_date = "date" if is_purchase else "date_accounting"
+        field_date = "date_accounting"
         move_type = (
             ["out_invoice", "out_refund"] if not is_purchase else ["in_invoice", "in_refund"]
         )
@@ -152,7 +152,11 @@ class WizardAccountingReports(models.TransientModel):
         if zero_lines:
             _logger.warning("Self-healing: Found %s IVA retention lines with zero retention_amount. Repairing...", len(zero_lines))
             for line in zero_lines:
-                company_currency_is_vef = line.company_id.currency_id.name in ("VES", "VEF")
+                company_currency = line.company_id.currency_id
+                company_currency_is_vef = (
+                    company_currency.name in ("VES", "VEF", "Bs.", "Bs.S", "Bs.D", "Bs.F")
+                    or company_currency.symbol in ("Bs.", "Bs.S", "Bs.D", "Bs.F")
+                )
                 if company_currency_is_vef:
                     line.write({"retention_amount": line.foreign_retention_amount})
                 else:
@@ -211,12 +215,12 @@ class WizardAccountingReports(models.TransientModel):
         
         # Tomamos datos del primer comprobante válido encontrado
         main_ret = ret_lines[0].retention_id
-        ret_vals["date_retention"] = self._format_date(main_ret.date if is_purchase else main_ret.date_accounting)
+        ret_vals["date_retention"] = self._format_date(main_ret.date_accounting)
         ret_vals["number_retention"] = move.iva_voucher_number or main_ret.number
 
         total_retained = 0
         for ret_line in ret_lines:
-            ret_date = ret_line.retention_id.date if is_purchase else ret_line.retention_id.date_accounting
+            ret_date = ret_line.retention_id.date_accounting
             if ret_line and self._check_future_retention_dates(ret_date):
                 continue
             
@@ -230,7 +234,7 @@ class WizardAccountingReports(models.TransientModel):
         is_check_currency_system = self.currency_system
         retention = lines.mapped("retention_id")
         is_purchase = self.report == "purchase"
-        ret_date = retention.date if is_purchase else retention.date_accounting
+        ret_date = retention.date_accounting
 
         if (
             retention
@@ -240,7 +244,10 @@ class WizardAccountingReports(models.TransientModel):
             return 0.0
 
         company_currency = self.env.company.currency_id
-        company_currency_is_vef = company_currency.name in ("VES", "VEF")
+        company_currency_is_vef = (
+            company_currency.name in ("VES", "VEF", "Bs.", "Bs.S", "Bs.D", "Bs.F")
+            or company_currency.symbol in ("Bs.", "Bs.S", "Bs.D", "Bs.F")
+        )
         retention_amount = sum(lines.mapped("retention_amount"))
         foreign_retention_amount = sum(lines.mapped("foreign_retention_amount"))
         

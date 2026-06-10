@@ -18,7 +18,11 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
     _check_company_auto = True
 
     def _default_check_currency_system(self):
-        is_system_currency_bs = self.env.company.currency_id.name == "VEF"
+        company_currency = self.env.company.currency_id
+        is_system_currency_bs = (
+            company_currency.name in ("VES", "VEF", "Bs.", "Bs.S", "Bs.D", "Bs.F")
+            or company_currency.symbol in ("Bs.", "Bs.S", "Bs.D", "Bs.F")
+        )
         return is_system_currency_bs
 
     def _default_date_to(self):

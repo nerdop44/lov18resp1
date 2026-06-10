@@ -1,12 +1,13 @@
 import unittest
 
 class MockCompany:
-    def __init__(self, currency_name):
-        self.currency_id = MockCurrency(currency_name)
+    def __init__(self, currency_name, currency_symbol=None):
+        self.currency_id = MockCurrency(currency_name, currency_symbol)
 
 class MockCurrency:
-    def __init__(self, name):
+    def __init__(self, name, symbol=None):
         self.name = name
+        self.symbol = symbol or name
 
 class MockTaxGroup:
     def __init__(self, group_id, amount):
@@ -61,15 +62,19 @@ class TestRetentionFixes(unittest.TestCase):
         self.assertEqual(iva_amount_company, 16.0)
 
     def test_sum_retention_total_ves_company(self):
-        # Company currency is VES
-        company = MockCompany("VES")
+        # Company currency is VES (with "Bs." symbol)
+        company = MockCompany("VES", "Bs.")
         
         # Line with VES = 160.0 (foreign_retention_amount), USD = 4.0 (retention_amount)
         lines = [MockTaxLine(4.0, 160.0)]
-
+ 
         # If system currency is requested (currency_system = True) -> VES
         is_check_currency_system = True
-        company_currency_is_vef = company.currency_id.name in ("VES", "VEF")
+        company_currency = company.currency_id
+        company_currency_is_vef = (
+            company_currency.name in ("VES", "VEF", "Bs.", "Bs.S", "Bs.D", "Bs.F")
+            or company_currency.symbol in ("Bs.", "Bs.S", "Bs.D", "Bs.F")
+        )
         self.assertTrue(company_currency_is_vef)
 
         if company_currency_is_vef:
@@ -111,7 +116,11 @@ class TestRetentionFixes(unittest.TestCase):
 
         # If system currency is requested (currency_system = True) -> USD
         is_check_currency_system = True
-        company_currency_is_vef = company.currency_id.name in ("VES", "VEF")
+        company_currency = company.currency_id
+        company_currency_is_vef = (
+            company_currency.name in ("VES", "VEF", "Bs.", "Bs.S", "Bs.D", "Bs.F")
+            or company_currency.symbol in ("Bs.", "Bs.S", "Bs.D", "Bs.F")
+        )
         self.assertFalse(company_currency_is_vef)
 
         if company_currency_is_vef:
@@ -149,7 +158,11 @@ class TestRetentionFixes(unittest.TestCase):
         line1 = MockRetentionLine(0.0, 160.0, "VES")
         
         # Simulate self-healing logic
-        company_currency_is_vef = line1.company_id.currency_id.name in ("VES", "VEF")
+        company_currency = line1.company_id.currency_id
+        company_currency_is_vef = (
+            company_currency.name in ("VES", "VEF", "Bs.", "Bs.S", "Bs.D", "Bs.F")
+            or company_currency.symbol in ("Bs.", "Bs.S", "Bs.D", "Bs.F")
+        )
         if company_currency_is_vef:
             line1.write({"retention_amount": line1.foreign_retention_amount})
         else:
@@ -163,7 +176,11 @@ class TestRetentionFixes(unittest.TestCase):
         line2 = MockRetentionLine(0.0, 160.0, "USD", rate=40.0)
         
         # Simulate self-healing logic
-        company_currency_is_vef = line2.company_id.currency_id.name in ("VES", "VEF")
+        company_currency = line2.company_id.currency_id
+        company_currency_is_vef = (
+            company_currency.name in ("VES", "VEF", "Bs.", "Bs.S", "Bs.D", "Bs.F")
+            or company_currency.symbol in ("Bs.", "Bs.S", "Bs.D", "Bs.F")
+        )
         if company_currency_is_vef:
             line2.write({"retention_amount": line2.foreign_retention_amount})
         else:
@@ -206,8 +223,11 @@ class TestRetentionFixes(unittest.TestCase):
 
     def test_corrupt_usd_usd_retention_resolution(self):
         # Helper to simulate _sum_retention_total with the magnitude-based logic
-        def sum_retention_total_sim(retention_amount, foreign_retention_amount, rate, currency_system, company_currency):
-            company_currency_is_vef = company_currency in ("VES", "VEF")
+        def sum_retention_total_sim(retention_amount, foreign_retention_amount, rate, currency_system, company_currency, company_currency_symbol=None):
+            company_currency_is_vef = (
+                company_currency in ("VES", "VEF", "Bs.", "Bs.S", "Bs.D", "Bs.F")
+                or company_currency_symbol in ("Bs.", "Bs.S", "Bs.D", "Bs.F")
+            )
             if rate <= 0.0:
                 rate = 1.0
 
@@ -253,6 +273,13 @@ class TestRetentionFixes(unittest.TestCase):
 
         val_usd_non_inv = sum_retention_total_sim(21156.88, 55.51, 381.13, currency_system=False, company_currency="VES")
         self.assertEqual(val_usd_non_inv, 55.51)
+
+        # Case 4: Verify symbol-based matching (e.g. company_currency="USD", company_currency_symbol="Bs.")
+        val_ves_sym = sum_retention_total_sim(55.51, 55.51, 381.13, currency_system=True, company_currency="USD", company_currency_symbol="Bs.")
+        self.assertAlmostEqual(val_ves_sym, 21156.5263, places=4)
+
+        val_usd_sym = sum_retention_total_sim(55.51, 55.51, 381.13, currency_system=False, company_currency="USD", company_currency_symbol="Bs.")
+        self.assertEqual(val_usd_sym, 55.51)
 
 if __name__ == "__main__":
     unittest.main()
