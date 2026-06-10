@@ -240,17 +240,40 @@ class WizardAccountingReports(models.TransientModel):
             return 0.0
 
         company_currency_is_vef = self.env.company.currency_id.name in ("VES", "VEF")
+        retention_amount = sum(lines.mapped("retention_amount"))
+        foreign_retention_amount = sum(lines.mapped("foreign_retention_amount"))
+        
+        # Determine the exchange rate from the retention line or invoice move
+        rate = lines[0].foreign_currency_rate or lines[0].move_id.foreign_rate or 1.0
+        if rate <= 0.0:
+            rate = 1.0
 
         if company_currency_is_vef:
             if is_check_currency_system:
-                return sum(lines.mapped("foreign_retention_amount"))
+                # System currency (VES): If both fields are equal and rate > 1, convert USD to VES
+                if abs(foreign_retention_amount - retention_amount) < 0.01 and rate > 1.0:
+                    return retention_amount * rate
+                return max(foreign_retention_amount, retention_amount * rate) if rate > 1.0 else foreign_retention_amount
             else:
-                return sum(lines.mapped("retention_amount"))
+                # Alternate currency (USD): If both fields are equal, return the amount directly (USD)
+                if abs(foreign_retention_amount - retention_amount) < 0.01:
+                    return retention_amount
+                if foreign_retention_amount > retention_amount and rate > 1.0:
+                    return foreign_retention_amount / rate
+                return retention_amount
         else:
             if is_check_currency_system:
-                return sum(lines.mapped("retention_amount"))
+                # System currency (USD): If both fields are equal, return USD amount directly
+                if abs(foreign_retention_amount - retention_amount) < 0.01:
+                    return retention_amount
+                if foreign_retention_amount > retention_amount and rate > 1.0:
+                    return foreign_retention_amount / rate
+                return retention_amount
             else:
-                return sum(lines.mapped("foreign_retention_amount"))
+                # Alternate currency (VES): If both fields are equal and rate > 1, convert to VES
+                if abs(foreign_retention_amount - retention_amount) < 0.01 and rate > 1.0:
+                    return retention_amount * rate
+                return max(foreign_retention_amount, retention_amount * rate) if rate > 1.0 else foreign_retention_amount
 
     def _check_future_retention_dates(self, cmp_date):
         return cmp_date < self.date_from or cmp_date > self.date_to
