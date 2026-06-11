@@ -1472,6 +1472,12 @@ class AccountRetention(models.Model):
         list[dict]
             The retention lines data.
         """
+        foreign_rate = (
+            invoice_id.foreign_rate 
+            or (invoice_id.tax_today if 'tax_today' in invoice_id._fields else 0.0)
+            or (self.env.company.currency_id_dif.inverse_rate if self.env.company.currency_id_dif else 0.0)
+            or 1.0
+        )
         _logger.warning(f"compute_retention_lines_data: Procesando factura con ID {invoice_id.id}")
         _logger.warning(f"compute_retention_lines_data: Atributos de la factura: {invoice_id._fields.keys()}")
         if hasattr(invoice_id, 'number'):
@@ -1536,7 +1542,6 @@ class AccountRetention(models.Model):
             invoice_currency = invoice_id.currency_id
 
             # Tasa de la factura (moneda empresa → VEF)
-            foreign_rate = invoice_id.foreign_rate or 1.0
             foreign_inverse_rate = 1.0 / foreign_rate if foreign_rate else 0.0
 
             # ¿La factura ya está en VEF?
