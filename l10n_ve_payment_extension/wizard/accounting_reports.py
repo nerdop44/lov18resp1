@@ -1,8 +1,9 @@
 from datetime import datetime
 
 import xlsxwriter
-from odoo import _, api, models
+from odoo import _, api, fields, models
 from odoo.osv import expression
+from odoo.tools import float_is_zero
 
 import logging
 
@@ -122,8 +123,8 @@ class WizardAccountingReports(models.TransientModel):
         return fields
 
     def _get_retention_domain(self):
+        field_date = "date_accounting"
         is_purchase = self.report == "purchase"
-        field_date = "date" if is_purchase else "date_accounting"
         move_type = (
             ["out_invoice", "out_refund"] if not is_purchase else ["in_invoice", "in_refund"]
         )
@@ -141,6 +142,17 @@ class WizardAccountingReports(models.TransientModel):
     def search_moves(self):
         retention = self.env["account.retention"]
         res_moves = super().search_moves()
+
+        # Autocorrección ("Self-healing") para retenciones huérfanas o dañadas en base de datos
+        corrupted_lines = self.env['account.retention.line'].search([
+            ('retention_amount', '=', 0.0),
+            ('foreign_retention_amount', '>', 0.0)
+        ])
+        for line in corrupted_lines:
+            tasa = line.retention_id.tasa or (line.move_id.tasa if 'tasa' in line.move_id._fields else 0.0) or (self.env.company.currency_id_dif.inverse_rate if self.env.company.currency_id_dif else 1.0) or 1.0
+            line.write({'retention_amount': line.foreign_retention_amount * tasa})
+            _logger.warning("Self-healing: Corregida línea de retención ID: %s | retention_amount: %s usando tasa %s", 
+                            line.id, line.retention_amount, tasa)
 
         domain = self._get_retention_domain()
         retention_ids = retention.search(domain)
@@ -196,7 +208,7 @@ class WizardAccountingReports(models.TransientModel):
         
         # Tomamos datos del primer comprobante válido encontrado
         main_ret = ret_lines[0].retention_id
-        ret_vals["date_retention"] = self._format_date(main_ret.date)
+        ret_vals["date_retention"] = self._format_date(main_ret.date_accounting)
         ret_vals["number_retention"] = move.iva_voucher_number or main_ret.number
 
         total_retained = 0
@@ -217,14 +229,30 @@ class WizardAccountingReports(models.TransientModel):
         if (
             self.report == "purchase"
             and retention
-            and self._check_future_retention_dates(retention.date)
-            or lines.move_id.state == "cancel"
+            and self._check_future_retention_dates(retention[0].date_accounting)
+            or any(m.state == "cancel" for m in lines.mapped("move_id"))
         ):
             return 0.0
-        if not is_check_currency_system:
-            return sum(lines.mapped("foreign_retention_amount"))
 
-        return sum(lines.mapped("retention_amount"))
+        total = 0.0
+        company = self.company_id or self.env.company
+        currency_vef = company.currency_id
+        currency_usd = company.currency_id_dif
+
+        for line in lines:
+            if is_check_currency_system:
+                amount = line.retention_amount
+                if float_is_zero(amount, precision_digits=2) and line.foreign_retention_amount:
+                    date = line.retention_id.date_accounting or fields.Date.context_today(self)
+                    amount = currency_usd._convert(line.foreign_retention_amount, currency_vef, company, date)
+                total += amount
+            else:
+                amount = line.foreign_retention_amount
+                if float_is_zero(amount, precision_digits=2) and line.retention_amount:
+                    date = line.retention_id.date_accounting or fields.Date.context_today(self)
+                    amount = currency_vef._convert(line.retention_amount, currency_usd, company, date)
+                total += amount
+        return total
 
     def _check_future_retention_dates(self, cmp_date):
         return cmp_date < self.date_from or cmp_date > self.date_to

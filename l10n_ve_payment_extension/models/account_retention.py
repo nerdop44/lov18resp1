@@ -925,7 +925,12 @@ class AccountRetention(models.Model):
         for line in self.retention_line_ids.filtered(lambda l: l.payment_concept_id):
             lines_by_concept_and_move[(line.payment_concept_id, line.move_id)] += line
 
-        existing_payments = {p.payment_concept_id: p for p in self.payment_ids}
+        existing_payments = {}
+        for p in self.payment_ids:
+            move = p.retention_line_ids.mapped('move_id')[:1]
+            if move:
+                existing_payments[(p.payment_concept_id, move)] = p
+
         payments_to_keep = self.env['account.payment']
 
         # 2. Iterar sobre los pagos requeridos para crear o actualizar
@@ -959,8 +964,8 @@ class AccountRetention(models.Model):
                 "retention_line_ids": [Command.set(lines.ids)],
             }
 
-            # Si ya existe un pago para este concepto, se actualiza. Si no, se crea.
-            payment = existing_payments.get(concept)
+            # Si ya existe un pago para este concepto y factura, se actualiza. Si no, se crea.
+            payment = existing_payments.get((concept, move))
             if payment and payment.state == 'draft':
                 payment.write(payment_vals)
             elif not payment:

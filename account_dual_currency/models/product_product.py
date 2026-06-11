@@ -44,7 +44,7 @@ class ProductProduct(models.Model):
                     if tasa:
                         rec.standard_price = rec.standard_price_usd * tasa.inverse_rate
 
-    def _prepare_in_svl_vals(self, quantity, unit_cost):
+    def _prepare_in_svl_vals(self, quantity, unit_cost, lot=None, **kwargs):
         """Prepare the values for a stock valuation layer created by a receipt.
 
         :param quantity: the quantity to value, expressed in `self.uom_id`
@@ -67,10 +67,9 @@ class ProductProduct(models.Model):
             vals['remaining_qty'] = quantity
             vals['remaining_value'] = vals['value']
             #vals['remaining_value_usd'] = vals['value_usd']
-        print('entra en nuevas valores',vals)
         return vals
 
-    def _prepare_out_svl_vals(self, quantity, company):
+    def _prepare_out_svl_vals(self, quantity, company, lot=None, **kwargs):
         """Prepare the values for a stock valuation layer created by a delivery.
 
         :param quantity: the quantity to value, expressed in `self.uom_id`
@@ -131,8 +130,19 @@ class ProductProduct(models.Model):
         for candidate in candidates:
             qty_taken_on_candidate = min(qty_to_take_on_candidates, candidate.remaining_qty)
 
-            candidate_unit_cost = candidate.remaining_value / candidate.remaining_qty
-            candidate_unit_cost_usd = candidate.remaining_value_usd / candidate.remaining_qty
+            if float_is_zero(candidate.remaining_qty, precision_rounding=self.uom_id.rounding):
+                candidate_unit_cost = candidate.unit_cost
+                candidate_unit_cost_usd = candidate.unit_cost_usd
+            else:
+                candidate_unit_cost = candidate.remaining_value / candidate.remaining_qty
+                
+                # Fallback de tasa dual si remaining_value_usd es cero
+                tasa = self.env.company.currency_id_dif
+                remaining_val_usd = candidate.remaining_value_usd
+                if float_is_zero(remaining_val_usd, precision_digits=6) and candidate.remaining_value and tasa and tasa.inverse_rate:
+                    remaining_val_usd = candidate.remaining_value / tasa.inverse_rate
+                candidate_unit_cost_usd = remaining_val_usd / candidate.remaining_qty
+
             new_standard_price = candidate_unit_cost
             new_standard_price_usd = candidate_unit_cost_usd
             value_taken_on_candidate = qty_taken_on_candidate * candidate_unit_cost
@@ -177,9 +187,9 @@ class ProductProduct(models.Model):
             vals = {
                 'value': -tmp_value,
                 'value_usd': -tmp_value_usd,
-                'unit_cost': tmp_value / quantity,
+                'unit_cost': tmp_value / quantity if quantity else 0.0,
                 'tasa': tasa_tmp,
-                'unit_cost_usd': tmp_value_usd / quantity,
+                'unit_cost_usd': tmp_value_usd / quantity if quantity else 0.0,
             }
         else:
 

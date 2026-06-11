@@ -187,8 +187,9 @@ class AccountMove(models.Model):
                                 journal_id = self.env['account.journal'].search([('id', '=', val['journal_id'])])
                                 company_id = journal_id.company_id
                                 l[2]['currency_id'] = company_id.currency_id.id
-                                l[2]['debit'] = l[2]['balance'] if l[2]['balance'] > 0 else 0
-                                l[2]['credit'] = l[2]['balance'] if l[2]['balance'] < 0 else 0
+                                balance = l[2].get('balance', 0)
+                                l[2]['debit'] = balance if balance > 0 else 0
+                                l[2]['credit'] = abs(balance) if balance < 0 else 0
                                 l[2]['partner_id'] = None
                                 l[2]['amount_currency'] = l[2]['balance']
                                 line_ids.append(l)
@@ -551,7 +552,21 @@ class AccountMove(models.Model):
         return partial_values_list
 
     def js_assign_outstanding_line(self, line_id):
+        for line in self.line_ids:
+            if line.debit_usd == 0 and line.debit != 0:
+                line._debit_usd()
+            if line.credit_usd == 0 and line.credit != 0:
+                line._credit_usd()
+            line._compute_balance_usd()
+            line._compute_amount_residual_usd()
+
         lines = self.env['account.move.line'].browse(line_id)
+
+        lines._debit_usd()
+        lines._credit_usd()
+        lines._compute_balance_usd()
+        lines._compute_amount_residual_usd()
+
         lines += self.line_ids.filtered(lambda line: line.account_id == lines[0].account_id and not line.reconciled)
         lines._compute_amount_residual_usd()
         res = super(AccountMove, self).js_assign_outstanding_line(line_id)
@@ -576,7 +591,7 @@ class AccountMove(models.Model):
                 ('parent_state', '=', 'posted'),
                 ('partner_id', '=', move.commercial_partner_id.id),
                 ('reconciled', '=', False),
-                '|','|', ('amount_residual', '!=', 0.0), ('amount_residual_usd', '!=', 0.0),('amount_residual_currency', '!=', 0.0),
+                '|', ('amount_residual', '!=', 0.0), ('amount_residual_currency', '!=', 0.0),
             ]
 
             payments_widget_vals = {'outstanding': True, 'content': [], 'move_id': move.id}
@@ -617,7 +632,7 @@ class AccountMove(models.Model):
                     )
                     amount_usd = abs(line.amount_residual_usd)
 
-                if move.currency_id.is_zero(amount) and amount_usd == 0:
+                if move.currency_id.is_zero(amount):
                     continue
 
                 payments_widget_vals['content'].append({
