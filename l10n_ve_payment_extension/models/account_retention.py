@@ -943,13 +943,18 @@ class AccountRetention(models.Model):
         for line in self.retention_line_ids.filtered(lambda l: l.payment_concept_id):
             lines_by_concept_and_move[(line.payment_concept_id, line.move_id)] += line
 
-        existing_payments = {p.payment_concept_id: p for p in self.payment_ids}
+        existing_payments = {}
+        for p in self.payment_ids:
+            linked_moves = p.retention_line_ids.mapped('move_id')
+            for m in linked_moves:
+                existing_payments[(p.payment_concept_id, m)] = p
+
         payments_to_keep = self.env['account.payment']
 
         # 2. Iterar sobre los pagos requeridos para crear o actualizar
         for (concept, move), lines in lines_by_concept_and_move.items():
             # Moneda VEF
-            currency_vef = self.env.company.currency_foreign_id
+            currency_vef = self.vef_currency_id or self.env.company.currency_foreign_id
             total_retention_vef = sum(lines.mapped('foreign_retention_amount'))
             
             if currency_vef.is_zero(total_retention_vef):
@@ -977,8 +982,8 @@ class AccountRetention(models.Model):
                 "retention_line_ids": [Command.set(lines.ids)],
             }
 
-            # Si ya existe un pago para este concepto, se actualiza. Si no, se crea.
-            payment = existing_payments.get(concept)
+            # Si ya existe un pago para este concepto y factura, se actualiza. Si no, se crea.
+            payment = existing_payments.get((concept, move))
             if payment and payment.state == 'draft':
                 payment.write(payment_vals)
             elif not payment:
@@ -1575,10 +1580,18 @@ class AccountRetention(models.Model):
 
                     # Montos en la moneda de empresa (lo que sea: USD, VEF, EUR, etc.)
                     invoice_amount_company = tax_group_data.get(
-                        "base_amount_currency", tax_group_data.get("base_amount", 0.0)
+                        "base_amount_currency",
+                        tax_group_data.get(
+                            "base_amount",
+                            tax_group_data.get("tax_group_base_amount", 0.0)
+                        )
                     )
                     iva_amount_company = tax_group_data.get(
-                        "tax_amount_currency", tax_group_data.get("tax_amount", 0.0)
+                        "tax_amount_currency",
+                        tax_group_data.get(
+                            "tax_amount",
+                            tax_group_data.get("tax_group_amount", 0.0)
+                        )
                     )
 
                     # ==========================================================

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import xlsxwriter
-from odoo import _, api, models
+from odoo import _, api, fields, models
 from odoo.osv import expression
 
 import logging
@@ -123,7 +123,7 @@ class WizardAccountingReports(models.TransientModel):
 
     def _get_retention_domain(self):
         is_purchase = self.report == "purchase"
-        field_date = "date" if is_purchase else "date_accounting"
+        field_date = "date_accounting"
         move_type = (
             ["out_invoice", "out_refund"] if not is_purchase else ["in_invoice", "in_refund"]
         )
@@ -139,6 +139,17 @@ class WizardAccountingReports(models.TransientModel):
         return domain
 
     def search_moves(self):
+        # Rutina de self-healing para retenciones corruptas en base de datos (retention_amount = 0.0 y foreign_retention_amount > 0.0)
+        corrupt_iva_lines = self.env["account.retention.iva.line"].search([
+            ("retention_amount", "=", 0.0),
+            ("foreign_retention_amount", ">", 0.0)
+        ])
+        for line in corrupt_iva_lines:
+            rate = line.foreign_currency_rate or line.move_id.tax_today or line.move_id.company_id.currency_id_dif.inverse_rate or 1.0
+            line.write({
+                "retention_amount": line.foreign_retention_amount * rate
+            })
+
         retention = self.env["account.retention"]
         res_moves = super().search_moves()
 
@@ -220,7 +231,7 @@ class WizardAccountingReports(models.TransientModel):
             if ret_line and self._check_future_retention_dates(ret_line.retention_id.date_accounting):
                 continue
 
-            ret_vals["date_retention"] = self._format_date(ret_line.mapped("retention_id").date)
+            ret_vals["date_retention"] = self._format_date(ret_line.retention_id.date_accounting)
             ret_vals["number_retention"] = move.iva_voucher_number
             ret_vals["iva_retained"] = ret_vals["iva_retained"] + (
                 self._sum_retention_total(ret_line) * multiplier
@@ -231,20 +242,52 @@ class WizardAccountingReports(models.TransientModel):
         return ret_vals
 
     def _sum_retention_total(self, lines):
-        is_check_currency_system = self.currency_system
         retention = lines.mapped("retention_id")
 
         if (
             self.report == "purchase"
             and retention
-            and self._check_future_retention_dates(retention.date)
+            and self._check_future_retention_dates(retention.date_accounting)
             or lines.move_id.state == "cancel"
         ):
             return 0.0
-        if not is_check_currency_system:
-            return sum(lines.mapped("foreign_retention_amount"))
 
-        return sum(lines.mapped("retention_amount"))
+        total_local = 0.0
+        total_foreign = 0.0
+
+        for line in lines:
+            amount1 = abs(line.retention_amount)
+            amount2 = abs(line.foreign_retention_amount)
+            
+            local_amt = max(amount1, amount2)
+            foreign_amt = min(amount1, amount2)
+
+            sign = -1.0 if (line.retention_amount < 0 or line.foreign_retention_amount < 0) else 1.0
+
+            if foreign_amt == 0.0 and local_amt > 0.0:
+                company = line.move_id.company_id
+                local_curr = company.currency_id
+                foreign_curr = company.currency_id_dif or self.env.company.currency_id_dif
+                if foreign_curr and local_curr != foreign_curr:
+                    foreign_amt = local_curr._convert(
+                        local_amt, foreign_curr, company, line.move_id.invoice_date or fields.Date.today()
+                    )
+            elif local_amt == 0.0 and foreign_amt > 0.0:
+                company = line.move_id.company_id
+                local_curr = company.currency_id
+                foreign_curr = company.currency_id_dif or self.env.company.currency_id_dif
+                if foreign_curr and local_curr != foreign_curr:
+                    local_amt = foreign_curr._convert(
+                        foreign_amt, local_curr, company, line.move_id.invoice_date or fields.Date.today()
+                    )
+
+            total_local += local_amt * sign
+            total_foreign += foreign_amt * sign
+
+        if not self.currency_system:
+            return total_foreign
+
+        return total_local
 
     def _check_future_retention_dates(self, cmp_date):
         return cmp_date < self.date_from or cmp_date > self.date_to

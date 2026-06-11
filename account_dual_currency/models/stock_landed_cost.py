@@ -221,12 +221,13 @@ class StockLandedCost(models.Model):
                             value = fnc(value, line.price_unit - value_split)
                             value_split += value
 
+                        tax_today = line.tax_today or line.cost_id.company_id.currency_id_dif.inverse_rate or 1.0
                         if valuation.id not in towrite_dict:
                             towrite_dict[valuation.id] = value
-                            towrite_dict_usd[valuation.id] = value / line.tax_today
+                            towrite_dict_usd[valuation.id] = value / tax_today
                         else:
                             towrite_dict[valuation.id] += value
-                            towrite_dict_usd[valuation.id] += value / line.tax_today
+                            towrite_dict_usd[valuation.id] += value / tax_today
         for key, value in towrite_dict.items():
             AdjustementLines.browse(key).write({'additional_landed_cost': value, 'additional_landed_cost_usd': towrite_dict_usd[key]})
         return True

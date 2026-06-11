@@ -44,7 +44,7 @@ class ProductProduct(models.Model):
                     if tasa:
                         rec.standard_price = rec.standard_price_usd * tasa.inverse_rate
 
-    def _prepare_in_svl_vals(self, quantity, unit_cost):
+    def _prepare_in_svl_vals(self, quantity, unit_cost, lot=None, **kwargs):
         """Prepare the values for a stock valuation layer created by a receipt.
 
         :param quantity: the quantity to value, expressed in `self.uom_id`
@@ -67,10 +67,9 @@ class ProductProduct(models.Model):
             vals['remaining_qty'] = quantity
             vals['remaining_value'] = vals['value']
             #vals['remaining_value_usd'] = vals['value_usd']
-        print('entra en nuevas valores',vals)
         return vals
 
-    def _prepare_out_svl_vals(self, quantity, company):
+    def _prepare_out_svl_vals(self, quantity, company, lot=None, **kwargs):
         """Prepare the values for a stock valuation layer created by a delivery.
 
         :param quantity: the quantity to value, expressed in `self.uom_id`
@@ -131,8 +130,16 @@ class ProductProduct(models.Model):
         for candidate in candidates:
             qty_taken_on_candidate = min(qty_to_take_on_candidates, candidate.remaining_qty)
 
-            candidate_unit_cost = candidate.remaining_value / candidate.remaining_qty
-            candidate_unit_cost_usd = candidate.remaining_value_usd / candidate.remaining_qty
+            remaining_qty = candidate.remaining_qty
+            if not remaining_qty:
+                continue
+
+            candidate_unit_cost = candidate.remaining_value / remaining_qty
+            candidate_unit_cost_usd = candidate.remaining_value_usd / remaining_qty
+            if not candidate.remaining_value_usd and candidate.remaining_value:
+                tasa = self.env.company.currency_id_dif.inverse_rate or 1.0
+                candidate_unit_cost_usd = candidate_unit_cost / tasa
+
             new_standard_price = candidate_unit_cost
             new_standard_price_usd = candidate_unit_cost_usd
             value_taken_on_candidate = qty_taken_on_candidate * candidate_unit_cost
@@ -141,7 +148,7 @@ class ProductProduct(models.Model):
             new_remaining_value = candidate.remaining_value - value_taken_on_candidate
             new_remaining_value_usd = candidate.remaining_value_usd - value_taken_on_candidate_usd
             candidate_vals = {
-                'remaining_qty': candidate.remaining_qty - qty_taken_on_candidate,
+                'remaining_qty': remaining_qty - qty_taken_on_candidate,
                 'remaining_value': new_remaining_value,
                 'remaining_value_usd': new_remaining_value_usd,
             }
