@@ -32,7 +32,7 @@ class ResCurrency(models.Model):
            :param round: Round the result or not
         """
         company = company or self.env.company
-        date = date or fields.Date.today()
+        date = date or fields.Date.context_today(self)
         self, to_currency = self or to_currency, to_currency or self
         assert self, "convert amount from unknown currency"
         assert to_currency, "convert amount to unknown currency"
