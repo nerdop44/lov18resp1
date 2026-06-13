@@ -22,7 +22,7 @@ class ResCurrency(models.Model):
 
     act_productos = fields.Boolean(string="Actualizar Productos", default=False)
 
-    def _convert(self, from_amount, to_currency, company, date, round=True, custom_rate=0.0):
+    def _convert(self, from_amount, to_currency, company=None, date=None, round=True, custom_rate=0.0):
         """Returns the converted amount of ``from_amount``` from the currency
            ``self`` to the currency ``to_currency`` for the given ``date`` and
            company.
@@ -34,8 +34,15 @@ class ResCurrency(models.Model):
         self, to_currency = self or to_currency, to_currency or self
         assert self, "convert amount from unknown currency"
         assert to_currency, "convert amount to unknown currency"
+        
+        if not company:
+            company = self.env.company
         assert company, "convert amount from unknown company"
+        
+        if not date:
+            date = fields.Date.context_today(self)
         assert date, "convert amount from unknown date"
+
         # apply conversion rate
         if self == to_currency:
             to_amount = from_amount
