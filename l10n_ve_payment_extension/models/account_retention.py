@@ -1022,17 +1022,7 @@ class AccountRetention(models.Model):
 
         return payments_to_keep
 
-    def _safe_create_payments(self):
-        """
-        Crea los pagos según el tipo de retención.
-        Se llama desde action_post como Opción A.
-        """
-        for retention in self:
-            if retention.type_retention == "iva":
-                retention._sync_iva_payments_on_draft()
-            elif retention.type_retention == "islr":
-                retention._create_islr_payments_on_draft()
-    
+
     def action_post(self):
 
         for retention in self:
@@ -1619,7 +1609,8 @@ class AccountRetention(models.Model):
             company_currency = self.env.company.currency_id
             
             # Tasa guardada en la factura por account_dual_currency
-            invoice_rate = invoice_id.tax_today or 1.0
+            # FIX: tax_today no existe en account.move → usar foreign_inverse_rate (tasa Bs/USD)
+            invoice_rate = invoice_id.foreign_inverse_rate or 1.0
             # Tasa de hoy desde la configuración de moneda dual de la empresa
             today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
             

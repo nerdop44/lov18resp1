@@ -181,7 +181,8 @@ class AccountRetentionLine(models.Model):
             self.invoice_amount = tax_totals.get('amount_untaxed', 0.0)
             
             # Regla v62: Montos en VEF (Bolívares) con tasa dual explícita
-            invoice_rate = invoice.tax_today or 1.0
+            # FIX: tax_today no existe en account.move → usar foreign_inverse_rate (tasa Bs/USD)
+            invoice_rate = invoice.foreign_inverse_rate or 1.0
             today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
             use_today_rate = self.retention_id.use_today_rate if self.retention_id else False
             used_rate = today_rate if use_today_rate else invoice_rate
@@ -305,7 +306,8 @@ class AccountRetentionLine(models.Model):
             amount_total_company = tax_totals.get('total_amount', tax_totals.get('total_amount_currency', 0.0))
 
             # Montos en VEF (Regla v62: Tasa Dual)
-            invoice_rate = record.move_id.tax_today or 1.0
+            # FIX: tax_today no existe en account.move → usar foreign_inverse_rate (tasa Bs/USD)
+            invoice_rate = record.move_id.foreign_inverse_rate or 1.0
             today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
             used_rate = today_rate if record.retention_id.use_today_rate else invoice_rate
             
@@ -369,7 +371,8 @@ class AccountRetentionLine(models.Model):
             vef_currency = record._get_vef_currency()
             invoice_currency = record.move_id.currency_id
             
-            invoice_rate = record.move_id.tax_today or 1.0
+            # FIX: tax_today no existe en account.move → usar foreign_inverse_rate (tasa Bs/USD)
+            invoice_rate = record.move_id.foreign_inverse_rate or 1.0
             today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
             use_today_rate = record.retention_id.use_today_rate if record.retention_id else False
             used_rate = today_rate if use_today_rate else invoice_rate
