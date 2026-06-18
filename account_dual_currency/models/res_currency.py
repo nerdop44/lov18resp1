@@ -69,20 +69,23 @@ class ResCurrency(models.Model):
 
     def actualizar_facturas(self):
         for rec in self:
-            # actualizar tasa a las facturas dinamicas
+            # actualizar tasa a las facturas dinamicas (acuerdo_moneda)
+            # FIX Q4: tax_today no existe en account.move → usar foreign_inverse_rate (tasa Bs/USD)
             facturas = self.env['account.move'].search([('acuerdo_moneda', '=', True)])
             if facturas:
                 for f in facturas:
-                    f.tax_today = rec.inverse_rate
+                    # foreign_inverse_rate es el campo correcto (Bs por USD, ej: 563.29)
+                    f.foreign_inverse_rate = rec.inverse_rate
                     for l in f.line_ids:
-                        l.tax_today = rec.inverse_rate
+                        if hasattr(l, 'foreign_inverse_rate'):
+                            l.foreign_inverse_rate = rec.inverse_rate
                         l._debit_usd()
                         l._credit_usd()
                     for d in f.invoice_line_ids:
-                        d.tax_today = rec.inverse_rate
+                        if hasattr(d, 'foreign_inverse_rate'):
+                            d.foreign_inverse_rate = rec.inverse_rate
                         d._price_unit_usd()
                         d._price_subtotal_usd()
-                    #f._amount_untaxed_usd()
                     f._amount_all_usd()
                     f._compute_payments_widget_reconciled_info_USD()
 

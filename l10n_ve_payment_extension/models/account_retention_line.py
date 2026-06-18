@@ -180,27 +180,44 @@ class AccountRetentionLine(models.Model):
 
             self.invoice_amount = tax_totals.get('amount_untaxed', 0.0)
             
-            # Regla v62: Montos en VEF (Bolívares) con tasa dual explícita
-            # FIX: tax_today no existe en account.move → usar foreign_inverse_rate (tasa Bs/USD)
-            invoice_rate = invoice.foreign_inverse_rate or 1.0
-            today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
-            use_today_rate = self.retention_id.use_today_rate if self.retention_id else False
-            used_rate = today_rate if use_today_rate else invoice_rate
-            
+            # ====================================================================
+            # REGLA UNIVERSAL VENEZOLANA: SIEMPRE en VEF (Bs)
+            # Lógica inteligente:
+            #   - Factura en VEF → montos directos (sin conversión)
+            #   - Factura en USD/otra → multiplicar por tasa inversa (Bs/USD)
+            # FIX: usar foreign_inverse_rate (tasa Bs/USD guardada en la factura)
+            # ====================================================================
+            vef_currency = self._get_vef_currency()
             company_currency = self.env.company.currency_id
             invoice_currency = invoice.currency_id
-            vef_currency = self._get_vef_currency()
-            
-            if invoice_currency == vef_currency:
-                self.foreign_invoice_amount = abs(invoice.amount_untaxed_signed)
-                self.foreign_invoice_total = abs(invoice.amount_total_signed)
-                self.foreign_iva_amount = tax_totals.get('amount_tax', 0.0)
+
+            # Determinar si la factura ya está en Bs (VEF)
+            invoice_is_vef = vef_currency and (invoice_currency == vef_currency)
+
+            if invoice_is_vef:
+                # Factura en Bs → usar montos directamente (sin conversión)
+                self.foreign_invoice_amount = abs(tax_totals.get('amount_untaxed', 0.0))
+                self.foreign_invoice_total = abs(tax_totals.get('amount_total', 0.0))
+                self.foreign_iva_amount = abs(tax_totals.get('amount_tax', 0.0))
             else:
-                self.foreign_invoice_amount = invoice.amount_untaxed * used_rate
-                self.foreign_invoice_total = invoice.amount_total * used_rate
-                self.foreign_iva_amount = tax_totals.get('amount_tax', 0.0) * used_rate
-            
-            self.iva_amount = tax_totals.get('amount_tax', 0.0)
+                # Factura en USD u otra moneda → convertir a Bs
+                # Obtener tasa: foreign_inverse_rate de la factura, con fallback a tasa hoy
+                invoice_rate = invoice.foreign_inverse_rate
+                if not invoice_rate or invoice_rate <= 0:
+                    invoice_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
+                today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
+                use_today_rate = self.retention_id.use_today_rate if self.retention_id else False
+                used_rate = today_rate if use_today_rate else invoice_rate
+
+                base_usd = abs(tax_totals.get('amount_untaxed', 0.0))
+                total_usd = abs(tax_totals.get('amount_total', 0.0))
+                iva_usd = abs(tax_totals.get('amount_tax', 0.0))
+                self.foreign_invoice_amount = base_usd * used_rate
+                self.foreign_invoice_total = total_usd * used_rate
+                self.foreign_iva_amount = iva_usd * used_rate
+
+            self.iva_amount = abs(tax_totals.get('amount_tax', 0.0))
+            self.invoice_amount = abs(tax_totals.get('amount_untaxed', 0.0))
             self.foreign_currency_rate = invoice.foreign_rate or 1.0
 
             self.is_retention_client = invoice.move_type in ('out_invoice', 'out_refund', 'out_debit')
@@ -211,10 +228,10 @@ class AccountRetentionLine(models.Model):
             if type_retention == 'iva':
                 withholding_amount = invoice.partner_id.withholding_type_id.value or 0.0
                 self.related_percentage_tax_base = withholding_amount
-                
+
                 tax_ids = invoice.invoice_line_ids.filtered(lambda l: l.tax_ids and l.tax_ids[0].amount > 0).mapped("tax_ids")
                 self.aliquot = tax_ids[0].amount if tax_ids else 0.0
-                
+
                 self.retention_amount = self.iva_amount * (withholding_amount / 100)
                 self.foreign_retention_amount = self.foreign_iva_amount * (withholding_amount / 100)
 
@@ -293,33 +310,37 @@ class AccountRetentionLine(models.Model):
 
             tax_totals = record.move_id.tax_totals or {}
 
-            # =====================================================================
-            # REGLA UNIVERSAL VENEZOLANA: montos siempre en VEF para retenciones
-            # =====================================================================
+            # ====================================================================
+            # REGLA UNIVERSAL VENEZOLANA: SIEMPRE en VEF (Bs)
+            # Lógica inteligente para retenciones ISLR:
+            #   - Factura en VEF → montos directos (sin conversión)
+            #   - Factura en USD/otra → multiplicar por tasa inversa (Bs/USD)
+            # FIX: usar foreign_inverse_rate con fallback a tasa actual
+            # ====================================================================
             vef_currency = record._get_vef_currency()
             invoice_currency = record.move_id.currency_id
-            invoice_is_in_vef = vef_currency and invoice_currency == vef_currency
+            invoice_is_vef = vef_currency and (invoice_currency == vef_currency)
+
+            if invoice_is_vef:
+                # Factura ya en Bs → usar montos directamente
+                vef_untaxed = abs(tax_totals.get('amount_untaxed', 0.0))
+                vef_total = abs(tax_totals.get('amount_total', 0.0))
+            else:
+                # Factura en USD → convertir a Bs con tasa de la factura
+                invoice_rate = record.move_id.foreign_inverse_rate
+                if not invoice_rate or invoice_rate <= 0:
+                    invoice_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
+                today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
+                used_rate = today_rate if record.retention_id.use_today_rate else invoice_rate
+
+                vef_untaxed = abs(tax_totals.get('amount_untaxed', 0.0)) * used_rate
+                vef_total = abs(tax_totals.get('amount_total', 0.0)) * used_rate
+
             foreign_rate = record.move_id.foreign_rate or 1.0
 
-            # Montos en moneda empresa (Bs.)
-            amount_untaxed_company = tax_totals.get('base_amount', tax_totals.get('base_amount_currency', 0.0))
-            amount_total_company = tax_totals.get('total_amount', tax_totals.get('total_amount_currency', 0.0))
-
-            # Montos en VEF (Regla v62: Tasa Dual)
-            # FIX: tax_today no existe en account.move → usar foreign_inverse_rate (tasa Bs/USD)
-            invoice_rate = record.move_id.foreign_inverse_rate or 1.0
-            today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
-            used_rate = today_rate if record.retention_id.use_today_rate else invoice_rate
-            
-            company_currency = self.env.company.currency_id
-            invoice_currency = record.move_id.currency_id
-            
-            if invoice_currency == vef_currency:
-                vef_untaxed = abs(record.move_id.amount_untaxed_signed)
-                vef_total = abs(record.move_id.amount_total_signed)
-            else:
-                vef_untaxed = record.move_id.amount_untaxed * used_rate
-                vef_total = record.move_id.amount_total * used_rate
+            # Montos en moneda empresa (para campos invoice_amount, invoice_total)
+            amount_untaxed_company = abs(tax_totals.get('amount_untaxed', 0.0))
+            amount_total_company = abs(tax_totals.get('amount_total', 0.0))
 
             # Asignar valores — los campos foreign_ siempre son en VEF
             record.invoice_total = amount_total_company
@@ -365,23 +386,28 @@ class AccountRetentionLine(models.Model):
                 continue
 
             tax_totals = record.move_id.tax_totals or {}
-            amount_untaxed = tax_totals.get('amount_untaxed', 0)
-            
-            # Resolver la moneda en bolívares de forma robusta
+
+            # REGLA UNIVERSAL VENEZOLANA: lógica inteligente VEF
             vef_currency = record._get_vef_currency()
             invoice_currency = record.move_id.currency_id
-            
-            # FIX: tax_today no existe en account.move → usar foreign_inverse_rate (tasa Bs/USD)
-            invoice_rate = record.move_id.foreign_inverse_rate or 1.0
-            today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
-            use_today_rate = record.retention_id.use_today_rate if record.retention_id else False
-            used_rate = today_rate if use_today_rate else invoice_rate
-            
-            if invoice_currency == vef_currency:
-                foreign_amount_untaxed = abs(record.move_id.amount_untaxed_signed)
+            invoice_is_vef = vef_currency and (invoice_currency == vef_currency)
+
+            if invoice_is_vef:
+                # Factura ya en Bs → usar tax_totals directamente
+                foreign_amount_untaxed = abs(tax_totals.get('amount_untaxed', 0.0))
+                amount_untaxed = foreign_amount_untaxed
             else:
-                foreign_amount_untaxed = record.move_id.amount_untaxed * used_rate
-                
+                # Factura en USD → convertir a Bs
+                invoice_rate = record.move_id.foreign_inverse_rate
+                if not invoice_rate or invoice_rate <= 0:
+                    invoice_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
+                today_rate = self.env.company.currency_id_dif.inverse_rate or 1.0
+                use_today_rate = record.retention_id.use_today_rate if record.retention_id else False
+                used_rate = today_rate if use_today_rate else invoice_rate
+
+                amount_untaxed = abs(tax_totals.get('amount_untaxed', 0.0))
+                foreign_amount_untaxed = amount_untaxed * used_rate
+
             record.invoice_amount = amount_untaxed
             record.foreign_invoice_amount = foreign_amount_untaxed
 
