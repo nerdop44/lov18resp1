@@ -39,6 +39,18 @@ class AccountMove(models.Model):
         default=default_alternate_currency,
     )
 
+    payment_id = fields.Many2one(
+        "account.payment",
+        string="Payment Reference",
+        compute="_compute_payment_id",
+        help="Technical field for backward compatibility to retrieve the associated payment.",
+    )
+
+    @api.depends("payment_ids")
+    def _compute_payment_id(self):
+        for move in self:
+            move.payment_id = move.payment_ids[:1]
+
     @api.onchange("move_type")
     def _onchange_move_type(self):
         self.invoice_date = False if self.move_type == "entry" else fields.Date.context_today(self)

@@ -27,5 +27,18 @@
             <field name="res_id" eval="False"/>
             <field name="domain">[('code', '=','retention.municipal.control.number')]</field>
         </record>
+
+        <record id="action_ve_sequences_config" model="ir.actions.act_window">
+            <field name="name">Secuencias de Control (Localización)</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">ir.sequence</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain">[('code', 'in', ('invoice.correlative', 'retention.iva.control.number', 'retention.islr.control.number', 'retention.municipal.control.number'))]</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Configure las secuencias de control de facturación y retenciones de la localización.
+                </p>
+            </field>
+        </record>
     </data>
 </odoo>

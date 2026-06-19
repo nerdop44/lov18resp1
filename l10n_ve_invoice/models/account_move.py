@@ -230,6 +230,7 @@ class AccountMove(models.Model):
                 {
                     "name": "Número de control",
                     "code": "invoice.correlative",
+                    "company_id": self.env.company.id,
                     "padding": 5,
                 }
             )

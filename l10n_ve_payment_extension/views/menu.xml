@@ -68,6 +68,10 @@
 		<menuitem id="menu_retention_municipal_sequence" name="Sequence Municipal" groups="base.group_no_one" 
                 sequence="100" parent="account.menu_finance_payables" action="ir_sequence_form_municipal" />
 
+		<menuitem id="menu_ve_sequences_config" name="Secuencias de Control (Localización)" 
+                parent="account.menu_finance_configuration" action="action_ve_sequences_config" 
+                groups="account.group_account_manager" sequence="110" />
+
 		<menuitem id="seniat_reports" name="Seniat Reports" parent="account.menu_finance_reports" sequence="7" />
 
 		<menuitem id="menu_retention_line_report" action="action_retention_line_report" parent="account.account_reports_management_menu" />
