@@ -1484,9 +1484,9 @@ class AccountRetention(models.Model):
                 2. Que el pago esté correctamente contabilizado
             """))
     
-        # Proceso de reconciliación
+        # Proceso de reconciliación (Odoo 18: reconcile() nativo en move.line)
         try:
-            linea_reconciliar = lineas_a_reconciliar[0]
+            linea_pago = lineas_a_reconciliar[0]
             facturas = payment.retention_line_ids.mapped('move_id')
         
             if not facturas:
@@ -1496,7 +1496,21 @@ class AccountRetention(models.Model):
                 if not factura.exists():
                     _logger.warning(f"Factura {factura.id} no existe, omitiendo")
                     continue
-                factura.js_assign_outstanding_line(linea_reconciliar.id)
+                # Odoo 18: js_assign_outstanding_line fue eliminado.
+                # Usar reconciliación directa de account.move.line
+                linea_factura = factura.line_ids.filtered(
+                    lambda l: l.account_id.account_type == 'liability_payable'
+                    and not l.reconciled
+                    and l.credit > 0
+                )
+                if linea_factura and linea_pago:
+                    (linea_factura + linea_pago).reconcile()
+                    _logger.info(f"Factura {factura.id} reconciliada con pago {payment.id}")
+                else:
+                    _logger.warning(
+                        f"No se pudo reconciliar factura {factura.id}: "
+                        f"linea_factura={linea_factura.ids}, linea_pago={linea_pago.id if linea_pago else 'None'}"
+                    )
             
             _logger.info(f"Pago {payment.id} reconciliado exitosamente con facturas {facturas.ids}")
         
@@ -1648,24 +1662,24 @@ class AccountRetention(models.Model):
                     )
 
                     # ==========================================================
-                    # Calcular montos en VEF (el objetivo SIEMPRE es VEF)
+                    # ODOO 18 FIX: Claves correctas de tax_totals por moneda
+                    # Factura VEF: base_amount_currency (Bs) ≠ base_amount (USD empresa)
+                    # Factura USD: foreign_amount_untaxed ya está en Bs
                     # ==========================================================
                     if invoice_is_in_vef:
                         # La factura ya está en VEF → usar montos directamente
-                        vef_invoice_amount = invoice_amount_company
-                        vef_iva_amount = iva_amount_company
-                        vef_invoice_total = tax_totals.get(
-                            "total_amount_currency", tax_totals.get("total_amount", 0.0)
-                        )
+                        # base_amount_currency = monto en Bs (moneda de la factura)
+                        vef_invoice_amount = abs(tax_group_data.get('base_amount_currency', 0.0))
+                        vef_iva_amount = abs(tax_group_data.get('tax_amount_currency', 0.0))
+                        vef_invoice_total = abs(tax_totals.get('total_amount_currency', 0.0))
                     elif global_vef_untaxed > 0:
                         # La factura está en otra moneda y l10n_ve_tax ya calculó los VEF
-                        # Usar los valores globales precalculados (proporcional si hay múltiples grupos)
-                        if  total_groups == 1:
+                        if total_groups == 1:
                             vef_invoice_amount = global_vef_untaxed
                             vef_iva_amount = global_vef_total - global_vef_untaxed
                         else:
-                            # Múltiples grupos: calcular proporcional al porcentaje del grupo sobre el total
-                            total_company_untaxed = tax_totals.get("base_amount_currency", tax_totals.get("base_amount", 1.0)) or 1.0
+                            # Múltiples grupos: proporcional
+                            total_company_untaxed = abs(tax_totals.get('base_amount_currency', 1.0)) or 1.0
                             proportion = invoice_amount_company / total_company_untaxed if total_company_untaxed else 0.0
                             vef_invoice_amount = global_vef_untaxed * proportion
                             vef_iva_amount = (global_vef_total - global_vef_untaxed) * proportion
@@ -1674,10 +1688,7 @@ class AccountRetention(models.Model):
                         # Fallback: convertir usando la tasa directo
                         vef_invoice_amount = invoice_amount_company * foreign_rate
                         vef_iva_amount = iva_amount_company * foreign_rate
-                        vef_invoice_total = (
-                            tax_totals.get("total_amount_currency", tax_totals.get("total_amount", 0.0))
-                            * foreign_rate
-                        )
+                        vef_invoice_total = abs(tax_totals.get('total_amount_currency', 0.0)) * foreign_rate
 
                     # Retención en VEF (siempre)
                     vef_retention_amount = float_round(
