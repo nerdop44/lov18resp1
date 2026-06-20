@@ -603,12 +603,18 @@ class AccountMove(models.Model):
                         if move.currency_id_dif:
                             formatted_val = formatLang(self.env, abs(line.amount_residual_usd), currency_obj=move.currency_id_dif)
                             journal_name = f"{journal_name} ({formatted_val})"
+                        
+                        amount_formatted = formatLang(self.env, 0.0, currency_obj=move.currency_id)
+                        amount_usd_formatted = formatLang(self.env, abs(line.amount_residual_usd), currency_obj=move.currency_id_dif) if move.currency_id_dif else False
+                        
                         payments_widget_vals['content'].append({
                             'journal_name': journal_name,
                             'amount': 0,
+                            'amount_formatted': amount_formatted,
                             'amount_usd': abs(line.amount_residual_usd),
+                            'amount_usd_formatted': amount_usd_formatted,
                             'currency_id': move.currency_id.id,
-                            'currency_id_dif': move.currency_id_dif.id,
+                            'currency_id_dif': move.currency_id_dif.id if move.currency_id_dif else False,
                             'id': line.id,
                             'move_id': line.move_id.id,
                             'date': fields.Date.to_string(line.date),
@@ -647,6 +653,9 @@ class AccountMove(models.Model):
                     continue
 
                 journal_name = line.ref or line.move_id.name
+                amount_formatted = formatLang(self.env, amount, currency_obj=display_currency)
+                amount_usd_formatted = False
+
                 if move.currency_id_dif:
                     if display_currency == move.currency_id_dif:
                         amount_primary = abs(line.amount_residual_currency) if line.currency_id == move.currency_id else line.company_currency_id._convert(
@@ -657,16 +666,20 @@ class AccountMove(models.Model):
                         )
                         formatted_val = formatLang(self.env, amount_primary, currency_obj=move.currency_id)
                         journal_name = f"{journal_name} ({formatted_val})"
+                        amount_usd_formatted = formatted_val
                     else:
                         formatted_val = formatLang(self.env, amount_usd, currency_obj=move.currency_id_dif)
                         journal_name = f"{journal_name} ({formatted_val})"
+                        amount_usd_formatted = formatted_val
 
                 payments_widget_vals['content'].append({
                     'journal_name': journal_name,
                     'amount': amount,
+                    'amount_formatted': amount_formatted,
                     'amount_usd': amount_usd,
+                    'amount_usd_formatted': amount_usd_formatted,
                     'currency_id': display_currency.id,
-                    'currency_id_dif': move.currency_id_dif.id,
+                    'currency_id_dif': move.currency_id_dif.id if move.currency_id_dif else False,
                     'id': line.id,
                     'move_id': line.move_id.id,
                     'date': fields.Date.to_string(line.date),

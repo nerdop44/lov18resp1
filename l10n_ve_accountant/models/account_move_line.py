@@ -162,23 +162,6 @@ class AccountMoveLine(models.Model):
             if line.not_foreign_recalculate:
                 continue
 
-            if line.display_type in ("payment_term", "tax"):
-                line.foreign_debit = (
-                    abs(line.foreign_balance) if line.foreign_balance > 0 else 0.0
-                )
-                line.foreign_credit = (
-                    abs(line.foreign_balance) if line.foreign_balance < 0 else 0.0
-                )
-                # 1 Case: Payment Term
-                # In this case, we don't want to calculate the foreign debit and credit
-                continue
-
-            if line.display_type in ("line_section", "line_note"):
-                line.foreign_debit = line.foreign_credit = 0.0
-                # 2 Case: not Product
-                # In this case, we don't want to calculate the foreign debit and credit
-                continue
-
             if line.foreign_debit_adjustment:
                 line.foreign_debit = abs(line.foreign_debit_adjustment)
                 # 3 Case: Foreign Debit Adjustment
@@ -189,6 +172,28 @@ class AccountMoveLine(models.Model):
                 line.foreign_credit = abs(line.foreign_credit_adjustment)
                 # 4 Case: Foreign Credit Adjustment
                 # In this case, we need to set the foreign credit manually
+                continue
+
+            if line.display_type == "payment_term":
+                line.foreign_debit = (
+                    abs(line.foreign_balance) if line.foreign_balance > 0 else 0.0
+                )
+                line.foreign_credit = (
+                    abs(line.foreign_balance) if line.foreign_balance < 0 else 0.0
+                )
+                # 1 Case: Payment Term
+                # In this case, we don't want to calculate the foreign debit and credit
+                continue
+
+            if line.display_type == "tax":
+                line.foreign_debit = line.debit * line.foreign_inverse_rate
+                line.foreign_credit = line.credit * line.foreign_inverse_rate
+                continue
+
+            if line.display_type in ("line_section", "line_note"):
+                line.foreign_debit = line.foreign_credit = 0.0
+                # 2 Case: not Product
+                # In this case, we don't want to calculate the foreign debit and credit
                 continue
 
             if (
