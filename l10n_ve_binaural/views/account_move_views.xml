@@ -21,10 +21,7 @@
             </xpath>
 
             <xpath expr="//group[@id='header_left_group']/label" position="before">
-                <field name="correlative"
-                    invisible="move_type not in ['out_invoice', 'out_refund', 'in_invoice', 'in_refund']"
-                    readonly="(move_type in ['out_invoice', 'out_refund'] and not is_contingency) or state == 'posted'"
-                    required="move_type in ['in_invoice', 'in_refund']"/>
+                <field name="correlative" invisible="1"/>
             </xpath>
 
             <xpath expr="//field[@name='invoice_date']" position="after">

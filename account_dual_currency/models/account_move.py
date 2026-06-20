@@ -607,28 +607,31 @@ class AccountMove(models.Model):
                             'account_payment_id': line.payment_id.id,
                         })
                         continue
-                if line.currency_id == move.currency_id:
-                    # Same foreign currency.
+                is_retention = line.payment_id.retention_id or False
+                display_currency = move.currency_id_dif if (is_retention and move.currency_id_dif) else move.currency_id
+
+                if line.currency_id == display_currency:
+                    # Same currency.
                     amount = abs(line.amount_residual_currency)
                     amount_usd = abs(line.amount_residual_usd)
                 else:
-                    # Different foreign currencies.
+                    # Different currencies.
                     amount = line.company_currency_id._convert(
                         abs(line.amount_residual),
-                        move.currency_id,
+                        display_currency,
                         move.company_id,
                         line.date,
                     )
                     amount_usd = abs(line.amount_residual_usd)
 
-                if move.currency_id.is_zero(amount):
+                if display_currency.is_zero(amount):
                     continue
 
                 payments_widget_vals['content'].append({
                     'journal_name': line.ref or line.move_id.name,
                     'amount': amount,
                     'amount_usd': amount_usd,
-                    'currency_id': move.currency_id.id,
+                    'currency_id': display_currency.id,
                     'currency_id_dif': move.currency_id_dif.id,
                     'id': line.id,
                     'move_id': line.move_id.id,
