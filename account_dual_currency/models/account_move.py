@@ -593,10 +593,15 @@ class AccountMove(models.Model):
                 payments_widget_vals['title'] = _('Outstanding debits')
 
             for line in self.env['account.move.line'].search(domain):
+                payment = line.payment_id or line.move_id.payment_id
                 if line.debit == 0 and line.credit == 0 and not line.full_reconcile_id:
                     if abs(line.amount_residual_usd) > 0:
+                        journal_name = line.ref or line.move_id.name
+                        if move.currency_id_dif:
+                            formatted_val = formatLang(self.env, abs(line.amount_residual_usd), currency_obj=move.currency_id_dif)
+                            journal_name = f"{journal_name} ({formatted_val})"
                         payments_widget_vals['content'].append({
-                            'journal_name': line.ref or line.move_id.name,
+                            'journal_name': journal_name,
                             'amount': 0,
                             'amount_usd': abs(line.amount_residual_usd),
                             'currency_id': move.currency_id.id,
@@ -604,10 +609,10 @@ class AccountMove(models.Model):
                             'id': line.id,
                             'move_id': line.move_id.id,
                             'date': fields.Date.to_string(line.date),
-                            'account_payment_id': line.payment_id.id,
+                            'account_payment_id': payment.id if payment else False,
                         })
                         continue
-                is_retention = line.payment_id.retention_id or False
+                is_retention = payment.retention_id if (payment and hasattr(payment, 'retention_id')) else False
                 display_currency = move.currency_id_dif if (is_retention and move.currency_id_dif) else move.currency_id
 
                 if line.currency_id == display_currency:
@@ -627,8 +632,23 @@ class AccountMove(models.Model):
                 if display_currency.is_zero(amount):
                     continue
 
+                journal_name = line.ref or line.move_id.name
+                if move.currency_id_dif:
+                    if display_currency == move.currency_id_dif:
+                        amount_primary = abs(line.amount_residual_currency) if line.currency_id == move.currency_id else line.company_currency_id._convert(
+                            abs(line.amount_residual),
+                            move.currency_id,
+                            move.company_id,
+                            line.date,
+                        )
+                        formatted_val = formatLang(self.env, amount_primary, currency_obj=move.currency_id)
+                        journal_name = f"{journal_name} ({formatted_val})"
+                    else:
+                        formatted_val = formatLang(self.env, amount_usd, currency_obj=move.currency_id_dif)
+                        journal_name = f"{journal_name} ({formatted_val})"
+
                 payments_widget_vals['content'].append({
-                    'journal_name': line.ref or line.move_id.name,
+                    'journal_name': journal_name,
                     'amount': amount,
                     'amount_usd': amount_usd,
                     'currency_id': display_currency.id,
@@ -636,7 +656,7 @@ class AccountMove(models.Model):
                     'id': line.id,
                     'move_id': line.move_id.id,
                     'date': fields.Date.to_string(line.date),
-                    'account_payment_id': line.payment_id.id,
+                    'account_payment_id': payment.id if payment else False,
                 })
 
             if not payments_widget_vals['content']:
