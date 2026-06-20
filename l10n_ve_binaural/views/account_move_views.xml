@@ -21,8 +21,11 @@
             </xpath>
 
             <xpath expr="//group[@id='header_left_group']/label" position="before">
-                <!-- Número de Control: visible solo en facturas, gestionado desde la localización -->
-                <field name="correlative" string="Número de Control"
+                <!-- Número de Control: visible solo en facturas, con etiqueta explícita y placeholder para Odoo 18 -->
+                <label for="correlative" string="Número de Control"
+                    invisible="move_type not in ['out_invoice', 'out_refund', 'in_invoice', 'in_refund']"/>
+                <field name="correlative" nolabel="1"
+                    placeholder="Ej: 00-00000001"
                     invisible="move_type not in ['out_invoice', 'out_refund', 'in_invoice', 'in_refund']"
                     readonly="(move_type in ['out_invoice', 'out_refund'] and not is_contingency) or state == 'posted'"
                     required="move_type in ['in_invoice', 'in_refund']"/>
