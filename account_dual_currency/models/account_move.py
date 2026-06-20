@@ -593,7 +593,10 @@ class AccountMove(models.Model):
                 payments_widget_vals['title'] = _('Outstanding debits')
 
             for line in self.env['account.move.line'].search(domain):
-                payment = line.payment_id or line.move_id.payment_id
+                # Odoo 18: payment_id on move.line may be empty; use move's payment_ids as fallback
+                payment = line.payment_id
+                if not payment:
+                    payment = line.move_id.payment_ids[:1] if line.move_id.payment_ids else payment
                 if line.debit == 0 and line.credit == 0 and not line.full_reconcile_id:
                     if abs(line.amount_residual_usd) > 0:
                         journal_name = line.ref or line.move_id.name
@@ -612,7 +615,8 @@ class AccountMove(models.Model):
                             'account_payment_id': payment.id if payment else False,
                         })
                         continue
-                is_retention = payment.retention_id if (payment and hasattr(payment, 'retention_id')) else False
+                # Safely check if the payment has a retention (field from l10n_ve_payment_extension)
+                is_retention = bool(payment and getattr(payment, 'retention_id', False))
                 display_currency = move.currency_id_dif if (is_retention and move.currency_id_dif) else move.currency_id
 
                 if line.currency_id == display_currency:
