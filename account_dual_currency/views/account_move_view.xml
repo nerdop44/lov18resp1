@@ -71,8 +71,8 @@
                 <!-- Inyectar columnas USD al lado del total original -->
                 <xpath expr="//field[@name='amount_total_in_currency_signed']" position="after">
                     <field name="currency_id_dif" readonly="1" optional="show" string="Moneda Ref."/>
-                    <field name="amount_total_usd" sum="Total Ref." optional="show" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
-                    <field name="amount_residual_usd" sum="Saldo Ref." optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                    <field name="amount_total_usd" sum="Total Bs." optional="show" widget="monetary" options="{'currency_field': 'currency_id_dif'}" string="Total Bs."/>
+                    <field name="amount_residual_usd" sum="Saldo Bs." optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}" string="Saldo Bs."/>
                 </xpath>
                 <!-- Hacer opcional el Total original para permitir su ocultación -->
                 <xpath expr="//field[@name='amount_total_in_currency_signed']" position="attributes">
@@ -92,8 +92,8 @@
                 </xpath>
                 <xpath expr="//field[@name='state']" position="before">
                     <field name="currency_id_dif" readonly="1" optional="show" string="Moneda Ref."/>
-                    <field name="amount_total_usd" sum="Total Ref." optional="show" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
-                    <field name="amount_residual_usd" sum="Saldo Ref." optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                    <field name="amount_total_usd" sum="Total Bs." optional="show" widget="monetary" options="{'currency_field': 'currency_id_dif'}" string="Total Bs."/>
+                    <field name="amount_residual_usd" sum="Saldo Bs." optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}" string="Saldo Bs."/>
                 </xpath>
             </field>
         </record>

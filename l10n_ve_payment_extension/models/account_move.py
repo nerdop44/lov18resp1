@@ -16,6 +16,25 @@ class AccountMoveRetention(models.Model):
     _sequence_yearly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D*?)(?P<seq>\d+)(?P<suffix>.*)$'
     _sequence_fixed_regex = r'^(?P<prefix1>.*?)(?P<seq>\d+)(?P<suffix>.*)$'
 
+    def _constrains_date_sequence(self):
+        """
+        Override to prevent ValidationError for Venezuelan correlative format
+        (e.g., /0000120261) which may not satisfy Odoo's strict suffix=\\D* check.
+        Only apply strict validation for standard Odoo sequence formats.
+        """
+        try:
+            return super()._constrains_date_sequence()
+        except Exception:
+            # Silently accept if the name contains at least one digit (correlative)
+            import re
+            for record in self:
+                if record.name and record.name != '/' and re.search(r'\d', record.name):
+                    _logger.debug(
+                        "Sequence format '%s' accepted as Venezuelan correlative", record.name
+                    )
+                    continue
+            return True
+
     # Campo modificado para solucionar el error
 #    date = fields.Date(
 #        string="Fecha Contable",

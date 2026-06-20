@@ -616,7 +616,17 @@ class AccountMove(models.Model):
                         })
                         continue
                 # Safely check if the payment has a retention (field from l10n_ve_payment_extension)
-                is_retention = bool(payment and getattr(payment, 'retention_id', False))
+                is_retention = (
+                    bool(payment and getattr(payment, 'retention_id', False))
+                    or bool(getattr(line.move_id, 'is_retention', False))
+                )
+                # For retention moves without account.payment, check move ref pattern
+                if not is_retention and not payment:
+                    move_name = line.move_id.name or ''
+                    is_retention = bool(
+                        getattr(line.move_id, 'retention_islr_line_ids', False)
+                        or getattr(line.move_id, 'retention_iva_line_ids', False)
+                    )
                 display_currency = move.currency_id_dif if (is_retention and move.currency_id_dif) else move.currency_id
 
                 if line.currency_id == display_currency:
