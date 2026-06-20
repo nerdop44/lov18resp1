@@ -8,13 +8,6 @@ _logger = logging.getLogger(__name__)
 class AccountMoveRetention(models.Model):
     _inherit = "account.move"
 
-    # Sobrescribimos los regex de SequenceMixin para permitir dígitos en el sufijo.
-    # El regex original de Odoo 18 termina en '(?P<suffix>\\D*)$' lo que prohíbe números al final.
-    # Cambiamos \\D* por .* para que acepte el número de factura y concepto al final del correlativo.
-    # FIX: Se cambia \d* a \d+ para seq, previniendo que sea vacío debido a la codicia del sufijo (.*)
-    _sequence_monthly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D*?)(?P<month>(0[1-9]|1[0-2]))(?P<prefix3>\D*?)(?P<seq>\d+)(?P<suffix>.*)$'
-    _sequence_yearly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D*?)(?P<seq>\d+)(?P<suffix>.*)$'
-    _sequence_fixed_regex = r'^(?P<prefix1>.*?)(?P<seq>\d+)(?P<suffix>.*)$'
 
     def _constrains_date_sequence(self):
         """
