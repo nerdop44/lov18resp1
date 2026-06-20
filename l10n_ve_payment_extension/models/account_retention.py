@@ -1522,6 +1522,81 @@ class AccountRetention(models.Model):
                 Detalles técnicos: %s
             """) % (payment.name, str(e)))
 
+    def _reconcile_customer_payment(self, payment):
+        """
+        Reconciliación de pagos de clientes para retenciones
+        Args:
+            payment (account.payment): Pago a reconciliar
+        Raises:
+            UserError: Si hay problemas con la reconciliación
+        """
+        _logger.info(f"Reconciliando pago de cliente ID: {payment.id}")
+    
+        # Validación básica del pago
+        if not payment.move_id:
+            error_msg = f"El pago {payment.id} no tiene asiento contable asociado"
+            _logger.error(error_msg)
+            raise UserError(_("El pago no tiene asiento contable. Por favor valide la configuración."))
+    
+        # Identificar líneas a reconciliar según tipo de pago
+        if payment.payment_type == "inbound":
+            line_filter = lambda l: (
+                l.account_id.account_type == "asset_receivable" and 
+                l.credit > 0
+            )
+        else:  # outbound (reembolsos/notas de crédito)
+            line_filter = lambda l: (
+                l.account_id.account_type == "asset_receivable" and 
+                l.debit > 0
+            )
+    
+        lineas_a_reconciliar = payment.move_id.line_ids.filtered(line_filter)
+    
+        if not lineas_a_reconciliar:
+            error_msg = f"No hay líneas a reconciliar en pago {payment.id}"
+            _logger.error(error_msg)
+            raise UserError(_("""
+                No se encontraron líneas contables para reconciliar. 
+                Verifique:
+                1. La configuración de cuentas por cobrar
+                2. Que el pago esté correctamente contabilizado
+            """))
+    
+        try:
+            linea_pago = lineas_a_reconciliar[0]
+            facturas = payment.retention_line_ids.mapped('move_id')
+        
+            if not facturas:
+                raise UserError(_("No hay facturas asociadas a este pago"))
+        
+            for factura in facturas:
+                if not factura.exists():
+                    _logger.warning(f"Factura {factura.id} no existe, omitiendo")
+                    continue
+                linea_factura = factura.line_ids.filtered(
+                    lambda l: l.account_id.account_type == 'asset_receivable'
+                    and not l.reconciled
+                    and l.debit > 0
+                )
+                if linea_factura and linea_pago:
+                    (linea_factura + linea_pago).reconcile()
+                    _logger.info(f"Factura {factura.id} reconciliada con pago {payment.id}")
+                else:
+                    _logger.warning(
+                        f"No se pudo reconciliar factura {factura.id}: "
+                        f"linea_factura={linea_factura.ids}, linea_pago={linea_pago.id if linea_pago else 'None'}"
+                    )
+            
+            _logger.info(f"Pago {payment.id} reconciliado exitosamente con facturas {facturas.ids}")
+        
+        except Exception as e:
+            error_msg = f"Error reconciliando pago {payment.id}: {str(e)}"
+            _logger.error(error_msg)
+            raise UserError(_("""
+                Error al reconciliar el pago: %s
+                Detalles técnicos: %s
+            """) % (payment.name, str(e)))
+
     @api.model
     def compute_retention_lines_data(self, invoice_id, payment=None):
         """

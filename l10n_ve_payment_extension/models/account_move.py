@@ -92,9 +92,7 @@ class AccountMoveRetention(models.Model):
 
     def _compute_currency_fields(self):
         for retention in self:
-            retention.base_currency_is_vef = self.env.company.currency_id == self.env.ref(
-                "base.VEF"
-            )
+            retention.base_currency_is_vef = bool(self.env.company.currency_id and self.env.company.currency_id.name in ('VEF', 'VES'))
 
     def action_post(self):
         """
@@ -189,10 +187,7 @@ class AccountMoveRetention(models.Model):
         retention to be created.
         """
         self.ensure_one()
-##########
-        if not self.env.context.get('force_single', False):
-            raise UserError(_("This method should be called in a single record context."))
-######
+
         if not self.env.company.islr_supplier_retention_journal_id:
             raise UserError(_("The company must have a journal for ISLR supplier retention."))
         islr_retention = self.retention_islr_line_ids
@@ -214,10 +209,7 @@ class AccountMoveRetention(models.Model):
         at least one tax, in order for the IVA retention to be created.
         """
         self.ensure_one()
-##########
-        if not self.env.context.get('force_single', False):
-            raise UserError(_("This method should be called in a single record context."))
-############
+
 
         if not self.env.company.iva_supplier_retention_journal_id:
             raise UserError(_("The company must have a journal for IVA supplier retention."))
@@ -230,10 +222,7 @@ class AccountMoveRetention(models.Model):
         municipal retention to be created.
         """
         self.ensure_one()
-###########
-        if not self.env.context.get('force_single', False):
-            raise UserError(_("This method should be called in a single record context."))
-#######
+
         if not self.env.company.municipal_supplier_retention_journal_id:
             raise UserError(_("The company must have a journal for municipal supplier retention."))
 

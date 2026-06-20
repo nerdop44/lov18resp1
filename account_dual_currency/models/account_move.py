@@ -561,6 +561,7 @@ class AccountMove(models.Model):
         return res
 
 
+    @api.depends('state', 'payment_state', 'line_ids.reconciled', 'line_ids.amount_residual', 'line_ids.amount_residual_currency')
     def _compute_payments_widget_to_reconcile_info(self):
         for move in self:
             move.invoice_outstanding_credits_debits_widget = False

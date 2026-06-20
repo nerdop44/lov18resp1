@@ -23,8 +23,9 @@ class BinauralPaymentExtensionRetentionIvaVoucher(models.AbstractModel):
         }
 
     def get_digits(self):
-        decimal_places = self.env.ref("base.VEF").decimal_places
-        return decimal_places
+        vef = self.env['res.currency'].search([('name', 'in', ('VEF', 'VES'))], limit=1)
+        return vef.decimal_places if vef else 2
 
     def get_foreign_currency_is_vef(self):
-        return self.env.company.currency_foreign_id == self.env.ref("base.VEF")
+        return bool(self.env.company.currency_foreign_id and self.env.company.currency_foreign_id.name in ('VEF', 'VES'))
+
