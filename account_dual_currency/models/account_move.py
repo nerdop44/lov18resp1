@@ -615,6 +615,11 @@ class AccountMove(models.Model):
                         journal_name = line.ref or line.move_id.name
                         if journal_name:
                             journal_name = journal_name.replace("Retención", "Ret.").replace("Retencion", "Ret.")
+                            parts = journal_name.split()
+                            for idx, part in enumerate(parts):
+                                if part.isdigit() and len(part) > 8:
+                                    parts[idx] = f"*{part[-5:]}"
+                            journal_name = " ".join(parts)
                         
                         if currency_dif:
                             amount_sec = line.company_currency_id._convert(
@@ -681,6 +686,11 @@ class AccountMove(models.Model):
                 journal_name = line.ref or line.move_id.name
                 if journal_name:
                     journal_name = journal_name.replace("Retención", "Ret.").replace("Retencion", "Ret.")
+                    parts = journal_name.split()
+                    for idx, part in enumerate(parts):
+                        if part.isdigit() and len(part) > 8:
+                            parts[idx] = f"*{part[-5:]}"
+                    journal_name = " ".join(parts)
                 
                 amount_formatted = formatLang(self.env, amount, currency_obj=display_currency)
                 amount_usd_formatted = False
