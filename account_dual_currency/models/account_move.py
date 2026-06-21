@@ -607,16 +607,28 @@ class AccountMove(models.Model):
                 payment = line.payment_id
                 if not payment:
                     payment = line.move_id.payment_ids[:1] if line.move_id.payment_ids else payment
+                
+                currency_dif = move.currency_id_dif_resolved
+                
                 if line.debit == 0 and line.credit == 0 and not line.full_reconcile_id:
                     if abs(line.amount_residual_usd) > 0:
                         journal_name = line.ref or line.move_id.name
-                        if move.currency_id_dif:
-                            formatted_val = formatLang(self.env, abs(line.amount_residual_usd), currency_obj=move.currency_id_dif)
+                        if journal_name:
+                            journal_name = journal_name.replace("Retención", "Ret.").replace("Retencion", "Ret.")
+                        
+                        if currency_dif:
+                            amount_sec = line.company_currency_id._convert(
+                                abs(line.amount_residual),
+                                currency_dif,
+                                move.company_id,
+                                line.date or fields.Date.context_today(self),
+                            )
+                            formatted_val = formatLang(self.env, amount_sec, currency_obj=currency_dif)
                             amount_formatted = formatLang(self.env, 0.0, currency_obj=move.currency_id)
-                            journal_name = f"({amount_formatted} / {formatted_val}) {journal_name}"
+                            journal_name = f"{journal_name} ({amount_formatted} / {formatted_val})"
                         
                         amount_formatted = formatLang(self.env, 0.0, currency_obj=move.currency_id)
-                        amount_usd_formatted = formatLang(self.env, abs(line.amount_residual_usd), currency_obj=move.currency_id_dif) if move.currency_id_dif else False
+                        amount_usd_formatted = formatLang(self.env, abs(line.amount_residual_usd), currency_obj=currency_dif) if currency_dif else False
                         
                         payments_widget_vals['content'].append({
                             'journal_name': journal_name,
@@ -625,7 +637,7 @@ class AccountMove(models.Model):
                             'amount_usd': abs(line.amount_residual_usd),
                             'amount_usd_formatted': amount_usd_formatted,
                             'currency_id': move.currency_id.id,
-                            'currency_id_dif': move.currency_id_dif.id if move.currency_id_dif else False,
+                            'currency_id_dif': currency_dif.id if currency_dif else False,
                             'id': line.id,
                             'move_id': line.move_id.id,
                             'date': fields.Date.to_string(line.date),
@@ -644,7 +656,10 @@ class AccountMove(models.Model):
                         getattr(line.move_id, 'retention_islr_line_ids', False)
                         or getattr(line.move_id, 'retention_iva_line_ids', False)
                     )
-                display_currency = move.currency_id_dif if (is_retention and move.currency_id_dif) else move.currency_id
+                if not is_retention:
+                    is_retention = 'ret' in (line.journal_id.code or '').lower() or 'ret' in (line.journal_id.name or '').lower()
+                
+                display_currency = currency_dif if (is_retention and currency_dif) else move.currency_id
 
                 if line.currency_id == display_currency:
                     # Same currency.
@@ -664,11 +679,14 @@ class AccountMove(models.Model):
                     continue
 
                 journal_name = line.ref or line.move_id.name
+                if journal_name:
+                    journal_name = journal_name.replace("Retención", "Ret.").replace("Retencion", "Ret.")
+                
                 amount_formatted = formatLang(self.env, amount, currency_obj=display_currency)
                 amount_usd_formatted = False
 
-                if move.currency_id_dif:
-                    if display_currency == move.currency_id_dif:
+                if currency_dif:
+                    if display_currency == currency_dif:
                         amount_primary = abs(line.amount_residual_currency) if line.currency_id == move.currency_id else line.company_currency_id._convert(
                             abs(line.amount_residual),
                             move.currency_id,
@@ -676,11 +694,17 @@ class AccountMove(models.Model):
                             line.date,
                         )
                         formatted_val = formatLang(self.env, amount_primary, currency_obj=move.currency_id)
-                        journal_name = f"({formatted_val} / {amount_formatted}) {journal_name}"
+                        journal_name = f"{journal_name} ({formatted_val} / {amount_formatted})"
                         amount_usd_formatted = formatted_val
                     else:
-                        formatted_val = formatLang(self.env, amount_usd, currency_obj=move.currency_id_dif)
-                        journal_name = f"({amount_formatted} / {formatted_val}) {journal_name}"
+                        amount_sec = line.company_currency_id._convert(
+                            abs(line.amount_residual),
+                            currency_dif,
+                            move.company_id,
+                            line.date or fields.Date.context_today(self),
+                        )
+                        formatted_val = formatLang(self.env, amount_sec, currency_obj=currency_dif)
+                        journal_name = f"{journal_name} ({amount_formatted} / {formatted_val})"
                         amount_usd_formatted = formatted_val
 
                 payments_widget_vals['content'].append({
@@ -690,7 +714,7 @@ class AccountMove(models.Model):
                     'amount_usd': amount_usd,
                     'amount_usd_formatted': amount_usd_formatted,
                     'currency_id': display_currency.id,
-                    'currency_id_dif': move.currency_id_dif.id if move.currency_id_dif else False,
+                    'currency_id_dif': currency_dif.id if currency_dif else False,
                     'id': line.id,
                     'move_id': line.move_id.id,
                     'date': fields.Date.to_string(line.date),
