@@ -33,6 +33,15 @@ class AccountMove(models.Model):
     currency_vef_id = fields.Many2one("res.currency", related="currency_id_dif", string="Moneda VEF (Compatibilidad)")
     vef_currency_id = fields.Many2one("res.currency", related="currency_id_dif", string="Moneda VEF (Compatibilidad 2)")
 
+    currency_id_dif_resolved = fields.Many2one("res.currency",
+                                               string="Moneda Dual Ref. Resuelta",
+                                               compute="_compute_currency_id_dif_resolved")
+
+    @api.depends('company_id.currency_id_dif', 'currency_id_dif')
+    def _compute_currency_id_dif_resolved(self):
+        for rec in self:
+            rec.currency_id_dif_resolved = rec.company_id.currency_id_dif or rec.currency_id_dif
+
     acuerdo_moneda = fields.Boolean(string="Acuerdo de Factura Bs.", default=False)
 
     tax_today = fields.Float(string="Tasa de Factura", store=True,
