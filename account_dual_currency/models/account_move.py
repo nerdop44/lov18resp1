@@ -611,7 +611,8 @@ class AccountMove(models.Model):
                         journal_name = line.ref or line.move_id.name
                         if move.currency_id_dif:
                             formatted_val = formatLang(self.env, abs(line.amount_residual_usd), currency_obj=move.currency_id_dif)
-                            journal_name = f"{journal_name} ({formatted_val})"
+                            amount_formatted = formatLang(self.env, 0.0, currency_obj=move.currency_id)
+                            journal_name = f"{journal_name} ({amount_formatted} / {formatted_val})"
                         
                         amount_formatted = formatLang(self.env, 0.0, currency_obj=move.currency_id)
                         amount_usd_formatted = formatLang(self.env, abs(line.amount_residual_usd), currency_obj=move.currency_id_dif) if move.currency_id_dif else False
@@ -674,11 +675,11 @@ class AccountMove(models.Model):
                             line.date,
                         )
                         formatted_val = formatLang(self.env, amount_primary, currency_obj=move.currency_id)
-                        journal_name = f"{journal_name} ({formatted_val})"
+                        journal_name = f"{journal_name} ({formatted_val} / {amount_formatted})"
                         amount_usd_formatted = formatted_val
                     else:
                         formatted_val = formatLang(self.env, amount_usd, currency_obj=move.currency_id_dif)
-                        journal_name = f"{journal_name} ({formatted_val})"
+                        journal_name = f"{journal_name} ({amount_formatted} / {formatted_val})"
                         amount_usd_formatted = formatted_val
 
                 payments_widget_vals['content'].append({
