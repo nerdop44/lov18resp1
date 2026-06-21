@@ -612,7 +612,7 @@ class AccountMove(models.Model):
                 
                 if line.debit == 0 and line.credit == 0 and not line.full_reconcile_id:
                     if abs(line.amount_residual_usd) > 0:
-                        journal_name = line.ref or line.move_id.name
+                        journal_name = (payment.name if payment else False) or line.ref or line.move_id.name
                         if journal_name:
                             journal_name = journal_name.replace("Retención", "Ret.").replace("Retencion", "Ret.")
                             parts = journal_name.split()
@@ -683,7 +683,7 @@ class AccountMove(models.Model):
                 if display_currency.is_zero(amount):
                     continue
 
-                journal_name = line.ref or line.move_id.name
+                journal_name = (payment.name if payment else False) or line.ref or line.move_id.name
                 if journal_name:
                     journal_name = journal_name.replace("Retención", "Ret.").replace("Retencion", "Ret.")
                     parts = journal_name.split()
