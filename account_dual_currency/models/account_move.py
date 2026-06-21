@@ -35,7 +35,8 @@ class AccountMove(models.Model):
 
     currency_id_dif_resolved = fields.Many2one("res.currency",
                                                string="Moneda Dual Ref. Resuelta",
-                                               compute="_compute_currency_id_dif_resolved")
+                                               compute="_compute_currency_id_dif_resolved",
+                                               store=True)
 
     @api.depends('company_id.currency_id_dif', 'currency_id_dif')
     def _compute_currency_id_dif_resolved(self):
@@ -612,7 +613,7 @@ class AccountMove(models.Model):
                         if move.currency_id_dif:
                             formatted_val = formatLang(self.env, abs(line.amount_residual_usd), currency_obj=move.currency_id_dif)
                             amount_formatted = formatLang(self.env, 0.0, currency_obj=move.currency_id)
-                            journal_name = f"{journal_name} ({amount_formatted} / {formatted_val})"
+                            journal_name = f"({amount_formatted} / {formatted_val}) {journal_name}"
                         
                         amount_formatted = formatLang(self.env, 0.0, currency_obj=move.currency_id)
                         amount_usd_formatted = formatLang(self.env, abs(line.amount_residual_usd), currency_obj=move.currency_id_dif) if move.currency_id_dif else False
@@ -675,11 +676,11 @@ class AccountMove(models.Model):
                             line.date,
                         )
                         formatted_val = formatLang(self.env, amount_primary, currency_obj=move.currency_id)
-                        journal_name = f"{journal_name} ({formatted_val} / {amount_formatted})"
+                        journal_name = f"({formatted_val} / {amount_formatted}) {journal_name}"
                         amount_usd_formatted = formatted_val
                     else:
                         formatted_val = formatLang(self.env, amount_usd, currency_obj=move.currency_id_dif)
-                        journal_name = f"{journal_name} ({amount_formatted} / {formatted_val})"
+                        journal_name = f"({amount_formatted} / {formatted_val}) {journal_name}"
                         amount_usd_formatted = formatted_val
 
                 payments_widget_vals['content'].append({
