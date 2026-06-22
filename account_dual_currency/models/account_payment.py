@@ -146,8 +146,12 @@ class AccountPayment(models.Model):
             move_id.action_post()
         return True
 
-    def _prepare_move_line_default_vals(self, write_off_line_vals=None):
-        res = super()._prepare_move_line_default_vals(write_off_line_vals)
+    def _prepare_move_line_default_vals(self, write_off_line_vals=None, force_balance=None, **kwargs):
+        res = super()._prepare_move_line_default_vals(
+            write_off_line_vals=write_off_line_vals,
+            force_balance=force_balance,
+            **kwargs
+        )
         total_debit = 0
         total_credit = 0
         if res:
