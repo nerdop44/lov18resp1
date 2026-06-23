@@ -355,6 +355,25 @@ class AccountRetentionLine(models.Model):
                     record.related_amount_subtract_fees = line.tariff_id.amount_subtract if line.tariff_id else 0.0
                     break
 
+    @api.onchange("payment_concept_id", "move_id")
+    def _onchange_concept_or_move(self):
+        """
+        Resetea los montos de retención para clientes si se cambia la factura o el concepto de pago.
+        Esto permite que el método de computo determine que el valor anterior ya no es válido y calcule los nuevos montos.
+        """
+        for record in self:
+            if record.retention_id and record.retention_id.type == 'out_invoice':
+                record.retention_amount = 0.0
+                record.foreign_retention_amount = 0.0
+
+    @api.onchange(
+        "move_id",
+        "payment_concept_id",
+        "economic_activity_id",
+        "related_percentage_tax_base",
+        "related_percentage_fees",
+        "related_amount_subtract_fees",
+    )
     @api.depends(
         "move_id",
         "move_id.tax_totals",
