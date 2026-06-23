@@ -1056,7 +1056,7 @@ class AccountRetention(models.Model):
 
                 # VALIDACIONES ESPECÍFICAS PARA ISLR (NUEVO)
                 if retention.type_retention == 'islr':
-                    if not retention.partner_id.type_person_id:
+                    if not (retention.partner_id.type_person_id or retention.partner_id.commercial_partner_id.type_person_id):
                         raise UserError(_("Para retenciones ISLR, el partner debe tener tipo de persona configurado"))
                 
                     if not all(line.payment_concept_id for line in retention.retention_line_ids):
@@ -1423,7 +1423,7 @@ class AccountRetention(models.Model):
         Validates the partner has a type person and all the retention lines have a payment concept.
         """
         self.ensure_one()
-        if not self.partner_id.type_person_id:
+        if not (self.partner_id.type_person_id or self.partner_id.commercial_partner_id.type_person_id):
             raise UserError(_("Select a type person"))
         if not any(self.retention_line_ids.filtered(lambda l: l.payment_concept_id)):
             raise UserError(_("Select a payment concept"))

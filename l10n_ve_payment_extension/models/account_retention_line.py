@@ -324,7 +324,7 @@ class AccountRetentionLine(models.Model):
 
     # =========== CAMBIO AQUÍ ===========
     @api.onchange("payment_concept_id", "move_id")
-    @api.depends("payment_concept_id", "move_id", "move_id.partner_id.type_person_id")
+    @api.depends("payment_concept_id", "move_id", "move_id.partner_id.type_person_id", "move_id.partner_id.commercial_partner_id.type_person_id")
     def _compute_related_fields(self):
         """
         Calcula los campos relacionados con el concepto de pago para retenciones ISLR.
@@ -342,13 +342,15 @@ class AccountRetentionLine(models.Model):
             if not record.move_id or not record.payment_concept_id:
                 continue
 
-            if not record.move_id.partner_id.type_person_id:
+            partner = record.move_id.partner_id
+            partner_person_type = partner.type_person_id or partner.commercial_partner_id.type_person_id
+            if not partner_person_type:
                 continue
 
-            partner_person_type_id = record.move_id.partner_id.type_person_id.id
+            partner_person_type_name = partner_person_type.name
             payment_concept = record.payment_concept_id.line_payment_concept_ids
             for line in payment_concept:
-                if partner_person_type_id == line.type_person_id.id:
+                if line.type_person_id and partner_person_type_name == line.type_person_id.name:
                     record.related_pay_from = line.pay_from or 0.0
                     record.related_percentage_tax_base = line.percentage_tax_base or 0.0
                     record.related_percentage_fees = line.tariff_id.percentage if line.tariff_id else 0.0
@@ -459,10 +461,13 @@ class AccountRetentionLine(models.Model):
                     (computed_invoice_amount * (record.related_percentage_tax_base / 100))
                     * (record.related_percentage_fees / 100)
                 ) - (record.related_amount_subtract_fees / foreign_rate if foreign_rate else 0.0)
+                computed_retention_amount = max(computed_retention_amount, 0.0)
+
                 computed_foreign_retention_amount = (
                     (computed_foreign_invoice_amount * (record.related_percentage_tax_base / 100))
                     * (record.related_percentage_fees / 100)
                 ) - record.related_amount_subtract_fees
+                computed_foreign_retention_amount = max(computed_foreign_retention_amount, 0.0)
             elif type_retention == 'municipal':
                 aliquot = record.economic_activity_id.aliquot or 0.0
                 computed_retention_amount = computed_invoice_amount * aliquot / 100.0
