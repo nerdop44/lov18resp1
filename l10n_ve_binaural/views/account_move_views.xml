@@ -20,7 +20,7 @@
                 <attribute name="placeholder">JRNL/2016/00001</attribute>
             </xpath>
 
-            <xpath expr="//group[@id='header_left_group']/label" position="before">
+            <xpath expr="//group[@id='header_left_group']/div[1]" position="after">
                 <field name="correlative"
                     invisible="move_type not in ['out_invoice', 'out_refund', 'in_invoice', 'in_refund']"
                     readonly="(move_type in ['out_invoice', 'out_refund'] and not is_contingency) or state == 'posted'"

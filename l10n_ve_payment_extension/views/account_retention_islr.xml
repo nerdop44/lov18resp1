@@ -12,6 +12,9 @@
 						<button name="action_draft" type="object" invisible="state != 'cancel'" string="Convertir a borrador"/>
 						<button name="action_post" type="object" invisible="state != 'draft'" string="Aprobar" class="oe_highlight"/>
 						<button name="action_cancel" type="object" invisible="state != 'emitted'" string="Cancelar" confirm="¿Está seguro de cancelar este comprobante? Los asientos contables asociados serán revertidos."/>
+						<button name="action_reset_retention" type="object" invisible="state == 'draft'" 
+								string="Restablecer Retención" groups="base.group_system"
+								confirm="¿Está seguro de restablecer este comprobante? Se eliminarán los pagos asociados y se limpiarán los números de retención de las facturas."/>
 						<field name="state" widget="statusbar" nolabel="1"/>
 					</header>
 					<group colspan="4" col="4">

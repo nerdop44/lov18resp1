@@ -1270,6 +1270,29 @@ class AccountRetention(models.Model):
         self.write({"state": "cancel"})
         self.clear_islr_retention_number()
 
+    def action_reset_retention(self):
+        if not self.env.user.has_group('base.group_system'):
+            raise UserError(_("Only system administrators can reset retention vouchers."))
+        for record in self:
+            if record.payment_ids:
+                record.payment_ids.mapped("move_id.line_ids").remove_move_reconcile()
+                record.payment_ids.action_draft()
+                record.payment_ids.action_cancel()
+                record.payment_ids.unlink()
+            for line in record.retention_line_ids:
+                if line.move_id:
+                    line.move_id.write({
+                        "iva_voucher_number": False,
+                        "islr_voucher_number": False,
+                        "municipal_voucher_number": False,
+                    })
+            record.retention_line_ids.unlink()
+            record.write({
+                "original_lines_per_invoice_counter": False,
+                "state": "draft",
+            })
+
+
     def create_payment_from_retention_form(self):
         _logger.info("Entrando en create_payment_from_retention_form (VERSION DE LOGGING)")
         # ... (el resto del código de la función) ...

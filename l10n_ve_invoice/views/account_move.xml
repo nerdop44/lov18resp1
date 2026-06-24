@@ -21,7 +21,7 @@
 		<attribute name="placeholder">JRNL/2016/00001</attribute>
             </field>
 
-            <xpath expr="//group[@id='header_left_group']/label" position="before">
+            <xpath expr="//group[@id='header_left_group']/div[1]" position="after">
                 <!-- attrs of "correlative" is overwritten in binaural_commissions/account_move_views.xml -->
                 <field name="correlative"
                     invisible="move_type not in ['out_invoice', 'out_refund', 'in_invoice', 'in_refund']"
