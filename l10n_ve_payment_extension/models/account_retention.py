@@ -1300,10 +1300,11 @@ class AccountRetention(models.Model):
             self.env.invalidate_all()
 
             # Now safely delete the records bypassing custom unlink hooks
+            from odoo.models import BaseModel
             if payments:
-                super(type(payments), payments).unlink()
+                BaseModel.unlink(payments)
             if lines:
-                super(type(lines), lines).unlink()
+                BaseModel.unlink(lines)
 
             # Reset the retention state to draft
             record.with_context(skip_safe_create_payments=True).write({
