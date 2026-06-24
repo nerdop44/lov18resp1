@@ -489,12 +489,14 @@ class AccountRetention(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         res = super().create(vals_list)
-        res._safe_create_payments()
+        if not self._context.get("skip_safe_create_payments"):
+            res._safe_create_payments()
         return res
 
     def write(self, vals):
         res = super().write(vals)
-        self._safe_create_payments()
+        if not self._context.get("skip_safe_create_payments"):
+            self._safe_create_payments()
         return res
 
     def action_generate_payment(self):
@@ -1297,14 +1299,14 @@ class AccountRetention(models.Model):
             # Invalidate all caches to ensure the ORM is aware of the DB state
             self.env.invalidate_all()
 
-            # Now safely delete the records
+            # Now safely delete the records bypassing custom unlink hooks
             if payments:
-                payments.unlink()
+                super(type(payments), payments).unlink()
             if lines:
                 super(type(lines), lines).unlink()
 
             # Reset the retention state to draft
-            record.write({
+            record.with_context(skip_safe_create_payments=True).write({
                 "original_lines_per_invoice_counter": False,
                 "state": "draft",
             })
