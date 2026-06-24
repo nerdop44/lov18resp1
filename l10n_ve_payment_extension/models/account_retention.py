@@ -1290,23 +1290,24 @@ class AccountRetention(models.Model):
                         "municipal_voucher_number": False,
                     })
 
-            # Dissociate lines from payments to prevent cyclic deletes
+            # Dissociate lines from payments in the DB
             if lines:
                 lines.write({"payment_id": False})
 
-            # Clear references on the voucher before deleting target records
+            # Invalidate all caches to ensure the ORM is aware of the DB state
+            self.env.invalidate_all()
+
+            # Now safely delete the records
+            if payments:
+                payments.unlink()
+            if lines:
+                super(type(lines), lines).unlink()
+
+            # Reset the retention state to draft
             record.write({
-                "payment_ids": [Command.clear()],
-                "retention_line_ids": [Command.clear()],
                 "original_lines_per_invoice_counter": False,
                 "state": "draft",
             })
-
-            # Safely delete records
-            if lines:
-                super(type(lines), lines).unlink()
-            if payments:
-                payments.unlink()
 
 
     def create_payment_from_retention_form(self):
