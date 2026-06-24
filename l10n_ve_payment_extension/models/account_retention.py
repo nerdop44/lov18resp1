@@ -1274,23 +1274,39 @@ class AccountRetention(models.Model):
         if not self.env.user.has_group('base.group_system'):
             raise UserError(_("Only system administrators can reset retention vouchers."))
         for record in self:
-            if record.payment_ids:
-                record.payment_ids.mapped("move_id.line_ids").remove_move_reconcile()
-                record.payment_ids.action_draft()
-                record.payment_ids.action_cancel()
-                record.payment_ids.unlink()
-            for line in record.retention_line_ids:
+            payments = record.payment_ids
+            lines = record.retention_line_ids
+
+            if payments:
+                payments.mapped("move_id.line_ids").remove_move_reconcile()
+                payments.action_draft()
+                payments.action_cancel()
+
+            for line in lines:
                 if line.move_id:
                     line.move_id.write({
                         "iva_voucher_number": False,
                         "islr_voucher_number": False,
                         "municipal_voucher_number": False,
                     })
-            record.retention_line_ids.unlink()
+
+            # Dissociate lines from payments to prevent cyclic deletes
+            if lines:
+                lines.write({"payment_id": False})
+
+            # Clear references on the voucher before deleting target records
             record.write({
+                "payment_ids": [Command.clear()],
+                "retention_line_ids": [Command.clear()],
                 "original_lines_per_invoice_counter": False,
                 "state": "draft",
             })
+
+            # Safely delete records
+            if lines:
+                super(type(lines), lines).unlink()
+            if payments:
+                payments.unlink()
 
 
     def create_payment_from_retention_form(self):
