@@ -140,43 +140,58 @@ class ResCurrency(models.Model):
                           'AppleWebKit/537.36 (KHTML, like Gecko) '
                           'Chrome/58.0.3029.110 Safari/537.36'
         }
+        val_usd = 0.0
+        val_eur = 0.0
+        success = False
+
         try:
             req = requests.get(url, headers=headers, verify=False, timeout=25)
-        except Exception as e:
-            return False
+            if req.status_code == 200:
+                html = BeautifulSoup(req.text, "html.parser")
 
-        if req.status_code == 200:
-            html = BeautifulSoup(req.text, "html.parser")
+                # --- USD ---
+                dolar_tag = html.find('div', {'id': 'dolar'})
+                if dolar_tag:
+                    val_usd_str = dolar_tag.find('strong').text.strip()
+                    val_usd = float(val_usd_str.replace('.', '').replace(',', '.'))
+                    if val_usd > 0.0:
+                        success = True
 
-            # --- USD ---
-            dolar_tag = html.find('div', {'id': 'dolar'})
-            if not dolar_tag:
-                return False
-            try:
-                val_usd_str = dolar_tag.find('strong').text.strip()
-                val_usd = float(val_usd_str.replace('.', '').replace(',', '.'))
-            except Exception:
-                return False
-
-            # --- EUR ---
-            euro_tag = html.find('div', {'id': 'euro'})
-            if not euro_tag:
-                val_eur = 0.0
-            else:
-                try:
+                # --- EUR ---
+                euro_tag = html.find('div', {'id': 'euro'})
+                if euro_tag:
                     val_eur_str = euro_tag.find('strong').text.strip()
                     val_eur = float(val_eur_str.replace('.', '').replace(',', '.'))
-                except Exception:
-                    val_eur = 0.0
+        except Exception as e:
+            _logger.warning(f"Error scraping BCV website: {e}")
 
+        if success:
             if curr_name == 'USD':
                 return val_usd
-            elif curr_name == 'EUR':
+            elif curr_name == 'EUR' and val_eur > 0.0:
                 return val_eur
-            else:
-                return False
-        else:
-            return False
+
+        # Fallback a DolarApi
+        _logger.info("BCV scrape failed, attempting DolarApi fallback...")
+        try:
+            if curr_name == 'USD':
+                req_api = requests.get("https://ve.dolarapi.com/v1/dolares/oficial", timeout=15)
+                if req_api.status_code == 200:
+                    val_usd = float(req_api.json().get('promedio', 0.0))
+                    if val_usd > 1:
+                        _logger.info(f"DolarApi fallback success for USD: {val_usd}")
+                        return val_usd
+            elif curr_name == 'EUR':
+                req_api = requests.get("https://ve.dolarapi.com/v1/euros/oficial", timeout=15)
+                if req_api.status_code == 200:
+                    val_eur = float(req_api.json().get('promedio', 0.0))
+                    if val_eur > 1:
+                        _logger.info(f"DolarApi fallback success for EUR: {val_eur}")
+                        return val_eur
+        except Exception as api_err:
+            _logger.error(f"Fallback to DolarApi failed: {api_err}")
+
+        return False
 
 
     def get_dolar_today_promedio(self):
@@ -402,9 +417,13 @@ class ResCurrency(models.Model):
             return 0.0
 
         # Busqueda directa de la ultima tasa registrada
+        company_ids = [company_id.id]
+        if company_id.root_id:
+            company_ids.append(company_id.root_id.id)
+            
         last_rate = self.env['res.currency.rate'].search([
             ('currency_id', '=', currency_dif.id),
-            ('company_id', '=', company_id.id),
+            ('company_id', 'in', company_ids + [False]),
         ], order='name desc', limit=1)
 
         tasa = 0.0
@@ -427,9 +446,9 @@ class ResCurrency(models.Model):
                     bcv_rate = usd_currency.get_bcv()
                     if bcv_rate and bcv_rate > 1:
                         tasa = bcv_rate
-                        _logger.info(f"TRM DEBUG: BCV Scrape Success: {tasa}")
+                        _logger.info(f"TRM DEBUG: BCV Scrape/DolarApi Success: {tasa}")
             except Exception as e:
-                _logger.error(f"TRM DEBUG: BCV Scrape connection failed: {e}")
+                _logger.error(f"TRM DEBUG: BCV Scrape/DolarApi fallback connection failed: {e}")
                 pass
 
         # Lógica final de visualización:
