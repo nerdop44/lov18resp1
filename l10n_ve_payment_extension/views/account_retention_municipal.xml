@@ -38,9 +38,9 @@
 							<field colspan="4" name="retention_line_ids" nolabel="1" invisible="not partner_id" readonly="state in ['emitted','cancel']">
 								<list string="Líneas de Retención" editable="bottom">
 									<!-- Campos invisibles -->
-									<field name="invoice_type" invisible="1"/>
-									<field name="company_currency_id" invisible="1"/>
-									<field name="foreign_currency_id" invisible="1"/>
+									<field name="invoice_type" column_invisible="True"/>
+									<field name="company_currency_id" column_invisible="True"/>
+									<field name="foreign_currency_id" column_invisible="True"/>
 									<field name="name"/>
 									<field name="move_id" domain="['&amp;',('id', 'in', parent.allowed_lines_move_ids), ('municipal_voucher_number', '=',False)]" />
 									<field name="company_id" optional="hide" groups="base.group_multi_company"/>
@@ -50,26 +50,26 @@
 									<field name="foreign_invoice_total"
 										   widget="monetary"
 										   string="Total Factura (Bs.)"
-										   options="{'currency_field': 'foreign_currency_id'}"
+										   options="{'currency_field': 'company_currency_id'}"
 										   readonly="1"
 										   force_save="1"/>
 									<field name="foreign_invoice_amount"
 										   widget="monetary"
 										   string="Base Imponible (Bs.)"
-										   options="{'currency_field': 'foreign_currency_id'}"
+										   options="{'currency_field': 'company_currency_id'}"
 										   force_save="1"/>
 									<field name="foreign_retention_amount"
 										   widget="monetary"
 										   string="Monto Retenido (Bs.)"
-										   options="{'currency_field': 'foreign_currency_id'}"
+										   options="{'currency_field': 'company_currency_id'}"
 										   force_save="1"
 										   readonly="parent.type == 'in_invoice'"/>
 									<field name="foreign_currency_rate" optional="hide" string="Tasa"/>
 								</list>
 							</field>
 							<group col="2" colspan="2">
-								<field name="foreign_total_invoice_amount" widget="monetary" string="Total Facturado (Bs.)" options="{'currency_field': 'foreign_currency_id'}" />
-								<field name="foreign_total_retention_amount" widget="monetary" string="Total Retenido (Bs.)" options="{'currency_field': 'foreign_currency_id'}" />
+								<field name="foreign_total_invoice_amount" widget="monetary" string="Total Facturado (Bs.)" options="{'currency_field': 'company_currency_id'}" />
+								<field name="foreign_total_retention_amount" widget="monetary" string="Total Retenido (Bs.)" options="{'currency_field': 'company_currency_id'}" />
 							</group>
 						</page>
 						<page name="Payments" string="Pagos">

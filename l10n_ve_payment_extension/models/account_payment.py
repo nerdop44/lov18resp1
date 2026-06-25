@@ -37,7 +37,6 @@ class AccountPayment(models.Model):
         "account.retention.line",
         "payment_id",
         string="Retention Lines",
-        store=True,
         copy=False,
     )
 
@@ -45,7 +44,6 @@ class AccountPayment(models.Model):
         "account.move.line",
         domain="[('tax_ids', '!=', False)]",
         string="Invoice Lines",
-        store=True,
         copy=False,
     )
 
@@ -155,11 +153,7 @@ class AccountPayment(models.Model):
     #     return res
 
     def unlink(self):
-        for payment in self:
-            if any(isinstance(id, models.NewId) for id in self.retention_line_ids.ids):
-                payment.retention_line_ids = False
-            else:
-                payment.retention_line_ids = Command.clear()
+        # Evitar operaciones recursivas redundantes con retenciones al eliminar
         return super().unlink()
 
     def action_post(self):
