@@ -38,7 +38,7 @@
 							<field colspan="4" name="retention_line_ids" nolabel="1" invisible="not partner_id" readonly="state in ['emitted', 'cancel']">
 								<list editable="bottom">
 									<field name="name" readonly="1" force_save="1"/>
-									<field name="move_id" domain="['&amp;',('id', 'in', parent.allowed_lines_move_ids), ('islr_voucher_number', '=',False)]" />
+									<field name="move_id" domain="[('company_id', '=', parent.company_id), ('state', '=', 'posted'), ('partner_id', '=', parent.partner_id), ('move_type', 'in', parent.type == 'in_invoice' and ['in_invoice', 'in_refund'] or ['out_invoice', 'out_refund']), ('islr_voucher_number', '=', False)]" />
 									<field name="code" column_invisible="not parent.code_visible"/>
 									<field name="company_id" optional="hide" groups="base.group_multi_company"/>
 									<field name="payment_concept_id" force_save="1"/>

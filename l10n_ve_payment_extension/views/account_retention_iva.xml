@@ -44,7 +44,7 @@
 									<field name="company_currency_id" column_invisible="True"/>
 									<field name="foreign_currency_id" column_invisible="True"/>
 									<field name="name"/>
-									<field name="move_id" domain="['&amp;', ('id', 'in', parent.allowed_lines_move_ids), ('iva_voucher_number', '=', False)]"/>
+									<field name="move_id" domain="[('company_id', '=', parent.company_id), ('state', '=', 'posted'), ('partner_id', '=', parent.partner_id), ('move_type', 'in', parent.type == 'in_invoice' and ['in_invoice', 'in_refund'] or ['out_invoice', 'out_refund']), ('iva_voucher_number', '=', False)]"/>
 									<field name="company_id" optional="hide" groups="base.group_multi_company"/>
 									<field name="aliquot" string="Alícuota (%)"/>
 									<field name="related_percentage_tax_base" optional="hide"/>
