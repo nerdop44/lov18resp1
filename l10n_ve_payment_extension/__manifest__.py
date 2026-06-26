@@ -36,6 +36,7 @@
         "report/retention_voucher_templates.xml",
         "report/retention_voucher_reports.xml",
         "views/menus_parents.xml",
+        "views/menu.xml",
         "views/ir_sequence.xml",
         "views/res_config_settings.xml",
         "views/tax_unit.xml",
@@ -62,8 +63,8 @@
         "wizard/municipal_retention_patent_report.xml",
         "wizard/wizard_retention_islr.xml",
         "wizard/wizard_retention_iva.xml",
-        "views/menu.xml",
     ],
+
     "images": ["static/description/icon.png"],
     "application": True,
     "binaural": True,
