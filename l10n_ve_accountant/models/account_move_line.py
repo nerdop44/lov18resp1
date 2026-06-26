@@ -96,15 +96,16 @@ class AccountMoveLine(models.Model):
             elif (
                 line.currency_id != line.company_id.currency_id
                 and not line.move_id.is_invoice(True)
-                and line.move_id.payment_id
+                and getattr(line.move_id, 'payment_id', False)
             ):
+                pay = line.move_id.payment_id
                 if (
-                    line.move_id.payment_id.foreign_inverse_rate != 0
+                    pay.foreign_inverse_rate != 0
                     and line.amount_currency != 0
                 ):
                     line.balance = line.company_id.currency_id.round(
                         line.amount_currency
-                        / line.move_id.payment_id.foreign_inverse_rate
+                        / pay.foreign_inverse_rate
                     )
                 else:
                     raise UserError(_("The rate should be greater than zero"))
@@ -347,15 +348,16 @@ class AccountMoveLine(models.Model):
         """
 
         def is_payment(aml):
-            return aml.move_id.payment_id or aml.move_id.statement_line_id
+            return getattr(aml.move_id, 'payment_id', False) or aml.move_id.statement_line_id
 
         def get_odoo_rate(aml, other_aml, currency):
             if forced_rate := self._context.get("forced_rate_from_register_payment"):
                 return forced_rate
             if other_aml and not is_payment(aml) and is_payment(other_aml):
                 # >>>> Integra
-                if aml.move_id.payment_id:
-                    return aml.move_id.payment_id.foreign_inverse_rate
+                pay = getattr(aml.move_id, 'payment_id', False)
+                if pay:
+                    return pay.foreign_inverse_rate
                 # <<<< Integra
                 return get_accounting_rate(other_aml, currency)
             if aml.move_id.is_invoice(include_receipts=True):
