@@ -149,7 +149,7 @@
                                 <th name="th_total" class="text-end text-nowrap"><span>Total</span></th>
                             </tr>
                         </thead>
-                        <tbody class="invoice_tbody" t-attf-style="font-size: {{ o.company_id.invoice_line_font_size or 10 }}pt !important;">
+                        <tbody class="invoice_tbody" t-attf-style="font-size: {{ o.company_id.invoice_line_font_size or 10 }}pt !important; line-height: {{ o.company_id.invoice_line_line_height or 1.2 }} !important;">
                             <t t-set="lines" t-value="o.invoice_line_ids.sorted(key=lambda l: (-l.sequence, l.date, l.move_name, -l.id), reverse=True)"/>
                             <t t-foreach="lines" t-as="line">
                                 <tr t-if="line.display_type == 'product'">
@@ -213,12 +213,12 @@
                                          <span t-esc="price_total" t-options='{"widget": "monetary", "display_currency": current_currency}'/>
                                     </td>
                                 </tr>
-                                <t t-if="line.display_type == 'line_section'">
+                                <tr t-if="line.display_type == 'line_section'" class="bg-200 fw-bold o_line_section">
                                     <td colspan="99"><span t-field="line.name"/></td>
-                                </t>
-                                <t t-if="line.display_type == 'line_note'">
+                                </tr>
+                                <tr t-if="line.display_type == 'line_note'" class="fst-italic o_line_note">
                                     <td colspan="99"><span t-field="line.name" style="white-space: pre-wrap;" t-options="{'widget': 'text'}"/></td>
-                                </t>
+                                </tr>
                             </t>
                         </tbody>
                     </table>
