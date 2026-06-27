@@ -23,12 +23,12 @@
 
                 <!-- Líneas: precio unitario y subtotal en moneda ref -->
                 <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='price_unit']" position="after">
-                    <field name="price_unit_usd" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                    <field name="price_unit_usd" widget='monetary' options="{'currency_field': 'currency_id_dif'}" column_invisible="parent.move_type == 'entry' or display_type in ('line_section', 'line_note')"/>
                     <field name="currency_id_dif" readonly="1" invisible="1"/>
                 </xpath>
 
                 <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='price_subtotal']" position="after">
-                     <field name="price_subtotal_usd" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                     <field name="price_subtotal_usd" widget='monetary' options="{'currency_field': 'currency_id_dif'}" column_invisible="parent.move_type == 'entry' or display_type in ('line_section', 'line_note')"/>
                 </xpath>
 
                 <!-- Apuntes contables: débito/crédito USD -->
