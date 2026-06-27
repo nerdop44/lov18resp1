@@ -31,6 +31,7 @@
  
                 <!-- 2. Inyectar columnas especiales en la cuadrícula de líneas de la factura (usando list[last()]) -->
                 <xpath expr="//field[@name='invoice_line_ids']/list[last()]/field[@name='price_subtotal']" position="before">
+                    <field name="display_type" column_invisible="True"/>
                     <field name="is_intermediation_commission"
                            string="¿Es Comisión?"
                            column_invisible="not parent.is_intermediation or display_type in ('line_section', 'line_note')"
