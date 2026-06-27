@@ -1059,5 +1059,5 @@ class AccountMove(models.Model):
             for line in moves.invoice_line_ids:
                 if line.display_type:
                     continue
-                if not line.product_id:
+                if not line.product_id and not line.currency_id.is_zero(line.price_subtotal):
                     raise ValidationError(_("All added lines must indicate the product."))
