@@ -1057,6 +1057,8 @@ class AccountMove(models.Model):
             if moves.move_type == "entry":
                 continue
             for line in moves.invoice_line_ids:
+                if line.display_type in ("line_section", "line_note"):
+                    continue
                 if (
                     len(line.product_id) != 1
                     and line.display_type == "product"
