@@ -30,6 +30,11 @@ class ResConfigSettings(models.TransientModel):
         readonly=False,
         string="Margen Superior Personalizado Forma Libre"
     )
+    invoice_line_font_size = fields.Integer(
+        related="company_id.invoice_line_font_size",
+        readonly=False,
+        string="Tamaño de Fuente de Líneas (pt)"
+    )
 
     @api.onchange("activate_custom_margin")
     def _onchange_activate_custom_margin(self):

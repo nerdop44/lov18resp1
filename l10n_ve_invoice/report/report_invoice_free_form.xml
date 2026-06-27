@@ -125,7 +125,7 @@
                                 </th>-->
                             </tr>
                         </thead>
-                        <tbody class="invoice_tbody">
+                        <tbody class="invoice_tbody" t-attf-style="font-size: {{ o.company_id.invoice_line_font_size or 10 }}pt !important;">
                             <t t-set="lines" t-value="o.invoice_line_ids.sorted(key=lambda l: (-l.sequence, l.date, l.move_name, -l.id), reverse=True)"/>
 
                             <t t-foreach="lines" t-as="line">
@@ -193,7 +193,7 @@
                                     </t>
                                     <t t-if="line.display_type == 'line_note'">
                                         <td colspan="99">
-                                            <span t-field="line.name" t-options="{'widget': 'text'}"/>
+                                            <span t-field="line.name" style="white-space: pre-wrap;" t-options="{'widget': 'text'}"/>
                                         </td>
                                     </t>
                                 </tr>

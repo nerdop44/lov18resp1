@@ -18,6 +18,10 @@
 
                                 </div>
                                 <field name="max_product_invoice"/>
+                                <div class="mt16">
+                                    <label for="invoice_line_font_size" string="Tamaño de Fuente de Líneas (pt)"/>
+                                    <field name="invoice_line_font_size" class="o_light_label"/>
+                                </div>
                             </div>
                         </div>
 

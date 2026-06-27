@@ -142,9 +142,15 @@ class AccountMove(models.Model):
         """
         if self.invoice_line_ids and self.move_type in ["out_invoice", "out_refund"]:
             max_product_invoice = self.company_id.max_product_invoice
-            if len(self.invoice_line_ids) > max_product_invoice:
+            total_lines = 0
+            for line in self.invoice_line_ids:
+                if line.display_type == 'line_note' and line.name:
+                    total_lines += len(line.name.split('\n'))
+                else:
+                    total_lines += 1
+            if total_lines > max_product_invoice:
                 raise ValidationError(
-                    _("You can not add more than %s products to the invoice." % max_product_invoice)
+                    _("You can not add more than %s products to the invoice (currently using %s lines)." % (max_product_invoice, total_lines))
                 )
 
     @api.depends("filter_partner")
