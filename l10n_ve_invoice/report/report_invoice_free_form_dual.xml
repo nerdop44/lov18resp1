@@ -148,7 +148,8 @@
                                 <th name="th_subtotal" class="text-end text-nowrap"><span>Subtotal</span></th>
                                 <th name="th_total" class="text-end text-nowrap"><span>Total</span></th>
                             </tr>
-                                               <tbody class="invoice_tbody" t-attf-style="font-size: {{ o.company_id.invoice_line_font_size or 10 }}pt !important;">
+                        </thead>
+                        <tbody class="invoice_tbody" t-attf-style="font-size: {{ o.company_id.invoice_line_font_size or 10 }}pt !important;">
                             <t t-set="lines" t-value="o.invoice_line_ids.sorted(key=lambda l: (-l.sequence, l.date, l.move_name, -l.id), reverse=True)"/>
                             <t t-foreach="lines" t-as="line">
                                 <tr t-if="line.display_type == 'product'">
