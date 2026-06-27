@@ -31,16 +31,17 @@
  
                 <!-- 2. Inyectar columnas especiales en la cuadrícula de líneas de la factura (usando list[last()]) -->
                 <xpath expr="//field[@name='invoice_line_ids']/list[last()]/field[@name='price_subtotal']" position="before">
-                    <field name="display_type" column_invisible="True"/>
                     <field name="is_intermediation_commission"
                            string="¿Es Comisión?"
-                           column_invisible="not parent.is_intermediation or display_type in ('line_section', 'line_note')"
+                           column_invisible="not parent.is_intermediation"
+                           invisible="display_type in ('line_section', 'line_note')"
                            help="Marque si esta línea corresponde al honorario o comisión de la Agencia."
                            optional="show"/>
                            
                     <field name="mediated_partner_id"
                            string="Sujeto Intermediado"
-                           column_invisible="not parent.is_intermediation or display_type in ('line_section', 'line_note')"
+                           column_invisible="not parent.is_intermediation"
+                           invisible="display_type in ('line_section', 'line_note')"
                            options="{'no_create': True}"
                            domain="[('is_intermediary', '=', True)]"
                            help="Asigne el prestador de servicio real (ej. la aerolínea nacional). Deje en blanco para aerolíneas internacionales (vuelos internacionales) exentos de retención."
