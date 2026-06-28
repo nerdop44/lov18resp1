@@ -231,97 +231,52 @@ class AccountTax(models.Model):
             convert = lambda val: val / rate
 
         try:
-            # Calcular totales foráneos directamente desde los subtotales nativos de Odoo
-            foreign_amount_untaxed = 0.0
-            foreign_amount_total = 0.0
-            groups_by_foreign_subtotal = {}
-
-            for base_line in base_lines:
-                price_subtotal = base_line.get("price_subtotal", 0.0)
-                price_total = base_line.get("price_total", 0.0)
-                
-                line_foreign_subtotal = convert(price_subtotal)
-                line_foreign_total = convert(price_total)
-                
-                foreign_amount_untaxed += line_foreign_subtotal
-                foreign_amount_total += line_foreign_total
-
-                # Construir groups_by_foreign_subtotal para los libros fiscales
-                record = base_line.get("record")
-                tax_ids = base_line.get("taxes", self.env['account.tax'])
-                if not tax_ids and record and hasattr(record, 'tax_ids'):
-                    tax_ids = record.tax_ids
-
-                if tax_ids:
-                    for tax in tax_ids:
-                        group_id = tax.tax_group_id.id if tax.tax_group_id else False
-                        if not group_id:
-                            continue
-                        base_amount = line_foreign_subtotal
-                        tax_amount = line_foreign_total - base_amount
-
-                        # Agregar al diccionario de grupos
-                        for subtotal in res.get("subtotals", []):
-                            key = subtotal.get("name", "Untaxed Amount")
-                            if key not in groups_by_foreign_subtotal:
-                                groups_by_foreign_subtotal[key] = []
-                            found = False
-                            for entry in groups_by_foreign_subtotal[key]:
-                                if entry.get("tax_group_id") == group_id:
-                                    entry["tax_group_base_amount"] += base_amount
-                                    entry["tax_group_amount"] += tax_amount
-                                    found = True
-                                    break
-                            if not found:
-                                groups_by_foreign_subtotal[key].append({
-                                    "tax_group_id": group_id,
-                                    "tax_group_base_amount": base_amount,
-                                    "tax_group_amount": tax_amount,
-                                    "base_amount": base_amount,
-                                    "tax_amount": tax_amount,
-                                })
+            # 1. Convertir montos principales consolidados de Odoo
+            foreign_amount_untaxed = convert(res.get("amount_untaxed", 0.0))
+            foreign_amount_total = convert(res.get("amount_total", 0.0))
 
             res["foreign_amount_untaxed"] = foreign_amount_untaxed
-            res["foreign_amount_total"] = foreign_amount_total or (foreign_amount_untaxed + (foreign_amount_total - foreign_amount_untaxed if foreign_amount_total > foreign_amount_untaxed else 0.0))
-            
-            # Sincronizar subtotales foráneos con la estructura de Odoo
+            res["foreign_amount_total"] = foreign_amount_total
+
+            # 2. Convertir lista de subtotales
             res["foreign_subtotals"] = []
             for subtotal in res.get("subtotals", []):
-                name = subtotal.get("name")
-                # Sumar base imponible foránea para este subtotal específico
-                f_subtotal_amount = 0.0
-                if name in groups_by_foreign_subtotal:
-                    for g in groups_by_foreign_subtotal[name]:
-                        f_subtotal_amount += g.get("tax_group_base_amount", 0.0)
-                elif name == "Untaxed Amount":
-                    f_subtotal_amount = foreign_amount_untaxed
-                
+                f_subtotal_amount = convert(subtotal.get("amount", 0.0))
                 res["foreign_subtotals"].append({
-                    "name": name,
+                    "name": subtotal.get("name"),
                     "amount": f_subtotal_amount,
                     "formatted_amount": formatLang(self.env, f_subtotal_amount, currency_obj=foreign_currency)
                 })
 
-            # Añadir montos formateados a los grupos foráneos
-            for s_name, groups in groups_by_foreign_subtotal.items():
+            # 3. Convertir grupos de impuestos
+            groups_by_foreign_subtotal = {}
+            for s_name, groups in res.get("groups_by_subtotal", {}).items():
+                groups_by_foreign_subtotal[s_name] = []
                 for g in groups:
-                    g["formatted_tax_group_base_amount"] = formatLang(self.env, g.get("tax_group_base_amount", 0.0), currency_obj=foreign_currency)
-                    g["formatted_tax_group_amount"] = formatLang(self.env, g.get("tax_group_amount", 0.0), currency_obj=foreign_currency)
-
+                    f_base_amount = convert(g.get("tax_group_base_amount", 0.0))
+                    f_tax_amount = convert(g.get("tax_group_amount", 0.0))
+                    groups_by_foreign_subtotal[s_name].append({
+                        "tax_group_id": g.get("tax_group_id"),
+                        "tax_group_name": g.get("tax_group_name"),
+                        "tax_group_base_amount": f_base_amount,
+                        "tax_group_amount": f_tax_amount,
+                        "base_amount": f_base_amount,
+                        "tax_amount": f_tax_amount,
+                        "formatted_tax_group_base_amount": formatLang(self.env, f_base_amount, currency_obj=foreign_currency),
+                        "formatted_tax_group_amount": formatLang(self.env, f_tax_amount, currency_obj=foreign_currency),
+                    })
             res["groups_by_foreign_subtotal"] = groups_by_foreign_subtotal
             res["foreign_formatted_amount_untaxed"] = formatLang(self.env, foreign_amount_untaxed, currency_obj=foreign_currency)
             res["foreign_formatted_amount_total"] = formatLang(self.env, foreign_amount_total, currency_obj=foreign_currency)
 
-            # --- ARQUITECTURA DE FILAS UNIFICADAS (FASE 77) ---
-            # Esta lista permite que el frontend solo tenga que iterar y mostrar, eliminando errores de alineación.
+            # 4. Crear la estructura unificada (para el frontend de la localización)
             unified_rows = []
             for sub_index, subtotal in enumerate(res.get("subtotals", [])):
                 name = subtotal.get("name")
-                # Obtener el subtotal foráneo correspondiente por índice
                 f_subtotals = res.get("foreign_subtotals", [])
                 f_subtotal_formatted = f_subtotals[sub_index].get("formatted_amount") if len(f_subtotals) > sub_index else formatLang(self.env, 0.0, currency_obj=foreign_currency)
                 
-                # 1. Fila de Subtotal
+                # Fila de Subtotal
                 unified_rows.append({
                     "label": name,
                     "usd": f_subtotal_formatted,
@@ -330,7 +285,7 @@ class AccountTax(models.Model):
                     "is_subtotal": True,
                 })
 
-                # 2. Filas de Grupos de Impuestos asociados
+                # Fila de Impuestos
                 if name in res.get("groups_by_subtotal", {}):
                     for g_index, group in enumerate(res["groups_by_subtotal"][name]):
                         f_groups = res.get("groups_by_foreign_subtotal", {}).get(name, [])
@@ -344,7 +299,7 @@ class AccountTax(models.Model):
                             "is_subtotal": False,
                         })
 
-            # 3. Fila de Total Final (Sin IGTF todavía, se añade en el módulo IGTF si aplica)
+            # Fila de Total Final (Sin IGTF todavía)
             unified_rows.append({
                 "label": _("TOTAL"),
                 "usd": res["foreign_formatted_amount_total"],
