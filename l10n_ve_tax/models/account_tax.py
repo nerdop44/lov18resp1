@@ -175,7 +175,9 @@ class AccountTax(models.Model):
         if not res:
             return res
 
-        foreign_currency = company.currency_foreign_id or False
+        foreign_currency = company.currency_foreign_id or getattr(company, 'currency_id_dif', False) or self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+        if foreign_currency and foreign_currency.id == company.currency_id.id:
+            foreign_currency = self.env['res.currency'].search([('name', '=', 'USD' if company.currency_id.name != 'USD' else 'VES')], limit=1)
         if not foreign_currency:
             return res
 

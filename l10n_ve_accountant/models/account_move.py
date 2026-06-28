@@ -719,11 +719,25 @@ class AccountMove(models.Model):
         for move in documents:
             if move.manually_set_rate:
                 continue
+            
+            # Si el módulo de moneda dual tiene una tasa establecida, priorizarla
+            tax_today = getattr(move, 'tax_today', 0.0)
+            if tax_today > 0.0:
+                move.foreign_rate = tax_today
+                move.foreign_inverse_rate = 1.0 / tax_today
+                continue
+
             date_field = "invoice_date" if is_sale else "date"
             rate_date = getattr(move, date_field) or fields.Date.context_today(self)
             rate_values = Rate.compute_rate(move.foreign_currency_id.id, rate_date)
-            move.foreign_rate = rate_values.get("foreign_rate", 0)
-            move.foreign_inverse_rate = rate_values.get("foreign_inverse_rate", 0)
+            
+            foreign_rate = rate_values.get("foreign_rate", 0.0)
+            move.foreign_rate = foreign_rate
+            move.foreign_inverse_rate = rate_values.get("foreign_inverse_rate", 0.0)
+            
+            # Sincronizar de vuelta a tax_today si se obtuvo una tasa válida
+            if foreign_rate > 0.0 and hasattr(move, 'tax_today') and not move.tax_today:
+                move.tax_today = foreign_rate
 
     @api.depends("tax_totals")
     def _compute_foreign_taxable_income(self):
