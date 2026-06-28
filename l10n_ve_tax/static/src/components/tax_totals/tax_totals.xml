@@ -1,8 +1,9 @@
 <templates xml:space="preserve">
     <t t-name="l10n_ve_tax.TaxTotalsField" t-inherit="account.TaxTotalsField" t-inherit-mode="extension" owl="1">
         <!-- Inyección DIRECTA de moneda dual para evitar errores de registro de componentes -->
-        <xpath expr="//table[1]" position="before">
+        <xpath expr="//table[1]" position="after">
             <t t-if="totals">
+                <div style="border-bottom: 1px solid #dee2e6; margin: 10px 0; width: 100%; float: right;"/>
                 <!-- Bloque de Moneda Extranjera (Dólares) -->
                 <table class="oe_right oe_subtotal_footer" style="width: 100%; border-collapse: collapse;">
                     <tbody>
@@ -41,7 +42,6 @@
                         </tr>
                     </tbody>
                 </table>
-                <div style="border-bottom: 1px solid #dee2e6; margin: 10px 0; width: 100%; float: right;"/>
             </t>
         </xpath>
     </t>
