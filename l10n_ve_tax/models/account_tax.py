@@ -198,42 +198,62 @@ class AccountTax(models.Model):
         if not foreign_currency:
             return res
 
+        # Obtener la factura
+        move = False
+        for base_line in base_lines:
+            record = base_line.get("record")
+            if record and hasattr(record, 'move_id') and record.move_id:
+                move = record.move_id
+                break
+
+        rate = 1.0
+        is_usd_invoice = False
+        if move:
+            rate = move.tax_today or move.foreign_rate or 1.0
+            if rate <= 0.0:
+                rate = 1.0
+            is_usd_invoice = move.currency_id != company.currency_id
+
+        # Definir la moneda de referencia del segundo bloque
+        if is_usd_invoice:
+            foreign_currency = company.currency_id
+        else:
+            usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+            foreign_currency = usd_currency or getattr(company, 'currency_id_dif', False)
+
+        if not foreign_currency:
+            return res
+
+        # Definir operador de conversión reactivo
+        if is_usd_invoice:
+            convert = lambda val: val * rate
+        else:
+            convert = lambda val: val / rate
+
         try:
-            # Calcular totales foráneos directamente desde los registros de líneas
-            # El 'record' en base_lines es un account.move.line con foreign_subtotal y foreign_price_total
+            # Calcular totales foráneos directamente desde los subtotales nativos de Odoo
             foreign_amount_untaxed = 0.0
             foreign_amount_total = 0.0
             groups_by_foreign_subtotal = {}
 
             for base_line in base_lines:
-                record = base_line.get("record")
-                if not record:
-                    continue
+                price_subtotal = base_line.get("price_subtotal", 0.0)
+                price_total = base_line.get("price_total", 0.0)
                 
-                # Intentar obtener subtotal y total foráneo con fallbacks
-                line_foreign_subtotal = 0.0
-                line_foreign_total = 0.0
-                
-                if hasattr(record, 'foreign_subtotal'):
-                    line_foreign_subtotal = record.foreign_subtotal or 0.0
-                elif hasattr(record, 'price_subtotal_usd'):
-                    line_foreign_subtotal = record.price_subtotal_usd or 0.0
-                
-                if hasattr(record, 'foreign_price_total'):
-                    line_foreign_total = record.foreign_price_total or 0.0
-                elif hasattr(record, 'price_total_usd'):
-                    line_foreign_total = record.price_total_usd or 0.0
-                elif line_foreign_subtotal:
-                    # Fallback simple si no hay total pero hay subtotal
-                    line_foreign_total = line_foreign_subtotal
+                line_foreign_subtotal = convert(price_subtotal)
+                line_foreign_total = convert(price_total)
                 
                 foreign_amount_untaxed += line_foreign_subtotal
                 foreign_amount_total += line_foreign_total
 
                 # Construir groups_by_foreign_subtotal para los libros fiscales
-                if hasattr(record, 'tax_ids') and record.tax_ids:
-                    for tax in record.tax_ids:
-                        subtotal_name = tax.mapped('invoice_repartition_line_ids.factor_percent')
+                record = base_line.get("record")
+                tax_ids = base_line.get("taxes", self.env['account.tax'])
+                if not tax_ids and record and hasattr(record, 'tax_ids'):
+                    tax_ids = record.tax_ids
+
+                if tax_ids:
+                    for tax in tax_ids:
                         group_id = tax.tax_group_id.id if tax.tax_group_id else False
                         if not group_id:
                             continue
@@ -245,7 +265,6 @@ class AccountTax(models.Model):
                             key = subtotal.get("name", "Untaxed Amount")
                             if key not in groups_by_foreign_subtotal:
                                 groups_by_foreign_subtotal[key] = []
-                            # Buscar si ya existe un entry para este grupo
                             found = False
                             for entry in groups_by_foreign_subtotal[key]:
                                 if entry.get("tax_group_id") == group_id:
@@ -258,8 +277,8 @@ class AccountTax(models.Model):
                                     "tax_group_id": group_id,
                                     "tax_group_base_amount": base_amount,
                                     "tax_group_amount": tax_amount,
-                                    "base_amount": base_amount, # Compatibilidad wizard
-                                    "tax_amount": tax_amount,   # Compatibilidad wizard
+                                    "base_amount": base_amount,
+                                    "tax_amount": tax_amount,
                                 })
 
             res["foreign_amount_untaxed"] = foreign_amount_untaxed
@@ -346,18 +365,36 @@ class AccountTax(models.Model):
         foreign_tax_lines = None
         if tax_lines:
             foreign_tax_lines = [line.copy() for line in tax_lines if line]
+
+        # Obtener la factura para determinar la conversión reactiva exacta
+        move = False
+        for base_line in base_lines:
+            record = base_line.get("record")
+            if record and hasattr(record, 'move_id') and record.move_id:
+                move = record.move_id
+                break
+
+        rate = 1.0
+        is_usd_invoice = False
+        if move:
+            rate = move.tax_today or move.foreign_rate or 1.0
+            if rate <= 0.0:
+                rate = 1.0
+            is_usd_invoice = move.currency_id != self.env.company.currency_id
+
+        if is_usd_invoice:
+            convert = lambda val: val * rate
+        else:
+            convert = lambda val: val / rate
+
         taxes = []
         for base_line in foreign_base_lines:
-            is_exists_foreign_price = "foreign_price" in base_line["record"]
+            price_unit = base_line.get("price_unit", 0.0)
+            price_subtotal = base_line.get("price_subtotal", 0.0)
 
-            if is_exists_foreign_price:
-                base_line["price_unit"] = base_line["record"].foreign_price
-                base_line["price_subtotal"] = base_line["record"].foreign_subtotal
-                base_line["currency"] = currency
-            else:
-                base_line["price_unit"] = base_line["record"].price_unit
-                base_line["price_subtotal"] = base_line["record"].price_subtotal
-                base_line["currency"] = base_line["record"].currency_id
+            base_line["price_unit"] = convert(price_unit)
+            base_line["price_subtotal"] = convert(price_subtotal)
+            base_line["currency"] = currency
 
             if base_line["taxes"]:
                 taxes.append(
