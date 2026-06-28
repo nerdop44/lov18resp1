@@ -72,7 +72,21 @@
                     <t t-set="vef_currency" t-value="o.env.ref('base.VEF', raise_if_not_found=False) or o.env.ref('base.VES', raise_if_not_found=False) or o.env['res.currency'].search([('name', 'in', ['VEF', 'VES', 'Bs.'])], limit=1) or o.company_id.currency_id"/>
                     <t t-set="usd_currency" t-value="o.env.ref('base.USD', raise_if_not_found=False) or o.env['res.currency'].search([('name', '=', 'USD')], limit=1)"/>
                     
-                    <t t-set="rate" t-value="o.foreign_rate or 1.0"/>
+                    <!-- Compute rate in a robust manner like the python model -->
+                    <t t-set="raw_rates" t-value="[getattr(o, 'foreign_rate', 0.0) or 0.0, getattr(o, 'tax_today', 0.0) or 0.0, getattr(o, 'foreign_inverse_rate', 0.0) or 0.0]"/>
+                    <t t-set="rate" t-value="1.0"/>
+                    <t t-foreach="raw_rates" t-as="r">
+                        <t t-if="rate == 1.0 and r > 1.0">
+                            <t t-set="rate" t-value="r"/>
+                        </t>
+                    </t>
+                    <t t-if="rate == 1.0">
+                        <t t-foreach="raw_rates" t-as="r">
+                            <t t-if="rate == 1.0 and r > 0.0">
+                                <t t-set="rate" t-value="1.0 / r if r &lt; 1.0 else r"/>
+                            </t>
+                        </t>
+                    </t>
                     
                     <!-- Report Currency with fallback to Company Currency to avoid Singleton Error -->
                     <t t-set="current_currency" t-value="(vef_currency if is_vef_report else usd_currency) or o.company_id.currency_id"/>
@@ -369,7 +383,7 @@
                             A los efectos de lo previsto en el <strong>Art. 25</strong> de la Ley de
                             Impuesto al Valor Agregado se expresa el monto total
                             de la factura en <strong>USD</strong> calculado a la tasa de cambio
-                            establecida por BCV de 1US$ por <strong><t t-out="o.foreign_rate" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></strong>
+                            establecida por BCV de 1US$ por <strong><t t-out="rate" t-options='{"widget": "monetary", "display_currency": vef_currency}'/></strong>
                         </span>
                     </div>
 
