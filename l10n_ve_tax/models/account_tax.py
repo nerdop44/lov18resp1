@@ -231,9 +231,23 @@ class AccountTax(models.Model):
             convert = lambda val: val / rate
 
         try:
-            # 1. Convertir montos principales consolidados de Odoo
-            foreign_amount_untaxed = convert(res.get("amount_untaxed", 0.0))
-            foreign_amount_total = convert(res.get("amount_total", 0.0))
+            # 1. Obtener y calcular montos nativos sumando los subtotales e impuestos desglosados en res
+            subtotal_amount = sum(sub.get("amount", 0.0) for sub in res.get("subtotals", []))
+            tax_amount = sum(
+                tax.get("tax_group_amount", 0.0)
+                for subtotal_name, groups in res.get("groups_by_subtotal", {}).items()
+                for tax in groups
+            )
+            total_amount = subtotal_amount + tax_amount
+
+            # 2. Convertir montos principales consolidados a moneda extranjera
+            foreign_amount_untaxed = convert(subtotal_amount)
+            foreign_amount_total = convert(total_amount)
+
+            res["amount_untaxed"] = subtotal_amount
+            res["amount_total"] = total_amount
+            res["formatted_amount_untaxed"] = formatLang(self.env, subtotal_amount, currency_obj=currency)
+            res["formatted_amount_total"] = formatLang(self.env, total_amount, currency_obj=currency)
 
             res["foreign_amount_untaxed"] = foreign_amount_untaxed
             res["foreign_amount_total"] = foreign_amount_total
