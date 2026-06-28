@@ -207,37 +207,36 @@ class AccountTax(models.Model):
                 break
 
         rate = 1.0
-        is_usd_invoice = False
+        is_invoice_in_usd = currency.name == 'USD'
         if move:
             rate = move.tax_today or move.foreign_rate or 1.0
             if rate <= 0.0:
                 rate = 1.0
-            is_usd_invoice = move.currency_id != company.currency_id
 
-        # Definir la moneda de referencia del segundo bloque
-        if is_usd_invoice:
-            foreign_currency = company.currency_id
-        else:
-            usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
-            foreign_currency = usd_currency or getattr(company, 'currency_id_dif', False)
+        # Obtener las monedas específicas para USD y VES
+        usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+        ves_currency = company.currency_foreign_id or getattr(company, 'currency_id_dif', False)
+        is_ves_foreign = ves_currency and (ves_currency.name in ['VES', 'VEF', 'Bs.', 'Bs'] or 'Bs' in (ves_currency.symbol or ''))
+        if not is_ves_foreign:
+            ves_currency = self.env['res.currency'].search([('name', 'in', ['VES', 'VEF'])], limit=1)
 
-        if not foreign_currency:
-            return res
-
-        # Definir operador de conversión reactivo
-        if is_usd_invoice:
+        # Definir la moneda de referencia del segundo bloque y el operador de conversión
+        if is_invoice_in_usd:
+            # Factura en USD -> El segundo bloque de referencia se muestra en bolívares (VES/VEF)
+            foreign_currency = ves_currency or company.currency_id
             convert = lambda val: val * rate
         else:
+            # Factura en Bolívares -> El segundo bloque de referencia se muestra en USD
+            foreign_currency = usd_currency or getattr(company, 'currency_id_dif', False)
+            # Si por alguna razón la tasa es la inversa directa de Odoo (ej. 0.0016), y el rate guardado es el inverso:
+            # En Odoo.sh, move.foreign_rate contiene la tasa en bolívares por dólar (ej. 617.64).
+            # Por lo tanto, dividimos el valor en Bs por la tasa para obtener USD.
             convert = lambda val: val / rate
 
         try:
-            # 1. Obtener y calcular montos nativos sumando los subtotales e impuestos desglosados en res
-            subtotal_amount = sum(sub.get("amount", 0.0) for sub in res.get("subtotals", []))
-            tax_amount = sum(
-                tax.get("tax_group_amount", 0.0)
-                for subtotal_name, groups in res.get("groups_by_subtotal", {}).items()
-                for tax in groups
-            )
+            # 1. Obtener y calcular montos nativos de la factura en la moneda de la factura
+            subtotal_amount = sum(sub.get("base_amount_currency", 0.0) for sub in res.get("subtotals", []))
+            tax_amount = sum(sub.get("tax_amount_currency", 0.0) for sub in res.get("subtotals", []))
             total_amount = subtotal_amount + tax_amount
 
             # 2. Convertir montos principales consolidados a moneda extranjera
@@ -252,26 +251,33 @@ class AccountTax(models.Model):
             res["foreign_amount_untaxed"] = foreign_amount_untaxed
             res["foreign_amount_total"] = foreign_amount_total
 
-            # 2. Convertir lista de subtotales
+            # 3. Convertir lista de subtotales
             res["foreign_subtotals"] = []
             for subtotal in res.get("subtotals", []):
-                f_subtotal_amount = convert(subtotal.get("amount", 0.0))
+                f_subtotal_amount = convert(subtotal.get("base_amount_currency", 0.0))
                 res["foreign_subtotals"].append({
                     "name": subtotal.get("name"),
                     "amount": f_subtotal_amount,
                     "formatted_amount": formatLang(self.env, f_subtotal_amount, currency_obj=foreign_currency)
                 })
 
-            # 3. Convertir grupos de impuestos
+            # 4. Convertir grupos de impuestos
             groups_by_foreign_subtotal = {}
-            for s_name, groups in res.get("groups_by_subtotal", {}).items():
+            groups_by_subtotal = {}
+            for subtotal in res.get("subtotals", []):
+                s_name = subtotal.get("name")
                 groups_by_foreign_subtotal[s_name] = []
-                for g in groups:
-                    f_base_amount = convert(g.get("tax_group_base_amount", 0.0))
-                    f_tax_amount = convert(g.get("tax_group_amount", 0.0))
+                groups_by_subtotal[s_name] = []
+                for tg in subtotal.get("tax_groups", []):
+                    base_amount_cur = tg.get("base_amount_currency", 0.0)
+                    tax_amount_cur = tg.get("tax_amount_currency", 0.0)
+                    
+                    f_base_amount = convert(base_amount_cur)
+                    f_tax_amount = convert(tax_amount_cur)
+                    
                     groups_by_foreign_subtotal[s_name].append({
-                        "tax_group_id": g.get("tax_group_id"),
-                        "tax_group_name": g.get("tax_group_name"),
+                        "tax_group_id": tg.get("id"),
+                        "tax_group_name": tg.get("group_name"),
                         "tax_group_base_amount": f_base_amount,
                         "tax_group_amount": f_tax_amount,
                         "base_amount": f_base_amount,
@@ -279,30 +285,39 @@ class AccountTax(models.Model):
                         "formatted_tax_group_base_amount": formatLang(self.env, f_base_amount, currency_obj=foreign_currency),
                         "formatted_tax_group_amount": formatLang(self.env, f_tax_amount, currency_obj=foreign_currency),
                     })
+                    
+                    groups_by_subtotal[s_name].append({
+                        "tax_group_id": tg.get("id"),
+                        "tax_group_name": tg.get("group_name"),
+                        "tax_group_base_amount": base_amount_cur,
+                        "tax_group_amount": tax_amount_cur,
+                        "formatted_tax_group_base_amount": formatLang(self.env, base_amount_cur, currency_obj=currency),
+                        "formatted_tax_group_amount": formatLang(self.env, tax_amount_cur, currency_obj=currency),
+                    })
+                    
             res["groups_by_foreign_subtotal"] = groups_by_foreign_subtotal
+            res["groups_by_subtotal"] = groups_by_subtotal
             res["foreign_formatted_amount_untaxed"] = formatLang(self.env, foreign_amount_untaxed, currency_obj=foreign_currency)
             res["foreign_formatted_amount_total"] = formatLang(self.env, foreign_amount_total, currency_obj=foreign_currency)
 
-            # 4. Crear la estructura unificada (para el frontend de la localización)
+            # 5. Crear la estructura unificada (para el frontend de la localización)
             unified_rows = []
             for sub_index, subtotal in enumerate(res.get("subtotals", [])):
                 name = subtotal.get("name")
                 f_subtotals = res.get("foreign_subtotals", [])
                 f_subtotal_formatted = f_subtotals[sub_index].get("formatted_amount") if len(f_subtotals) > sub_index else formatLang(self.env, 0.0, currency_obj=foreign_currency)
                 
-                # Fila de Subtotal
                 unified_rows.append({
                     "label": name,
                     "usd": f_subtotal_formatted,
-                    "bs": subtotal.get("formatted_amount"),
+                    "bs": formatLang(self.env, subtotal.get("base_amount_currency", 0.0), currency_obj=currency),
                     "is_total": False,
                     "is_subtotal": True,
                 })
 
-                # Fila de Impuestos
-                if name in res.get("groups_by_subtotal", {}):
-                    for g_index, group in enumerate(res["groups_by_subtotal"][name]):
-                        f_groups = res.get("groups_by_foreign_subtotal", {}).get(name, [])
+                if name in groups_by_subtotal:
+                    for g_index, group in enumerate(groups_by_subtotal[name]):
+                        f_groups = groups_by_foreign_subtotal.get(name, [])
                         f_group_formatted = f_groups[g_index].get("formatted_tax_group_amount") if len(f_groups) > g_index else formatLang(self.env, 0.0, currency_obj=foreign_currency)
                         
                         unified_rows.append({
@@ -313,7 +328,7 @@ class AccountTax(models.Model):
                             "is_subtotal": False,
                         })
 
-            # Fila de Total Final (Sin IGTF todavía)
+            # Fila de Total Final
             unified_rows.append({
                 "label": _("TOTAL"),
                 "usd": res["foreign_formatted_amount_total"],
