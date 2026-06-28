@@ -209,9 +209,24 @@ class AccountTax(models.Model):
         rate = 1.0
         is_invoice_in_usd = currency.name == 'USD'
         if move:
-            rate = move.tax_today or move.foreign_rate or 1.0
-            if rate <= 0.0:
-                rate = 1.0
+            # Obtener las tasas posibles de la factura
+            rates_to_check = [
+                getattr(move, 'foreign_rate', 0.0) or 0.0,
+                getattr(move, 'tax_today', 0.0) or 0.0,
+                getattr(move, 'foreign_inverse_rate', 0.0) or 0.0,
+            ]
+            # Priorizar cualquier tasa que sea mayor que 1.0 (ej. 617.64 o 474.06)
+            for r in rates_to_check:
+                if r > 1.0:
+                    rate = r
+                    break
+            else:
+                # Si no hay ninguna tasa > 1.0, buscar la primera tasa válida > 0
+                for r in rates_to_check:
+                    if r > 0.0:
+                        # Si es menor que 1.0 (ej. 0.0016), la invertimos para obtener la tasa real
+                        rate = 1.0 / r if r < 1.0 else r
+                        break
 
         # Obtener las monedas específicas para USD y VES
         usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
