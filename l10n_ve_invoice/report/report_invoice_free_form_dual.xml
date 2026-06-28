@@ -73,7 +73,7 @@
                     <t t-set="usd_currency" t-value="o.env.ref('base.USD', raise_if_not_found=False) or o.env['res.currency'].search([('name', '=', 'USD')], limit=1)"/>
                     
                     <!-- Compute rate in a robust manner like the python model -->
-                    <t t-set="raw_rates" t-value="[getattr(o, 'foreign_rate', 0.0) or 0.0, getattr(o, 'tax_today', 0.0) or 0.0, getattr(o, 'foreign_inverse_rate', 0.0) or 0.0]"/>
+                    <t t-set="raw_rates" t-value="[o._fields.get('foreign_rate') and o.foreign_rate or 0.0, o._fields.get('tax_today') and o.tax_today or 0.0, o._fields.get('foreign_inverse_rate') and o.foreign_inverse_rate or 0.0]"/>
                     <t t-set="rate" t-value="1.0"/>
                     <t t-foreach="raw_rates" t-as="r">
                         <t t-if="rate == 1.0 and r > 1.0">
