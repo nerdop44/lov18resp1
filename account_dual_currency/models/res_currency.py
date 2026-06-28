@@ -74,16 +74,26 @@ class ResCurrency(models.Model):
             facturas = self.env['account.move'].search([('acuerdo_moneda', '=', True)])
             if facturas:
                 for f in facturas:
-                    # foreign_inverse_rate es el campo correcto (Bs por USD, ej: 563.29)
-                    f.foreign_inverse_rate = rec.inverse_rate
+                    # Escribir la tasa humana en tax_today y foreign_rate, y la tasa Odoo invertida en foreign_inverse_rate
+                    f.tax_today = rec.inverse_rate
+                    f.foreign_rate = rec.inverse_rate
+                    f.foreign_inverse_rate = 1.0 / rec.inverse_rate if rec.inverse_rate > 0 else 0.0
                     for l in f.line_ids:
+                        if hasattr(l, 'tax_today'):
+                            l.tax_today = rec.inverse_rate
+                        if hasattr(l, 'foreign_rate'):
+                            l.foreign_rate = rec.inverse_rate
                         if hasattr(l, 'foreign_inverse_rate'):
-                            l.foreign_inverse_rate = rec.inverse_rate
+                            l.foreign_inverse_rate = 1.0 / rec.inverse_rate if rec.inverse_rate > 0 else 0.0
                         l._debit_usd()
                         l._credit_usd()
                     for d in f.invoice_line_ids:
+                        if hasattr(d, 'tax_today'):
+                            d.tax_today = rec.inverse_rate
+                        if hasattr(d, 'foreign_rate'):
+                            d.foreign_rate = rec.inverse_rate
                         if hasattr(d, 'foreign_inverse_rate'):
-                            d.foreign_inverse_rate = rec.inverse_rate
+                            d.foreign_inverse_rate = 1.0 / rec.inverse_rate if rec.inverse_rate > 0 else 0.0
                         d._price_unit_usd()
                         d._price_subtotal_usd()
                     f._amount_all_usd()

@@ -170,10 +170,11 @@ class AccountMove(models.Model):
     def _compute_date(self):
         res = super(AccountMove, self)._compute_date()
         for rec in self:
-            if rec.invoice_date and rec.company_id.currency_id_dif and not rec.tax_today_edited:
-                new_rate_ids = self.env.company.currency_id_dif._get_rates(self.env.company, rec.invoice_date)
+            if rec.company_id.currency_id_dif and not rec.tax_today_edited:
+                date_to_use = rec.invoice_date or rec.date or fields.Date.context_today(rec)
+                new_rate_ids = rec.company_id.currency_id_dif._get_rates(rec.company_id, date_to_use)
                 if new_rate_ids:
-                    new_rate = 1 / new_rate_ids[self.env.company.currency_id_dif.id]
+                    new_rate = 1 / new_rate_ids[rec.company_id.currency_id_dif.id]
                     #print('new_rate', new_rate)
                     rec.tax_today = new_rate
 
@@ -216,6 +217,20 @@ class AccountMove(models.Model):
                         [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
                     if module_dual_currency:
                         val.update({'tax_today': self.env.company.currency_id_dif.inverse_rate})
+
+                # Sincronizar tasas si se proporciona alguna
+                tax_today = val.get('tax_today', 0.0)
+                foreign_rate = val.get('foreign_rate', 0.0)
+                foreign_inverse_rate = val.get('foreign_inverse_rate', 0.0)
+                if tax_today > 0 and not foreign_rate:
+                    val['foreign_rate'] = tax_today
+                    val['foreign_inverse_rate'] = 1.0 / tax_today
+                elif foreign_rate > 0 and not tax_today:
+                    val['tax_today'] = foreign_rate
+                    val['foreign_inverse_rate'] = 1.0 / foreign_rate
+                elif foreign_inverse_rate > 0 and not tax_today and not foreign_rate:
+                    val['tax_today'] = 1.0 / foreign_inverse_rate
+                    val['foreign_rate'] = 1.0 / foreign_inverse_rate
 
         res = super(AccountMove, self).create(values)
         return res
@@ -362,8 +377,14 @@ class AccountMove(models.Model):
                     rec.amount_tax_usd = rec.amount_total_usd - rec.amount_untaxed_usd
                 
                 # Sincronizar montos en Bs para consistencia
-                rec.amount_untaxed_bs = rec.amount_untaxed
-                rec.amount_total_bs = rec.amount_total
+                if rec.currency_id != rec.company_id.currency_id:
+                    rec.amount_untaxed_bs = rec.amount_untaxed * rec.tax_today
+                    rec.amount_total_bs = rec.amount_total * rec.tax_today
+                    rec.amount_tax_bs = rec.amount_total_bs - rec.amount_untaxed_bs
+                else:
+                    rec.amount_untaxed_bs = rec.amount_untaxed
+                    rec.amount_total_bs = rec.amount_total
+                    rec.amount_tax_bs = rec.amount_total - rec.amount_untaxed
 
             # 2. Caso Asientos Manuales (MISC / entry)
             elif rec.move_type == 'entry':
@@ -839,3 +860,42 @@ class AccountMove(models.Model):
                 (lines_facturas + line).reconcile()
 
                 return move
+
+    def write(self, vals):
+        # Sincronizar tasas en el diccionario de valores antes de escribir
+        tax_today = vals.get('tax_today')
+        foreign_rate = vals.get('foreign_rate')
+        foreign_inverse_rate = vals.get('foreign_inverse_rate')
+        
+        if tax_today is not None and tax_today > 0:
+            vals['foreign_rate'] = tax_today
+            vals['foreign_inverse_rate'] = 1.0 / tax_today
+        elif foreign_rate is not None and foreign_rate > 0:
+            vals['tax_today'] = foreign_rate
+            vals['foreign_inverse_rate'] = 1.0 / foreign_rate
+        elif foreign_inverse_rate is not None and foreign_inverse_rate > 0:
+            vals['tax_today'] = 1.0 / foreign_inverse_rate
+            vals['foreign_rate'] = 1.0 / foreign_inverse_rate
+            
+        return super(AccountMove, self).write(vals)
+
+    @api.onchange('tax_today')
+    def _onchange_tax_today_sync_ve(self):
+        for rec in self:
+            if rec.tax_today > 0:
+                rec.foreign_rate = rec.tax_today
+                rec.foreign_inverse_rate = 1.0 / rec.tax_today
+
+    @api.onchange('foreign_rate')
+    def _onchange_foreign_rate_sync_ve(self):
+        for rec in self:
+            if rec.foreign_rate > 0:
+                rec.tax_today = rec.foreign_rate
+                rec.foreign_inverse_rate = 1.0 / rec.foreign_rate
+
+    @api.onchange('foreign_inverse_rate')
+    def _onchange_foreign_inverse_rate_sync_ve(self):
+        for rec in self:
+            if rec.foreign_inverse_rate > 0:
+                rec.tax_today = 1.0 / rec.foreign_inverse_rate
+                rec.foreign_rate = 1.0 / rec.foreign_inverse_rate
