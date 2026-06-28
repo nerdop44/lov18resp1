@@ -204,7 +204,7 @@
                                         <span t-field="line.discount"/>
                                     </td>
                                     <td class="text-start text-nowrap">
-                                        <span t-esc="', '.join(map(lambda x: ( str(x.amount) + '%' if x.amount > 0 else ''), line.tax_ids))"/>
+                                        <span t-esc="', '.join(map(lambda x: ( str(x.amount) + '%' if x.amount &gt; 0 else ''), line.tax_ids))"/>
                                     </td>
                                     <td class="text-end text-nowrap">
                                          <span t-esc="price_subtotal" t-options='{"widget": "monetary", "display_currency": current_currency}'/>
