@@ -258,6 +258,14 @@ class AccountMove(models.Model):
                                getattr(self, 'secondary_currency_id', False) or \
                                self.company_id.currency_id_dif
             
+            is_ves_foreign = foreign_currency and (foreign_currency.name in ['VES', 'VEF', 'Bs.', 'Bs'] or 'Bs' in (foreign_currency.symbol or ''))
+            is_ves_company = self.company_id.currency_id and (self.company_id.currency_id.name in ['VES', 'VEF', 'Bs.', 'Bs'] or 'Bs' in (self.company_id.currency_id.symbol or ''))
+            
+            if is_ves_foreign and is_ves_company:
+                usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+                if usd_currency:
+                    foreign_currency = usd_currency
+
             if foreign_currency:
                 # Formatear subtotales extranjeros con la moneda de referencia
                 for subtotal in tax_totals['foreign_subtotals']:

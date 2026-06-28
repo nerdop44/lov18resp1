@@ -343,6 +343,30 @@ class AccountMove(models.Model):
     )
     def _amount_all_usd(self):
         for rec in self:
+            # Sincronización proactiva y segura de tasas para evitar desalineación o tasa a 0
+            if rec.company_id.currency_id_dif and not rec.tax_today_edited:
+                # Si tax_today es 0 pero la localización tiene tasa, usarla
+                if (not rec.tax_today or rec.tax_today <= 0.0) and getattr(rec, 'foreign_rate', 0.0) > 0.0:
+                    rec.tax_today = rec.foreign_rate
+                
+                # Si sigue siendo 0, buscar de forma proactiva la tasa de cambio en Odoo
+                if not rec.tax_today or rec.tax_today <= 0.0:
+                    date_to_use = rec.invoice_date or rec.date or fields.Date.context_today(rec)
+                    new_rate_ids = rec.company_id.currency_id_dif._get_rates(rec.company_id, date_to_use)
+                    if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
+                        new_rate = 1 / new_rate_ids[rec.company_id.currency_id_dif.id]
+                        if new_rate > 0.0:
+                            rec.tax_today = new_rate
+
+            # Alinear campos de la localización si tax_today es válido
+            if rec.tax_today > 0.0:
+                if hasattr(rec, 'foreign_rate') and rec.foreign_rate != rec.tax_today:
+                    rec.foreign_rate = rec.tax_today
+                if hasattr(rec, 'foreign_inverse_rate'):
+                    expected_inverse = 1.0 / rec.tax_today
+                    if abs(rec.foreign_inverse_rate - expected_inverse) > 1e-7:
+                        rec.foreign_inverse_rate = expected_inverse
+
             rec.amount_untaxed_usd = 0
             rec.amount_tax_usd = 0
             rec.amount_total_usd = 0

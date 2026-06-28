@@ -56,7 +56,17 @@ class AccountTax(models.Model):
                 # Agrega otros campos necesarios con valores por defecto
             }
         
-        foreign_currency = self.env.company.currency_foreign_id or False
+        company = self.env.company
+        foreign_currency = company.currency_foreign_id or getattr(company, 'currency_id_dif', False) or self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+        
+        is_ves_foreign = foreign_currency and (foreign_currency.name in ['VES', 'VEF', 'Bs.', 'Bs'] or 'Bs' in (foreign_currency.symbol or ''))
+        is_ves_company = company.currency_id and (company.currency_id.name in ['VES', 'VEF', 'Bs.', 'Bs'] or 'Bs' in (company.currency_id.symbol or ''))
+        
+        if is_ves_foreign and is_ves_company:
+            usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+            if usd_currency:
+                foreign_currency = usd_currency
+
         if not foreign_currency:
             _logger.error("No foreign currency configured in the company")
             raise ValidationError(_("No foreign currency configured in the company"))
@@ -176,8 +186,15 @@ class AccountTax(models.Model):
             return res
 
         foreign_currency = company.currency_foreign_id or getattr(company, 'currency_id_dif', False) or self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
-        if foreign_currency and foreign_currency.id == company.currency_id.id:
-            foreign_currency = self.env['res.currency'].search([('name', '=', 'USD' if company.currency_id.name != 'USD' else 'VES')], limit=1)
+        
+        is_ves_foreign = foreign_currency and (foreign_currency.name in ['VES', 'VEF', 'Bs.', 'Bs'] or 'Bs' in (foreign_currency.symbol or ''))
+        is_ves_company = company.currency_id and (company.currency_id.name in ['VES', 'VEF', 'Bs.', 'Bs'] or 'Bs' in (company.currency_id.symbol or ''))
+        
+        if is_ves_foreign and is_ves_company:
+            usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+            if usd_currency:
+                foreign_currency = usd_currency
+
         if not foreign_currency:
             return res
 
