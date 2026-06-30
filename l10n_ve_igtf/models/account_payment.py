@@ -288,7 +288,11 @@ class AccountPaymentIgtf(models.Model):
             credit_amount = -credit_line
             if self.env.company.currency_id.id == self.env.ref("base.VEF").id:
                 credit_amount = -credit_line * self.foreign_rate
-            vals[1].update({"amount_currency": credit_line, "credit": credit_amount})
+            vals[1].update({
+                "amount_currency": credit_line,
+                "credit": credit_amount,
+                "balance": vals[1].get("debit", 0.0) - abs(credit_amount)
+            })
 
             self._create_inbound_move_line_igtf_vals(vals)
 
@@ -307,7 +311,11 @@ class AccountPaymentIgtf(models.Model):
             debit_amount = debit_line
             if self.env.company.currency_id.id == self.env.ref("base.VEF").id:
                 debit_amount = debit_line * self.foreign_rate
-            vals[1].update({"amount_currency": debit_line, "debit": debit_amount})
+            vals[1].update({
+                "amount_currency": debit_line,
+                "debit": debit_amount,
+                "balance": abs(debit_amount) - vals[1].get("credit", 0.0)
+            })
 
             self._create_outbound_move_line_igtf_vals(vals)
 

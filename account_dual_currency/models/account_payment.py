@@ -152,41 +152,48 @@ class AccountPayment(models.Model):
             force_balance=force_balance,
             **kwargs
         )
-        total_debit = 0
-        total_credit = 0
+        total_debit = 0.0
+        total_credit = 0.0
         if res:
-            currency_id = res[0]['currency_id']
+            currency_id = res[0].get('currency_id')
         currencies_are_different = self.currency_id_company.id != currency_id
         for line in res:
-            if line['account_id'] == self.outstanding_account_id.id:
+            balance = line.get('balance', 0.0)
+            debit = line.get('debit', balance if balance > 0.0 else 0.0)
+            credit = line.get('credit', -balance if balance < 0.0 else 0.0)
+
+            if line.get('account_id') == self.outstanding_account_id.id:
                 line['tax_today'] = self.tax_today
                 if currencies_are_different:
-                    line['debit'] = (line['amount_currency'] * self.tax_today) if line['debit'] else 0
-                    line['credit'] = (abs(line['amount_currency']) * self.tax_today) if line['credit'] else 0
-            elif line['account_id'] == self.destination_account_id.id:
+                    line['debit'] = (line.get('amount_currency', 0.0) * self.tax_today) if debit else 0.0
+                    line['credit'] = (abs(line.get('amount_currency', 0.0)) * self.tax_today) if credit else 0.0
+                    line['balance'] = line['debit'] - line['credit']
+            elif line.get('account_id') == self.destination_account_id.id:
                 tasa_factura = self.env.context.get('tasa_factura', self.tax_today)
                 line['tax_today'] = tasa_factura if write_off_line_vals else self.tax_today
                 if currencies_are_different:
-                    line['debit'] = (line['amount_currency'] * line['tax_today']) if line['debit'] else 0
-                    line['credit'] = (abs(line['amount_currency']) * line['tax_today']) if line['credit'] else 0
+                    line['debit'] = (line.get('amount_currency', 0.0) * line['tax_today']) if debit else 0.0
+                    line['credit'] = (abs(line.get('amount_currency', 0.0)) * line['tax_today']) if credit else 0.0
+                    line['balance'] = line['debit'] - line['credit']
             else:
                 continue
-            total_debit += line['debit']
-            total_credit += line['credit']
+
+            total_debit += line.get('debit', debit)
+            total_credit += line.get('credit', credit)
 
         payment_difference_handling = self._context.get('payment_difference_handling', False)
         if currencies_are_different and payment_difference_handling == 'open' and total_debit != total_credit:
             if self.payment_type == 'inbound':
                 # Receive money.
-                write_off = sum(x['credit'] for x in write_off_line_vals)
-                liquidy = sum(x['debit'] for x in res if x['account_id'] == self.outstanding_account_id.id)
+                write_off = sum(x.get('credit', 0.0) or -x.get('balance', 0.0) if x.get('balance', 0.0) < 0.0 else 0.0 for x in write_off_line_vals) if write_off_line_vals else 0.0
+                liquidy = sum(x.get('debit', 0.0) or x.get('balance', 0.0) if x.get('balance', 0.0) > 0.0 else 0.0 for x in res if x.get('account_id') == self.outstanding_account_id.id)
             if self.payment_type == 'outbound':
                 # Send money.
-                write_off = sum(x['debit'] for x in write_off_line_vals)
-                liquidy = sum(x['credit'] for x in res if x['account_id'] == self.outstanding_account_id.id)
+                write_off = sum(x.get('debit', 0.0) or x.get('balance', 0.0) if x.get('balance', 0.0) > 0.0 else 0.0 for x in write_off_line_vals) if write_off_line_vals else 0.0
+                liquidy = sum(x.get('credit', 0.0) or -x.get('balance', 0.0) if x.get('balance', 0.0) < 0.0 else 0.0 for x in res if x.get('account_id') == self.outstanding_account_id.id)
             counterpart = liquidy - write_off
             for r in res:
-                if r['account_id'] == self.destination_account_id.id:
+                if r.get('account_id') == self.destination_account_id.id:
                     if self.payment_type == 'inbound':
                         r['credit'] = counterpart
                         r['balance'] = -counterpart
