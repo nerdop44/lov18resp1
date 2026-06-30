@@ -254,12 +254,15 @@ class AccountTax(models.Model):
             tax_amount = sum(sub.get("tax_amount_currency", 0.0) for sub in res.get("subtotals", []))
             total_amount = subtotal_amount + tax_amount
 
-            # 2. Convertir montos principales consolidados a moneda extranjera
+            # 2. Convertir montos a moneda extranjera SOLO para display
             foreign_amount_untaxed = convert(subtotal_amount)
             foreign_amount_total = convert(total_amount)
 
-            res["amount_untaxed"] = subtotal_amount
-            res["amount_total"] = total_amount
+            # IMPORTANTE: NO sobreescribir amount_total ni amount_untaxed.
+            # Odoo 18 usa estos campos nativos para la validación del balance del asiento
+            # en _check_balanced(). Sobreescribirlos con valores convertidos provoca
+            # que tax_totals.tax_amount sea incorrecto (ej. 88.0/623 = 0.14 en lugar de 88.0)
+            # y el asiento falle la validación.
             res["formatted_amount_untaxed"] = formatLang(self.env, subtotal_amount, currency_obj=currency)
             res["formatted_amount_total"] = formatLang(self.env, total_amount, currency_obj=currency)
 
