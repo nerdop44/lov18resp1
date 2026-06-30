@@ -216,7 +216,14 @@ class AccountMove(models.Model):
                     module_dual_currency = self.env['ir.module.module'].sudo().search(
                         [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
                     if module_dual_currency:
-                        val.update({'tax_today': self.env.company.currency_id_dif.inverse_rate})
+                        currency_dif = self.env.company.currency_id_dif
+                        move_currency_id = val.get('currency_id')
+                        # If the invoice currency is the same as the dual reference currency (e.g. USD invoice),
+                        # tax_today must be 1.0 to avoid double currency conversion in the accounting lines.
+                        if move_currency_id and currency_dif and move_currency_id == currency_dif.id:
+                            val.update({'tax_today': 1.0})
+                        else:
+                            val.update({'tax_today': currency_dif.inverse_rate if currency_dif else 1.0})
 
                 # Sincronizar tasas si se proporciona alguna
                 tax_today = val.get('tax_today', 0.0)

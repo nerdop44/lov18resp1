@@ -117,7 +117,16 @@ class PurchaseOrder(models.Model):
         moves = self.env['account.move']
         AccountMove = self.env['account.move'].with_context(default_move_type='in_invoice',calcular_dual_currency=False)
         for vals in invoice_vals_list:
-            vals['tax_today'] = self.env.company.currency_id_dif.inverse_rate
+            po_currency_id = vals.get('currency_id')
+            company = self.env.company
+            currency_dif = company.currency_id_dif
+            # If the PO currency is the same as the dual/reference currency (e.g. PO in USD
+            # and currency_id_dif = USD), then tax_today must be 1.0 to avoid double conversion.
+            # Only apply the inverse_rate when the PO is in the base currency (VES) and the dual is USD.
+            if po_currency_id and currency_dif and po_currency_id == currency_dif.id:
+                vals['tax_today'] = 1.0
+            else:
+                vals['tax_today'] = currency_dif.inverse_rate if currency_dif else 1.0
             moves |= AccountMove.with_company(vals['company_id']).create(vals)
 
         # 4) Some moves might actually be refunds: convert them if the total amount is negative
