@@ -214,12 +214,32 @@ class AccountMoveLine(models.Model):
         res = super().reconcile()
 
         # Post-reconcile: Actualizar amount_usd en las líneas de reconciliación parcial creadas
-        partials = self.matched_debit_ids | self.matched_credit_ids
-        for partial in partials:
-            if not partial.amount_usd:
-                amount_usd = min(
-                    abs(partial.debit_move_id.amount_residual_usd),
-                    abs(partial.credit_move_id.amount_residual_usd)
-                )
-                partial.write({'amount_usd': abs(amount_usd)})
+        partials = (self.matched_debit_ids | self.matched_credit_ids).sorted('id')
+        new_partials = partials.filtered(lambda p: not p.amount_usd)
+        new_partial_ids = set(new_partials.ids)
+
+        rem_usd = {}
+        for p in new_partials:
+            debit = p.debit_move_id
+            credit = p.credit_move_id
+
+            if debit not in rem_usd:
+                # El saldo inicial en USD disponible es el total en USD de la línea
+                # menos lo ya reconciliado por otros parciales existentes fuera de este lote nuevo
+                already_reconciled = sum(other.amount_usd for other in debit.matched_credit_ids if other.id not in new_partial_ids)
+                rem_usd[debit] = max(0.0, (debit.debit_usd or 0.0) - already_reconciled)
+
+            if credit not in rem_usd:
+                already_reconciled = sum(other.amount_usd for other in credit.matched_debit_ids if other.id not in new_partial_ids)
+                rem_usd[credit] = max(0.0, (credit.credit_usd or 0.0) - already_reconciled)
+
+            # Calculamos el USD a asignar en base a lo disponible en memoria de forma secuencial
+            amt_usd = min(rem_usd[debit], rem_usd[credit])
+
+            # Descontamos de lo disponible para la siguiente iteración del loop
+            rem_usd[debit] -= amt_usd
+            rem_usd[credit] -= amt_usd
+
+            p.write({'amount_usd': amt_usd})
         return res
+
