@@ -15,6 +15,17 @@ _logger = logging.getLogger(__name__)
 class AccountMove(models.Model):
     _inherit = "account.move"
 
+    payment_id = fields.Many2one(
+        'account.payment',
+        string="Pago Asociado",
+        compute='_compute_payment_id',
+    )
+
+    @api.depends('payment_ids')
+    def _compute_payment_id(self):
+        for move in self:
+            move.payment_id = move.payment_ids[:1]
+
     def _valid_field_parameter(self, field_name, parameter):
         return parameter in ('digits', 'states') or super()._valid_field_parameter(field_name, parameter)
 
