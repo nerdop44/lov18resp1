@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Acción de reporte Orden de Compra (Dual) -->
+    <record id="action_report_purchase_order_dual" model="ir.actions.report">
+        <field name="name">Orden de Compra (Dual)</field>
+        <field name="model">purchase.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">account_dual_currency.report_purchaseorder_dual</field>
+        <field name="report_file">account_dual_currency.report_purchaseorder_dual</field>
+        <field name="binding_model_id" ref="purchase.model_purchase_order"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- Wrapper del reporte -->
+    <template id="report_purchaseorder_dual">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="account_dual_currency.report_purchaseorder_document_dual" t-lang="o.partner_id.lang"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- Documento heredado de forma primaria (Copia independiente no destructiva) -->
+    <template id="report_purchaseorder_document_dual" inherit_id="purchase.report_purchaseorder_document" primary="True">
+        <xpath expr="//div[@id='total']" position="after">
+            <div class="row justify-content-end mt-2" style="page-break-inside: avoid;">
+                <div class="col-6">
+                    <table class="table table-sm table-borderless">
+                        <!-- Fila Bs. -->
+                        <tr class="border-black">
+                            <td><strong>Total Bs.</strong></td>
+                            <td class="text-end">
+                                <t t-if="o.currency_id.name == 'VES'">
+                                    <span t-field="o.amount_total" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                </t>
+                                <t t-else="">
+                                    <span t-field="o.amount_total_dif" t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id_dif}'/>
+                                </t>
+                            </td>
+                        </tr>
+                        <!-- Fila Ref. ($) -->
+                        <tr t-if="o.company_id.currency_id_dif">
+                            <td><strong>Total Ref. ($)</strong></td>
+                            <td class="text-end">
+                                <t t-if="o.currency_id.name == 'USD'">
+                                    <span t-field="o.amount_total" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                </t>
+                                <t t-else="">
+                                    <span t-field="o.amount_total_usd" t-options='{"widget": "monetary", "display_currency": o.currency_id_usd_krill}'/>
+                                </t>
+                            </td>
+                        </tr>
+                        <!-- Tasa Aplicada -->
+                        <tr t-if="o.krill_tasa_valor" class="text-muted small">
+                            <td colspan="2" class="text-end">
+                                Tasa Aplicada: <span t-field="o.krill_tasa_valor" t-options='{"widget": "float", "precision": 2}'/> Bs/$
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </xpath>
+    </template>
+</odoo>
