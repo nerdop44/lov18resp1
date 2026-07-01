@@ -232,7 +232,7 @@ class WizardAccountingReports(models.TransientModel):
                 continue
 
             ret_vals["date_retention"] = self._format_date(ret_line.retention_id.date_accounting)
-            ret_vals["number_retention"] = move.iva_voucher_number
+            ret_vals["number_retention"] = ret_line.retention_id.number or move.iva_voucher_number
             ret_vals["iva_retained"] = ret_vals["iva_retained"] + (
                 self._sum_retention_total(ret_line) * multiplier
                 if ret_line.move_id.state != "cancel"
@@ -242,20 +242,19 @@ class WizardAccountingReports(models.TransientModel):
         return ret_vals
 
     def _sum_retention_total(self, lines):
-        retention = lines.mapped("retention_id")
-
-        if (
-            self.report == "purchase"
-            and retention
-            and self._check_future_retention_dates(retention.date_accounting)
-            or lines.move_id.state == "cancel"
-        ):
-            return 0.0
-
         total_local = 0.0
         total_foreign = 0.0
 
         for line in lines:
+            retention = line.retention_id
+            if (
+                self.report == "purchase"
+                and retention
+                and self._check_future_retention_dates(retention.date_accounting)
+                or line.move_id.state == "cancel"
+            ):
+                continue
+
             amount1 = abs(line.retention_amount)
             amount2 = abs(line.foreign_retention_amount)
             

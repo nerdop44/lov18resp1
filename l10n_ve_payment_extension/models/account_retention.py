@@ -507,10 +507,13 @@ class AccountRetention(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         res = super().create(vals_list)
+        res._safe_create_payments()
         return res
 
     def write(self, vals):
         res = super().write(vals)
+        if any(f in vals for f in ["retention_line_ids", "partner_id", "date", "date_accounting"]):
+            self._safe_create_payments()
         return res
 
     def action_generate_payment(self):
@@ -1002,16 +1005,6 @@ class AccountRetention(models.Model):
 
         return payments_to_keep
 
-    def _safe_create_payments(self):
-        """
-        Crea los pagos según el tipo de retención.
-        Se llama desde action_post como Opción A.
-        """
-        for retention in self:
-            if retention.type_retention == "iva":
-                retention._sync_iva_payments_on_draft()
-            elif retention.type_retention == "islr":
-                retention._create_islr_payments_on_draft()
     
     def action_post(self):
 
@@ -1501,6 +1494,7 @@ class AccountRetention(models.Model):
         else:
             _logger.warning(f"compute_retention_lines_data: El atributo 'name' NO EXISTE.")
         # --- INICIO DE LA VALIDACIÓN CRÍTICA ---
+        foreign_rate = invoice_id.foreign_rate
         if invoice_id.currency_id != self.env.company.currency_id and (not foreign_rate or foreign_rate == 0.0):
             _logger.error(
                 f"Tasa de cambio extranjera (foreign_rate) es cero o nula para la factura {invoice_id.display_name} "

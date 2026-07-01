@@ -818,15 +818,17 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
 
     # 11. Procesar cada grupo de impuestos
         for base_name, taxes in tax_base.items():
-            if not isinstance(taxes, dict):  # Validación de tipo
+            if isinstance(taxes, list):
+                group_tax_details = taxes
+            elif isinstance(taxes, dict):
+                group_tax_details = taxes.get('group_tax_details', [])
+                if not isinstance(group_tax_details, list):
+                    group_tax_details = [taxes]
+            else:
                 continue
             
-            group_tax_details = taxes.get('group_tax_details', [])
-            if not isinstance(group_tax_details, list):  # Validación de tipo
-                continue
-
             for tax in group_tax_details:
-                if not isinstance(tax, dict):  # Validación de tipo
+                if not isinstance(tax, dict):
                     continue
                 
                 tax_group_id = tax.get("tax_group_id")

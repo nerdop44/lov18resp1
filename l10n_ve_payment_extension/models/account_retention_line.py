@@ -310,7 +310,7 @@ class AccountRetentionLine(models.Model):
                     record.related_percentage_fees = line.tariff_id.percentage if line.tariff_id else 0.0
                     record.related_amount_subtract_fees = line.tariff_id.amount_subtract if line.tariff_id else 0.0
 
-                    if not record.retention_id or record.retention_id.type == "in_invoice":
+                    if not record.retention_id or record.retention_id.type in ("in_invoice", "out_invoice", "in_refund", "out_refund", "in_debit", "out_debit"):
                         record.invoice_amount = amount_untaxed_company
                         record.foreign_invoice_amount = vef_untaxed
                     break  # Salir al encontrar la primera coincidencia
@@ -326,7 +326,7 @@ class AccountRetentionLine(models.Model):
                 amount_untaxed = tax_totals.get('amount_untaxed', 0)
                 foreign_amount_untaxed = tax_totals.get('foreign_amount_untaxed', amount_untaxed)
 
-                if not record.retention_id or record.retention_id.type == "in_invoice":
+                if not record.retention_id or record.retention_id.type in ("in_invoice", "out_invoice", "in_refund", "out_refund", "in_debit", "out_debit"):
                     record.invoice_amount = amount_untaxed
                     record.foreign_invoice_amount = foreign_amount_untaxed
                     # No break here, as it should apply to all lines in the recordset
@@ -335,7 +335,7 @@ class AccountRetentionLine(models.Model):
                  if not record.move_id:
                      continue
                  tax_totals = record.move_id.tax_totals or {}
-                 if not record.retention_id or record.retention_id.type == "in_invoice":
+                 if not record.retention_id or record.retention_id.type in ("in_invoice", "out_invoice", "in_refund", "out_refund", "in_debit", "out_debit"):
                      record.invoice_amount = tax_totals.get("amount_untaxed", 0)
                      record.foreign_invoice_amount = tax_totals.get("foreign_amount_untaxed", record.invoice_amount)
 
@@ -364,11 +364,11 @@ class AccountRetentionLine(models.Model):
         - foreign_retention_amount: SIEMPRE en VEF (Bs.)
           foreign_invoice_amount ya fue asignado en VEF por _compute_related_fields
         """
-        islr_supplier_retention_lines = self.filtered(
+        islr_retention_lines = self.filtered(
             lambda l: (not l.retention_id and l.payment_concept_id)
-            or (l.retention_id.type_retention == "islr" and l.retention_id.type == "in_invoice")
+            or (l.retention_id.type_retention == "islr")
         )
-        for record in islr_supplier_retention_lines:
+        for record in islr_retention_lines:
             foreign_rate = record.move_id.foreign_rate or 1.0
 
             # Retención en moneda empresa
@@ -397,7 +397,7 @@ class AccountRetentionLine(models.Model):
 
         for record in municipal_lines:
             tax_totals = record.move_id.tax_totals or {}
-            if not record.retention_id or record.retention_id.type == "in_invoice":
+            if not record.retention_id or record.retention_id.type in ("in_invoice", "out_invoice", "in_refund", "out_refund", "in_debit", "out_debit"):
                 record.invoice_amount = tax_totals.get("amount_untaxed", 0.0)
                 record.foreign_invoice_amount = tax_totals.get("foreign_amount_untaxed", 0.0)
 
