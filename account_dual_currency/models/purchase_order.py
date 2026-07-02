@@ -126,11 +126,14 @@ class PurchaseOrder(models.Model):
                 record.amount_untaxed_dif = record.amount_untaxed / tasa if tasa else 0.0
                 record.amount_tax_dif = record.amount_tax / tasa if tasa else 0.0
 
-    @api.depends('amount_total', 'tasa_referencial')
+    @api.depends('amount_total', 'tasa_referencial', 'currency_id')
     def _compute_amount_total_usd(self):
         for order in self:
-            tasa = order.tasa_referencial if order.tasa_referencial > 0 else 1.0
-            order.amount_total_usd = order.amount_total / tasa
+            if order.currency_id.name == 'USD':
+                order.amount_total_usd = order.amount_total
+            else:
+                tasa = order.tasa_referencial if order.tasa_referencial > 0 else 1.0
+                order.amount_total_usd = order.amount_total / tasa
 
     def action_update_krill_rate(self):
         self.ensure_one()

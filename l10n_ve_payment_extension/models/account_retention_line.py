@@ -330,7 +330,7 @@ class AccountRetentionLine(models.Model):
         Calcula los campos relacionados con el concepto de pago para retenciones ISLR.
         """
         lines_from_islr_retention = self.filtered(
-            lambda l: (not l.retention_id or l.retention_id.type_retention == "islr")
+            lambda l: l.payment_concept_id or (not l.retention_id or l.retention_id.type_retention == "islr")
         )
 
         for record in lines_from_islr_retention:
@@ -339,11 +339,19 @@ class AccountRetentionLine(models.Model):
             record.related_percentage_fees = 0.0
             record.related_amount_subtract_fees = 0.0
 
-            if not record.move_id or not record.payment_concept_id:
+            partner = (
+                (record.move_id.partner_id if record.move_id else False)
+                or (record.retention_id.partner_id if record.retention_id else False)
+            )
+            if not partner or not record.payment_concept_id:
                 continue
 
-            partner = record.move_id.partner_id
-            partner_person_type = partner.type_person_id or partner.commercial_partner_id.type_person_id
+            partner_person_type = (
+                partner.type_person_id 
+                or partner.commercial_partner_id.type_person_id
+                or (record.retention_id.partner_id.type_person_id if record.retention_id else False)
+                or (record.retention_id.partner_id.commercial_partner_id.type_person_id if record.retention_id else False)
+            )
             if not partner_person_type:
                 continue
 
@@ -365,6 +373,13 @@ class AccountRetentionLine(models.Model):
         """
         for record in self:
             if record.retention_id and record.retention_id.type == 'out_invoice':
+                record.invoice_amount = 0.0
+                record.invoice_total = 0.0
+                record.iva_amount = 0.0
+                record.foreign_invoice_amount = 0.0
+                record.foreign_invoice_total = 0.0
+                record.foreign_iva_amount = 0.0
+                record.foreign_currency_rate = 0.0
                 record.retention_amount = 0.0
                 record.foreign_retention_amount = 0.0
 

@@ -198,12 +198,18 @@ class AccountTax(models.Model):
         if not foreign_currency:
             return res
 
-        # Obtener la factura
+        # Obtener la factura o el pedido
         move = False
+        order = False
         for base_line in base_lines:
             record = base_line.get("record")
-            if record and hasattr(record, 'move_id') and record.move_id:
+            if not record:
+                continue
+            if hasattr(record, 'move_id') and record.move_id:
                 move = record.move_id
+                break
+            elif hasattr(record, 'order_id') and record.order_id:
+                order = record.order_id
                 break
 
         rate = 1.0
@@ -227,6 +233,26 @@ class AccountTax(models.Model):
                         # Si es menor que 1.0 (ej. 0.0016), la invertimos para obtener la tasa real
                         rate = 1.0 / r if r < 1.0 else r
                         break
+        elif order:
+            # Obtener las tasas posibles del pedido (compra o venta)
+            rates_to_check = [
+                getattr(order, 'krill_tasa_valor', 0.0) or 0.0,
+                getattr(order, 'tasa_referencial', 0.0) or 0.0,
+            ]
+            for r in rates_to_check:
+                if r > 1.0:
+                    rate = r
+                    break
+            else:
+                for r in rates_to_check:
+                    if r > 0.0:
+                        rate = 1.0 / r if r < 1.0 else r
+                        break
+        else:
+            # Fallback a la tasa dual diaria de la compañía
+            dif = getattr(company, 'currency_id_dif', False)
+            if dif and dif.inverse_rate:
+                rate = dif.inverse_rate
 
         # Obtener las monedas específicas para USD y VES
         usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)

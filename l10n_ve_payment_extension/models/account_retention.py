@@ -610,14 +610,6 @@ class AccountRetention(models.Model):
         if not journal:
             return
 
-        # Odoo 18 requiere payment_method_line_id
-        payment_method_line = journal.outbound_payment_method_line_ids[:1] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[:1]
-        if not payment_method_line:
-             # Fallback simple
-             payment_method_line = journal._get_available_payment_method_lines(
-                 "outbound" if self.type == "in_invoice" else "inbound"
-             )[:1]
-
         partner_type = "supplier" if self.type in ("in_invoice", "in_refund") else "customer"
 
         # Agrupar líneas por factura
@@ -642,6 +634,15 @@ class AccountRetention(models.Model):
 
             if move.move_type in ("in_refund", "out_refund"):
                 payment_type = "inbound" if partner_type == "supplier" else "outbound"
+
+            # Odoo 18 requiere payment_method_line_id correspondiente al payment_type real
+            payment_method_line = (
+                journal.outbound_payment_method_line_ids[:1]
+                if payment_type == "outbound"
+                else journal.inbound_payment_method_line_ids[:1]
+            )
+            if not payment_method_line:
+                payment_method_line = journal._get_available_payment_method_lines(payment_type)[:1]
 
             # Moneda del pago: VEF (Regla universal venezolana)
             currency_vef = self._get_vef_currency()
@@ -746,9 +747,8 @@ class AccountRetention(models.Model):
         Payment = self.env["account.payment"]
         Rate = self.env["res.currency.rate"]
         payment_vals["partner_type"] = "supplier"
-        payment_vals[
-            "journal_id"
-        ] = self.env.company.iva_supplier_retention_journal_id.id
+        journal = self.env.company.iva_supplier_retention_journal_id
+        payment_vals["journal_id"] = journal.id
         in_refund_lines = self.retention_line_ids.filtered(
             lambda l: l.move_id.move_type == "in_refund"
         )
@@ -765,10 +765,9 @@ class AccountRetention(models.Model):
             in_invoices_dict[line.move_id] += line
 
         for lines in in_refunds_dict.values():
-            payment_vals["payment_method_id"] = (
-                self.env.ref("account.account_payment_method_manual_in").id,
-            )
             payment_vals["payment_type"] = "inbound"
+            payment_method_line = journal.inbound_payment_method_line_ids[:1] or journal._get_available_payment_method_lines("inbound")[:1]
+            payment_vals["payment_method_line_id"] = payment_method_line.id if payment_method_line else False
             payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
             payment = Payment.create(payment_vals)
             payment.update(
@@ -781,10 +780,9 @@ class AccountRetention(models.Model):
             lines.write({"payment_id": payment.id})
             payment.compute_retention_amount_from_retention_lines()
         for lines in in_invoices_dict.values():
-            payment_vals["payment_method_id"] = (
-                self.env.ref("account.account_payment_method_manual_out").id,
-            )
             payment_vals["payment_type"] = "outbound"
+            payment_method_line = journal.outbound_payment_method_line_ids[:1] or journal._get_available_payment_method_lines("outbound")[:1]
+            payment_vals["payment_method_line_id"] = payment_method_line.id if payment_method_line else False
             payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
             payment = Payment.create(payment_vals)
             payment.update(
@@ -803,9 +801,8 @@ class AccountRetention(models.Model):
         Payment = self.env["account.payment"]
         Rate = self.env["res.currency.rate"]
         payment_vals["partner_type"] = "customer"
-        payment_vals[
-            "journal_id"
-        ] = self.env.company.iva_customer_retention_journal_id.id
+        journal = self.env.company.iva_customer_retention_journal_id
+        payment_vals["journal_id"] = journal.id
         out_refund_lines = self.retention_line_ids.filtered(
             lambda l: l.move_id.move_type == "out_refund"
         )
@@ -822,10 +819,9 @@ class AccountRetention(models.Model):
             out_invoices_dict[line.move_id] += line
 
         for lines in out_refunds_dict.values():
-            payment_vals["payment_method_id"] = (
-                self.env.ref("account.account_payment_method_manual_out").id,
-            )
             payment_vals["payment_type"] = "outbound"
+            payment_method_line = journal.outbound_payment_method_line_ids[:1] or journal._get_available_payment_method_lines("outbound")[:1]
+            payment_vals["payment_method_line_id"] = payment_method_line.id if payment_method_line else False
             payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
             payment = Payment.create(payment_vals)
             payment.update(
@@ -838,10 +834,9 @@ class AccountRetention(models.Model):
             lines.write({"payment_id": payment.id})
             payment.compute_retention_amount_from_retention_lines()
         for lines in out_invoices_dict.values():
-            payment_vals["payment_method_id"] = (
-                self.env.ref("account.account_payment_method_manual_in").id,
-            )
             payment_vals["payment_type"] = "inbound"
+            payment_method_line = journal.inbound_payment_method_line_ids[:1] or journal._get_available_payment_method_lines("inbound")[:1]
+            payment_vals["payment_method_line_id"] = payment_method_line.id if payment_method_line else False
             payment_vals["foreign_rate"] = lines[0].foreign_currency_rate
             payment = Payment.create(payment_vals)
             payment.update(
@@ -956,13 +951,6 @@ class AccountRetention(models.Model):
         if not journal:
             return
 
-        # Odoo 18 requiere payment_method_line_id
-        payment_method_line = journal.outbound_payment_method_line_ids[:1] if self.type == "in_invoice" else journal.inbound_payment_method_line_ids[:1]
-        if not payment_method_line:
-             payment_method_line = journal._get_available_payment_method_lines(
-                 "outbound" if self.type == "in_invoice" else "inbound"
-             )[:1]
-
         # 1. Determinar los pagos que DEBERÍAN existir
         lines_by_concept_and_move = defaultdict(lambda: self.env['account.retention.line'])
         for line in self.retention_line_ids.filtered(lambda l: l.payment_concept_id):
@@ -984,6 +972,15 @@ class AccountRetention(models.Model):
             payment_type = 'outbound' if self.type == 'in_invoice' else 'inbound'
             if move.move_type in ('in_refund', 'out_refund'):
                 payment_type = 'inbound' if payment_type == 'outbound' else 'outbound'
+
+            # Odoo 18 requiere payment_method_line_id correspondiente al payment_type real
+            payment_method_line = (
+                journal.outbound_payment_method_line_ids[:1]
+                if payment_type == "outbound"
+                else journal.inbound_payment_method_line_ids[:1]
+            )
+            if not payment_method_line:
+                payment_method_line = journal._get_available_payment_method_lines(payment_type)[:1]
 
             payment_vals = {
                 'retention_id': self.id,
@@ -1141,6 +1138,9 @@ class AccountRetention(models.Model):
             if self.type == 'in_invoice' 
             else self.env.company.islr_customer_retention_journal_id.id
         )
+        journal = self.env['account.journal'].browse(journal_id)
+        if not journal:
+            return self.env['account.payment']
     
         # Agrupar líneas por concepto de pago
         lines_by_concept = defaultdict(lambda: self.env['account.retention.line'])
@@ -1149,16 +1149,32 @@ class AccountRetention(models.Model):
     
         payments = self.env['account.payment']
         for concept, lines in lines_by_concept.items():
+            move = lines[0].move_id
+            partner_type = 'supplier' if self.type in ('in_invoice', 'in_refund') else 'customer'
+            payment_type = 'outbound' if self.type == 'in_invoice' else 'inbound'
+            if move and move.move_type in ('in_refund', 'out_refund'):
+                payment_type = 'inbound' if payment_type == 'outbound' else 'outbound'
+
+            # Odoo 18 requiere payment_method_line_id correspondiente al payment_type real
+            payment_method_line = (
+                journal.outbound_payment_method_line_ids[:1]
+                if payment_type == "outbound"
+                else journal.inbound_payment_method_line_ids[:1]
+            )
+            if not payment_method_line:
+                payment_method_line = journal._get_available_payment_method_lines(payment_type)[:1]
+
             payment_vals = {
                 'retention_id': self.id,
                 'partner_id': self.partner_id.id,
                 'payment_type_retention': 'islr',
                 'is_retention': True,
-                'journal_id': journal_id,
-                'partner_type': 'supplier' if self.type == 'in_invoice' else 'customer',
-                'payment_type': 'outbound' if self.type == 'in_invoice' else 'inbound',
+                'journal_id': journal.id,
+                'partner_type': partner_type,
+                'payment_type': payment_type,
                 'payment_concept_id': concept.id,
                 'foreign_rate': lines[0].foreign_currency_rate,
+                'payment_method_line_id': payment_method_line.id if payment_method_line else False,
                 'retention_line_ids': [(6, 0, lines.ids)],
                 'amount': sum(lines.mapped('retention_amount')),
                 'currency_id': self.env.company.currency_id.id,
