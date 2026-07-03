@@ -13,6 +13,16 @@ class PaymentConceptBinaural(models.Model):
     )
     status = fields.Boolean(default=True, string="Active?", store=True)
 
+    supplier_account_id = fields.Many2one(
+        "account.account",
+        string="Supplier Account (ISLR)",
+    )
+    customer_account_id = fields.Many2one(
+        "account.account",
+        string="Customer Account (ISLR)",
+    )
+
+
     @api.constrains("line_payment_concept_ids")
     def _constraint_line_payment_concept_ids(self):
         for record in self:

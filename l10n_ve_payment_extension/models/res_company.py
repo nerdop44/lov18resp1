@@ -40,3 +40,13 @@ class ResCompany(models.Model):
         string="The condition of this taxpayer requires the withholding of",
     )
     code_visible=fields.Boolean(string="See payment concept code")
+
+    islr_supplier_retention_account_id = fields.Many2one(
+        "account.account",
+        string="Supplier ISLR Withholding Account",
+    )
+    islr_customer_retention_account_id = fields.Many2one(
+        "account.account",
+        string="Customer ISLR Withholding Account",
+    )
+

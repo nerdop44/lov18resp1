@@ -23,11 +23,14 @@
                         <group>
                             <group>
                                 <field name="name" />
+                                <field name="supplier_account_id" />
+                                <field name="customer_account_id" />
                             </group>
                             <group>
                                 <field name="status" />
                             </group>
                         </group>
+
                         <notebook>
                             <page name="line_payment_concept" string="Payment concept line">
                                 <field name="line_payment_concept_ids">
