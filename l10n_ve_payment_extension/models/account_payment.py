@@ -1,5 +1,7 @@
-from odoo import api, fields, models, Command
+from odoo import api, fields, models, Command, _
+from odoo.exceptions import UserError
 from odoo.tools.float_utils import float_round
+
 
 
 class AccountPayment(models.Model):
