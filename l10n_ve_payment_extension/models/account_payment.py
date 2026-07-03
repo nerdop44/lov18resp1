@@ -117,34 +117,9 @@ class AccountPayment(models.Model):
             vals_to_change = {"name": move_name}
             move.write(vals_to_change)
             move.line_ids.write(vals_to_change)
-        
-            # 2. Add specific accounting handling for ISLR
-            if payment.payment_type_retention == "islr" and move.state == "draft":
-                # Get accounts based on payment type and concept
-                if payment.partner_type == 'supplier':
-                    debit_account = payment.company_id.islr_supplier_retention_account_id
-                    credit_account = payment.payment_concept_id.supplier_account_id
-                else:
-                    debit_account = payment.payment_concept_id.customer_account_id
-                    credit_account = payment.company_id.islr_customer_retention_account_id
 
-                if not debit_account or not credit_account:
-                    raise UserError(_("Faltan cuentas contables configuradas para ISLR"))
-
-                # Update move lines
-                for line in move.line_ids:
-                    if line.account_id == debit_account:
-                        line.write({
-                            'debit': payment.amount if payment.payment_type == 'outbound' else 0,
-                            'credit': payment.amount if payment.payment_type == 'inbound' else 0,
-                        })
-                    elif line.account_id == credit_account:
-                        line.write({
-                            'debit': payment.amount if payment.payment_type == 'inbound' else 0,
-                            'credit': payment.amount if payment.payment_type == 'outbound' else 0,
-                        })
-    
         return res
+
 
     # def _synchronize_to_moves(self, changed_fields):
     #     """
