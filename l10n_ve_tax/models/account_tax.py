@@ -320,6 +320,8 @@ class AccountTax(models.Model):
                     f_tax_amount = convert(tax_amount_cur)
                     
                     groups_by_foreign_subtotal[s_name].append({
+                        "id": tg.get("id"),
+                        "group_key": tg.get("group_key") or f"{s_name}_{tg.get('id')}",
                         "tax_group_id": tg.get("id"),
                         "tax_group_name": tg.get("group_name"),
                         "tax_group_base_amount": f_base_amount,
@@ -331,6 +333,8 @@ class AccountTax(models.Model):
                     })
                     
                     groups_by_subtotal[s_name].append({
+                        "id": tg.get("id"),
+                        "group_key": tg.get("group_key") or f"{s_name}_{tg.get('id')}",
                         "tax_group_id": tg.get("id"),
                         "tax_group_name": tg.get("group_name"),
                         "tax_group_base_amount": base_amount_cur,
