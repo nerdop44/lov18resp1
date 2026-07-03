@@ -718,10 +718,15 @@ class AccountMove(models.Model):
                 
                 display_currency = currency_dif if (is_retention and currency_dif) else move.currency_id
 
+                is_company_usd = move.company_id.currency_id.name == 'USD'
+
                 if line.currency_id == display_currency:
                     # Same currency.
                     amount = abs(line.amount_residual_currency)
-                    amount_usd = abs(line.amount_residual_usd)
+                    if is_company_usd and currency_dif and display_currency == currency_dif:
+                        amount_usd = abs(line.amount_residual)
+                    else:
+                        amount_usd = abs(line.amount_residual_usd)
                 else:
                     # Different currencies.
                     amount = line.company_currency_id._convert(
@@ -730,7 +735,10 @@ class AccountMove(models.Model):
                         move.company_id,
                         line.date,
                     )
-                    amount_usd = abs(line.amount_residual_usd)
+                    if is_company_usd and currency_dif and display_currency == currency_dif:
+                        amount_usd = abs(line.amount_residual)
+                    else:
+                        amount_usd = abs(line.amount_residual_usd)
 
                 if display_currency.is_zero(amount):
                     continue
