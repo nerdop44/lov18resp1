@@ -218,12 +218,9 @@ class AccountMoveLine(models.Model):
                                      - sum(line.matched_debit_ids.mapped('amount_usd'))
 
                 line.amount_residual_usd = (line.debit_usd - line.credit_usd) - reconciled_balance
-
-                line.reconciled = (line.amount_residual_usd == 0)
             else:
                 # Must not have any reconciliation since the line is not eligible for that.
                 line.amount_residual_usd = 0.0
-                line.reconciled = False
 
     def reconcile(self):
         ''' Reconcile the current move lines all together.

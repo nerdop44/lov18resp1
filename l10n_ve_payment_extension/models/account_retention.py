@@ -1072,6 +1072,9 @@ class AccountRetention(models.Model):
                 # Actualizar estado de la retención (se mantiene igual)
                 retention.write({'state': 'emitted'})
                 _logger.info(f"Retención {retention.id} marcada como emitida")
+
+                # Reconciliar los pagos con la factura
+                retention._reconcile_all_payments()
             except Exception as e:
                 _logger.error("Error al publicar retención %s: %s", retention.id, str(e), exc_info=True)
                 raise UserError(_("Error al publicar la retención: %s") % str(e))

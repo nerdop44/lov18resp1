@@ -9,11 +9,11 @@ _logger = logging.getLogger(__name__)
 class AccountMoveRetention(models.Model):
     _inherit = "account.move"
 
-    # Sobrescribimos los regex de SequenceMixin para permitir dígitos en el sufijo.
-    # Usamos un patrón de sufijo inteligente que admite tanto secuencias estándar como las
-    # de retenciones con números o palabras al final (ej. -263 o -227-Gasto).
-    _sequence_monthly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D*?)(?P<month>(0[1-9]|1[0-2]))(?P<prefix3>\D+?)(?P<seq>\d*)(?P<suffix>\D*|[-\/_]\d+(?:[-\/_]\w+)?)$'
-    _sequence_yearly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D+?)(?P<seq>\d*)(?P<suffix>\D*|[-\/_]\d+(?:[-\/_]\w+)?)$'
+    # Definimos regex personalizados para asientos de retenciones.
+    # No los registramos como _sequence_monthly_regex para evitar que interfieran
+    # globalmente con el asistente de resecuenciación nativo de Odoo 18.
+    _custom_sequence_monthly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D*?)(?P<month>(0[1-9]|1[0-2]))(?P<prefix3>\D+?)(?P<seq>\d*)(?P<suffix>\D*|[-\/_]\d+(?:[-\/_]\w+)?)$'
+    _custom_sequence_yearly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D+?)(?P<seq>\d*)(?P<suffix>\D*|[-\/_]\d+(?:[-\/_]\w+)?)$'
 
     # Campo modificado para solucionar el error
 #    date = fields.Date(
@@ -95,6 +95,24 @@ class AccountMoveRetention(models.Model):
             retention.base_currency_is_vef = self.env.company.currency_id == self.env.ref(
                 "base.VEF"
             )
+
+    def _constrains_date_sequence(self):
+        """
+        Evita que la validación estricta de Odoo 18 (ValidationError de fechas alineadas)
+        bloquee o falle con formatos de secuencias especiales de correlativos venezolanos.
+        """
+        try:
+            return super()._constrains_date_sequence()
+        except Exception as e:
+            for record in self:
+                if record.name and record.name != '/' and re.search(r'\d', record.name):
+                    _logger.debug(
+                        "Formato de secuencia '%s' aceptado por tolerancia de localización", record.name
+                    )
+                    continue
+                else:
+                    raise e
+            return True
 
     def action_post(self):
         """
@@ -405,7 +423,7 @@ class AccountMoveRetention(models.Model):
 
         for move in custom_moves:
             matched = False
-            for regex in (move._sequence_monthly_regex, move._sequence_yearly_regex):
+            for regex in (move._custom_sequence_monthly_regex, move._custom_sequence_yearly_regex):
                 m = re.match(regex, move.name)
                 if m:
                     seq_start = m.start('seq')
