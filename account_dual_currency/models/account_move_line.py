@@ -280,10 +280,12 @@ class AccountMoveLine(models.Model):
         def get_accounting_rate(vals):
             aml = vals.get('aml') or vals.get('record')
             currency = aml.currency_id if aml else vals.get('currency')
-            if company_currency.is_zero(vals['balance']) or (currency and currency.is_zero(vals['amount_currency'])):
+            balance = aml.balance if aml else vals.get('balance', 0.0)
+            amount_currency = aml.amount_currency if aml else vals.get('amount_currency', 0.0)
+            if company_currency.is_zero(balance) or (currency and currency.is_zero(amount_currency)):
                 return None
             else:
-                return abs(vals['amount_currency']) / abs(vals['balance'])
+                return abs(amount_currency) / abs(balance)
 
         # ==== Determine the currency in which the reconciliation will be done ====
         # In this part, we retrieve the residual amounts, check if they are zero or not and determine in which
