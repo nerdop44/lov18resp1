@@ -256,19 +256,16 @@ class AccountMoveLine(models.Model):
         """
 
         def get_odoo_rate(vals):
-            # if vals.get('record') and vals['record'].move_id.is_invoice(include_receipts=True):
-            #     exchange_rate_date = vals['record'].move_id.invoice_date
-            # else:
-            #     exchange_rate_date = vals['date']
-            # return recon_currency._get_conversion_rate(company_currency, recon_currency, vals['company'],
-            #                                            exchange_rate_date)
-            if vals.get('record') and vals['record'].move_id.is_invoice(include_receipts=True):
-                exchange_rate_date = vals['record'].move_id.invoice_date
+            aml = vals.get('aml') or vals.get('record')
+            if aml and aml.move_id.is_invoice(include_receipts=True):
+                exchange_rate_date = aml.move_id.invoice_date
             else:
-                exchange_rate_date = vals['date']
-            to_re = recon_currency._get_conversion_rate(company_currency, recon_currency, vals['company'],
+                exchange_rate_date = aml.date if aml else vals.get('date', fields.Date.today())
+            company = aml.company_id if aml else vals.get('company')
+            to_re = recon_currency._get_conversion_rate(company_currency, recon_currency, company,
                                                         exchange_rate_date)
-            return  1 / vals['record'].move_id.tax_today if vals['record'].move_id.tax_today > 0 else 1
+            tax_today = aml.move_id.tax_today if aml and hasattr(aml.move_id, 'tax_today') else 0.0
+            return  1 / tax_today if tax_today > 0 else 1
             if debit_vals['record'].move_id.is_invoice(include_receipts=True):
                 return (1 / credit_vals['record'].move_id.tax_today if credit_vals['record'].move_id.tax_today > 0 else 1)
             elif credit_vals['record'].move_id.is_invoice(include_receipts=True):
