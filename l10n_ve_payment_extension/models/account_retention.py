@@ -1306,8 +1306,6 @@ class AccountRetention(models.Model):
             from odoo.models import BaseModel
             if payments:
                 BaseModel.unlink(payments)
-            if lines:
-                BaseModel.unlink(lines)
 
             # Reset the retention state to draft
             record.with_context(skip_safe_create_payments=True).write({
