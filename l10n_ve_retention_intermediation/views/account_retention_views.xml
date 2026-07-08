@@ -11,6 +11,9 @@
                     <field name="is_intermediation" invisible="1"/>
                     <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
                 </xpath>
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="printed_partner_id" readonly="1" invisible="not printed_partner_id"/>
+                </xpath>
             </field>
         </record>
 
@@ -24,6 +27,9 @@
                     <field name="is_intermediation" invisible="1"/>
                     <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
                 </xpath>
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="printed_partner_id" readonly="1" invisible="not printed_partner_id"/>
+                </xpath>
             </field>
         </record>
 
@@ -36,6 +42,9 @@
                 <xpath expr="//group[1]" position="before">
                     <field name="is_intermediation" invisible="1"/>
                     <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
+                </xpath>
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="printed_partner_id" readonly="1" invisible="not printed_partner_id"/>
                 </xpath>
             </field>
         </record>

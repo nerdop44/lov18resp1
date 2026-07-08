@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': '[LocVe] Retenciones por Intermediación',
-    'version': '18.0.1.0.6',
+    'version': '18.0.1.0.7',
     'summary': 'Manejo dinámico y parametrizable del caso especial de retenciones de IVA e ISLR sobre intermediación comercial.',
     'description': """
 Módulo oficial de la localización para gestionar el flujo contable y fiscal de la Retención por Intermediación en Venezuela:
@@ -22,8 +22,10 @@ Módulo oficial de la localización para gestionar el flujo contable y fiscal de
         'data/intermediation_case_data.xml',
         'views/intermediation_case_views.xml',
         'views/res_partner_views.xml',
+        'views/product_views.xml',
         'views/account_move_views.xml',
         'views/account_retention_views.xml',
+        'views/report_retention_templates.xml',
     ],
     'installable': True,
     'auto_install': True,

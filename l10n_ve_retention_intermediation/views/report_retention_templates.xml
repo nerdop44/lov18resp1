@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Heredar reporte de IVA para cambiar los datos del sujeto retenido/contribuyente por printed_partner_id si existe -->
+        <template id="report_iva_customer_inherit_intermediation" inherit_id="l10n_ve_payment_extension.report_iva_customer">
+            <xpath expr="//span[contains(text(), 'Nombre o Razon Social del Sujeto Retenido')]/ancestor::div[hasclass('container')]" position="replace">
+                <t t-set="display_partner" t-value="retention.printed_partner_id or retention.partner_id"/>
+                <!--Information Client-->
+                <div class="container" style="font-size:12px !important;">
+                    <div class="row">
+                        <div class="col-6">
+                            <span>Nombre o Razon Social del Sujeto Retenido</span>
+                            <div>
+                                <span t-esc="display_partner.name"/>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <span>Registro de Información Fiscal del Sujeto Retenido (R.I.F)</span>
+                            <div>
+                                <span style="text-transform:uppercase"
+                                      t-esc="(display_partner.prefix_vat or '') + (display_partner.vat or '')"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6">
+                            <span>Direccion Fiscal del Sujeto Retenido</span>
+                            <div>
+                                <span t-esc="display_partner.street"/>
+                                <t t-if="display_partner.street2">
+                                    ,
+                                    <span t-esc="display_partner.street2"/>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </template>
+
+        <!-- Heredar reporte de ISLR para cambiar los datos del sujeto retenido/contribuyente por printed_partner_id si existe -->
+        <template id="report_islr_customer_inherit_intermediation" inherit_id="l10n_ve_payment_extension.report_islr_customer">
+            <xpath expr="//span[contains(text(), 'Contribuyente:')]/ancestor::div[hasclass('container')]" position="replace">
+                <t t-set="display_partner" t-value="retention.printed_partner_id or retention.partner_id"/>
+                <!--Information Client-->
+                <div class="container" style="font-size:12px !important;">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="col-12">
+                                <span>Contribuyente:</span>
+                            </div>
+                            <div class="col-12">
+                                <span style="text-transform:uppercase" t-esc="display_partner.name"/>
+                            </div>
+                        </div>
+                        <div class="col-4" style="">
+                            <div class="col-12">
+                                <span>Nro. R.I.F.:</span>
+                            </div>
+                            <div class="col-12">
+                                <span style="text-transform:uppercase"
+                                      t-esc="(display_partner.prefix_vat or '') + (display_partner.vat or '')"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="col-12">
+                                <span>Dirección:</span>
+                            </div>
+                            <div class="col-12" style="text-transform:uppercase">
+                                <span t-esc="display_partner.street"/>
+                                <t t-if="display_partner.street2">
+                                    ,
+                                    <span t-esc="display_partner.street2"/>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </template>
+    </data>
+</odoo>

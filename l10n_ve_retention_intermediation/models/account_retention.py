@@ -26,6 +26,13 @@ class AccountRetention(models.Model):
         compute="_compute_intermediation_warning"
     )
 
+    printed_partner_id = fields.Many2one(
+        'res.partner',
+        string="Sujeto Retenido (Impresión)",
+        help="Si está definido, el comprobante impreso mostrará los datos de este partner en la cabecera en lugar del partner contable. La lógica interna no se ve afectada."
+    )
+
+
     @api.depends('retention_line_ids.move_id.is_intermediation')
     def _compute_is_intermediation(self):
         for retention in self:
@@ -173,7 +180,14 @@ class AccountMove(models.Model):
         """
         self.ensure_one()
         if not self.is_intermediation:
-            return super(AccountMove, self)._create_supplier_retention(type_retention)
+            retention = super(AccountMove, self)._create_supplier_retention(type_retention)
+            if retention:
+                mediated_partner = self.invoice_line_ids.filtered(
+                    lambda l: l.display_type == 'product' and l.product_id.mediated_partner_id
+                ).mapped('product_id.mediated_partner_id')
+                if mediated_partner:
+                    retention.write({'printed_partner_id': mediated_partner[0].id})
+            return retention
 
         # 1. Agrupar las líneas de retención según el beneficiario real
         partner_lines = {}
@@ -216,7 +230,14 @@ class AccountMove(models.Model):
 
         # 2. Si no hay múltiples beneficiarios o solo hay uno, procesar con el comportamiento nativo
         if len(partner_lines) <= 1:
-            return super(AccountMove, self)._create_supplier_retention(type_retention)
+            retention = super(AccountMove, self)._create_supplier_retention(type_retention)
+            if retention:
+                mediated_partner = self.invoice_line_ids.filtered(
+                    lambda l: l.display_type == 'product' and l.product_id.mediated_partner_id
+                ).mapped('product_id.mediated_partner_id')
+                if mediated_partner:
+                    retention.write({'printed_partner_id': mediated_partner[0].id})
+            return retention
 
         # 3. Crear múltiples comprobantes de retención (uno para cada partner)
         journals = {
@@ -260,6 +281,8 @@ class AccountMove(models.Model):
                 "type": "in_invoice",
                 "partner_id": partner.id,
             }
+            if partner != self.partner_id:
+                retention_vals["printed_partner_id"] = partner.id
 
             if type_retention == "iva":
                 for line in lines:
