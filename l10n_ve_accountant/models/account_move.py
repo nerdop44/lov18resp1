@@ -388,7 +388,7 @@ class AccountMove(models.Model):
         # FIX: Soportar multi-recordset — account.resequence.wizard llama write({'name': False})
         # sobre un recordset de N registros. self.id solo funciona en singletons.
         # La guarda 'and vals['name']' evita la búsqueda innecesaria cuando name=False.
-        if 'name' in vals and vals['name']:
+        if 'name' in vals and vals['name'] and vals['name'] != "/":
             for record in self:
                 existing_record = self.search(
                     [('name', '=', vals['name']), ('id', '!=', record.id)],
