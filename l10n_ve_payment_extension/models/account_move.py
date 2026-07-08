@@ -391,3 +391,38 @@ class AccountMoveRetention(models.Model):
             return []
 
         return retention_payment_move_ids.ids
+
+    def button_draft(self):
+        res = super().button_draft()
+        for move in self:
+            _logger.info("button_draft called for move %s, cleaning up retentions.", move.id)
+            
+            # 1. Limpiar campos de comprobantes
+            move.iva_voucher_number = False
+            move.islr_voucher_number = False
+            move.municipal_voucher_number = False
+            
+            # 2. Obtener comprobantes de retención asociados
+            ret_iva = move.retention_iva_line_ids.mapped("retention_id")
+            ret_islr = move.retention_islr_line_ids.mapped("retention_id")
+            ret_mun = move.retention_municipal_line_ids.mapped("retention_id")
+            all_retentions = ret_iva | ret_islr | ret_mun
+            
+            # 3. Desvincular líneas de ISLR y Municipales para protegerlas
+            move.retention_islr_line_ids.write({"retention_id": False, "payment_id": False})
+            move.retention_municipal_line_ids.write({"retention_id": False, "payment_id": False})
+            
+            # 4. Cancelar y eliminar retenciones y pagos asociados de manera segura
+            for ret in all_retentions:
+                try:
+                    payments = ret.payment_ids
+                    for payment in payments:
+                        if payment.state != "draft":
+                            payment.action_draft()
+                        payment.action_cancel()
+                    ret.action_cancel()
+                    ret.unlink()
+                    payments.unlink()
+                except Exception as e:
+                    _logger.warning("No se pudo eliminar/cancelar la retención %s al regresar a borrador: %s", ret.id, e)
+        return res
