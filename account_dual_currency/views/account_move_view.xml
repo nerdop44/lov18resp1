@@ -16,7 +16,7 @@
                     <field name="name_rate" string="Moneda de Referencia"/>
                     <field name="edit_trm" invisible="1"/>
                     <field name="tax_today_edited" />
-                    <field name="tax_today" string="Tasa de Factura" readonly="[('edit_trm', '=', False)]"/>
+                    <field name="tax_today" string="Tasa de Factura" readonly="1"/>
                     <field name="same_currency" invisible="1"/>
                     <field name="verificar_pagos" invisible="1"/>
                 </xpath>
@@ -51,7 +51,7 @@
                     <field name="same_currency" invisible="1"/>
                     <!-- Grupo de Totales en USD (se muestra cuando la moneda de la factura es Bs, o sea same_currency = True) -->
                     <group class="oe_subtotal_footer"
-                           invisible="[('move_type', 'not in', ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')), '|', ('same_currency', '=', False)]">
+                           invisible="1">
                         <field name="amount_untaxed_usd" string="Base Ref. ($)" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
                         <field name="amount_tax_usd" string="Impuesto Ref. ($)" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
                         <field name="amount_total_usd" string="Total Ref. ($)" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
@@ -59,7 +59,7 @@
                     </group>
                     <!-- Grupo de Totales en Bs (se muestra cuando la moneda de la factura es USD, o sea same_currency = False) -->
                     <group class="oe_subtotal_footer"
-                           invisible="[('move_type', 'not in', ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')), '|', ('same_currency', '=', True)]">
+                           invisible="1">
                         <field name="amount_untaxed_bs" string="Base Ref. (Bs.)" widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
                         <field name="amount_tax_bs" string="Impuesto Ref. (Bs.)" widget='monetary' options="{'currency_field': 'company_currency_id'}"/>
                         <field name="amount_total_bs" string="Total Ref. (Bs.)" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'company_currency_id'}"/>

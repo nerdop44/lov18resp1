@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
 from odoo import models, api, fields, _, Command
 from odoo.exceptions import UserError
+from odoo.tools import float_round
 import logging
 _logger = logging.getLogger(__name__)
+
+class AccountRetentionLine(models.Model):
+    _inherit = 'account.retention.line'
+
+    invoice_line_id = fields.Many2one(
+        'account.move.line',
+        string="Línea de Factura de Origen"
+    )
 
 class AccountRetention(models.Model):
     _inherit = 'account.retention'
@@ -52,12 +61,10 @@ class AccountRetention(models.Model):
         """
         Herencia del cálculo de la localización base para inyectar la segmentación por intermediación.
         Si la factura tiene activo el flujo de intermediación, se extrae el IVA y la base únicamente
-        de las líneas marcadas como Comisión/Fee, aplicando la tasa del caso de intermediación.
+        de las líneas físicas aplicando el porcentaje del respectivo beneficiario intermediado.
         """
-        res = super(AccountRetention, self).compute_retention_lines_data(invoice_id, payment=payment)
-        
         if not invoice_id.is_intermediation:
-            return res
+            return super(AccountRetention, self).compute_retention_lines_data(invoice_id, payment=payment)
 
         # Determinar alícuota de retención de IVA según la parametrización del caso o fuerza
         withholding_rate = 75.0
@@ -68,42 +75,89 @@ class AccountRetention(models.Model):
         else:
             withholding_rate = invoice_id.partner_id.withholding_type_id.value or 75.0
 
+        # Monedas y tasas para la conversión
+        vef_currency = self._get_vef_currency() if self else self.env['account.retention']._get_default_foreign_currency()
+        if isinstance(vef_currency, int):
+            vef_currency = self.env['res.currency'].browse(vef_currency)
+
+        invoice_currency = invoice_id.currency_id
+        invoice_is_in_vef = (vef_currency and invoice_currency == vef_currency) or (
+            not vef_currency and invoice_currency == self.env.company.currency_id
+        )
+
+        foreign_rate = invoice_id.foreign_rate or 1.0
+        foreign_inverse_rate = 1.0 / foreign_rate if foreign_rate else 0.0
+        used_rate = invoice_id.foreign_inverse_rate or 1.0
+
         new_res = []
-        for line_data in res:
-            invoice_line = invoice_id.invoice_line_ids.filtered(lambda l: l.id == line_data.get("invoice_line_id"))
-            
-            # Caso A: Es la línea de comisión
-            if invoice_line and invoice_line.is_intermediation_commission:
-                # Si el caso de intermediación es un broker internacional, el IVA es exento (0%)
+        for line in invoice_id.invoice_line_ids.filtered(lambda l: l.display_type == 'product'):
+            tax_ids = line.tax_ids.filtered(lambda t: t.amount > 0)
+            if not tax_ids:
+                continue
+
+            # Determinación de tasa de retención (Caso A, B o C)
+            if line.is_intermediation_commission:
                 if invoice_id.intermediation_case_id and invoice_id.intermediation_case_id.iva_withholding_rate == '0':
-                    line_data["iva_amount"] = 0.0
-                    line_data["foreign_iva_amount"] = 0.0
-                    line_data["retention_amount"] = 0.0
-                    line_data["foreign_retention_amount"] = 0.0
+                    rate = 0.0
                 else:
-                    # Aplicar la retención de IVA segmentada sobre el IVA de la comisión
-                    line_data["retention_amount"] = line_data["iva_amount"] * (withholding_rate / 100)
-                    line_data["foreign_retention_amount"] = line_data["foreign_iva_amount"] * (withholding_rate / 100)
-                new_res.append(line_data)
-
-            # Caso B: Es línea de reembolso/terceros pero TIENE un intermediado asignado (ej. Aerolínea)
-            elif invoice_line and not invoice_line.is_intermediation_commission and invoice_line.mediated_partner_id:
-                # El IVA del pasaje/flete generalmente está exento (0%), pero si tuviera IVA se aplica 0%
-                line_data["iva_amount"] = 0.0
-                line_data["foreign_iva_amount"] = 0.0
-                line_data["retention_amount"] = 0.0
-                line_data["foreign_retention_amount"] = 0.0
-                new_res.append(line_data)
-
-            # Caso C: Es línea de reembolso simple (sin intermediado asignado) -> No genera retención alguna
-            elif invoice_line and not invoice_line.is_intermediation_commission and not invoice_line.mediated_partner_id:
-                line_data["iva_amount"] = 0.0
-                line_data["foreign_iva_amount"] = 0.0
-                line_data["retention_amount"] = 0.0
-                line_data["foreign_retention_amount"] = 0.0
-                new_res.append(line_data)
+                    rate = withholding_rate
+            elif line.mediated_partner_id:
+                if line.mediated_partner_id.force_100_retention:
+                    rate = 100.0
+                else:
+                    rate = line.mediated_partner_id.withholding_type_id.value or 75.0
             else:
-                new_res.append(line_data)
+                rate = 0.0
+
+            # IVA y base en moneda de la empresa
+            invoice_amount_company = line.price_subtotal
+            iva_amount_company = line.price_total - line.price_subtotal
+            invoice_total_company = line.price_total
+
+            # IVA y base en VEF (Regla universal)
+            if invoice_is_in_vef:
+                vef_invoice_amount = abs(invoice_amount_company)
+                vef_iva_amount = abs(iva_amount_company)
+                vef_invoice_total = abs(invoice_total_company)
+            else:
+                vef_invoice_amount = invoice_amount_company * used_rate
+                vef_iva_amount = iva_amount_company * used_rate
+                vef_invoice_total = invoice_total_company * used_rate
+
+            # Cálculo de retención
+            retention_amount_company = float_round(
+                iva_amount_company * (rate / 100),
+                precision_digits=invoice_id.company_currency_id.decimal_places,
+            )
+            vef_retention_amount = float_round(
+                vef_iva_amount * (rate / 100),
+                precision_digits=vef_currency.decimal_places if vef_currency else 2,
+            )
+
+            # Evitar líneas con retención nula
+            if retention_amount_company == 0.0 and vef_retention_amount == 0.0:
+                continue
+
+            line_data = {
+                "name": _("Retención IVA - Intermediación"),
+                "invoice_type": invoice_id.move_type,
+                "move_id": invoice_id.id,
+                "invoice_line_id": line.id,
+                "payment_id": payment.id if payment else None,
+                "aliquot": tax_ids[0].amount,
+                "invoice_amount": invoice_amount_company,
+                "iva_amount": iva_amount_company,
+                "invoice_total": invoice_total_company,
+                "retention_amount": retention_amount_company,
+                "foreign_invoice_amount": vef_invoice_amount,
+                "foreign_iva_amount": vef_iva_amount,
+                "foreign_invoice_total": vef_invoice_total,
+                "foreign_retention_amount": vef_retention_amount,
+                "foreign_currency_rate": foreign_rate,
+                "foreign_currency_inverse_rate": foreign_inverse_rate,
+                "related_percentage_tax_base": rate,
+            }
+            new_res.append(line_data)
 
         return new_res
 
