@@ -261,6 +261,8 @@ class AccountMove(models.Model):
             }
 
             if type_retention == "iva":
+                for line in lines:
+                    line["payment_id"] = payment.id
                 retention_vals["retention_line_ids"] = [
                     Command.create(line) for line in lines
                 ]
