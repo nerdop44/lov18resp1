@@ -348,7 +348,7 @@ class AccountMove(models.Model):
         """
         for vals in vals_list:
 
-            if 'name' in vals and vals['name'] != "/":
+            if 'name' in vals and vals['name'] and vals['name'] != "/":
                 existing_record = self.search([('name', '=', vals['name'])], limit=1)
                 if existing_record:
                     raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
