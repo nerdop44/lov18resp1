@@ -224,10 +224,11 @@ class AccountMove(models.Model):
             "islr": self.env.company.islr_supplier_retention_journal_id,
             "municipal": self.env.company.municipal_supplier_retention_journal_id,
         }
-        
+
         Payment = self.env["account.payment"]
         Retention = self.env["account.retention"]
-        last_retention = False
+        created_retentions = self.env["account.retention"]
+        first_retention = False
 
         for partner, lines in partner_lines.items():
             payment_type = "outbound"
@@ -246,7 +247,7 @@ class AccountMove(models.Model):
                 "foreign_inverse_rate": self.foreign_inverse_rate,
                 "currency_id": self.env.user.company_id.currency_id.id,
             }
-            
+
             if type_retention in ('islr', 'municipal'):
                 payment_vals["retention_line_ids"] = [Command.link(l.id) for l in lines]
 
@@ -271,6 +272,32 @@ class AccountMove(models.Model):
 
             retention = Retention.create(retention_vals)
             payment.compute_retention_amount_from_retention_lines()
-            last_retention = retention
 
-        return last_retention
+            # Publicar la retención inmediatamente dentro del loop
+            retention.action_post()
+            _logger.info(
+                "Retención de intermediación %s creada y publicada para partner %s (número: %s)",
+                retention.id, partner.name, retention.number
+            )
+
+            created_retentions |= retention
+            if not first_retention:
+                first_retention = retention
+
+        # Guardar el número concatenado directamente en la factura (por tipo)
+        numbers = " / ".join(filter(None, created_retentions.mapped('number')))
+        voucher_field = {
+            "iva": "iva_voucher_number",
+            "islr": "islr_voucher_number",
+            "municipal": "municipal_voucher_number",
+        }.get(type_retention)
+        if voucher_field:
+            self.write({voucher_field: numbers})
+            _logger.info(
+                "Campo %s de la factura %s actualizado a: %s",
+                voucher_field, self.id, numbers
+            )
+
+        # Retornar la primera retención para satisfacer el contrato del método padre
+        return first_retention
+

@@ -99,33 +99,5 @@ class AccountMove(models.Model):
             else:
                 move.intermediation_warning = False
 
-    def action_post(self):
-        res = super().action_post()
-        for move in self:
-            if move.is_intermediation:
-                # 1. Publicar todas las retenciones de IVA asociadas que quedaron en borrador
-                iva_rets = move.retention_iva_line_ids.mapped('retention_id').filtered(lambda r: r.state != 'cancel')
-                for ret in iva_rets:
-                    if ret.state == 'draft':
-                        ret.action_post()
-                if iva_rets:
-                    move.iva_voucher_number = " / ".join(filter(None, iva_rets.mapped('number')))
-
-                # 2. Publicar todas las retenciones de ISLR asociadas que quedaron en borrador
-                islr_rets = move.retention_islr_line_ids.mapped('retention_id').filtered(lambda r: r.state != 'cancel')
-                for ret in islr_rets:
-                    if ret.state == 'draft':
-                        ret.action_post()
-                if islr_rets:
-                    move.islr_voucher_number = " / ".join(filter(None, islr_rets.mapped('number')))
-
-                # 3. Publicar todas las retenciones Municipales asociadas que quedaron en borrador
-                mun_rets = move.retention_municipal_line_ids.mapped('retention_id').filtered(lambda r: r.state != 'cancel')
-                for ret in mun_rets:
-                    if ret.state == 'draft':
-                        ret.action_post()
-                if mun_rets:
-                    move.municipal_voucher_number = " / ".join(filter(None, mun_rets.mapped('number')))
-        return res
 
 

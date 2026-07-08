@@ -125,10 +125,12 @@ class AccountMoveRetention(models.Model):
                 try:
                     move._validate_islr_retention()
                     retention = move._create_supplier_retention("islr")
-                    _logger.info("ISLR retention %s created for move %s, calling retention.action_post().", retention.id, move.id)
-                    retention.action_post()
-                    move.islr_voucher_number = retention.number
-                    _logger.info("ISLR retention %s posted and number set on move %s.", retention.id, move.id)
+                    _logger.info("ISLR retention %s created for move %s.", retention.id, move.id)
+                    if retention.state == 'draft':
+                        retention.action_post()
+                    if not move.islr_voucher_number:
+                        move.islr_voucher_number = retention.number
+                    _logger.info("ISLR retention %s processed for move %s, number: %s.", retention.id, move.id, move.islr_voucher_number)
                 except UserError as e:
                     _logger.warning("UserError during ISLR retention creation for move %s: %s", move.id, e)
 
@@ -138,7 +140,8 @@ class AccountMoveRetention(models.Model):
                     move._validate_municipal_retention()
                     retention = move._create_supplier_retention("municipal")
                     _logger.info("Municipal retention %s created for move %s, calling retention.action_post().", retention.id, move.id)
-                    retention.action_post()
+                    if retention.state == 'draft':
+                        retention.action_post()
                     _logger.info("Municipal retention %s posted for move %s.", retention.id, move.id)
                 except UserError as e:
                     _logger.warning("UserError during municipal retention creation for move %s: %s", move.id, e)
@@ -149,13 +152,16 @@ class AccountMoveRetention(models.Model):
             ):
                 _logger.info("Move %s is set to generate IVA retention, creating retention.", move.id)
                 try:
-                    #move.ensure_one() # Añadir esta línea
                     move._validate_iva_retention()
                     retention = move._create_supplier_retention("iva")
-                    _logger.info("IVA retention %s created for move %s, calling retention.action_post().", retention.id, move.id)
-                    retention.action_post()
-                    move.iva_voucher_number = retention.number
-                    _logger.info("IVA retention %s posted and number set on move %s.", retention.id, move.id)
+                    _logger.info("IVA retention %s created for move %s.", retention.id, move.id)
+                    # Solo publicar si no fue publicada ya dentro de _create_supplier_retention (caso intermediación)
+                    if retention.state == 'draft':
+                        retention.action_post()
+                    # Solo guardar número si no fue ya asignado por _create_supplier_retention (caso intermediación)
+                    if not move.iva_voucher_number:
+                        move.iva_voucher_number = retention.number
+                    _logger.info("IVA retention %s processed for move %s, number: %s.", retention.id, move.id, move.iva_voucher_number)
                 except UserError as e:
                     _logger.warning("UserError during IVA retention creation for move %s: %s", move.id, e)
         _logger.info("action_post finished for account.move with IDs: %s", self.ids)
