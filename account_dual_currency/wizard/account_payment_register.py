@@ -181,6 +181,36 @@ class AccountPaymentRegister(models.TransientModel):
         else:
             source_amount_currency = abs(sum(lines.mapped('amount_residual_currency')))
 
+        # Restar retenciones pendientes (IVA, ISLR, Municipal) para evitar arrastrar saldos incorrectos
+        move = lines[0].move_id
+        if move:
+            ret_lines = move.retention_iva_line_ids + move.retention_islr_line_ids + move.retention_municipal_line_ids
+            total_ret_usd = sum(ret_lines.mapped('retention_amount'))
+            total_ret_bs = sum(ret_lines.mapped('foreign_retention_amount'))
+
+            reconciled_ret_usd = 0.0
+            reconciled_ret_bs = 0.0
+            ret_payments = ret_lines.mapped('payment_id')
+
+            for line in move.line_ids.filtered(lambda l: l.account_id.account_type in ('asset_receivable', 'liability_payable')):
+                partials = line.matched_debit_ids + line.matched_credit_ids
+                for partial in partials:
+                    counterpart_line = partial.debit_move_id if partial.credit_move_id == line else partial.credit_move_id
+                    if counterpart_line.payment_id in ret_payments or counterpart_line.payment_id.is_retention:
+                        reconciled_ret_bs += partial.amount
+                        reconciled_ret_usd += partial.amount_usd
+
+            pending_ret_usd = max(0.0, total_ret_usd - reconciled_ret_usd)
+            pending_ret_bs = max(0.0, total_ret_bs - reconciled_ret_bs)
+
+            amount_residual_usd = max(0.0, amount_residual_usd - pending_ret_usd)
+            if key_values['currency_id'] == company.currency_id.id:
+                source_amount = max(0.0, source_amount - pending_ret_bs)
+                source_amount_currency = source_amount
+            else:
+                source_amount = max(0.0, source_amount - pending_ret_usd)
+                source_amount_currency = max(0.0, source_amount_currency - pending_ret_usd)
+
         return {
             'company_id': company.id,
             'partner_id': key_values['partner_id'],

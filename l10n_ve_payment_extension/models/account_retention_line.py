@@ -162,6 +162,11 @@ class AccountRetentionLine(models.Model):
         store=True,
     )
 
+    edit_tax_base = fields.Boolean(
+        string="Modificar Base",
+        default=False,
+    )
+
     # Montos en VEF (Bs.) — Regla universal venezolana
     foreign_invoice_amount = fields.Float(
         string="Base Imponible (Bs.)",
@@ -502,15 +507,27 @@ class AccountRetentionLine(models.Model):
                 record.foreign_retention_amount = record.foreign_retention_amount or computed_foreign_retention_amount
             else:
                 # Si es proveedor o borrador independiente, sobreescribir con el cálculo exacto de la factura
-                record.invoice_amount = computed_invoice_amount
-                record.invoice_total = computed_invoice_total
-                record.iva_amount = computed_iva_amount
-                record.foreign_invoice_amount = computed_foreign_invoice_amount
-                record.foreign_invoice_total = computed_foreign_invoice_total
-                record.foreign_iva_amount = computed_foreign_iva_amount
-                record.foreign_currency_rate = computed_foreign_currency_rate
-                record.retention_amount = computed_retention_amount
-                record.foreign_retention_amount = computed_foreign_retention_amount
+                if record.edit_tax_base and type_retention == 'islr':
+                    # Si está activo modificar base para ISLR, mantenemos el valor actual en memoria de las bases imponible
+                    record.invoice_amount = record.invoice_amount
+                    record.foreign_invoice_amount = record.foreign_invoice_amount
+                    record.invoice_total = computed_invoice_total
+                    record.iva_amount = computed_iva_amount
+                    record.foreign_invoice_total = computed_foreign_invoice_total
+                    record.foreign_iva_amount = computed_foreign_iva_amount
+                    record.foreign_currency_rate = computed_foreign_currency_rate
+                    record.retention_amount = computed_retention_amount
+                    record.foreign_retention_amount = computed_foreign_retention_amount
+                else:
+                    record.invoice_amount = computed_invoice_amount
+                    record.invoice_total = computed_invoice_total
+                    record.iva_amount = computed_iva_amount
+                    record.foreign_invoice_amount = computed_foreign_invoice_amount
+                    record.foreign_invoice_total = computed_foreign_invoice_total
+                    record.foreign_iva_amount = computed_foreign_iva_amount
+                    record.foreign_currency_rate = computed_foreign_currency_rate
+                    record.retention_amount = computed_retention_amount
+                    record.foreign_retention_amount = computed_foreign_retention_amount
                 if type_retention == 'iva':
                     record.related_percentage_tax_base = withholding_amount
                 elif type_retention == 'municipal':
@@ -581,6 +598,26 @@ class AccountRetentionLine(models.Model):
                 if not line.retention_id or line.retention_id.type_retention in ("islr", "municipal"):
                     line.with_context(ctx).invoice_amount = line.foreign_invoice_amount * (1 / line.move_id.foreign_rate)
                 line.with_context(ctx).retention_amount = line.foreign_retention_amount * (1 / line.move_id.foreign_rate)
+
+    @api.onchange('edit_tax_base')
+    def _onchange_edit_tax_base(self):
+        for record in self:
+            if not record.edit_tax_base:
+                record.invoice_amount = 0.0
+                record.foreign_invoice_amount = 0.0
+                record._compute_line_amounts()
+
+    @api.onchange("invoice_amount")
+    def _onchange_invoice_amount_manual(self):
+        for record in self:
+            if record.edit_tax_base and record.foreign_currency_rate > 0:
+                record.foreign_invoice_amount = record.invoice_amount * record.foreign_currency_rate
+
+    @api.onchange("foreign_invoice_amount")
+    def _onchange_foreign_invoice_amount_manual(self):
+        for record in self:
+            if record.edit_tax_base and record.foreign_currency_rate > 0:
+                record.invoice_amount = record.foreign_invoice_amount / record.foreign_currency_rate
 
     # =========== CAMBIO AQUÍ ===========
     @api.constrains(

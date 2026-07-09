@@ -166,17 +166,27 @@ class AccountMove(models.Model):
                 line._compute_amount_residual_usd()
             rec.verificar_pagos = True
 
-    @api.depends('invoice_date', 'company_id')
+    @api.depends('invoice_date', 'date', 'company_id')
     def _compute_date(self):
         res = super(AccountMove, self)._compute_date()
         for rec in self:
             if rec.company_id.currency_id_dif and not rec.tax_today_edited:
                 date_to_use = rec.invoice_date or rec.date or fields.Date.context_today(rec)
                 new_rate_ids = rec.company_id.currency_id_dif._get_rates(rec.company_id, date_to_use)
-                if new_rate_ids:
+                if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
                     new_rate = 1 / new_rate_ids[rec.company_id.currency_id_dif.id]
-                    #print('new_rate', new_rate)
                     rec.tax_today = new_rate
+
+    @api.onchange('tax_today_edited')
+    def _onchange_tax_today_edited(self):
+        for rec in self:
+            if not rec.tax_today_edited:
+                date_to_use = rec.invoice_date or rec.date or fields.Date.context_today(rec)
+                new_rate_ids = rec.company_id.currency_id_dif._get_rates(rec.company_id, date_to_use)
+                if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
+                    rec.tax_today = 1 / new_rate_ids[rec.company_id.currency_id_dif.id]
+                else:
+                    rec.tax_today = rec.company_id.currency_id_dif.inverse_rate if rec.company_id.currency_id_dif else 1.0
 
 
     @api.model_create_multi
@@ -223,7 +233,13 @@ class AccountMove(models.Model):
                         if move_currency_id and currency_dif and move_currency_id == currency_dif.id:
                             val.update({'tax_today': 1.0})
                         else:
-                            val.update({'tax_today': currency_dif.inverse_rate if currency_dif else 1.0})
+                            date_to_use = val.get('invoice_date') or val.get('date') or fields.Date.context_today(self)
+                            new_rate_ids = currency_dif._get_rates(self.env.company, date_to_use) if currency_dif else {}
+                            if new_rate_ids and currency_dif.id in new_rate_ids:
+                                new_rate = 1.0 / new_rate_ids[currency_dif.id]
+                            else:
+                                new_rate = currency_dif.inverse_rate if currency_dif else 1.0
+                            val.update({'tax_today': new_rate})
 
                 # Sincronizar tasas si se proporciona alguna
                 tax_today = val.get('tax_today', 0.0)
@@ -253,7 +269,13 @@ class AccountMove(models.Model):
         for rec in self:
             if not rec.move_type == 'entry':
                 for l in rec.invoice_line_ids:
-                    l.price_unit = (l.price_unit_usd * rec.tax_today) if rec.currency_id == rec.company_id.currency_id else l.price_unit_usd
+                    if rec.currency_id == rec.company_id.currency_id:
+                        if l.price_unit:
+                            l.price_unit_usd = l.price_unit / rec.tax_today if rec.tax_today > 0 else 0.0
+                        else:
+                            l.price_unit = l.price_unit_usd * rec.tax_today
+                    else:
+                        l.price_unit = l.price_unit_usd
                 rec._onchange_quick_edit_total_amount()
                 rec._onchange_quick_edit_line_ids()
                 rec._compute_tax_totals()

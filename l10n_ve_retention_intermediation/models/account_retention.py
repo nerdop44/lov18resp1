@@ -183,8 +183,8 @@ class AccountMove(models.Model):
             retention = super(AccountMove, self)._create_supplier_retention(type_retention)
             if retention:
                 mediated_partner = self.invoice_line_ids.filtered(
-                    lambda l: l.display_type == 'product' and l.product_id.mediated_partner_id
-                ).mapped('product_id.mediated_partner_id')
+                    lambda l: l.display_type == 'product' and (l.mediated_partner_id or l.product_id.mediated_partner_id)
+                ).mapped(lambda l: l.mediated_partner_id or l.product_id.mediated_partner_id)
                 if mediated_partner:
                     retention.write({'printed_partner_id': mediated_partner[0].id})
             return retention
@@ -233,8 +233,8 @@ class AccountMove(models.Model):
             retention = super(AccountMove, self)._create_supplier_retention(type_retention)
             if retention:
                 mediated_partner = self.invoice_line_ids.filtered(
-                    lambda l: l.display_type == 'product' and l.product_id.mediated_partner_id
-                ).mapped('product_id.mediated_partner_id')
+                    lambda l: l.display_type == 'product' and (l.mediated_partner_id or l.product_id.mediated_partner_id)
+                ).mapped(lambda l: l.mediated_partner_id or l.product_id.mediated_partner_id)
                 if mediated_partner:
                     retention.write({'printed_partner_id': mediated_partner[0].id})
             return retention

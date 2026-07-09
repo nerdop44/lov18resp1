@@ -39,3 +39,11 @@ class PurchaseOrderLine(models.Model):
             else:
                 line.price_unit_dif = 0.0
                 line.price_subtotal_dif = 0.0
+
+    @api.onchange('date_planned')
+    def _onchange_date_planned(self):
+        price = self.price_unit
+        res = super()._onchange_date_planned() if hasattr(super(PurchaseOrderLine, self), '_onchange_date_planned') else {}
+        if self.price_unit != price and price > 0:
+            self.price_unit = price
+        return res

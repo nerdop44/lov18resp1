@@ -231,3 +231,22 @@ class PurchaseOrder(models.Model):
         moves.filtered(lambda m: m.currency_id.round(m.amount_total) < 0).action_switch_move_type()
 
         return self.action_view_invoice(moves)
+
+    def write(self, vals):
+        if any(f in vals for f in ['date_order', 'date_planned']) and not any(f in vals for f in ['partner_id', 'currency_id']):
+            prices = {line.id: line.price_unit for line in self.order_line if line.id}
+            res = super().write(vals)
+            for line in self.order_line:
+                if line.id in prices and line.price_unit != prices[line.id]:
+                    line.write({'price_unit': prices[line.id]})
+            return res
+        return super().write(vals)
+
+    @api.onchange('date_order')
+    def _onchange_date_order(self):
+        prices = {line: line.price_unit for line in self.order_line}
+        res = super()._onchange_date_order() if hasattr(super(PurchaseOrder, self), '_onchange_date_order') else {}
+        for line, price in prices.items():
+            if line.price_unit != price:
+                line.price_unit = price
+        return res
