@@ -176,6 +176,12 @@ class AccountMove(models.Model):
                 if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
                     new_rate = 1 / new_rate_ids[rec.company_id.currency_id_dif.id]
                     rec.tax_today = new_rate
+                else:
+                    # No hay tasa registrada para la fecha historica: usar la tasa actual como fallback
+                    fallback_rate = rec.company_id.currency_id_dif.inverse_rate if rec.company_id.currency_id_dif else 0.0
+                    if fallback_rate and fallback_rate > 0:
+                        rec.tax_today = fallback_rate
+
 
     @api.onchange('tax_today_edited')
     def _onchange_tax_today_edited(self):
@@ -923,11 +929,37 @@ class AccountMove(models.Model):
                 return move
 
     def write(self, vals):
+        # Si cambia la fecha y no hay tasa manual ni tasa explícita, recalcular tax_today
+        new_date = vals.get('invoice_date') or vals.get('date')
+        if new_date and 'tax_today' not in vals:
+            for rec in self:
+                if rec.tax_today_edited:
+                    continue
+                currency_dif = rec.company_id.currency_id_dif
+                if not currency_dif:
+                    continue
+                # Si la moneda de la factura es la misma que la moneda de referencia, tasa = 1
+                move_currency = vals.get('currency_id') or rec.currency_id.id
+                if move_currency and move_currency == currency_dif.id:
+                    vals['tax_today'] = 1.0
+                    break
+                try:
+                    rate_ids = currency_dif._get_rates(rec.company_id, new_date)
+                except Exception:
+                    rate_ids = {}
+                if rate_ids and currency_dif.id in rate_ids and rate_ids[currency_dif.id] > 0:
+                    new_rate = 1.0 / rate_ids[currency_dif.id]
+                else:
+                    new_rate = currency_dif.inverse_rate or 0.0
+                if new_rate > 0:
+                    vals['tax_today'] = new_rate
+                break  # Aplicar solo una vez (todos los records del recordset comparten los mismos vals)
+
         # Sincronizar tasas en el diccionario de valores antes de escribir
         tax_today = vals.get('tax_today')
         foreign_rate = vals.get('foreign_rate')
         foreign_inverse_rate = vals.get('foreign_inverse_rate')
-        
+
         if tax_today is not None and tax_today > 0:
             vals['foreign_rate'] = tax_today
             vals['foreign_inverse_rate'] = 1.0 / tax_today
@@ -937,7 +969,7 @@ class AccountMove(models.Model):
         elif foreign_inverse_rate is not None and foreign_inverse_rate > 0:
             vals['tax_today'] = 1.0 / foreign_inverse_rate
             vals['foreign_rate'] = 1.0 / foreign_inverse_rate
-            
+
         return super(AccountMove, self).write(vals)
 
     @api.onchange('tax_today')
