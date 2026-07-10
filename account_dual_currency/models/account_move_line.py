@@ -79,7 +79,9 @@ class AccountMoveLine(models.Model):
             #     company=line.company_id,
             #     date=line.move_id.invoice_date or line.move_id.date or fields.Date.context_today(line),
             # )
-            line.currency_rate = 1 / line.move_id.tax_today if line.move_id.tax_today > 0 else 1
+            raw_rate = 1.0 / line.move_id.tax_today if line.move_id.tax_today > 0 else 1.0
+            from odoo.tools.float_utils import float_round as _fr
+            line.currency_rate = _fr(raw_rate, precision_digits=6)
 
     @api.onchange('amount_currency')
     def _onchange_amount_currency(self):
