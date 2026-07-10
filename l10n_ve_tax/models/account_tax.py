@@ -265,14 +265,14 @@ class AccountTax(models.Model):
         if is_invoice_in_usd:
             # Factura en USD -> El segundo bloque de referencia se muestra en bolívares (VES/VEF)
             foreign_currency = ves_currency or company.currency_id
-            convert = lambda val: val * rate
+            convert = lambda val: float_round(val * rate, precision_digits=6)
         else:
             # Factura en Bolívares -> El segundo bloque de referencia se muestra en USD
             foreign_currency = usd_currency or getattr(company, 'currency_id_dif', False)
             # Si por alguna razón la tasa es la inversa directa de Odoo (ej. 0.0016), y el rate guardado es el inverso:
             # En Odoo.sh, move.foreign_rate contiene la tasa en bolívares por dólar (ej. 617.64).
             # Por lo tanto, dividimos el valor en Bs por la tasa para obtener USD.
-            convert = lambda val: val / rate
+            convert = lambda val: float_round(val / rate, precision_digits=6)
 
         try:
             # 1. Obtener y calcular montos nativos de la factura en la moneda de la factura
@@ -415,9 +415,9 @@ class AccountTax(models.Model):
             is_usd_invoice = move.currency_id != self.env.company.currency_id
 
         if is_usd_invoice:
-            convert = lambda val: val * rate
+            convert = lambda val: float_round(val * rate, precision_digits=6)
         else:
-            convert = lambda val: val / rate
+            convert = lambda val: float_round(val / rate, precision_digits=6)
 
         taxes = []
         for base_line in foreign_base_lines:
