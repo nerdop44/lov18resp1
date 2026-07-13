@@ -348,11 +348,14 @@ class AccountPaymentRegister(models.TransientModel):
             # self.env.cr.execute(query)
 
             # Odoo 18: _compute_max_date hace max(debit_move.date, credit_move.date).
-            # Si alguna línea tiene date=False, lanza TypeError. Se garantiza fecha válida.
-            if not self.line_ids[0].date:
-                self.line_ids[0].with_context(check_move_validity=False).date = self.payment_date
-            if not l_cliente.date:
-                l_cliente.with_context(check_move_validity=False).date = self.payment_date
+            # account.move.line.date es readonly/computed desde move_id.date y no puede
+            # asignarse directamente. La solución es proveer max_date explícitamente en
+            # el create() para que Odoo no intente computarlo con fechas potencialmente False.
+            max_date = (
+                self.line_ids[0].move_id.date
+                or l_cliente.move_id.date
+                or self.payment_date
+            )
 
             self.env['account.partial.reconcile'].create([{
                 'amount': 0,
@@ -361,7 +364,9 @@ class AccountPaymentRegister(models.TransientModel):
                 'credit_amount_currency': 0,
                 'debit_move_id': self.line_ids[0].id,
                 'credit_move_id': l_cliente.id,
+                'max_date': max_date,
             }])
+
 
             self.env.context = dict(self.env.context, tasa_factura=None)
             (self.line_ids[0] + l_cliente).reconcile()
