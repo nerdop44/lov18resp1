@@ -169,7 +169,13 @@ class AccountPaymentRegister(models.TransientModel):
         company = lines[0].company_id
         tax_invoice = lines[0].tax_today
         if not self.tax_today:
-            tax_today = lines[0].company_id.currency_id_dif.inverse_rate
+            currency_dif = lines[0].company_id.currency_id_dif
+            if lines[0].company_id.currency_id.name == 'USD':
+                # Krill Energy: base USD, dual VES → tasa directa (Bs por 1 USD)
+                tax_today = currency_dif.rate or 1.0
+            else:
+                # Estándar Venezuela: base VES, dual USD → tasa inversa
+                tax_today = currency_dif.inverse_rate or 1.0
         else:
             tax_today = self.tax_today
 
@@ -340,6 +346,13 @@ class AccountPaymentRegister(models.TransientModel):
             #     """ % (self.line_ids[0].id, l_cliente.id, self.line_ids[0].move_id.currency_id.id, self.line_ids[0].move_id.currency_id.id)
             # ###print(query)
             # self.env.cr.execute(query)
+
+            # Odoo 18: _compute_max_date hace max(debit_move.date, credit_move.date).
+            # Si alguna línea tiene date=False, lanza TypeError. Se garantiza fecha válida.
+            if not self.line_ids[0].date:
+                self.line_ids[0].with_context(check_move_validity=False).date = self.payment_date
+            if not l_cliente.date:
+                l_cliente.with_context(check_move_validity=False).date = self.payment_date
 
             self.env['account.partial.reconcile'].create([{
                 'amount': 0,
