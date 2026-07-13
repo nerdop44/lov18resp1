@@ -108,7 +108,7 @@ class AccountMoveLine(models.Model):
             line.balance_usd = line.debit_usd - line.credit_usd
 
 
-    @api.depends('price_unit', 'product_id')
+    @api.depends('price_unit', 'product_id', 'tax_today')
     def _price_unit_usd(self):
         for rec in self:
             if rec.price_unit > 0:
@@ -127,7 +127,7 @@ class AccountMoveLine(models.Model):
             # else:
             #     rec.price_unit = 0
 
-    @api.depends('price_subtotal')
+    @api.depends('price_subtotal', 'tax_today')
     def _price_subtotal_usd(self):
         for rec in self:
             if rec.price_subtotal > 0:

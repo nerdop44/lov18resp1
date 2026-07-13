@@ -931,9 +931,9 @@ class AccountMove(models.Model):
     def write(self, vals):
         # Si cambia la fecha y no hay tasa manual ni tasa explícita, recalcular tax_today
         new_date = vals.get('invoice_date') or vals.get('date')
-        if new_date and 'tax_today' not in vals:
+        if new_date:
             for rec in self:
-                if rec.tax_today_edited:
+                if rec.tax_today_edited or getattr(rec, 'manually_set_rate', False):
                     continue
                 currency_dif = rec.company_id.currency_id_dif
                 if not currency_dif:
@@ -971,6 +971,25 @@ class AccountMove(models.Model):
             vals['foreign_rate'] = 1.0 / foreign_inverse_rate
 
         return super(AccountMove, self).write(vals)
+
+    @api.onchange('invoice_date', 'date')
+    def _onchange_invoice_date_or_date(self):
+        for rec in self:
+            if rec.company_id.currency_id_dif and not rec.tax_today_edited and not getattr(rec, 'manually_set_rate', False):
+                date_to_use = rec.invoice_date or rec.date or fields.Date.context_today(rec)
+                try:
+                    new_rate_ids = rec.company_id.currency_id_dif._get_rates(rec.company_id, date_to_use)
+                except Exception:
+                    new_rate_ids = {}
+                if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids and new_rate_ids[rec.company_id.currency_id_dif.id] > 0:
+                    new_rate = 1.0 / new_rate_ids[rec.company_id.currency_id_dif.id]
+                else:
+                    new_rate = rec.company_id.currency_id_dif.inverse_rate or 0.0
+                if new_rate > 0:
+                    rec.tax_today = new_rate
+                    rec.foreign_rate = new_rate
+                    rec.foreign_inverse_rate = 1.0 / new_rate
+                    rec._onchange_tax_today()
 
     @api.onchange('tax_today')
     def _onchange_tax_today_sync_ve(self):

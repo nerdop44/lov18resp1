@@ -720,9 +720,10 @@ class AccountMove(models.Model):
             if move.manually_set_rate:
                 continue
             
-            # Si el módulo de moneda dual tiene una tasa establecida, priorizarla
+            # Si el módulo de moneda dual tiene una tasa establecida y fue editada manualmente, priorizarla
             tax_today = getattr(move, 'tax_today', 0.0)
-            if tax_today > 0.0:
+            tax_today_edited = getattr(move, 'tax_today_edited', False)
+            if tax_today > 0.0 and (move.manually_set_rate or tax_today_edited):
                 move.foreign_rate = tax_today
                 move.foreign_inverse_rate = 1.0 / tax_today
                 continue
@@ -736,7 +737,7 @@ class AccountMove(models.Model):
             move.foreign_inverse_rate = rate_values.get("foreign_inverse_rate", 0.0)
             
             # Sincronizar de vuelta a tax_today si se obtuvo una tasa válida
-            if foreign_rate > 0.0 and hasattr(move, 'tax_today') and not move.tax_today:
+            if foreign_rate > 0.0 and hasattr(move, 'tax_today'):
                 move.tax_today = foreign_rate
 
     @api.depends("tax_totals")
@@ -780,10 +781,12 @@ class AccountMove(models.Model):
         "invoice_line_ids.tax_line_id",
         "invoice_line_ids.price_total",
         "invoice_line_ids.price_subtotal",
+        "invoice_line_ids.price_subtotal_usd",
         "invoice_payment_term_id",
         "partner_id",
         "currency_id",
         "foreign_rate",
+        "tax_today",
     )
     def _compute_tax_totals(self):
         """ Computed field used for custom widget's rendering.
