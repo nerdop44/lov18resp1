@@ -256,7 +256,14 @@ class AccountMoveLine(models.Model):
             )
             
             if move and move.tax_today > 0:
-                return 1 / move.tax_today
+                # Para compañías USD (como Krill Energy): la tasa de reconciliación
+                # es tax_today directamente (p.ej. 639.7 Bs/USD), NO su inversa.
+                # Aplica para facturas de clientes (out_invoice) y proveedores (in_invoice),
+                # y para retenciones tanto de IVA como de ISLR.
+                if company.currency_id.name == 'USD':
+                    return move.tax_today
+                else:
+                    return 1 / move.tax_today
             else:
                 return to_re
 

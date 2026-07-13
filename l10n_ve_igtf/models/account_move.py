@@ -164,21 +164,36 @@ class AccountMove(models.Model):
             record.bi_igtf = amount
 
     def _get_payment_from_line(self, line):
-        """Método seguro para obtener el pago desde una línea"""
-        # Primero intenta con payment_id directo en la línea
+        """Método seguro para obtener el pago desde una línea.
+        
+        Odoo 18: account.partial.reconcile NO tiene campo payment_id directo.
+        Se navega de forma segura por debit_move_id/credit_move_id de cada partial.
+        Aplica tanto a facturas de clientes (out_invoice) como a facturas de proveedores (in_invoice).
+        """
+        # 1. Intenta con payment_id directo en la línea
         if hasattr(line, 'payment_id') and line.payment_id:
             return line.payment_id
-    
-        # Si no existe, busca pagos vinculados al asiento
+
+        # 2. Busca pagos vinculados al asiento de la línea directamente
         payment = self.env['account.payment'].search([
             ('move_id', '=', line.move_id.id)
         ], limit=1)
-    
-        # Si aún no hay pago, busca a través de conciliaciones
-        if not payment:
-            payment = line.matched_debit_ids.payment_id or line.matched_credit_ids.payment_id
-    
-        return payment
+        if payment:
+            return payment
+
+        # 3. Navega de forma segura por las conciliaciones parciales (debit side)
+        for partial in line.matched_debit_ids:
+            pmt = getattr(partial.debit_move_id, 'payment_id', None)
+            if pmt:
+                return pmt
+
+        # 4. Navega de forma segura por las conciliaciones parciales (credit side)
+        for partial in line.matched_credit_ids:
+            pmt = getattr(partial.credit_move_id, 'payment_id', None)
+            if pmt:
+                return pmt
+
+        return self.env['account.payment']
 
     def remove_igtf_from_move(self, partial_id):
         """Remove IGTF from move

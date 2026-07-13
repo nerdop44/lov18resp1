@@ -40,7 +40,36 @@ class AccountPayment(models.Model):
         readonly=True)
 
     def _get_default_tasa(self):
-        return self.env.company.currency_id_dif.inverse_rate
+        """Devuelve la tasa de cambio por defecto.
+        
+        Para compañías con moneda base USD (como Krill Energy): devuelve la tasa
+        directa Bs/USD (currency_id_dif.rate → p.ej. 639.7).
+        Para compañías con moneda base VES: devuelve la inversa (USD/Bs).
+        """
+        company = self.env.company
+        currency_dif = company.currency_id_dif
+        if not currency_dif:
+            return 1.0
+        if company.currency_id.name == 'USD':
+            # Krill Energy: base USD, dual VES → tasa directa (cuántos Bs por 1 USD)
+            return currency_dif.rate or 1.0
+        else:
+            # Estándar Venezuela: base VES, dual USD → tasa inversa
+            return currency_dif.inverse_rate or 1.0
+
+    @api.onchange('tax_today')
+    def _onchange_tax_today_payment_sync(self):
+        """Sincroniza tax_today → foreign_rate en pagos, igual que en facturas."""
+        for rec in self:
+            if rec.tax_today > 0 and hasattr(rec, 'foreign_rate'):
+                rec.foreign_rate = rec.tax_today
+
+    @api.onchange('foreign_rate')
+    def _onchange_foreign_rate_payment_sync(self):
+        """Sincroniza foreign_rate → tax_today en pagos, igual que en facturas."""
+        for rec in self:
+            if hasattr(rec, 'foreign_rate') and rec.foreign_rate > 0:
+                rec.tax_today = rec.foreign_rate
 
     @api.depends('currency_id_dif','currency_id','amount','tax_today')
     def _currency_equal(self):
