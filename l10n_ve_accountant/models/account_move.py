@@ -781,12 +781,10 @@ class AccountMove(models.Model):
         "invoice_line_ids.tax_line_id",
         "invoice_line_ids.price_total",
         "invoice_line_ids.price_subtotal",
-        "invoice_line_ids.price_subtotal_usd",
         "invoice_payment_term_id",
         "partner_id",
         "currency_id",
         "foreign_rate",
-        "tax_today",
     )
     def _compute_tax_totals(self):
         """ Computed field used for custom widget's rendering.
