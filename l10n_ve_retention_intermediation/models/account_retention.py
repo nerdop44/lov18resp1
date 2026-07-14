@@ -211,7 +211,7 @@ class AccountMove(models.Model):
             for islr_line in self.retention_islr_line_ids.filtered(lambda rl: rl.state != "cancel"):
                 # Recuperar la línea de factura vinculada de forma segura
                 inv_line = getattr(islr_line, 'invoice_line_id', False) or self.invoice_line_ids.filtered(
-                    lambda l: l.product_id == islr_line.payment_concept_id.product_id
+                    lambda l: l.payment_concept_id == islr_line.payment_concept_id
                 )
                 partner = inv_line[:1].mediated_partner_id or inv_line[:1].product_id.mediated_partner_id or self.partner_id
                 
@@ -221,7 +221,9 @@ class AccountMove(models.Model):
                 
         else: # municipal
             for mun_line in self.retention_municipal_line_ids.filtered(lambda rl: rl.state != "cancel"):
-                inv_line = getattr(mun_line, 'invoice_line_id', False)
+                inv_line = getattr(mun_line, 'invoice_line_id', False) or self.invoice_line_ids.filtered(
+                    lambda l: l.economic_activity_id == mun_line.economic_activity_id
+                )
                 partner = inv_line[:1].mediated_partner_id or inv_line[:1].product_id.mediated_partner_id or self.partner_id
                 
                 if partner not in partner_lines:
