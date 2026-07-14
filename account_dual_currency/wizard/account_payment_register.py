@@ -17,15 +17,7 @@ class AccountPaymentRegister(models.TransientModel):
 
     @api.onchange('usar_tasa_factura')
     def _onchange_usar_tasa_factura(self):
-        for wizard in self:
-            if wizard.usar_tasa_factura:
-                wizard.tax_today = wizard.tax_invoice
-            else:
-                currency_dif = wizard.company_id.currency_id_dif
-                if wizard.company_id.currency_id.name == 'USD':
-                    wizard.tax_today = currency_dif.rate or 1.0
-                else:
-                    wizard.tax_today = currency_dif.inverse_rate or 1.0
+        pass # No modificar tax_today para que conserve siempre la tasa del dia
     currency_id_dif = fields.Many2one("res.currency",string="Divisa de Referencia")
     currency_id_name = fields.Char(string="Nombre de Divisa", related="currency_id.name")
     amount_residual_usd = fields.Monetary(currency_field='currency_id_dif',string='Adeudado Divisa Ref.', readonly=True)
@@ -69,34 +61,29 @@ class AccountPaymentRegister(models.TransientModel):
                 wizard.amount_total_pagar = wizard.amount
 
 
-    @api.onchange('tax_today', 'source_amount', 'source_amount_currency', 'source_currency_id', 'company_id', 'currency_id',
+    @api.onchange('tax_today', 'tax_invoice', 'usar_tasa_factura', 'source_amount', 'source_amount_currency', 'source_currency_id', 'company_id', 'currency_id',
                  'payment_date')
     def _compute_amount(self):
         for wizard in self:
+            tasa_a_usar = wizard.tax_invoice if wizard.usar_tasa_factura else wizard.tax_today
+            if not tasa_a_usar or tasa_a_usar <= 0:
+                tasa_a_usar = 1.0
+
             if wizard.source_currency_id == wizard.currency_id:
                 # Same currency.
-                #wizard.amount = wizard.source_amount_currency
-                if wizard.tax_today == wizard.tax_invoice:
-                    wizard.amount = wizard.source_amount
-                else:
-                    if wizard.source_currency_id == wizard.company_id.currency_id_dif:
-                        wizard.amount = wizard.amount_residual_usd
-                    else:
-                        wizard.amount = wizard.amount_residual_usd * wizard.tax_today
+                wizard.amount = wizard.source_amount
             elif wizard.currency_id == wizard.company_id.currency_id:
-                # Payment expressed on the company's currency.
-                if wizard.source_currency_id == wizard.company_id.currency_id:
-                    if wizard.tax_today == wizard.tax_invoice:
-                        wizard.amount = wizard.source_amount
-                    else:
-                        wizard.amount = wizard.amount_residual_usd * wizard.tax_today
-                else:
-                    wizard.amount = wizard.source_amount_currency * wizard.tax_today
+                # Payment expressed on company's currency (USD for Krill, VES for standard)
+                # Since they are different, source_currency is the reference/foreign one (VES for Krill, USD for standard)
+                # Converting from reference/foreign to base: divide by rate
+                wizard.amount = wizard.source_amount / tasa_a_usar
+            elif wizard.currency_id == wizard.company_id.currency_id_dif:
+                # Payment expressed on reference currency (VES for Krill, USD for standard)
+                # Since they are different, source_currency is the base one (USD for Krill, VES for standard)
+                # Converting from base to reference/foreign: multiply by rate
+                wizard.amount = wizard.source_amount * tasa_a_usar
             else:
-                # Foreign currency on payment different than the one set on the journal entries.
-                #amount_payment_currency = wizard.company_id.currency_id._convert(wizard.source_amount,
-                #                                                                 wizard.currency_id, wizard.company_id,
-                #                                                                 wizard.payment_date)
+                # Fallback
                 wizard.amount = wizard.amount_residual_usd
 
             if wizard.aplicar_igtf_divisa:
@@ -110,52 +97,36 @@ class AccountPaymentRegister(models.TransientModel):
                 wizard.mount_igtf = 0
                 wizard.amount_total_pagar = wizard.amount
 
-    @api.depends('amount','tax_today')
+    @api.depends('amount', 'tax_today', 'tax_invoice', 'usar_tasa_factura')
     def _compute_payment_difference(self):
         for wizard in self:
-            wizard.amount_usd = wizard.amount / (wizard.tax_today if wizard.tax_today > 0 else 1)
+            tasa_a_usar = wizard.tax_invoice if wizard.usar_tasa_factura else wizard.tax_today
+            if not tasa_a_usar or tasa_a_usar <= 0:
+                tasa_a_usar = 1.0
+
+            wizard.amount_usd = wizard.amount / tasa_a_usar
             if wizard.source_currency_id == wizard.currency_id:
                 # Same currency.
                 wizard.payment_difference = wizard.source_amount_currency - wizard.amount
-                wizard.payment_difference_usd = wizard.amount_residual_usd - (wizard.amount / (wizard.tax_today if wizard.tax_today > 0 else 1))
+                wizard.payment_difference_usd = wizard.amount_residual_usd - (wizard.amount / tasa_a_usar)
                 wizard.payment_difference_bs = 0
                 if wizard.currency_id == wizard.company_id.currency_id_dif:
                     wizard.payment_difference_usd = wizard.amount_residual_usd - wizard.amount
-                    wizard.payment_difference_bs = (wizard.amount_residual_usd / wizard.tax_invoice) - (wizard.amount / (wizard.tax_today if wizard.tax_today > 0 else 1))
-                #print('diferencia 1')
+                    wizard.payment_difference_bs = (wizard.amount_residual_usd / wizard.tax_invoice) - (wizard.amount / tasa_a_usar)
             elif wizard.currency_id == wizard.company_id.currency_id:
                 # Payment expressed on the company's currency.
-                ##print('wizard.currency_id == wizard.company_id.currency_id')
-                ##print('tasa factura: %s' % wizard.tax_invoice)
-                ##print('tasa actual: %s' % wizard.tax_today)
-                ##print('monto adeudado: %s' % wizard.amount_residual_usd)
-                ##print('monto pagado: %s' % wizard.amount)
-                ##print(wizard.currency_id)
-                ##print(wizard.currency_id_dif)
                 if wizard.source_currency_id == wizard.company_id.currency_id:
                     wizard.payment_difference = wizard.source_amount - wizard.amount
                 else:
                     wizard.payment_difference = (wizard.source_amount * wizard.tax_invoice) - wizard.amount
-                    wizard.payment_difference_usd = wizard.amount_residual_usd - (wizard.amount / (wizard.tax_today if wizard.tax_today > 0 else 1))
+                    wizard.payment_difference_usd = wizard.amount_residual_usd - (wizard.amount / tasa_a_usar)
             else:
                 # Foreign currency on payment different than the one set on the journal entries.
-                #amount_payment_currency = wizard.company_id.currency_id._convert(wizard.source_amount,
-                #                                                                 wizard.currency_id, wizard.company_id,
-                #                                                                 wizard.payment_date)
-                #amount_payment_currency = wizard.source_amount * wizard.tax_today
                 wizard.payment_difference = wizard.amount_residual_usd - wizard.amount
-                ##print('tasa factura: %s' % wizard.tax_invoice)
-                ##print('tasa actual: %s' % wizard.tax_today)
-                ##print('monto adeudado: %s' % wizard.amount_residual_usd)
-                ##print('monto pagado: %s' % wizard.amount)
-                ##print(wizard.currency_id)
-                ##print(wizard.currency_id_dif)
-                if wizard.tax_today == wizard.tax_invoice and wizard.amount_residual_usd == wizard.amount and wizard.currency_id == wizard.company_id.currency_id_dif:
+                if tasa_a_usar == wizard.tax_invoice and wizard.amount_residual_usd == wizard.amount and wizard.currency_id == wizard.company_id.currency_id_dif:
                     wizard.payment_difference_bs = 0
                 else:
-                    wizard.payment_difference_bs = wizard.source_amount - (wizard.amount * wizard.tax_today)
-
-                ##print('wizard.payment_difference_bs', wizard.payment_difference_bs)
+                    wizard.payment_difference_bs = wizard.source_amount - (wizard.amount * tasa_a_usar)
 
             if wizard.aplicar_igtf_divisa:
                 if wizard.currency_id.name == wizard.company_id.currency_id_dif.name:
@@ -192,7 +163,7 @@ class AccountPaymentRegister(models.TransientModel):
         else:
             tax_today = self.tax_today
 
-        currency_id_dif = lines[0].currency_id_dif
+        currency_id_dif = company.currency_id_dif or lines[0].currency_id_dif
         amount_residual_usd = lines[0].move_id.amount_residual_usd
         source_amount = abs(sum(lines.mapped('amount_residual'))) if key_values['currency_id'] == company.currency_id.id else abs(sum(lines.mapped('amount_residual_currency')))
         if key_values['currency_id'] == company.currency_id.id:
@@ -211,24 +182,54 @@ class AccountPaymentRegister(models.TransientModel):
             reconciled_ret_bs = 0.0
             ret_payments = ret_lines.mapped('payment_id')
 
-            for line in move.line_ids.filtered(lambda l: l.account_id.account_type in ('asset_receivable', 'liability_payable')):
-                partials = line.matched_debit_ids + line.matched_credit_ids
-                for partial in partials:
-                    counterpart_line = partial.debit_move_id if partial.credit_move_id == line else partial.credit_move_id
-                    if counterpart_line.payment_id in ret_payments or counterpart_line.payment_id.is_retention:
-                        reconciled_ret_bs += partial.amount
-                        reconciled_ret_usd += partial.amount_usd
+            if company.currency_id.name == 'USD':
+                # Compania base USD, referencia VES/Bs
+                for line in move.line_ids.filtered(lambda l: l.account_id.account_type in ('asset_receivable', 'liability_payable')):
+                    partials = line.matched_debit_ids + line.matched_credit_ids
+                    for partial in partials:
+                        counterpart_line = partial.debit_move_id if partial.credit_move_id == line else partial.credit_move_id
+                        if counterpart_line.payment_id in ret_payments or counterpart_line.payment_id.is_retention:
+                            reconciled_ret_usd += partial.amount      # USD
+                            reconciled_ret_bs += partial.amount_usd   # VES
+            else:
+                # Compania base VES/Bs, referencia USD
+                for line in move.line_ids.filtered(lambda l: l.account_id.account_type in ('asset_receivable', 'liability_payable')):
+                    partials = line.matched_debit_ids + line.matched_credit_ids
+                    for partial in partials:
+                        counterpart_line = partial.debit_move_id if partial.credit_move_id == line else partial.credit_move_id
+                        if counterpart_line.payment_id in ret_payments or counterpart_line.payment_id.is_retention:
+                            reconciled_ret_bs += partial.amount      # VES
+                            reconciled_ret_usd += partial.amount_usd   # USD
 
             pending_ret_usd = max(0.0, total_ret_usd - reconciled_ret_usd)
             pending_ret_bs = max(0.0, total_ret_bs - reconciled_ret_bs)
 
-            amount_residual_usd = max(0.0, amount_residual_usd - pending_ret_usd)
-            if key_values['currency_id'] == company.currency_id.id:
-                source_amount = max(0.0, source_amount - pending_ret_bs)
-                source_amount_currency = source_amount
+            if company.currency_id.name == 'USD':
+                # Base USD, referencia VES
+                amount_residual_usd = max(0.0, amount_residual_usd - pending_ret_bs)
+                if key_values['currency_id'] == company.currency_id.id:
+                    source_amount = max(0.0, source_amount - pending_ret_usd)
+                    source_amount_currency = source_amount
+                else:
+                    source_amount = max(0.0, source_amount - pending_ret_bs)
+                    source_amount_currency = max(0.0, source_amount_currency - pending_ret_bs)
             else:
-                source_amount = max(0.0, source_amount - pending_ret_usd)
-                source_amount_currency = max(0.0, source_amount_currency - pending_ret_usd)
+                # Base VES, referencia USD
+                amount_residual_usd = max(0.0, amount_residual_usd - pending_ret_usd)
+                if key_values['currency_id'] == company.currency_id.id:
+                    source_amount = max(0.0, source_amount - pending_ret_bs)
+                    source_amount_currency = source_amount
+                else:
+                    source_amount = max(0.0, source_amount - pending_ret_usd)
+                    source_amount_currency = max(0.0, source_amount_currency - pending_ret_usd)
+
+        # En la inicializacion, tax_today debe ser la tasa del dia de hoy, no la de la factura
+        # Para que el selector de usar tasa factura empiece en True pero use la del dia si se desmarca
+        currency_dif = company.currency_id_dif
+        if company.currency_id.name == 'USD':
+            tax_today = currency_dif.rate or 1.0
+        else:
+            tax_today = currency_dif.inverse_rate or 1.0
 
         return {
             'company_id': company.id,
@@ -238,7 +239,7 @@ class AccountPaymentRegister(models.TransientModel):
             'source_currency_id': key_values['currency_id'],
             'source_amount': source_amount,
             'source_amount_currency': source_amount_currency,
-            'tax_today': tax_invoice,
+            'tax_today': tax_today,
             'tax_invoice': tax_invoice,
             'usar_tasa_factura': True,
             'currency_id_dif': currency_id_dif.id,
@@ -247,6 +248,7 @@ class AccountPaymentRegister(models.TransientModel):
         }
 
     def _create_payment_vals_from_wizard(self, batch_result):
+        tasa_a_usar = self.tax_invoice if self.usar_tasa_factura else self.tax_today
         payment_vals = {
             'date': self.payment_date,
             'amount': self.amount,
@@ -259,7 +261,7 @@ class AccountPaymentRegister(models.TransientModel):
             'partner_bank_id': self.partner_bank_id.id,
             'payment_method_line_id': self.payment_method_line_id.id,
             'destination_account_id': self.line_ids[0].account_id.id,
-            'tax_today': self.tax_today,
+            'tax_today': tasa_a_usar,
             'currency_id_dif': self.currency_id_dif.id,
             'aplicar_igtf_divisa': self.aplicar_igtf_divisa,
             'journal_igtf_id': self.journal_igtf_id.id,
@@ -278,7 +280,8 @@ class AccountPaymentRegister(models.TransientModel):
 
 
     def _create_payments(self):
-        self.env.context = dict(self.env.context, tasa_factura=self.tax_today, calcular_dual_currency=True)
+        tasa_a_usar = self.tax_invoice if self.usar_tasa_factura else self.tax_today
+        self.env.context = dict(self.env.context, tasa_factura=tasa_a_usar, calcular_dual_currency=True)
 
         payments = super()._create_payments()
         payments.move_id._verificar_pagos()
