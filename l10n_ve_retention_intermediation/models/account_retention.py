@@ -200,8 +200,8 @@ class AccountMove(models.Model):
             for line_data in retention_lines_data:
                 # Recuperar la línea de factura asociada
                 inv_line = self.invoice_line_ids.filtered(lambda l: l.id == line_data.get("invoice_line_id"))
-                # Si la línea tiene un intermediado, ese es el beneficiario. Si no, es la agencia.
-                partner = inv_line.mediated_partner_id or self.partner_id
+                # Si la línea tiene un intermediado (o su producto), ese es el beneficiario. Si no, es la agencia.
+                partner = inv_line.mediated_partner_id or inv_line.product_id.mediated_partner_id or self.partner_id
                 
                 if partner not in partner_lines:
                     partner_lines[partner] = []
@@ -213,7 +213,7 @@ class AccountMove(models.Model):
                 inv_line = getattr(islr_line, 'invoice_line_id', False) or self.invoice_line_ids.filtered(
                     lambda l: l.product_id == islr_line.payment_concept_id.product_id
                 )
-                partner = inv_line[:1].mediated_partner_id or self.partner_id
+                partner = inv_line[:1].mediated_partner_id or inv_line[:1].product_id.mediated_partner_id or self.partner_id
                 
                 if partner not in partner_lines:
                     partner_lines[partner] = []
@@ -222,7 +222,7 @@ class AccountMove(models.Model):
         else: # municipal
             for mun_line in self.retention_municipal_line_ids.filtered(lambda rl: rl.state != "cancel"):
                 inv_line = getattr(mun_line, 'invoice_line_id', False)
-                partner = inv_line[:1].mediated_partner_id or self.partner_id
+                partner = inv_line[:1].mediated_partner_id or inv_line[:1].product_id.mediated_partner_id or self.partner_id
                 
                 if partner not in partner_lines:
                     partner_lines[partner] = []

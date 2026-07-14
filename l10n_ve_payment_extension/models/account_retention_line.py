@@ -464,7 +464,7 @@ class AccountRetentionLine(models.Model):
 
             foreign_rate = invoice.foreign_rate or 1.0
 
-            is_editable = record.edit_tax_base or (record.retention_id and record.retention_id.type == 'out_invoice')
+            is_editable = bool(record.retention_id)
             if is_editable and type_retention == 'islr' and record.invoice_amount > 0:
                 computed_invoice_amount = record.invoice_amount
                 computed_foreign_invoice_amount = record.foreign_invoice_amount
@@ -499,8 +499,8 @@ class AccountRetentionLine(models.Model):
                 computed_foreign_retention_amount = computed_foreign_invoice_amount * aliquot / 100.0
 
             # Asignación de valores
-            if record.retention_id and record.retention_id.type == 'out_invoice':
-                # Si es cliente, preservar valores manuales existentes
+            if record.retention_id:
+                # Preservar valores manuales existentes
                 record.invoice_amount = record.invoice_amount or computed_invoice_amount
                 record.invoice_total = record.invoice_total or computed_invoice_total
                 record.iva_amount = record.iva_amount or computed_iva_amount
@@ -510,33 +510,21 @@ class AccountRetentionLine(models.Model):
                 record.foreign_currency_rate = record.foreign_currency_rate or computed_foreign_currency_rate
                 record.retention_amount = record.retention_amount or computed_retention_amount
                 record.foreign_retention_amount = record.foreign_retention_amount or computed_foreign_retention_amount
-            else:
-                # Si es proveedor o borrador independiente, sobreescribir con el cálculo exacto de la factura
-                if record.edit_tax_base and type_retention == 'islr':
-                    # Si está activo modificar base para ISLR, mantenemos el valor actual en memoria de las bases imponible
-                    record.invoice_amount = record.invoice_amount
-                    record.foreign_invoice_amount = record.foreign_invoice_amount
-                    record.invoice_total = computed_invoice_total
-                    record.iva_amount = computed_iva_amount
-                    record.foreign_invoice_total = computed_foreign_invoice_total
-                    record.foreign_iva_amount = computed_foreign_iva_amount
-                    record.foreign_currency_rate = computed_foreign_currency_rate
-                    record.retention_amount = computed_retention_amount
-                    record.foreign_retention_amount = computed_foreign_retention_amount
-                else:
-                    record.invoice_amount = computed_invoice_amount
-                    record.invoice_total = computed_invoice_total
-                    record.iva_amount = computed_iva_amount
-                    record.foreign_invoice_amount = computed_foreign_invoice_amount
-                    record.foreign_invoice_total = computed_foreign_invoice_total
-                    record.foreign_iva_amount = computed_foreign_iva_amount
-                    record.foreign_currency_rate = computed_foreign_currency_rate
-                    record.retention_amount = computed_retention_amount
-                    record.foreign_retention_amount = computed_foreign_retention_amount
                 if type_retention == 'iva':
                     record.related_percentage_tax_base = withholding_amount
                 elif type_retention == 'municipal':
                     record.aliquot = record.economic_activity_id.aliquot or 0.0
+            else:
+                # Si es borrador independiente sin retención
+                record.invoice_amount = computed_invoice_amount
+                record.invoice_total = computed_invoice_total
+                record.iva_amount = computed_iva_amount
+                record.foreign_invoice_amount = computed_foreign_invoice_amount
+                record.foreign_invoice_total = computed_foreign_invoice_total
+                record.foreign_iva_amount = computed_foreign_iva_amount
+                record.foreign_currency_rate = computed_foreign_currency_rate
+                record.retention_amount = computed_retention_amount
+                record.foreign_retention_amount = computed_foreign_retention_amount
 
 
     @api.onchange("economic_activity_id", "move_id")
@@ -615,10 +603,9 @@ class AccountRetentionLine(models.Model):
     @api.onchange("invoice_amount")
     def _onchange_invoice_amount_manual(self):
         for record in self:
-            is_client = record.retention_id and record.retention_id.type == 'out_invoice'
-            if (record.edit_tax_base or is_client) and record.foreign_currency_rate > 0:
+            if record.retention_id and record.foreign_currency_rate > 0:
                 record.foreign_invoice_amount = record.invoice_amount * record.foreign_currency_rate
-            if record.edit_tax_base or is_client:
+            if record.retention_id:
                 record.retention_amount = False
                 record.foreign_retention_amount = False
                 record._compute_line_amounts()
@@ -626,10 +613,9 @@ class AccountRetentionLine(models.Model):
     @api.onchange("foreign_invoice_amount")
     def _onchange_foreign_invoice_amount_manual(self):
         for record in self:
-            is_client = record.retention_id and record.retention_id.type == 'out_invoice'
-            if (record.edit_tax_base or is_client) and record.foreign_currency_rate > 0:
+            if record.retention_id and record.foreign_currency_rate > 0:
                 record.invoice_amount = record.foreign_invoice_amount / record.foreign_currency_rate
-            if record.edit_tax_base or is_client:
+            if record.retention_id:
                 record.retention_amount = False
                 record.foreign_retention_amount = False
                 record._compute_line_amounts()

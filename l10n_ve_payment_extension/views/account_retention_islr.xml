@@ -42,8 +42,8 @@
 									<field name="is_retention_client" column_invisible="True"/>
 									<!-- Montos siempre en VEF (Bs.) — Regla universal de retenciones venezolanas -->
 									<field name="foreign_invoice_total" force_save="1" string="Total Factura (Bs.)" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="1"/>
-									<field name="edit_tax_base" string="Mod. Base" column_invisible="parent.type == 'out_invoice'"/>
-									<field name="foreign_invoice_amount" force_save="1" string="Base Imponible (Bs.)" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="parent.type == 'in_invoice' and not edit_tax_base"/>
+									<field name="edit_tax_base" string="Mod. Base" column_invisible="True"/>
+									<field name="foreign_invoice_amount" force_save="1" string="Base Imponible (Bs.)" widget="monetary" options="{'currency_field': 'foreign_currency_id'}" readonly="0"/>
 									<field name="related_pay_from" force_save="1" readonly="1" column_invisible="parent.type == 'out_invoice'"/>
 									<field name="related_percentage_tax_base" force_save="1" readonly="1" />
 									<field name="related_percentage_fees" force_save="1" readonly="1" />
