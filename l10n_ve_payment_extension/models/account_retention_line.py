@@ -465,7 +465,7 @@ class AccountRetentionLine(models.Model):
             foreign_rate = invoice.foreign_rate or 1.0
 
             is_editable = record.edit_tax_base or (record.retention_id and record.retention_id.type == 'out_invoice')
-            if is_editable and type_retention == 'islr':
+            if is_editable and type_retention == 'islr' and record.invoice_amount > 0:
                 computed_invoice_amount = record.invoice_amount
                 computed_foreign_invoice_amount = record.foreign_invoice_amount
             else:
