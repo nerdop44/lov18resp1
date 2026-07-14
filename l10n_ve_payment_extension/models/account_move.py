@@ -213,7 +213,8 @@ class AccountMoveRetention(models.Model):
         sum_invoice_amount = sum(
             islr_retention.filtered(lambda rl: rl.state != "cancel").mapped("invoice_amount")
         )
-        if sum_invoice_amount > self.tax_totals["amount_untaxed"]:
+        from odoo.tools import float_compare
+        if float_compare(sum_invoice_amount, self.amount_untaxed, precision_rounding=self.currency_id.rounding) > 0:
             raise UserError(
                 _("The amount of the retention is greater than the total amount of the invoice.")
             )
