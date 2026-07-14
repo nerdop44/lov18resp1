@@ -218,14 +218,12 @@ class AccountRetentionLine(models.Model):
 
             if invoice_is_vef:
                 # ============================================================
-                # FACTURA EN VEF (Bs): usar *_amount_currency (moneda factura)
-                # base_amount_currency = monto en Bs (CORRECTO)
-                # base_amount          = monto en USD empresa (INCORRECTO para retención)
+                # FACTURA EN VEF (Bs): usar campos nativos directamente
                 # ============================================================
-                bs_untaxed = abs(tax_totals.get('base_amount_currency', 0.0))
-                bs_total   = abs(tax_totals.get('total_amount_currency', 0.0))
-                bs_iva     = abs(tax_totals.get('tax_amount_currency', 0.0))
-
+                bs_untaxed = abs(invoice.amount_untaxed)
+                bs_total   = abs(invoice.amount_total)
+                bs_iva     = abs(invoice.amount_tax)
+ 
                 self.invoice_amount        = bs_untaxed
                 self.invoice_total         = bs_total
                 self.iva_amount            = bs_iva
@@ -234,17 +232,18 @@ class AccountRetentionLine(models.Model):
                 self.foreign_iva_amount     = bs_iva
             else:
                 # ============================================================
-                # FACTURA EN USD: los campos native son en USD
-                # foreign_amount_untaxed / foreign_amount_total ya están en Bs
-                # (calculados por l10n_ve_tax con la tasa BCV)
+                # FACTURA EN USD: los campos native son en USD.
+                # Para VES/Bs, usar las claves de display de l10n_ve_tax o fallback por tasa.
                 # ============================================================
-                usd_untaxed = abs(tax_totals.get('base_amount_currency', 0.0))
-                usd_total   = abs(tax_totals.get('total_amount_currency', 0.0))
-                usd_iva     = abs(tax_totals.get('tax_amount_currency', 0.0))
-                bs_untaxed  = abs(tax_totals.get('foreign_amount_untaxed', 0.0))
-                bs_total    = abs(tax_totals.get('foreign_amount_total', 0.0))
+                usd_untaxed = abs(invoice.amount_untaxed)
+                usd_total   = abs(invoice.amount_total)
+                usd_iva     = abs(invoice.amount_tax)
+                
+                foreign_rate = invoice.foreign_rate or 1.0
+                bs_untaxed  = abs(tax_totals.get('foreign_amount_untaxed', 0.0)) or (usd_untaxed * foreign_rate)
+                bs_total    = abs(tax_totals.get('foreign_amount_total', 0.0)) or (usd_total * foreign_rate)
                 bs_iva      = bs_total - bs_untaxed
-
+ 
                 self.invoice_amount        = usd_untaxed
                 self.invoice_total         = usd_total
                 self.iva_amount            = usd_iva
@@ -432,19 +431,21 @@ class AccountRetentionLine(models.Model):
 
             if invoice_is_vef:
                 # Factura VEF
-                bs_untaxed = abs(tax_totals.get('base_amount_currency', 0.0))
-                bs_total   = abs(tax_totals.get('total_amount_currency', 0.0))
-                bs_iva     = abs(tax_totals.get('tax_amount_currency', 0.0))
+                bs_untaxed = abs(invoice.amount_untaxed)
+                bs_total   = abs(invoice.amount_total)
+                bs_iva     = abs(invoice.amount_tax)
                 usd_untaxed = bs_untaxed
                 usd_total   = bs_total
                 usd_iva     = bs_iva
             else:
                 # Factura USD
-                usd_untaxed = abs(tax_totals.get('base_amount_currency', 0.0))
-                usd_total   = abs(tax_totals.get('total_amount_currency', 0.0))
-                usd_iva     = abs(tax_totals.get('tax_amount_currency', 0.0))
-                bs_untaxed  = abs(tax_totals.get('foreign_amount_untaxed', 0.0))
-                bs_total    = abs(tax_totals.get('foreign_amount_total', 0.0))
+                usd_untaxed = abs(invoice.amount_untaxed)
+                usd_total   = abs(invoice.amount_total)
+                usd_iva     = abs(invoice.amount_tax)
+                
+                foreign_rate = invoice.foreign_rate or 1.0
+                bs_untaxed  = abs(tax_totals.get('foreign_amount_untaxed', 0.0)) or (usd_untaxed * foreign_rate)
+                bs_total    = abs(tax_totals.get('foreign_amount_total', 0.0)) or (usd_total * foreign_rate)
                 bs_iva      = bs_total - bs_untaxed
 
             # Determinar el tipo de retención

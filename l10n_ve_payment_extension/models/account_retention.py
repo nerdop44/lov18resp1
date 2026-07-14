@@ -1779,7 +1779,7 @@ class AccountRetention(models.Model):
                         # base_amount_currency = monto en Bs (moneda de la factura)
                         vef_invoice_amount = abs(tax_group_data.get('base_amount_currency', 0.0))
                         vef_iva_amount = abs(tax_group_data.get('tax_amount_currency', 0.0))
-                        vef_invoice_total = abs(tax_totals.get('total_amount_currency', 0.0))
+                        vef_invoice_total = invoice_id.amount_total
                     elif global_vef_untaxed > 0:
                         # La factura está en otra moneda y l10n_ve_tax ya calculó los VEF
                         if total_groups == 1:
@@ -1787,7 +1787,12 @@ class AccountRetention(models.Model):
                             vef_iva_amount = global_vef_total - global_vef_untaxed
                         else:
                             # Múltiples grupos: proporcional
-                            total_company_untaxed = abs(tax_totals.get('base_amount_currency', 1.0)) or 1.0
+                            # Sumar las bases imponibles de los grupos para tener el total imponible exacto en la moneda de la compañía
+                            total_company_untaxed = sum(
+                                tg.get("base_amount", tg.get("base_amount_currency", 0.0))
+                                for sub in tax_totals.get("subtotals", [])
+                                for tg in sub.get("tax_groups", [])
+                            ) or 1.0
                             proportion = invoice_amount_company / total_company_untaxed if total_company_untaxed else 0.0
                             vef_invoice_amount = global_vef_untaxed * proportion
                             vef_iva_amount = (global_vef_total - global_vef_untaxed) * proportion
@@ -1796,23 +1801,25 @@ class AccountRetention(models.Model):
                         # Fallback: convertir usando la tasa directo
                         vef_invoice_amount = invoice_amount_company * foreign_rate
                         vef_iva_amount = iva_amount_company * foreign_rate
-                        vef_invoice_total = abs(tax_totals.get('total_amount_currency', 0.0)) * foreign_rate
-
+                        vef_invoice_total = invoice_id.amount_total * foreign_rate
+ 
                     # Retención en VEF (siempre)
                     vef_retention_amount = float_round(
                         vef_iva_amount * (withholding_amount / 100),
                         precision_digits=vef_currency.decimal_places if vef_currency else 2,
                     )
-
+ 
                     # Retención en moneda empresa (para el apunte contable)
                     retention_amount_company = float_round(
                         iva_amount_company * (withholding_amount / 100),
                         precision_digits=invoice_id.company_currency_id.decimal_places,
                     )
-
-                    invoice_total_company = tax_totals.get(
-                        "total_amount_currency", tax_totals.get("total_amount", 0.0)
-                    )
+ 
+                    invoice_total_company = sum(
+                        tg.get("base_amount", 0.0) + tg.get("tax_amount", 0.0)
+                        for sub in tax_totals.get("subtotals", [])
+                        for tg in sub.get("tax_groups", [])
+                    ) or invoice_id.amount_total
 
                     _logger.warning(
                         f"Retención calculada: "
