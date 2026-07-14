@@ -619,9 +619,8 @@ class AccountRetentionLine(models.Model):
             if (record.edit_tax_base or is_client) and record.foreign_currency_rate > 0:
                 record.foreign_invoice_amount = record.invoice_amount * record.foreign_currency_rate
             if record.edit_tax_base or is_client:
-                if is_client:
-                    record.retention_amount = False
-                    record.foreign_retention_amount = False
+                record.retention_amount = False
+                record.foreign_retention_amount = False
                 record._compute_line_amounts()
 
     @api.onchange("foreign_invoice_amount")
@@ -631,9 +630,8 @@ class AccountRetentionLine(models.Model):
             if (record.edit_tax_base or is_client) and record.foreign_currency_rate > 0:
                 record.invoice_amount = record.foreign_invoice_amount / record.foreign_currency_rate
             if record.edit_tax_base or is_client:
-                if is_client:
-                    record.retention_amount = False
-                    record.foreign_retention_amount = False
+                record.retention_amount = False
+                record.foreign_retention_amount = False
                 record._compute_line_amounts()
 
     # =========== CAMBIO AQUÍ ===========

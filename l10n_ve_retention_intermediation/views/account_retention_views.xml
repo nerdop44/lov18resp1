@@ -12,7 +12,7 @@
                     <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
                 </xpath>
                 <xpath expr="//field[@name='partner_id']" position="after">
-                    <field name="printed_partner_id" readonly="1" invisible="not printed_partner_id"/>
+                    <field name="printed_partner_id" invisible="not is_intermediation" readonly="state in ['emitted', 'cancel']"/>
                 </xpath>
             </field>
         </record>
@@ -28,7 +28,7 @@
                     <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
                 </xpath>
                 <xpath expr="//field[@name='partner_id']" position="after">
-                    <field name="printed_partner_id" readonly="1" invisible="not printed_partner_id"/>
+                    <field name="printed_partner_id" invisible="not is_intermediation" readonly="state in ['emitted', 'cancel']"/>
                 </xpath>
             </field>
         </record>
@@ -44,7 +44,7 @@
                     <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
                 </xpath>
                 <xpath expr="//field[@name='partner_id']" position="after">
-                    <field name="printed_partner_id" readonly="1" invisible="not printed_partner_id"/>
+                    <field name="printed_partner_id" invisible="not is_intermediation" readonly="state in ['emitted', 'cancel']"/>
                 </xpath>
             </field>
         </record>
