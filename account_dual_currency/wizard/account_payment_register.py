@@ -180,7 +180,8 @@ class AccountPaymentRegister(models.TransientModel):
 
             reconciled_ret_usd = 0.0
             reconciled_ret_bs = 0.0
-            ret_payments = ret_lines.mapped('payment_id')
+            ret_payments = ret_lines.mapped('retention_id.payment_ids')
+            ret_payment_moves = ret_payments.mapped('move_id')
 
             if company.currency_id.name == 'USD':
                 # Compania base USD, referencia VES/Bs
@@ -188,7 +189,7 @@ class AccountPaymentRegister(models.TransientModel):
                     partials = line.matched_debit_ids + line.matched_credit_ids
                     for partial in partials:
                         counterpart_line = partial.debit_move_id if partial.credit_move_id == line else partial.credit_move_id
-                        if counterpart_line.payment_id in ret_payments or counterpart_line.payment_id.is_retention:
+                        if counterpart_line.payment_id in ret_payments or counterpart_line.move_id in ret_payment_moves or counterpart_line.payment_id.is_retention:
                             reconciled_ret_usd += partial.amount      # USD
                             reconciled_ret_bs += partial.amount_usd   # VES
             else:
@@ -197,7 +198,7 @@ class AccountPaymentRegister(models.TransientModel):
                     partials = line.matched_debit_ids + line.matched_credit_ids
                     for partial in partials:
                         counterpart_line = partial.debit_move_id if partial.credit_move_id == line else partial.credit_move_id
-                        if counterpart_line.payment_id in ret_payments or counterpart_line.payment_id.is_retention:
+                        if counterpart_line.payment_id in ret_payments or counterpart_line.move_id in ret_payment_moves or counterpart_line.payment_id.is_retention:
                             reconciled_ret_bs += partial.amount      # VES
                             reconciled_ret_usd += partial.amount_usd   # USD
 
