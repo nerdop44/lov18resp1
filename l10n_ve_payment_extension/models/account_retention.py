@@ -68,7 +68,8 @@ class AccountRetention(models.Model):
     use_today_rate = fields.Boolean(
         string="Utilizar Tasa de Hoy:",
         default=False,
-        help="Si se marca, se utilizará la tasa de cambio de hoy en lugar de la tasa de la factura."
+        help="Si se marca, se utilizará la tasa de cambio de hoy en lugar de la tasa de la factura.",
+        tracking=True,
     )
 
     company_id = fields.Many2one(
@@ -144,6 +145,7 @@ class AccountRetention(models.Model):
             "Date of arrival of the document and date to be used to make the accounting record."
             " Keep blank to use current date."
         ),
+        tracking=True,
     )
     allowed_lines_move_ids = fields.Many2many(
         "account.move",
@@ -159,6 +161,7 @@ class AccountRetention(models.Model):
         "retention_id",
         "retention line",
         help="Retentions",
+        tracking=True,
     )
 
     code_visible = fields.Boolean(related="company_id.code_visible")
@@ -174,6 +177,7 @@ class AccountRetention(models.Model):
         compute="_compute_totals",
         help="Taxable Income Total",
         store=True,
+        tracking=True,
     )
     total_iva_amount = fields.Float(
         string="Total IVA", compute="_compute_totals", store=True
@@ -182,6 +186,7 @@ class AccountRetention(models.Model):
         compute="_compute_totals",
         store=True,
         help="Retained Amount Total",
+        tracking=True,
     )
 
     foreign_total_invoice_amount = fields.Float(
@@ -189,6 +194,7 @@ class AccountRetention(models.Model):
         compute="_compute_totals",
         help="Total base imponible en VEF",
         store=True,
+        tracking=True,
     )
     foreign_total_iva_amount = fields.Float(
         string="Total IVA (Bs.)", compute="_compute_totals", store=True
@@ -198,6 +204,7 @@ class AccountRetention(models.Model):
         compute="_compute_totals",
         store=True,
         help="Total monto retenido en VEF",
+        tracking=True,
     )
     original_lines_per_invoice_counter = fields.Char(
         help=(

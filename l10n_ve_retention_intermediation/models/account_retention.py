@@ -97,7 +97,7 @@ class AccountRetention(models.Model):
         used_rate = invoice_id.foreign_inverse_rate or 1.0
 
         new_res = []
-        for line in invoice_id.invoice_line_ids.filtered(lambda l: l.display_type == 'product'):
+        for line in invoice_id.invoice_line_ids.filtered(lambda l: not l.display_type and l.product_id):
             tax_ids = line.tax_ids.filtered(lambda t: t.amount > 0)
             if not tax_ids:
                 continue
@@ -183,7 +183,7 @@ class AccountMove(models.Model):
             retention = super(AccountMove, self)._create_supplier_retention(type_retention)
             if retention:
                 mediated_partner = self.invoice_line_ids.filtered(
-                    lambda l: l.display_type == 'product' and (l.mediated_partner_id or l.product_id.mediated_partner_id)
+                    lambda l: not l.display_type and l.product_id and (l.mediated_partner_id or l.product_id.mediated_partner_id)
                 ).mapped(lambda l: l.mediated_partner_id or l.product_id.mediated_partner_id)
                 if mediated_partner:
                     retention.write({'printed_partner_id': mediated_partner[0].id})
@@ -233,7 +233,7 @@ class AccountMove(models.Model):
             retention = super(AccountMove, self)._create_supplier_retention(type_retention)
             if retention:
                 mediated_partner = self.invoice_line_ids.filtered(
-                    lambda l: l.display_type == 'product' and (l.mediated_partner_id or l.product_id.mediated_partner_id)
+                    lambda l: not l.display_type and l.product_id and (l.mediated_partner_id or l.product_id.mediated_partner_id)
                 ).mapped(lambda l: l.mediated_partner_id or l.product_id.mediated_partner_id)
                 if mediated_partner:
                     retention.write({'printed_partner_id': mediated_partner[0].id})

@@ -464,8 +464,8 @@ class AccountRetentionLine(models.Model):
 
             foreign_rate = invoice.foreign_rate or 1.0
 
-            # Cálculos teóricos
-            if record.edit_tax_base and type_retention == 'islr':
+            is_editable = record.edit_tax_base or (record.retention_id and record.retention_id.type == 'out_invoice')
+            if is_editable and type_retention == 'islr':
                 computed_invoice_amount = record.invoice_amount
                 computed_foreign_invoice_amount = record.foreign_invoice_amount
             else:
@@ -615,17 +615,25 @@ class AccountRetentionLine(models.Model):
     @api.onchange("invoice_amount")
     def _onchange_invoice_amount_manual(self):
         for record in self:
-            if record.edit_tax_base and record.foreign_currency_rate > 0:
+            is_client = record.retention_id and record.retention_id.type == 'out_invoice'
+            if (record.edit_tax_base or is_client) and record.foreign_currency_rate > 0:
                 record.foreign_invoice_amount = record.invoice_amount * record.foreign_currency_rate
-            if record.edit_tax_base:
+            if record.edit_tax_base or is_client:
+                if is_client:
+                    record.retention_amount = False
+                    record.foreign_retention_amount = False
                 record._compute_line_amounts()
 
     @api.onchange("foreign_invoice_amount")
     def _onchange_foreign_invoice_amount_manual(self):
         for record in self:
-            if record.edit_tax_base and record.foreign_currency_rate > 0:
+            is_client = record.retention_id and record.retention_id.type == 'out_invoice'
+            if (record.edit_tax_base or is_client) and record.foreign_currency_rate > 0:
                 record.invoice_amount = record.foreign_invoice_amount / record.foreign_currency_rate
-            if record.edit_tax_base:
+            if record.edit_tax_base or is_client:
+                if is_client:
+                    record.retention_amount = False
+                    record.foreign_retention_amount = False
                 record._compute_line_amounts()
 
     # =========== CAMBIO AQUÍ ===========
