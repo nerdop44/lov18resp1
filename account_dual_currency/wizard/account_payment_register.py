@@ -387,7 +387,9 @@ class AccountPaymentRegister(models.TransientModel):
 
 
             self.env.context = dict(self.env.context, tasa_factura=None)
-            (self.line_ids[0] + l_cliente).reconcile()
+            lines_to_reconcile = (self.line_ids[0] + l_cliente).filtered(lambda l: not l.reconciled)
+            if len(lines_to_reconcile) > 1:
+                lines_to_reconcile.reconcile()
 
         else:
             #self.payment_difference > 0 and self.payment_difference_bs > 0 and self.payment_difference_handling == 'reconcile' and self.currency_id != self.company_id.currency_id
@@ -438,7 +440,10 @@ class AccountPaymentRegister(models.TransientModel):
                 payment_lines = move_new.line_ids.filtered_domain(
                     [('account_id', '=', self.line_ids[0].account_id.id)])
 
-                (payment_lines + to_reconcile).reconcile()
+                invoice_line = self.line_ids[0]
+                if invoice_line.reconciled or to_reconcile.reconciled:
+                    invoice_line.remove_move_reconcile()
+                (payment_lines + to_reconcile + invoice_line).filtered(lambda l: not l.reconciled).reconcile()
 
             elif self.currency_id.is_zero(self.payment_difference) and not self.payment_difference_bs == 0 and self.payment_difference_handling == 'reconcile':
                 move = {'ref': self.writeoff_label + ' de ' + self.communication,
@@ -484,24 +489,24 @@ class AccountPaymentRegister(models.TransientModel):
                 ##print('estatus del asiento del pago ', payments.move_id.state)
                 ##print('estatus del asiento de la diferencia ', payments.move_id_dif.state)
                 self.env.context = dict(self.env.context, tasa_factura=None)
+                invoice_line = self.line_ids[0]
                 if self.payment_difference_bs < 0:
                     to_reconcile = payments.move_id.line_ids.filtered_domain(
-                        [('account_id', '=', self.line_ids[0].account_id.id)])
-                    to_reconcile.reconciled = False
-                    to_reconcile._compute_amount_residual()
-                    ##print('to_reconcile', to_reconcile)
+                        [('account_id', '=', invoice_line.account_id.id)])
                     payment_lines = move_new.line_ids.filtered_domain(
-                        [('account_id', '=', self.line_ids[0].account_id.id)])
-                    payment_lines.reconciled = False
-                    ##print('payment_lines', payment_lines)
-                    (payment_lines + to_reconcile).reconcile()
+                        [('account_id', '=', invoice_line.account_id.id)])
+                    if invoice_line.reconciled or to_reconcile.reconciled:
+                        invoice_line.remove_move_reconcile()
+                    (payment_lines + to_reconcile + invoice_line).filtered(lambda l: not l.reconciled).reconcile()
                 else:
                     payment_lines = move_new.line_ids.filtered_domain(
-                        [('account_id', '=', self.line_ids[0].account_id.id)])
-                    to_reconcile = self.line_ids[0]
-                    (payment_lines + to_reconcile).reconcile()
-
-                #(payment_lines + to_reconcile).reconcile()
+                        [('account_id', '=', invoice_line.account_id.id)])
+                    to_reconcile = invoice_line
+                    payment_main_line = payments.move_id.line_ids.filtered_domain(
+                        [('account_id', '=', invoice_line.account_id.id)])
+                    if invoice_line.reconciled or payment_main_line.reconciled:
+                        invoice_line.remove_move_reconcile()
+                    (payment_lines + to_reconcile + payment_main_line).filtered(lambda l: not l.reconciled).reconcile()
             elif not self.currency_id.is_zero(self.payment_difference) and self.payment_difference_bs == 0 and self.payment_difference_usd == 0\
                     and self.payment_difference_handling == 'reconcile' and self.currency_id == self.company_id.currency_id:
                 move = {'ref': self.writeoff_label + ' de ' + self.communication,
@@ -553,8 +558,12 @@ class AccountPaymentRegister(models.TransientModel):
                 payment_lines = move_new.line_ids.filtered_domain(
                     [('account_id', '=', self.line_ids[0].account_id.id)])
                 if self.payment_difference > 0:
-                    to_reconcile = self.line_ids[0]
-                    (payment_lines + to_reconcile).reconcile()
+                    invoice_line = self.line_ids[0]
+                    payment_main_line = payments.move_id.line_ids.filtered_domain(
+                        [('account_id', '=', invoice_line.account_id.id)])
+                    if invoice_line.reconciled or payment_main_line.reconciled:
+                        invoice_line.remove_move_reconcile()
+                    (payment_lines + invoice_line + payment_main_line).filtered(lambda l: not l.reconciled).reconcile()
 
             elif self.payment_difference > 0 and self.payment_difference_bs > 0 and self.payment_difference_usd == 0 and self.payment_difference_handling == 'reconcile' and self.currency_id == self.company_id.currency_id:
                 move = {'ref': self.writeoff_label + ' de ' + self.communication,
@@ -601,7 +610,12 @@ class AccountPaymentRegister(models.TransientModel):
                 to_reconcile = self.line_ids[0]
                 payment_lines = move_new.line_ids.filtered_domain(
                     [('account_id', '=', self.line_ids[0].account_id.id)])
-                (payment_lines + to_reconcile).reconcile()
+                invoice_line = self.line_ids[0]
+                payment_main_line = payments.move_id.line_ids.filtered_domain(
+                    [('account_id', '=', invoice_line.account_id.id)])
+                if invoice_line.reconciled or payment_main_line.reconciled:
+                    invoice_line.remove_move_reconcile()
+                (payment_lines + invoice_line + payment_main_line).filtered(lambda l: not l.reconciled).reconcile()
             elif self.payment_difference > 0 and self.payment_difference_bs > 0 and self.payment_difference_handling == 'reconcile' and self.currency_id != self.company_id.currency_id:
                 move = {'ref': self.writeoff_label + ' de ' + self.communication,
                         'line_ids': [(0, 0, {
@@ -648,7 +662,10 @@ class AccountPaymentRegister(models.TransientModel):
                 payment_lines = move_new.line_ids.filtered_domain(
                     [('account_id', '=', self.line_ids[0].account_id.id)])
 
-                (payment_lines + to_reconcile).reconcile()
+                invoice_line = self.line_ids[0]
+                if invoice_line.reconciled or to_reconcile.reconciled:
+                    invoice_line.remove_move_reconcile()
+                (payment_lines + to_reconcile + invoice_line).filtered(lambda l: not l.reconciled).reconcile()
 
 
             elif self.payment_difference > 0 and self.payment_difference_usd > 0 and self.payment_difference_handling == 'reconcile' and self.currency_id == self.source_currency_id:
@@ -691,7 +708,11 @@ class AccountPaymentRegister(models.TransientModel):
                     [('account_id', '=', self.line_ids[0].account_id.id)])
                 payment_lines = move_new.line_ids.filtered_domain(
                     [('account_id', '=', self.line_ids[0].account_id.id)])
-                (payment_lines + self.line_ids[0]).reconcile()
+
+                invoice_line = self.line_ids[0]
+                if invoice_line.reconciled or to_reconcile.reconciled:
+                    invoice_line.remove_move_reconcile()
+                (payment_lines + to_reconcile + invoice_line).filtered(lambda l: not l.reconciled).reconcile()
 
         return payments
 
