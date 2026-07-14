@@ -32,6 +32,36 @@ class AccountRetention(models.Model):
         help="Si está definido, el comprobante impreso mostrará los datos de este partner en la cabecera en lugar del partner contable. La lógica interna no se ve afectada."
     )
 
+    partner_is_intermediary = fields.Boolean(
+        related="partner_id.is_intermediary",
+        string="Socio es Intermediario"
+    )
+
+    is_mediated_retention = fields.Boolean(
+        string="¿Retención con Sujeto Intermediado?",
+        default=False,
+        tracking=True
+    )
+
+    printed_partner_vat = fields.Char(
+        related="printed_partner_id.full_vat",
+        string="RIF del Intermediado",
+        readonly=True
+    )
+
+    @api.onchange('is_mediated_retention', 'retention_line_ids')
+    def _onchange_is_mediated_retention(self):
+        for record in self:
+            if record.is_mediated_retention:
+                moves = record.retention_line_ids.mapped('move_id')
+                if moves:
+                    mediated_partners = moves.mapped('invoice_line_ids.product_id.mediated_partner_id')
+                    if mediated_partners:
+                        record.printed_partner_id = mediated_partners[0].id
+            else:
+                record.printed_partner_id = False
+
+
 
     @api.depends('retention_line_ids.move_id.is_intermediation')
     def _compute_is_intermediation(self):
@@ -175,154 +205,22 @@ class AccountMove(models.Model):
     @api.model
     def _create_supplier_retention(self, type_retention):
         """
-        Herencia del creador de comprobantes de retención para agrupar y emitir de forma automática
-        múltiples comprobantes si hay intermediados (ej. la Aerolínea) asignados en las líneas.
+        Herencia del creador de comprobantes de retención para pre-completar el switch de intermediación
+        y el sujeto intermediado si el partner de la factura es un intermediario.
         """
         self.ensure_one()
-        if not self.is_intermediation:
-            retention = super(AccountMove, self)._create_supplier_retention(type_retention)
-            if retention:
-                mediated_partner = self.invoice_line_ids.filtered(
-                    lambda l: not l.display_type and l.product_id and (l.mediated_partner_id or l.product_id.mediated_partner_id)
-                ).mapped(lambda l: l.mediated_partner_id or l.product_id.mediated_partner_id)
-                if mediated_partner:
-                    retention.write({'printed_partner_id': mediated_partner[0].id})
-            return retention
-
-        # 1. Agrupar las líneas de retención según el beneficiario real
-        partner_lines = {}
-        
-        if type_retention == 'iva':
-            # Para IVA, calculamos los datos temporales
-            Retention = self.env["account.retention"]
-            retention_lines_data = Retention.compute_retention_lines_data(self)
+        retention = super(AccountMove, self)._create_supplier_retention(type_retention)
+        if retention and retention.partner_id.is_intermediary:
+            # Buscar en las líneas de la factura si hay algún producto con proveedor intermediado
+            mediated_partners = self.invoice_line_ids.filtered(
+                lambda l: not l.display_type and l.product_id
+            ).mapped('product_id.mediated_partner_id')
             
-            for line_data in retention_lines_data:
-                # Recuperar la línea de factura asociada
-                inv_line = self.invoice_line_ids.filtered(lambda l: l.id == line_data.get("invoice_line_id"))
-                # Si la línea tiene un intermediado (o su producto), ese es el beneficiario. Si no, es la agencia.
-                partner = inv_line.mediated_partner_id or inv_line.product_id.mediated_partner_id or self.partner_id
-                
-                if partner not in partner_lines:
-                    partner_lines[partner] = []
-                partner_lines[partner].append(line_data)
-                
-        elif type_retention == 'islr':
-            for islr_line in self.retention_islr_line_ids.filtered(lambda rl: rl.state != "cancel"):
-                # Recuperar la línea de factura vinculada de forma segura
-                inv_line = getattr(islr_line, 'invoice_line_id', False) or self.invoice_line_ids.filtered(
-                    lambda l: l.payment_concept_id == islr_line.payment_concept_id
-                )
-                partner = inv_line[:1].mediated_partner_id or inv_line[:1].product_id.mediated_partner_id or self.partner_id
-                
-                if partner not in partner_lines:
-                    partner_lines[partner] = []
-                partner_lines[partner].append(islr_line)
-                
-        else: # municipal
-            for mun_line in self.retention_municipal_line_ids.filtered(lambda rl: rl.state != "cancel"):
-                inv_line = getattr(mun_line, 'invoice_line_id', False) or self.invoice_line_ids.filtered(
-                    lambda l: l.economic_activity_id == mun_line.economic_activity_id
-                )
-                partner = inv_line[:1].mediated_partner_id or inv_line[:1].product_id.mediated_partner_id or self.partner_id
-                
-                if partner not in partner_lines:
-                    partner_lines[partner] = []
-                partner_lines[partner].append(mun_line)
+            if mediated_partners:
+                retention.write({
+                    'is_mediated_retention': True,
+                    'printed_partner_id': mediated_partners[0].id
+                })
+        return retention
 
-        # 2. Si no hay múltiples beneficiarios o solo hay uno, procesar con el comportamiento nativo
-        if len(partner_lines) <= 1:
-            retention = super(AccountMove, self)._create_supplier_retention(type_retention)
-            if retention:
-                mediated_partner = self.invoice_line_ids.filtered(
-                    lambda l: not l.display_type and l.product_id and (l.mediated_partner_id or l.product_id.mediated_partner_id)
-                ).mapped(lambda l: l.mediated_partner_id or l.product_id.mediated_partner_id)
-                if mediated_partner:
-                    retention.write({'printed_partner_id': mediated_partner[0].id})
-            return retention
-
-        # 3. Crear múltiples comprobantes de retención (uno para cada partner)
-        journals = {
-            "iva": self.env.company.iva_supplier_retention_journal_id,
-            "islr": self.env.company.islr_supplier_retention_journal_id,
-            "municipal": self.env.company.municipal_supplier_retention_journal_id,
-        }
-
-        Payment = self.env["account.payment"]
-        Retention = self.env["account.retention"]
-        created_retentions = self.env["account.retention"]
-        first_retention = False
-
-        for partner, lines in partner_lines.items():
-            payment_type = "outbound"
-            if self.move_type == "in_refund":
-                payment_type = "inbound"
-
-            payment_vals = {
-                "payment_type": payment_type,
-                "partner_type": "supplier",
-                "partner_id": partner.id,
-                "journal_id": journals[type_retention].id,
-                "payment_type_retention": type_retention,
-                "payment_method_id": self.env.ref("account.account_payment_method_manual_in").id,
-                "is_retention": True,
-                "foreign_rate": self.foreign_rate,
-                "foreign_inverse_rate": self.foreign_inverse_rate,
-                "currency_id": self.env.user.company_id.currency_id.id,
-            }
-
-            if type_retention in ('islr', 'municipal'):
-                payment_vals["retention_line_ids"] = [Command.link(l.id) for l in lines]
-
-            payment = Payment.create(payment_vals)
-            retention_vals = {
-                "payment_ids": [Command.link(payment.id)],
-                "date_accounting": self.date,
-                "date": self.date if self.move_type == "in_invoice" else False,
-                "type_retention": type_retention,
-                "type": "in_invoice",
-                "partner_id": partner.id,
-            }
-            if partner != self.partner_id:
-                retention_vals["printed_partner_id"] = partner.id
-
-            if type_retention == "iva":
-                for line in lines:
-                    line["payment_id"] = payment.id
-                retention_vals["retention_line_ids"] = [
-                    Command.create(line) for line in lines
-                ]
-            else:
-                retention_vals["retention_line_ids"] = [Command.link(l.id) for l in lines]
-
-            retention = Retention.create(retention_vals)
-            payment.compute_retention_amount_from_retention_lines()
-
-            # Publicar la retención inmediatamente dentro del loop
-            retention.action_post()
-            _logger.info(
-                "Retención de intermediación %s creada y publicada para partner %s (número: %s)",
-                retention.id, partner.name, retention.number
-            )
-
-            created_retentions |= retention
-            if not first_retention:
-                first_retention = retention
-
-        # Guardar el número concatenado directamente en la factura (por tipo)
-        numbers = " / ".join(filter(None, created_retentions.mapped('number')))
-        voucher_field = {
-            "iva": "iva_voucher_number",
-            "islr": "islr_voucher_number",
-            "municipal": "municipal_voucher_number",
-        }.get(type_retention)
-        if voucher_field:
-            self.write({voucher_field: numbers})
-            _logger.info(
-                "Campo %s de la factura %s actualizado a: %s",
-                voucher_field, self.id, numbers
-            )
-
-        # Retornar la primera retención para satisfacer el contrato del método padre
-        return first_retention
 

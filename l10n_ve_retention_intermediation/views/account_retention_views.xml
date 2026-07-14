@@ -12,7 +12,19 @@
                     <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
                 </xpath>
                 <xpath expr="//field[@name='partner_id']" position="after">
-                    <field name="printed_partner_id" invisible="not is_intermediation" readonly="state in ['emitted', 'cancel']"/>
+                    <field name="partner_is_intermediary" invisible="1"/>
+                    <field name="is_mediated_retention" 
+                           invisible="not partner_is_intermediary" 
+                           readonly="state in ['emitted', 'cancel']" 
+                           widget="boolean_toggle"/>
+                    <field name="printed_partner_id" 
+                           string="Sujeto Intermediado" 
+                           invisible="not is_mediated_retention" 
+                           required="is_mediated_retention" 
+                           readonly="state in ['emitted', 'cancel']" 
+                           options="{'no_create': True}"/>
+                    <field name="printed_partner_vat" 
+                           invisible="not is_mediated_retention"/>
                 </xpath>
             </field>
         </record>
@@ -28,7 +40,19 @@
                     <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
                 </xpath>
                 <xpath expr="//field[@name='partner_id']" position="after">
-                    <field name="printed_partner_id" invisible="not is_intermediation" readonly="state in ['emitted', 'cancel']"/>
+                    <field name="partner_is_intermediary" invisible="1"/>
+                    <field name="is_mediated_retention" 
+                           invisible="not partner_is_intermediary" 
+                           readonly="state in ['emitted', 'cancel']" 
+                           widget="boolean_toggle"/>
+                    <field name="printed_partner_id" 
+                           string="Sujeto Intermediado" 
+                           invisible="not is_mediated_retention" 
+                           required="is_mediated_retention" 
+                           readonly="state in ['emitted', 'cancel']" 
+                           options="{'no_create': True}"/>
+                    <field name="printed_partner_vat" 
+                           invisible="not is_mediated_retention"/>
                 </xpath>
             </field>
         </record>
@@ -44,7 +68,19 @@
                     <field name="intermediation_warning" widget="html" nolabel="1" invisible="not is_intermediation"/>
                 </xpath>
                 <xpath expr="//field[@name='partner_id']" position="after">
-                    <field name="printed_partner_id" invisible="not is_intermediation" readonly="state in ['emitted', 'cancel']"/>
+                    <field name="partner_is_intermediary" invisible="1"/>
+                    <field name="is_mediated_retention" 
+                           invisible="not partner_is_intermediary" 
+                           readonly="state in ['emitted', 'cancel']" 
+                           widget="boolean_toggle"/>
+                    <field name="printed_partner_id" 
+                           string="Sujeto Intermediado" 
+                           invisible="not is_mediated_retention" 
+                           required="is_mediated_retention" 
+                           readonly="state in ['emitted', 'cancel']" 
+                           options="{'no_create': True}"/>
+                    <field name="printed_partner_vat" 
+                           invisible="not is_mediated_retention"/>
                 </xpath>
             </field>
         </record>

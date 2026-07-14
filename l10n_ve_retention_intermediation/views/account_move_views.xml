@@ -16,7 +16,7 @@
                     <!-- Campo técnico para control de visibilidad en UI -->
                     <field name="partner_is_intermediary" invisible="1"/>
                     
-                    <group string="Intermediación Comercial" invisible="not partner_is_intermediary">
+                    <group string="Intermediación Comercial" invisible="1">
                         <field name="is_intermediation" 
                                string="¿Es Factura de Intermediación?"
                                widget="boolean_toggle"/>
