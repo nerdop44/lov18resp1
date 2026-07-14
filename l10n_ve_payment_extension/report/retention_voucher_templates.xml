@@ -791,7 +791,7 @@
             </t>
         </t>
     </template>
-    <template id="retention_voucher_signed_template">
+    <template id="ret_voucher_signed_template">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="retention">
                 <t t-set="is_signed" t-value="True"/>

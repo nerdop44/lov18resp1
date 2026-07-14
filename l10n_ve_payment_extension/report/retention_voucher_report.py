@@ -31,7 +31,7 @@ class BinauralPaymentExtensionRetentionIvaVoucher(models.AbstractModel):
 
 
 class BinauralPaymentExtensionRetentionIvaVoucherSigned(models.AbstractModel):
-    _name = "report.l10n_ve_payment_extension.retention_voucher_signed_template"
+    _name = "report.l10n_ve_payment_extension.ret_voucher_signed_template"
     _description = "Retention Voucher Signed Report Template"
 
     @api.model
