@@ -489,12 +489,14 @@ class AccountRetention(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         res = super().create(vals_list)
-        res._safe_create_payments()
+        if not self._context.get("skip_safe_create_payments"):
+            res._safe_create_payments()
         return res
 
     def write(self, vals):
         res = super().write(vals)
-        self._safe_create_payments()
+        if not self._context.get("skip_safe_create_payments"):
+            self._safe_create_payments()
         return res
 
     def action_generate_payment(self):
@@ -1070,6 +1072,9 @@ class AccountRetention(models.Model):
                 # Actualizar estado de la retención (se mantiene igual)
                 retention.write({'state': 'emitted'})
                 _logger.info(f"Retención {retention.id} marcada como emitida")
+
+                # Reconciliar los pagos con la factura
+                retention._reconcile_all_payments()
             except Exception as e:
                 _logger.error("Error al publicar retención %s: %s", retention.id, str(e), exc_info=True)
                 raise UserError(_("Error al publicar la retención: %s") % str(e))
@@ -1269,6 +1274,45 @@ class AccountRetention(models.Model):
         self.payment_ids.action_cancel()
         self.write({"state": "cancel"})
         self.clear_islr_retention_number()
+
+    def action_reset_retention(self):
+        if not self.env.user.has_group('base.group_system'):
+            raise UserError(_("Only system administrators can reset retention vouchers."))
+        for record in self:
+            payments = record.payment_ids
+            lines = record.retention_line_ids
+
+            if payments:
+                payments.mapped("move_id.line_ids").remove_move_reconcile()
+                payments.action_draft()
+                payments.action_cancel()
+
+            for line in lines:
+                if line.move_id:
+                    line.move_id.write({
+                        "iva_voucher_number": False,
+                        "islr_voucher_number": False,
+                        "municipal_voucher_number": False,
+                    })
+
+            # Dissociate lines from payments in the DB
+            if lines:
+                lines.write({"payment_id": False})
+
+            # Invalidate all caches to ensure the ORM is aware of the DB state
+            self.env.invalidate_all()
+
+            # Now safely delete the records bypassing custom unlink hooks
+            from odoo.models import BaseModel
+            if payments:
+                BaseModel.unlink(payments)
+
+            # Reset the retention state to draft
+            record.with_context(skip_safe_create_payments=True).write({
+                "original_lines_per_invoice_counter": False,
+                "state": "draft",
+            })
+
 
     def create_payment_from_retention_form(self):
         _logger.info("Entrando en create_payment_from_retention_form (VERSION DE LOGGING)")
@@ -1549,20 +1593,25 @@ class AccountRetention(models.Model):
                 total_groups = len(subtotal_tax_groups)
 
                 for idx, tax_group_data in enumerate(subtotal_tax_groups):
-                    tax = tax_ids.filtered(lambda t: t.tax_group_id.id == tax_group_data.get("id"))
+                    group_id = tax_group_data.get("tax_group_id") or tax_group_data.get("id")
+                    tax = tax_ids.filtered(lambda t: t.tax_group_id.id == group_id)
                     if not tax:
-                        _logger.warning(f"compute_retention_lines_data: No se encontró impuesto para el grupo ID {tax_group_data.get('id')}.")
+                        _logger.warning(f"compute_retention_lines_data: No se encontró impuesto para el grupo ID {group_id}.")
                         continue
                     tax = tax[0]
                     _logger.warning(f"compute_retention_lines_data: Impuesto: ID {tax.id}, Nombre {tax.name}")
 
-                    # Montos en la moneda de empresa (En este caso, siempre Bs. para Devenalsa)
-                    # Odoo 18: base_amount es moneda empresa, base_amount_currency es moneda factura.
-                    invoice_amount_company = tax_group_data.get(
-                        "base_amount", tax_group_data.get("base_amount_currency", 0.0)
+                    # Montos en la moneda de empresa
+                    # Odoo 18: tax_group_base_amount y tax_group_amount. Con fallbacks para compatibilidad.
+                    invoice_amount_company = (
+                        tax_group_data.get("tax_group_base_amount")
+                        or tax_group_data.get("base_amount")
+                        or tax_group_data.get("base_amount_currency", 0.0)
                     )
-                    iva_amount_company = tax_group_data.get(
-                        "tax_amount", tax_group_data.get("tax_amount_currency", 0.0)
+                    iva_amount_company = (
+                        tax_group_data.get("tax_group_amount")
+                        or tax_group_data.get("tax_amount")
+                        or tax_group_data.get("tax_amount_currency", 0.0)
                     )
 
                     # ==========================================================
@@ -1583,7 +1632,11 @@ class AccountRetention(models.Model):
                             vef_iva_amount = global_vef_total - global_vef_untaxed
                         else:
                             # Múltiples grupos: calcular proporcional al porcentaje del grupo sobre el total
-                            total_company_untaxed = tax_totals.get("base_amount_currency", tax_totals.get("base_amount", 1.0)) or 1.0
+                            total_company_untaxed = (
+                                tax_totals.get("base_amount_currency")
+                                or tax_totals.get("base_amount")
+                                or tax_totals.get("amount_untaxed", 1.0)
+                            ) or 1.0
                             proportion = invoice_amount_company / total_company_untaxed if total_company_untaxed else 0.0
                             vef_invoice_amount = global_vef_untaxed * proportion
                             vef_iva_amount = (global_vef_total - global_vef_untaxed) * proportion

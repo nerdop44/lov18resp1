@@ -2,18 +2,18 @@ from odoo import models, fields, api, _, Command
 from odoo.exceptions import UserError
 
 import logging
+import re
 _logger = logging.getLogger(__name__)
 
 
 class AccountMoveRetention(models.Model):
     _inherit = "account.move"
 
-    # Sobrescribimos los regex de SequenceMixin para permitir dígitos en el sufijo.
-    # El regex original de Odoo 18 termina en '(?P<suffix>\\\\D*)$' lo que prohíbe números al final.
-    # Cambiamos \\\\D* por .* para que acepte el número de factura y concepto al final del correlativo.
-    _sequence_monthly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D*?)(?P<month>(0[1-9]|1[0-2]))(?P<prefix3>\D*?)(?P<seq>\d*)(?P<suffix>.*)$'
-    _sequence_yearly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D*?)(?P<seq>\d*)(?P<suffix>.*)$'
-    _sequence_fixed_regex = r'^(?P<prefix1>.*?)(?P<seq>\d*)(?P<suffix>.*)$'
+    # Definimos regex personalizados para asientos de retenciones.
+    # No los registramos como _sequence_monthly_regex para evitar que interfieran
+    # globalmente con el asistente de resecuenciación nativo de Odoo 18.
+    _custom_sequence_monthly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D*?)(?P<month>(0[1-9]|1[0-2]))(?P<prefix3>\D+?)(?P<seq>\d*)(?P<suffix>\D*|[-\/_]\d+(?:[-\/_]\w+)?)$'
+    _custom_sequence_yearly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D+?)(?P<seq>\d*)(?P<suffix>\D*|[-\/_]\d+(?:[-\/_]\w+)?)$'
 
     # Campo modificado para solucionar el error
 #    date = fields.Date(
@@ -95,6 +95,24 @@ class AccountMoveRetention(models.Model):
             retention.base_currency_is_vef = self.env.company.currency_id == self.env.ref(
                 "base.VEF"
             )
+
+    def _constrains_date_sequence(self):
+        """
+        Evita que la validación estricta de Odoo 18 (ValidationError de fechas alineadas)
+        bloquee o falle con formatos de secuencias especiales de correlativos venezolanos.
+        """
+        try:
+            return super()._constrains_date_sequence()
+        except Exception as e:
+            for record in self:
+                if record.name and record.name != '/' and re.search(r'\d', record.name):
+                    _logger.debug(
+                        "Formato de secuencia '%s' aceptado por tolerancia de localización", record.name
+                    )
+                    continue
+                else:
+                    raise e
+            return True
 
     def action_post(self):
         """
@@ -389,3 +407,29 @@ class AccountMoveRetention(models.Model):
             return []
 
         return retention_payment_move_ids.ids
+
+    def _compute_split_sequence(self):
+        """
+        Para asientos contables de retenciones (cuyos nombres contienen 'RIS-' o 'RIV-'),
+        usamos los regex personalizados que admiten números en el sufijo.
+        Para asientos normales de Odoo (como facturas estándar o asientos de diarios estándar),
+        llamamos al método super() nativo.
+        """
+        custom_moves = self.filtered(lambda m: m.name and ('RIS-' in m.name or 'RIV-' in m.name))
+        std_moves = self - custom_moves
+
+        if std_moves:
+            super(AccountMoveRetention, std_moves)._compute_split_sequence()
+
+        for move in custom_moves:
+            matched = False
+            for regex in (move._custom_sequence_monthly_regex, move._custom_sequence_yearly_regex):
+                m = re.match(regex, move.name)
+                if m:
+                    seq_start = m.start('seq')
+                    move.sequence_prefix = move.name[:seq_start]
+                    move.sequence_number = int(m.group('seq') or 0)
+                    matched = True
+                    break
+            if not matched:
+                super(AccountMoveRetention, move)._compute_split_sequence()

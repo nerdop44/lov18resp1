@@ -218,12 +218,9 @@ class AccountMoveLine(models.Model):
                                      - sum(line.matched_debit_ids.mapped('amount_usd'))
 
                 line.amount_residual_usd = (line.debit_usd - line.credit_usd) - reconciled_balance
-
-                line.reconciled = (line.amount_residual_usd == 0)
             else:
                 # Must not have any reconciliation since the line is not eligible for that.
                 line.amount_residual_usd = 0.0
-                line.reconciled = False
 
     def reconcile(self):
         ''' Reconcile the current move lines all together.
@@ -259,19 +256,16 @@ class AccountMoveLine(models.Model):
         """
 
         def get_odoo_rate(vals):
-            # if vals.get('record') and vals['record'].move_id.is_invoice(include_receipts=True):
-            #     exchange_rate_date = vals['record'].move_id.invoice_date
-            # else:
-            #     exchange_rate_date = vals['date']
-            # return recon_currency._get_conversion_rate(company_currency, recon_currency, vals['company'],
-            #                                            exchange_rate_date)
-            if vals.get('record') and vals['record'].move_id.is_invoice(include_receipts=True):
-                exchange_rate_date = vals['record'].move_id.invoice_date
+            aml = vals.get('aml') or vals.get('record')
+            if aml and aml.move_id.is_invoice(include_receipts=True):
+                exchange_rate_date = aml.move_id.invoice_date
             else:
-                exchange_rate_date = vals['date']
-            to_re = recon_currency._get_conversion_rate(company_currency, recon_currency, vals['company'],
+                exchange_rate_date = aml.date if aml else vals.get('date', fields.Date.today())
+            company = aml.company_id if aml else vals.get('company')
+            to_re = recon_currency._get_conversion_rate(company_currency, recon_currency, company,
                                                         exchange_rate_date)
-            return  1 / vals['record'].move_id.tax_today if vals['record'].move_id.tax_today > 0 else 1
+            tax_today = aml.move_id.tax_today if aml and hasattr(aml.move_id, 'tax_today') else 0.0
+            return  1 / tax_today if tax_today > 0 else 1
             if debit_vals['record'].move_id.is_invoice(include_receipts=True):
                 return (1 / credit_vals['record'].move_id.tax_today if credit_vals['record'].move_id.tax_today > 0 else 1)
             elif credit_vals['record'].move_id.is_invoice(include_receipts=True):
@@ -283,10 +277,12 @@ class AccountMoveLine(models.Model):
         def get_accounting_rate(vals):
             aml = vals.get('aml') or vals.get('record')
             currency = aml.currency_id if aml else vals.get('currency')
-            if company_currency.is_zero(vals['balance']) or (currency and currency.is_zero(vals['amount_currency'])):
+            balance = aml.balance if aml else vals.get('balance', 0.0)
+            amount_currency = aml.amount_currency if aml else vals.get('amount_currency', 0.0)
+            if company_currency.is_zero(balance) or (currency and currency.is_zero(amount_currency)):
                 return None
             else:
-                return abs(vals['amount_currency']) / abs(vals['balance'])
+                return abs(amount_currency) / abs(balance)
 
         # ==== Determine the currency in which the reconciliation will be done ====
         # In this part, we retrieve the residual amounts, check if they are zero or not and determine in which
