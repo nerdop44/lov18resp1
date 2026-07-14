@@ -83,19 +83,20 @@
         </div>
 
         <!--Information Client-->
+        <t t-set="display_partner" t-value="retention.printed_partner_id or retention.partner_id"/>
         <div class="container" style="font-size:12px !important;">
             <div class="row">
                 <div class="col-6">
                     <span>Nombre o Razon Social del Sujeto Retenido</span>
                     <div>
-                        <span t-esc="retention.partner_id.name"/>
+                        <span t-esc="display_partner.name"/>
                     </div>
                 </div>
                 <div class="col-6">
                     <span>Registro de Información Fiscal del Sujeto Retenido (R.I.F)</span>
                     <div>
                         <span style="text-transform:uppercase"
-                              t-esc="retention.partner_id.prefix_vat+retention.partner_id.vat"/>
+                              t-esc="(display_partner.prefix_vat or '') + (display_partner.vat or '')"/>
                     </div>
                 </div>
             </div>
@@ -104,10 +105,10 @@
                 <div class="col-6">
                     <span>Direccion Fiscal del Sujeto Retenido</span>
                     <div>
-                        <span t-esc="retention.partner_id.street"/>
-                        <t t-if="retention.partner_id.street2">
+                        <span t-esc="display_partner.street"/>
+                        <t t-if="display_partner.street2">
                             ,
-                            <span t-esc="retention.partner_id.street2"/>
+                            <span t-esc="display_partner.street2"/>
                         </t>
                     </div>
                 </div>
@@ -520,6 +521,7 @@
         </div>
 
         <!--Information Client-->
+        <t t-set="display_partner" t-value="retention.printed_partner_id or retention.partner_id"/>
         <div class="container" style="font-size:12px !important;">
             <div class="row">
                 <div class="col-8">
@@ -527,7 +529,7 @@
                         <span>Contribuyente:</span>
                     </div>
                     <div class="col-12">
-                        <span style="text-transform:uppercase" t-esc="retention.partner_id.name"/>
+                        <span style="text-transform:uppercase" t-esc="display_partner.name"/>
                     </div>
                 </div>
                 <div class="col-4" style="">
@@ -537,7 +539,7 @@
 
                     <div class="col-12">
                         <span style="text-transform:uppercase"
-                              t-esc="retention.partner_id.prefix_vat+retention.partner_id.vat"/>
+                              t-esc="(display_partner.prefix_vat or '') + (display_partner.vat or '')"/>
                     </div>
                 </div>
             </div>
@@ -548,10 +550,10 @@
                         <span>Dirección:</span>
                     </div>
                     <div class="col-12" style="text-transform:uppercase">
-                        <span t-esc="retention.partner_id.street"/>
-                        <t t-if="retention.partner_id.street2">
+                        <span t-esc="display_partner.street"/>
+                        <t t-if="display_partner.street2">
                             ,
-                            <span t-esc="retention.partner_id.street2"/>
+                            <span t-esc="display_partner.street2"/>
                         </t>
                     </div>
                 </div>

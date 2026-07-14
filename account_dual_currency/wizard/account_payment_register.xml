@@ -10,7 +10,8 @@
                      <field name="currency_id_dif" invisible="1"/>
                      <field name="amount_residual_usd" readonly="1"/>
                      <field name="tax_invoice" readonly="1"/>
-                     <field name="tax_today"/>
+                     <field name="usar_tasa_factura"/>
+                     <field name="tax_today" readonly="usar_tasa_factura" force_save="1"/>
                 </xpath>
                 <!--<xpath expr="//field[@name='payment_date']" position="before">
                      <field name="currency_id_name" invisible="1"/>

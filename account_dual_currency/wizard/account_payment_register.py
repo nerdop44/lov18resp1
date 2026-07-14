@@ -13,6 +13,19 @@ class AccountPaymentRegister(models.TransientModel):
     amount = fields.Monetary(currency_field='currency_id', store=True, readonly=False)
     tax_today = fields.Float(string="Tasa Actual")
     tax_invoice = fields.Float(string="Tasa Factura")
+    usar_tasa_factura = fields.Boolean(string="Usar Tasa Factura", default=True)
+
+    @api.onchange('usar_tasa_factura')
+    def _onchange_usar_tasa_factura(self):
+        for wizard in self:
+            if wizard.usar_tasa_factura:
+                wizard.tax_today = wizard.tax_invoice
+            else:
+                currency_dif = wizard.company_id.currency_id_dif
+                if wizard.company_id.currency_id.name == 'USD':
+                    wizard.tax_today = currency_dif.rate or 1.0
+                else:
+                    wizard.tax_today = currency_dif.inverse_rate or 1.0
     currency_id_dif = fields.Many2one("res.currency",string="Divisa de Referencia")
     currency_id_name = fields.Char(string="Nombre de Divisa", related="currency_id.name")
     amount_residual_usd = fields.Monetary(currency_field='currency_id_dif',string='Adeudado Divisa Ref.', readonly=True)
@@ -225,8 +238,9 @@ class AccountPaymentRegister(models.TransientModel):
             'source_currency_id': key_values['currency_id'],
             'source_amount': source_amount,
             'source_amount_currency': source_amount_currency,
-            'tax_today': tax_today,
+            'tax_today': tax_invoice,
             'tax_invoice': tax_invoice,
+            'usar_tasa_factura': True,
             'currency_id_dif': currency_id_dif.id,
             'amount_residual_usd': amount_residual_usd,
             'aplicar_igtf_divisa': self.aplicar_igtf_divisa,

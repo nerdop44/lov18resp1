@@ -12,6 +12,7 @@ _logger = logging.getLogger(__name__)
 
 class AccountRetention(models.Model):
     _name = "account.retention"
+    _inherit = ["mail.thread", "mail.activity.mixin"]
     _description = "Retention"
     _check_company_auto = True
 
@@ -91,6 +92,7 @@ class AccountRetention(models.Model):
         index=True,
         default="draft",
         help="Status of the withholding voucher",
+        tracking=True,
     )
     type_retention = fields.Selection(
         [
@@ -121,12 +123,20 @@ class AccountRetention(models.Model):
         "Social reason",
         required=True,
         help="Social reason",
+        tracking=True,
     )
-    number = fields.Char("Voucher Number")
+    printed_partner_id = fields.Many2one(
+        "res.partner",
+        string="Sujeto Retenido (Impresión)",
+        help="Si está definido, el comprobante impreso mostrará los datos de este partner en la cabecera en lugar del partner contable. La lógica interna no se ve afectada.",
+        tracking=True,
+    )
+    number = fields.Char("Voucher Number", tracking=True)
     correlative = fields.Char(readonly=True)
     date = fields.Date(
         "Voucher Date",
         help="Date of issuance of the withholding voucher by the external party.",
+        tracking=True,
     )
     date_accounting = fields.Date(
         "Accounting Date",

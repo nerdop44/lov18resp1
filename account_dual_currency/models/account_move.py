@@ -170,7 +170,11 @@ class AccountMove(models.Model):
     def _compute_date(self):
         res = super(AccountMove, self)._compute_date()
         for rec in self:
+            if rec.state == 'posted':
+                continue
             if rec.company_id.currency_id_dif and not rec.tax_today_edited:
+                if rec.tax_today > 0.0:
+                    continue
                 date_to_use = rec.invoice_date or rec.date or fields.Date.context_today(rec)
                 new_rate_ids = rec.company_id.currency_id_dif._get_rates(rec.company_id, date_to_use)
                 if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
@@ -303,7 +307,10 @@ class AccountMove(models.Model):
                             else:
                                 l.price_unit = l.price_unit_usd * rec.tax_today
                     else:
-                        l.price_unit = l.price_unit_usd
+                        if l.price_unit:
+                            l.price_unit_usd = l.price_unit
+                        else:
+                            l.price_unit = l.price_unit_usd
                 rec._onchange_quick_edit_total_amount()
                 rec._onchange_quick_edit_line_ids()
                 rec._compute_tax_totals()

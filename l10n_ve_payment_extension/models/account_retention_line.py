@@ -465,10 +465,15 @@ class AccountRetentionLine(models.Model):
             foreign_rate = invoice.foreign_rate or 1.0
 
             # Cálculos teóricos
-            computed_invoice_amount = usd_untaxed
+            if record.edit_tax_base and type_retention == 'islr':
+                computed_invoice_amount = record.invoice_amount
+                computed_foreign_invoice_amount = record.foreign_invoice_amount
+            else:
+                computed_invoice_amount = usd_untaxed
+                computed_foreign_invoice_amount = bs_untaxed
+
             computed_invoice_total = usd_total
             computed_iva_amount = usd_iva
-            computed_foreign_invoice_amount = bs_untaxed
             computed_foreign_invoice_total = bs_total
             computed_foreign_iva_amount = bs_iva
             computed_foreign_currency_rate = foreign_rate
@@ -612,12 +617,16 @@ class AccountRetentionLine(models.Model):
         for record in self:
             if record.edit_tax_base and record.foreign_currency_rate > 0:
                 record.foreign_invoice_amount = record.invoice_amount * record.foreign_currency_rate
+            if record.edit_tax_base:
+                record._compute_line_amounts()
 
     @api.onchange("foreign_invoice_amount")
     def _onchange_foreign_invoice_amount_manual(self):
         for record in self:
             if record.edit_tax_base and record.foreign_currency_rate > 0:
                 record.invoice_amount = record.foreign_invoice_amount / record.foreign_currency_rate
+            if record.edit_tax_base:
+                record._compute_line_amounts()
 
     # =========== CAMBIO AQUÍ ===========
     @api.constrains(
