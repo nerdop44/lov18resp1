@@ -145,6 +145,16 @@ class AccountPaymentRegister(models.TransientModel):
         )
         return payment_vals
 
+    def _prepare_payment_vals(self, batch_result):
+        payment_vals = super()._prepare_payment_vals(batch_result)
+        payment_vals.update(
+            {
+                "foreign_rate": self.foreign_rate,
+                "foreign_inverse_rate": self.foreign_inverse_rate,
+            }
+        )
+        return payment_vals
+
 #    @api.depends("can_edit_wizard", "amount", "foreign_inverse_rate")
 #    def _compute_payment_difference(self):
 #        for wizard in self:

@@ -281,7 +281,6 @@ class AccountPaymentRegister(models.TransientModel):
             'mount_igtf': self.mount_igtf,
             'amount_total_pagar': self.amount_total_pagar,
         }
-
         # if not self.currency_id.is_zero(self.payment_difference) and self.payment_difference_handling == 'reconcile':
         #     payment_vals['write_off_line_vals'] = {
         #         'name': self.writeoff_label,
@@ -289,6 +288,19 @@ class AccountPaymentRegister(models.TransientModel):
         #         'account_id': self.writeoff_account_id.id,
         #     }
         #raise 'asdsa'
+        return payment_vals
+
+    def _prepare_payment_vals(self, batch_result):
+        payment_vals = super()._prepare_payment_vals(batch_result)
+        tasa_a_usar = self.tax_invoice if self.usar_tasa_factura else self.tax_today
+        payment_vals.update({
+            'tax_today': tasa_a_usar,
+            'currency_id_dif': self.currency_id_dif.id,
+            'aplicar_igtf_divisa': self.aplicar_igtf_divisa,
+            'journal_igtf_id': self.journal_igtf_id.id,
+            'mount_igtf': self.mount_igtf,
+            'amount_total_pagar': self.amount_total_pagar,
+        })
         return payment_vals
 
 
