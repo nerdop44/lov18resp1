@@ -40,24 +40,35 @@ class ResCurrencyRate(models.Model):
         rates = self.env["res.currency.rate"].search(
             [
                 ("currency_id", "=", foreign_currency_id),
-                ("company_id", "=", self.env.company.id),
+                ("company_id", "in", [self.env.company.id, False]),
                 ("name", "<=", rate_date),
             ]
         )
         if not rates:
-            return {}
+            currency = self.env["res.currency"].browse(foreign_currency_id)
+            if self.env.company.currency_id.name == 'USD':
+                return {
+                    "foreign_rate": currency.rate or 1.0,
+                    "foreign_inverse_rate": currency.inverse_rate or 1.0,
+                }
+            else:
+                return {
+                    "foreign_rate": currency.inverse_rate or 1.0,
+                    "foreign_inverse_rate": currency.rate or 1.0,
+                }
 
         rate = rates.filtered(lambda r: r.name == rate_date) or rates[0]
-        base_usd_id = self.env["ir.model.data"]._xmlid_to_res_id(
-            "base.USD", raise_if_not_found=False
-        )
-        if foreign_currency_id == base_usd_id:
+        company_currency = self.env.company.currency_id
+        if company_currency.name == 'USD':
+            return {
+                "foreign_rate": rate.company_rate,
+                "foreign_inverse_rate": rate.inverse_company_rate,
+            }
+        else:
             return {
                 "foreign_rate": rate.inverse_company_rate,
                 "foreign_inverse_rate": rate.company_rate,
             }
-        else:
-            return {"foreign_rate": rate.company_rate, "foreign_inverse_rate": rate.company_rate}
 
     @api.model
     def compute_inverse_rate(self, rate):
