@@ -165,11 +165,17 @@ class AccountPaymentRegister(models.TransientModel):
 
         currency_id_dif = company.currency_id_dif or lines[0].currency_id_dif
         amount_residual_usd = lines[0].move_id.amount_residual_usd
-        source_amount = abs(sum(lines.mapped('amount_residual'))) if key_values['currency_id'] == company.currency_id.id else abs(sum(lines.mapped('amount_residual_currency')))
+        invoice_currency = lines[0].currency_id or company.currency_id
+        source_amount = abs(sum(lines.mapped('amount_residual'))) if invoice_currency == company.currency_id else abs(sum(lines.mapped('amount_residual_currency')))
         if key_values['currency_id'] == company.currency_id.id:
             source_amount_currency = source_amount
         else:
             source_amount_currency = abs(sum(lines.mapped('amount_residual_currency')))
+            if source_amount_currency == 0 and source_amount > 0:
+                if company.currency_id.name == 'USD':
+                    source_amount_currency = source_amount * tax_today
+                else:
+                    source_amount_currency = source_amount / tax_today
 
         # Restar retenciones pendientes (IVA, ISLR, Municipal) para evitar arrastrar saldos incorrectos
         move = lines[0].move_id
@@ -315,7 +321,7 @@ class AccountPaymentRegister(models.TransientModel):
 
                 if abs(self.line_ids[0].amount_residual_usd) > 0:
                     #print("1")
-                    if abs(self.line_ids[0].amount_residual_usd) > to_reconcile.amount_residual_usd:
+                    if abs(self.line_ids[0].amount_residual_usd) > abs(to_reconcile.amount_residual_usd):
                         #print("2", abs(self.line_ids[0].amount_residual_usd), to_reconcile.amount_residual_usd)
                         monto_usd = abs(to_reconcile.amount_residual_usd)
                     else:
