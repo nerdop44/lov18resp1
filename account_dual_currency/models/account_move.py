@@ -158,7 +158,7 @@ class AccountMove(models.Model):
                 if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
                     rate_val = new_rate_ids[rec.company_id.currency_id_dif.id]
                     if rate_val > 0:
-                        rec.tax_today = 1 / rate_val
+                        rec.tax_today = rate_val if rate_val >= 1 else (1 / rate_val)
 
     @api.onchange('invoice_date', 'date')
     def _onchange_invoice_date_dual_currency(self):
@@ -169,7 +169,7 @@ class AccountMove(models.Model):
                 if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
                     rate_val = new_rate_ids[rec.company_id.currency_id_dif.id]
                     if rate_val > 0:
-                        rec.tax_today = 1 / rate_val
+                        rec.tax_today = rate_val if rate_val >= 1 else (1 / rate_val)
 
 
     @api.model_create_multi
