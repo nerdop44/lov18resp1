@@ -30,8 +30,24 @@ class AccountMove(models.Model):
 
     acuerdo_moneda = fields.Boolean(string="Acuerdo de Factura Bs.", default=False)
 
+    def _get_default_tax_today(self):
+        curr_dif = self.env.company.currency_id_dif
+        if not curr_dif:
+            return 1.0
+        r = curr_dif.rate or 0
+        inv = curr_dif.inverse_rate or 0
+        if r >= 1:
+            return r
+        elif inv >= 1:
+            return inv
+        elif r > 0:
+            return 1 / r
+        elif inv > 0:
+            return 1 / inv
+        return 1.0
+
     tax_today = fields.Float(string="Tasa de Factura", store=True,
-                             default=lambda self: self.env.company.currency_id_dif.inverse_rate,
+                             default=_get_default_tax_today,
                              tracking=True)
 
     tax_today_edited = fields.Boolean(string="Tasa Manual", default=False)
@@ -208,11 +224,11 @@ class AccountMove(models.Model):
 
         if values:
             for val in values:
-                if not 'tax_today' in val and not diferencia:
+                if not val.get('tax_today') and not diferencia:
                     module_dual_currency = self.env['ir.module.module'].sudo().search(
                         [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
                     if module_dual_currency:
-                        val.update({'tax_today': self.env.company.currency_id_dif.inverse_rate})
+                        val.update({'tax_today': self._get_default_tax_today()})
                 # elif 'tax_today' in val:
                 #     if val['tax_today'] == 0:
                 #         module_dual_currency = self.env['ir.module.module'].sudo().search(
