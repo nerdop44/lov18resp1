@@ -152,18 +152,24 @@ class AccountMove(models.Model):
     def _compute_date(self):
         res = super(AccountMove, self)._compute_date()
         for rec in self:
-            if rec.invoice_date and rec.company_id.currency_id_dif and not rec.tax_today_edited:
-                new_rate_ids = self.env.company.currency_id_dif._get_rates(self.env.company, rec.invoice_date)
-                if new_rate_ids:
-                    new_rate = 1 / new_rate_ids[self.env.company.currency_id_dif.id]
-                    #print('new_rate', new_rate)
-                    rec.tax_today = new_rate
-        # if self.invoice_date and self.company_id.currency_id_dif and not self.tax_today_edited:
-        #     new_rate_ids = self.env.company.currency_id_dif._get_rates(self.env.company, self.invoice_date)
-        #     if new_rate_ids:
-        #         new_rate = 1 / new_rate_ids[self.env.company.currency_id_dif.id]
-        #         #print('new_rate', new_rate)
-        #         self.tax_today = new_rate
+            date_to_use = rec.invoice_date or rec.date
+            if date_to_use and rec.company_id.currency_id_dif and not rec.tax_today_edited:
+                new_rate_ids = rec.company_id.currency_id_dif._get_rates(rec.company_id, date_to_use)
+                if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
+                    rate_val = new_rate_ids[rec.company_id.currency_id_dif.id]
+                    if rate_val > 0:
+                        rec.tax_today = 1 / rate_val
+
+    @api.onchange('invoice_date', 'date')
+    def _onchange_invoice_date_dual_currency(self):
+        for rec in self:
+            date_to_use = rec.invoice_date or rec.date
+            if date_to_use and rec.company_id.currency_id_dif and not rec.tax_today_edited:
+                new_rate_ids = rec.company_id.currency_id_dif._get_rates(rec.company_id, date_to_use)
+                if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
+                    rate_val = new_rate_ids[rec.company_id.currency_id_dif.id]
+                    if rate_val > 0:
+                        rec.tax_today = 1 / rate_val
 
 
     @api.model_create_multi
