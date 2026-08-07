@@ -366,32 +366,54 @@ class AccountMove(models.Model):
     @api.depends(
         'tax_totals',
         'currency_id_dif',
-        'currency_id','tax_today')
+        'currency_id', 'tax_today')
     def _amount_all_usd(self):
         for rec in self:
+            is_company_usd = rec.company_id.currency_id.name == 'USD'
+            rate = rec.tax_today if rec.tax_today > 0 else 1.0
             if rec.is_invoice(include_receipts=True) and rec.tax_totals:
                 amount_untaxed = rec.tax_totals.get('amount_untaxed', 0)
                 amount_tax = 0
                 for product, income in rec.tax_totals.get('groups_by_subtotal', {}).items():
-                    ###print(product, income)
                     for l in income:
                         amount_tax += l.get('tax_group_amount', 0)
 
                 amount_total = rec.tax_totals.get('amount_total', 0)
-                if rec.currency_id != self.env.company.currency_id:
-                    rec.amount_untaxed_usd = rec.amount_untaxed
-                    rec.amount_tax_usd = rec.amount_tax
-                    rec.amount_total_usd = rec.amount_total
-                    rec.amount_untaxed_bs = rec.amount_untaxed_usd * rec.tax_today
-                    rec.amount_tax_bs = rec.amount_tax_usd * rec.tax_today
-                    rec.amount_total_bs = rec.amount_total_usd * rec.tax_today
+
+                if is_company_usd:
+                    # Moneda base de la compañía es USD
+                    if rec.currency_id == rec.company_id.currency_id:
+                        # Factura en USD -> Los campos _usd (moneda dual VEF) se multiplican por la tasa
+                        rec.amount_untaxed_usd = rec.tax_totals.get('foreign_amount_untaxed', amount_untaxed * rate)
+                        rec.amount_tax_usd = (rec.tax_totals.get('foreign_amount_total', amount_total * rate) - rec.amount_untaxed_usd) if 'foreign_amount_total' in rec.tax_totals else (amount_tax * rate)
+                        rec.amount_total_usd = rec.tax_totals.get('foreign_amount_total', amount_total * rate)
+                        rec.amount_untaxed_bs = amount_untaxed
+                        rec.amount_tax_bs = amount_tax
+                        rec.amount_total_bs = amount_total
+                    else:
+                        # Factura en otra moneda (ej. VEF)
+                        rec.amount_untaxed_usd = amount_untaxed
+                        rec.amount_tax_usd = amount_tax
+                        rec.amount_total_usd = amount_total
+                        rec.amount_untaxed_bs = amount_untaxed / rate if rate > 0 else 0
+                        rec.amount_tax_bs = amount_tax / rate if rate > 0 else 0
+                        rec.amount_total_bs = amount_total / rate if rate > 0 else 0
                 else:
-                    rec.amount_untaxed_usd = (amount_untaxed / rec.tax_today) if rec.tax_today > 0 else 0
-                    rec.amount_tax_usd = (amount_tax / rec.tax_today) if rec.tax_today > 0 else 0
-                    rec.amount_total_usd = (amount_total / rec.tax_today) if rec.tax_today > 0 else 0
-                    rec.amount_untaxed_bs = rec.amount_untaxed
-                    rec.amount_tax_bs = rec.amount_tax
-                    rec.amount_total_bs = rec.amount_total
+                    # Moneda base de la compañía es VEF
+                    if rec.currency_id != rec.company_id.currency_id:
+                        rec.amount_untaxed_usd = rec.amount_untaxed
+                        rec.amount_tax_usd = rec.amount_tax
+                        rec.amount_total_usd = rec.amount_total
+                        rec.amount_untaxed_bs = rec.amount_untaxed_usd * rate
+                        rec.amount_tax_bs = rec.amount_tax_usd * rate
+                        rec.amount_total_bs = rec.amount_total_usd * rate
+                    else:
+                        rec.amount_untaxed_usd = (amount_untaxed / rate) if rate > 0 else 0
+                        rec.amount_tax_usd = (amount_tax / rate) if rate > 0 else 0
+                        rec.amount_total_usd = (amount_total / rate) if rate > 0 else 0
+                        rec.amount_untaxed_bs = amount_untaxed
+                        rec.amount_tax_bs = amount_tax
+                        rec.amount_total_bs = amount_total
             else:
                 rec.amount_untaxed_usd = 0
                 rec.amount_tax_usd = 0

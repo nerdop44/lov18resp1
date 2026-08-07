@@ -85,43 +85,43 @@ class AccountMoveLine(models.Model):
             line.balance_usd = line.debit_usd - line.credit_usd
 
 
-    @api.depends('price_unit', 'product_id')
+    @api.depends('price_unit', 'product_id', 'move_id.tax_today')
     def _price_unit_usd(self):
         for rec in self:
+            is_company_usd = rec.company_id.currency_id.name == 'USD'
+            rate = rec.tax_today if rec.tax_today > 0 else 1.0
             if rec.price_unit > 0:
-                if rec.move_id.currency_id == self.env.company.currency_id:
-                    rec.price_unit_usd = (rec.price_unit / rec.tax_today) if rec.tax_today > 0 else 0
+                if is_company_usd:
+                    if rec.move_id.currency_id == rec.company_id.currency_id:
+                        rec.price_unit_usd = rec.price_unit * rate
+                    else:
+                        rec.price_unit_usd = rec.price_unit
                 else:
-                    rec.price_unit_usd = rec.price_unit
+                    if rec.move_id.currency_id == rec.company_id.currency_id:
+                        rec.price_unit_usd = (rec.price_unit / rate) if rate > 0 else 0
+                    else:
+                        rec.price_unit_usd = rec.price_unit
             else:
                 rec.price_unit_usd = 0
 
-            # if rec.price_unit_usd > 0:
-            #     if rec.move_id.currency_id == self.env.company.currency_id:
-            #         rec.price_unit = rec.price_unit_usd * rec.tax_today
-            #     else:
-            #         rec.price_unit = rec.price_unit_usd
-            # else:
-            #     rec.price_unit = 0
-
-    @api.depends('price_subtotal')
+    @api.depends('price_subtotal', 'move_id.tax_today')
     def _price_subtotal_usd(self):
         for rec in self:
+            is_company_usd = rec.company_id.currency_id.name == 'USD'
+            rate = rec.tax_today if rec.tax_today > 0 else 1.0
             if rec.price_subtotal > 0:
-                if rec.move_id.currency_id == self.env.company.currency_id:
-                    rec.price_subtotal_usd = (rec.price_subtotal / rec.tax_today) if rec.tax_today > 0 else 0
+                if is_company_usd:
+                    if rec.move_id.currency_id == rec.company_id.currency_id:
+                        rec.price_subtotal_usd = rec.price_subtotal * rate
+                    else:
+                        rec.price_subtotal_usd = rec.price_subtotal
                 else:
-                    rec.price_subtotal_usd = rec.price_subtotal
+                    if rec.move_id.currency_id == rec.company_id.currency_id:
+                        rec.price_subtotal_usd = (rec.price_subtotal / rate) if rate > 0 else 0
+                    else:
+                        rec.price_subtotal_usd = rec.price_subtotal
             else:
                 rec.price_subtotal_usd = 0
-
-            # if rec.price_subtotal_usd > 0:
-            #     if rec.move_id.currency_id == self.env.company.currency_id:
-            #         rec.price_subtotal = rec.price_subtotal_usd * rec.tax_today
-            #     else:
-            #         rec.price_subtotal = rec.price_subtotal_usd
-            # else:
-            #     rec.price_subtotal = 0
 
     @api.model
     def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
@@ -136,52 +136,43 @@ class AccountMoveLine(models.Model):
                 group['tax_today'] = 0
         return res
 
-    @api.depends('amount_currency', 'tax_today','debit')
+    @api.depends('amount_currency', 'tax_today', 'debit')
     def _debit_usd(self):
         for rec in self:
+            is_company_usd = rec.company_id.currency_id.name == 'USD'
+            rate = rec.tax_today if rec.tax_today > 0 else 1.0
             if not rec.debit == 0:
-                if rec.move_id.currency_id == self.env.company.currency_id:
-                    amount_currency = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
-                    rec.debit_usd = (amount_currency / rec.tax_today) if rec.tax_today > 0 else 0
-                    #rec.debit = amount_currency
+                if is_company_usd:
+                    if rec.move_id.currency_id == rec.company_id.currency_id:
+                        rec.debit_usd = rec.debit * rate
+                    else:
+                        rec.debit_usd = abs(rec.amount_currency) if rec.amount_currency else abs(rec.debit)
                 else:
-                    rec.debit_usd = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
-
-                    # if not 'calcular_dual_currency' in self.env.context:
-                    #     if not rec.move_id.stock_move_id:
-                    #         module_dual_currency = self.env['ir.module.module'].sudo().search(
-                    #             [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
-                    #         if module_dual_currency:
-                    #             # rec.debit = ((rec.amount_currency * rec.tax_today) if rec.amount_currency > 0 else (
-                    #             #         (rec.amount_currency * -1) * rec.tax_today))
-                    #             rec.with_context(check_move_validity=False).debit = (rec.debit_usd * rec.tax_today)
-
+                    if rec.move_id.currency_id == rec.company_id.currency_id:
+                        amount_currency = abs(rec.amount_currency) if rec.amount_currency else abs(rec.debit)
+                        rec.debit_usd = (amount_currency / rate) if rate > 0 else 0
+                    else:
+                        rec.debit_usd = abs(rec.amount_currency) if rec.amount_currency else abs(rec.debit)
             else:
                 rec.debit_usd = 0
 
-    @api.depends('amount_currency', 'tax_today','credit')
+    @api.depends('amount_currency', 'tax_today', 'credit')
     def _credit_usd(self):
         for rec in self:
-            # tmp = rec.credit_usd if rec.credit_usd > 0 else 0
+            is_company_usd = rec.company_id.currency_id.name == 'USD'
+            rate = rec.tax_today if rec.tax_today > 0 else 1.0
             if not rec.credit == 0:
-                if rec.move_id.currency_id == self.env.company.currency_id:
-                    amount_currency = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
-                    rec.credit_usd = (amount_currency / rec.tax_today) if rec.tax_today > 0 else 0
-                    #rec.credit = amount_currency
+                if is_company_usd:
+                    if rec.move_id.currency_id == rec.company_id.currency_id:
+                        rec.credit_usd = rec.credit * rate
+                    else:
+                        rec.credit_usd = abs(rec.amount_currency) if rec.amount_currency else abs(rec.credit)
                 else:
-                    rec.credit_usd = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
-                    model = self.env.context.get('active_model')
-                    #print('contexto--->', self._context)
-                    #print('contexto', self.env.context)
-                    # if not 'calcular_dual_currency' in self.env.context:
-                    #     if not rec.move_id.stock_move_id:
-                    #         module_dual_currency = self.env['ir.module.module'].sudo().search(
-                    #             [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
-                    #         if module_dual_currency:
-                    #             #rec.credit = ((rec.amount_currency * rec.tax_today) if rec.amount_currency > 0 else (
-                    #             #        (rec.amount_currency * -1) * rec.tax_today))
-                    #             rec.with_context(check_move_validity=False).credit = rec.credit_usd * rec.tax_today
-
+                    if rec.move_id.currency_id == rec.company_id.currency_id:
+                        amount_currency = abs(rec.amount_currency) if rec.amount_currency else abs(rec.credit)
+                        rec.credit_usd = (amount_currency / rate) if rate > 0 else 0
+                    else:
+                        rec.credit_usd = abs(rec.amount_currency) if rec.amount_currency else abs(rec.credit)
             else:
                 rec.credit_usd = 0
 
