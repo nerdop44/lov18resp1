@@ -31,13 +31,13 @@
                      <field name="price_subtotal_usd" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
                 </xpath>
 
-                <!-- Apuntes contables: débito/crédito USD -->
+                <!-- Apuntes contables: débito/crédito Ref -->
                 <xpath expr="//field[@name='line_ids']/list/field[@name='credit']" position="after">
                     <field name="tax_today" string="Tasa de Factura" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
-                    <field name="currency_id_dif" readonly="1" invisible="1"/>
-                    <field name="debit_usd" sum="Débito Total $"  widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
-                    <field name="credit_usd" sum="Crédito Total $"  widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
-                    <field name="balance_usd" invisible="1"/>
+                    <field name="currency_id_dif" column_invisible="1"/>
+                    <field name="debit_usd" string="Débito Ref." sum="Débito Total Ref." widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
+                    <field name="credit_usd" string="Crédito Ref." sum="Crédito Total Ref." widget='monetary' options="{'currency_field': 'currency_id_dif'}" invisible="[('display_type', 'in', ('line_section', 'line_note'))]"/>
+                    <field name="balance_usd" column_invisible="1"/>
                     <field name="amount_residual_usd" optional="hide" readonly="1" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
                 </xpath>
 

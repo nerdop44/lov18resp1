@@ -8,12 +8,12 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='credit']" position="after">
                     <field name="tax_today" string="Tasa del Asiento"/>
-                    <field name="currency_id_dif" readonly="1" invisible="1"/>
-                    <field name="debit_usd"  sum="Débito Total $" />
-                    <field name="credit_usd"  sum="Crédito Total $"/>
-                    <field name="balance_usd" invisible="1"/>
-                    <field name="amount_residual_usd"  optional="hide" readonly="1" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
-                    <field name="amount_residual"  readonly="1"/>
+                    <field name="currency_id_dif" column_invisible="1"/>
+                    <field name="debit_usd" string="Débito Ref." sum="Débito Total Ref." widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                    <field name="credit_usd" string="Crédito Ref." sum="Crédito Total Ref." widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                    <field name="balance_usd" column_invisible="1"/>
+                    <field name="amount_residual_usd" optional="hide" readonly="1" widget='monetary' options="{'currency_field': 'currency_id_dif'}"/>
+                    <field name="amount_residual" readonly="1"/>
                 </xpath>
             </field>
         </record>

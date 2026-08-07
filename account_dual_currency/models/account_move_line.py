@@ -15,15 +15,15 @@ class AccountMoveLine(models.Model):
         return super()._valid_field_parameter(field_name, parameter)
 
 
-    debit_usd = fields.Monetary(currency_field='currency_id_dif', string='Débito $', store=True, compute="_debit_usd",
+    debit_usd = fields.Monetary(currency_field='currency_id_dif', string='Débito Ref.', store=True, compute="_debit_usd",
                                  readonly=False, )
-    credit_usd = fields.Monetary(currency_field='currency_id_dif', string='Crédito $', store=True,
+    credit_usd = fields.Monetary(currency_field='currency_id_dif', string='Crédito Ref.', store=True,
                                  compute="_credit_usd", readonly=False)
     tax_today = fields.Float(related="move_id.tax_today", store=True, string="Tasa del Asiento")
     currency_id_dif = fields.Many2one("res.currency", related="move_id.currency_id_dif", store=True)
-    price_unit_usd = fields.Monetary(currency_field='currency_id_dif', string='Precio $', store=True,
+    price_unit_usd = fields.Monetary(currency_field='currency_id_dif', string='Precio Ref.', store=True,
                                      compute='_price_unit_usd', readonly=False)
-    price_subtotal_usd = fields.Monetary(currency_field='currency_id_dif', string='SubTotal $', store=True,
+    price_subtotal_usd = fields.Monetary(currency_field='currency_id_dif', string='SubTotal Ref.', store=True,
                                          compute="_price_subtotal_usd")
     amount_residual_usd = fields.Monetary(string='Residual Amount USD', compute='_compute_amount_residual_usd', store=True,
                                        help="The residual amount on a journal item expressed in the company currency.")

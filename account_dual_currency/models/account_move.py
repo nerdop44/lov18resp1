@@ -23,10 +23,26 @@ class AccountMove(models.Model):
         return super()._valid_field_parameter(field_name, parameter)
 
 
+    def _get_default_currency_id_dif(self):
+        company = self.env.company
+        if company and company.currency_id_dif:
+            return company.currency_id_dif
+        return self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+
     currency_id_dif = fields.Many2one("res.currency",
                                       string="Moneda Dual Ref.",
-                                      default=lambda self: self.env['res.currency'].search([('name', '=', 'USD')],
-                                                                                           limit=1), )
+                                      default=_get_default_currency_id_dif,
+                                      compute="_compute_currency_id_dif",
+                                      store=True,
+                                      readonly=False)
+
+    @api.depends('company_id', 'company_id.currency_id_dif')
+    def _compute_currency_id_dif(self):
+        for move in self:
+            if move.company_id and move.company_id.currency_id_dif:
+                move.currency_id_dif = move.company_id.currency_id_dif
+            elif not move.currency_id_dif:
+                move.currency_id_dif = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
 
     acuerdo_moneda = fields.Boolean(string="Acuerdo de Factura Bs.", default=False)
 
