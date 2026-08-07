@@ -161,14 +161,17 @@ class AccountRetentionLine(models.Model):
             tax_totals = invoice.tax_totals if hasattr(invoice, 'tax_totals') and invoice.tax_totals else {}
 
             self.invoice_total = tax_totals.get('amount_total', 0.0)
-            self.foreign_invoice_total = tax_totals.get('foreign_amount_total', self.invoice_total) 
+            self.foreign_invoice_total = tax_totals.get('foreign_amount_total', self.invoice_total * rate if (rate and invoice.currency_id != self.vef_currency_id) else self.invoice_total) 
 
             self.invoice_amount = tax_totals.get('amount_untaxed', 0.0)
-            self.foreign_invoice_amount = tax_totals.get('foreign_amount_untaxed', self.invoice_amount) 
+            self.foreign_invoice_amount = tax_totals.get('foreign_amount_untaxed', self.invoice_amount * rate if (rate and invoice.currency_id != self.vef_currency_id) else self.invoice_amount) 
 
             # >>> ESTO ES CLAVE: Poblar los campos de IVA directamente desde tax_totals de la factura
             self.iva_amount = tax_totals.get('amount_tax', 0.0) 
-            self.foreign_iva_amount = tax_totals.get('foreign_amount_tax', self.iva_amount) 
+            if 'foreign_amount_total' in tax_totals and 'foreign_amount_untaxed' in tax_totals:
+                self.foreign_iva_amount = tax_totals.get('foreign_amount_total', 0.0) - tax_totals.get('foreign_amount_untaxed', 0.0)
+            else:
+                self.foreign_iva_amount = self.iva_amount * rate if (rate and invoice.currency_id != self.vef_currency_id) else self.iva_amount 
 
             # Fallback robusto para la tasa: Priorizar fecha de la retención
             retention_date = self.retention_id.date or fields.Date.context_today(self)
@@ -432,22 +435,24 @@ class AccountRetentionLine(models.Model):
         if self.env.context.get("noonchange"):
             return
         for line in self.filtered(lambda l: not l.retention_id or l.retention_id.type == "out_invoice"):
-            if line.move_id and line.move_id.foreign_inverse_rate:
+            if line.move_id:
+                rate = line.foreign_currency_rate or line.move_id.foreign_rate or 1.0
                 ctx = self.with_context(noonchange=True).env.context
                 if not line.retention_id or line.retention_id.type_retention in ("islr", "municipal"):
-                    line.with_context(ctx).foreign_invoice_amount = line.invoice_amount * line.move_id.foreign_inverse_rate
-                line.with_context(ctx).foreign_retention_amount = line.retention_amount * line.move_id.foreign_inverse_rate
+                    line.with_context(ctx).foreign_invoice_amount = line.invoice_amount * rate if line.move_id.currency_id != line.vef_currency_id else line.invoice_amount
+                line.with_context(ctx).foreign_retention_amount = line.retention_amount * rate if line.move_id.currency_id != line.vef_currency_id else line.retention_amount
 
     @api.onchange("foreign_retention_amount", "foreign_invoice_amount")
     def onchange_foreign_retention_amount(self):
         if self.env.context.get("noonchange"):
             return
         for line in self.filtered(lambda l: not l.retention_id or l.retention_id.type == "out_invoice"):
-            if line.move_id and line.move_id.foreign_rate:
+            if line.move_id:
+                rate = line.foreign_currency_rate or line.move_id.foreign_rate or 1.0
                 ctx = self.with_context(noonchange=True).env.context
                 if not line.retention_id or line.retention_id.type_retention in ("islr", "municipal"):
-                    line.with_context(ctx).invoice_amount = line.foreign_invoice_amount * (1 / line.move_id.foreign_rate)
-                line.with_context(ctx).retention_amount = line.foreign_retention_amount * (1 / line.move_id.foreign_rate)
+                    line.with_context(ctx).invoice_amount = line.foreign_invoice_amount / rate if (rate and line.move_id.currency_id != line.vef_currency_id) else line.foreign_invoice_amount
+                line.with_context(ctx).retention_amount = line.foreign_retention_amount / rate if (rate and line.move_id.currency_id != line.vef_currency_id) else line.foreign_retention_amount
 
     # =========== CAMBIO AQUÍ ===========
     @api.constrains(

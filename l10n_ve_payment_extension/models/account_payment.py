@@ -162,9 +162,36 @@ class AccountPayment(models.Model):
     def compute_retention_amount_from_retention_lines(self):
         """
         Compute the amount from the retention lines.
+        If the payment currency is VEF/VES (the dual currency), payment amount must be in VEF (foreign_retention_amount).
+        If the payment currency is USD (company base currency), payment amount must be in USD (retention_amount).
         """
         for payment in self:
-            payment.amount = sum(payment.retention_line_ids.mapped("retention_amount"))
+            is_payment_in_vef = (
+                payment.currency_id == payment.vef_currency_id 
+                or (payment.currency_id and payment.currency_id.name in ('VEF', 'VES'))
+            )
+            if is_payment_in_vef:
+                payment.amount = abs(
+                    sum(
+                        payment.retention_line_ids.mapped(
+                            lambda l: float_round(
+                                l.foreign_retention_amount,
+                                precision_digits=payment.currency_id.decimal_places if payment.currency_id else 2,
+                            )
+                        )
+                    )
+                )
+            else:
+                payment.amount = abs(
+                    sum(
+                        payment.retention_line_ids.mapped(
+                            lambda l: float_round(
+                                l.retention_amount,
+                                precision_digits=payment.currency_id.decimal_places if payment.currency_id else 2,
+                            )
+                        )
+                    )
+                )
 
     @api.depends("retention_line_ids")
     def _compute_retention_foreign_amount(self):
