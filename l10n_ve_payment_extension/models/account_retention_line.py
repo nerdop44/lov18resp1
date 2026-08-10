@@ -514,30 +514,19 @@ class AccountRetentionLine(models.Model):
                 computed_foreign_retention_amount = computed_foreign_invoice_amount * aliquot / 100.0
 
             # Asignación de valores
-            if record.retention_id:
-                record.invoice_amount = record.invoice_amount or computed_invoice_amount
-                record.invoice_total = record.invoice_total or computed_invoice_total
-                record.iva_amount = record.iva_amount or computed_iva_amount
-                record.foreign_invoice_amount = record.foreign_invoice_amount or computed_foreign_invoice_amount
-                record.foreign_invoice_total = record.foreign_invoice_total or computed_foreign_invoice_total
-                record.foreign_iva_amount = record.foreign_iva_amount or computed_foreign_iva_amount
-                record.foreign_currency_rate = record.foreign_currency_rate or computed_foreign_currency_rate
-                record.retention_amount = record.retention_amount or computed_retention_amount
-                record.foreign_retention_amount = record.foreign_retention_amount or computed_foreign_retention_amount
-                if type_retention == 'iva':
-                    record.related_percentage_tax_base = withholding_amount
-                elif type_retention == 'municipal':
-                    record.aliquot = record.economic_activity_id.aliquot or 0.0
-            else:
-                record.invoice_amount = computed_invoice_amount
-                record.invoice_total = computed_invoice_total
-                record.iva_amount = computed_iva_amount
-                record.foreign_invoice_amount = computed_foreign_invoice_amount
-                record.foreign_invoice_total = computed_foreign_invoice_total
-                record.foreign_iva_amount = computed_foreign_iva_amount
-                record.foreign_currency_rate = computed_foreign_currency_rate
-                record.retention_amount = computed_retention_amount
-                record.foreign_retention_amount = computed_foreign_retention_amount
+            record.invoice_amount = computed_invoice_amount
+            record.invoice_total = computed_invoice_total
+            record.iva_amount = computed_iva_amount
+            record.foreign_invoice_amount = computed_foreign_invoice_amount
+            record.foreign_invoice_total = computed_foreign_invoice_total
+            record.foreign_iva_amount = computed_foreign_iva_amount
+            record.foreign_currency_rate = computed_foreign_currency_rate
+            record.retention_amount = computed_retention_amount
+            record.foreign_retention_amount = computed_foreign_retention_amount
+            if type_retention == 'iva':
+                record.related_percentage_tax_base = withholding_amount
+            elif type_retention == 'municipal':
+                record.aliquot = record.economic_activity_id.aliquot or 0.0
 
 
     @api.onchange("economic_activity_id", "move_id")

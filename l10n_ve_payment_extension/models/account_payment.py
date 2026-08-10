@@ -167,7 +167,7 @@ class AccountPayment(models.Model):
         """
         for payment in self:
             is_payment_in_vef = (
-                payment.currency_id == payment.vef_currency_id 
+                payment.currency_id == payment.company_id.currency_id_dif 
                 or (payment.currency_id and payment.currency_id.name in ('VEF', 'VES'))
             )
             if is_payment_in_vef:
