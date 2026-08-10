@@ -136,7 +136,7 @@ class AccountMoveLine(models.Model):
                 group['tax_today'] = 0
         return res
 
-    @api.depends('amount_currency', 'tax_today', 'debit')
+    @api.depends('amount_currency', 'tax_today', 'debit', 'move_id.amount_total_usd')
     def _debit_usd(self):
         for rec in self:
             is_company_usd = rec.company_id.currency_id.name == 'USD'
@@ -144,7 +144,10 @@ class AccountMoveLine(models.Model):
             if not rec.debit == 0:
                 if is_company_usd:
                     if rec.move_id.currency_id == rec.company_id.currency_id:
-                        rec.debit_usd = rec.debit * rate
+                        if rec.move_id and rec.move_id.is_invoice(include_receipts=True) and rec.account_id.account_type in ('asset_receivable', 'liability_payable') and rec.move_id.amount_total_usd:
+                            rec.debit_usd = rec.move_id.amount_total_usd
+                        else:
+                            rec.debit_usd = rec.debit * rate
                     else:
                         rec.debit_usd = abs(rec.amount_currency) if rec.amount_currency else abs(rec.debit)
                 else:
@@ -156,7 +159,7 @@ class AccountMoveLine(models.Model):
             else:
                 rec.debit_usd = 0
 
-    @api.depends('amount_currency', 'tax_today', 'credit')
+    @api.depends('amount_currency', 'tax_today', 'credit', 'move_id.amount_total_usd')
     def _credit_usd(self):
         for rec in self:
             is_company_usd = rec.company_id.currency_id.name == 'USD'
@@ -164,7 +167,10 @@ class AccountMoveLine(models.Model):
             if not rec.credit == 0:
                 if is_company_usd:
                     if rec.move_id.currency_id == rec.company_id.currency_id:
-                        rec.credit_usd = rec.credit * rate
+                        if rec.move_id and rec.move_id.is_invoice(include_receipts=True) and rec.account_id.account_type in ('asset_receivable', 'liability_payable') and rec.move_id.amount_total_usd:
+                            rec.credit_usd = rec.move_id.amount_total_usd
+                        else:
+                            rec.credit_usd = rec.credit * rate
                     else:
                         rec.credit_usd = abs(rec.amount_currency) if rec.amount_currency else abs(rec.credit)
                 else:

@@ -226,7 +226,7 @@ class AccountRetention(models.Model):
             for line in retention.retention_line_ids:
                 if line.move_id.move_type in ("in_refund", "out_refund"):
                     retention.total_invoice_amount -= float_round(
-                        line.invoice_amount,
+                        line.invoice_total,
                         precision_digits=retention.company_currency_id.decimal_places,
                     )
                     retention.total_iva_amount -= float_round(
@@ -238,7 +238,7 @@ class AccountRetention(models.Model):
                         precision_digits=retention.company_currency_id.decimal_places,
                     )
                     retention.foreign_total_invoice_amount -= float_round(
-                        line.foreign_invoice_amount,
+                        line.foreign_invoice_total,
                         precision_digits=retention.foreign_currency_id.decimal_places,
                     )
                     retention.foreign_total_iva_amount -= float_round(
@@ -251,7 +251,7 @@ class AccountRetention(models.Model):
                     )
                 else:
                     retention.total_invoice_amount += float_round(
-                        line.invoice_amount,
+                        line.invoice_total,
                         precision_digits=retention.company_currency_id.decimal_places,
                     )
                     retention.total_iva_amount += float_round(
@@ -263,7 +263,7 @@ class AccountRetention(models.Model):
                         precision_digits=retention.company_currency_id.decimal_places,
                     )
                     retention.foreign_total_invoice_amount += float_round(
-                        line.foreign_invoice_amount,
+                        line.foreign_invoice_total,
                         precision_digits=retention.foreign_currency_id.decimal_places,
                     )
                     retention.foreign_total_iva_amount += float_round(
