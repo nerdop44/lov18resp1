@@ -240,20 +240,13 @@ class AccountMove(models.Model):
 
         if values:
             for val in values:
-                if not val.get('tax_today') and not diferencia:
-                    module_dual_currency = self.env['ir.module.module'].sudo().search(
-                        [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
-                    if module_dual_currency:
-                        val.update({'tax_today': self._get_default_tax_today()})
-                # elif 'tax_today' in val:
-                #     if val['tax_today'] == 0:
-                #         module_dual_currency = self.env['ir.module.module'].sudo().search(
-                #             [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
-                #         if module_dual_currency:
-                #             val.update({'tax_today': self.env.company.currency_id_dif.tasa_referencia})
+                if (not val.get('tax_today') or val.get('tax_today', 0) < 1) and not diferencia:
+                    val['tax_today'] = self._get_default_tax_today()
 
-        #print('Valores de la factura', values)
         res = super(AccountMove, self).create(values)
+        for move in res:
+            if move.company_id.currency_id_dif and (not move.tax_today or move.tax_today < 1) and not move.tax_today_edited:
+                move.tax_today = move._get_default_tax_today()
         return res
 
     # def write(self, vals):
