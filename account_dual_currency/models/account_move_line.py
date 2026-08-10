@@ -48,16 +48,13 @@ class AccountMoveLine(models.Model):
             return rate
 
         for line in self:
-            #print('pasando por _compute_currency_rate')
             self.env.context = dict(self.env.context, tasa_factura=line.move_id.tax_today, calcular_dual_currency=True)
-            # line.currency_rate = get_rate(
-            #     from_currency=line.company_currency_id,
-            #     to_currency=line.currency_id,
-            #     company=line.company_id,
-            #     date=line.move_id.invoice_date or line.move_id.date or fields.Date.context_today(line),
-            # )
-            line.currency_rate = 1 / line.move_id.tax_today if line.move_id.tax_today > 0 else 1
-            #print('line.currency_rate', line.currency_rate)
+            if line.currency_id == line.company_currency_id:
+                line.currency_rate = 1.0
+            elif line.move_id.tax_today > 0:
+                line.currency_rate = line.move_id.tax_today
+            else:
+                line.currency_rate = 1.0
         self.env.context = dict(self.env.context, tasa_factura=None, calcular_dual_currency=False)
 
     @api.onchange('amount_currency')
@@ -141,13 +138,13 @@ class AccountMoveLine(models.Model):
         for rec in self:
             is_company_usd = rec.company_id.currency_id.name == 'USD'
             rate = rec.tax_today if rec.tax_today > 0 else 1.0
-            if not rec.debit == 0:
+            if not rec.debit == 0 or (is_company_usd and rec.amount_currency > 0):
                 if is_company_usd:
                     if rec.move_id.currency_id == rec.company_id.currency_id:
                         if rec.move_id and rec.move_id.is_invoice(include_receipts=True) and rec.account_id.account_type in ('asset_receivable', 'liability_payable') and rec.move_id.amount_total_usd:
                             rec.debit_usd = rec.move_id.amount_total_usd
                         else:
-                            rec.debit_usd = rec.debit * rate
+                            rec.debit_usd = abs(rec.amount_currency) * rate if rec.amount_currency else rec.debit * rate
                     else:
                         rec.debit_usd = abs(rec.amount_currency) if rec.amount_currency else abs(rec.debit)
                 else:
@@ -164,13 +161,13 @@ class AccountMoveLine(models.Model):
         for rec in self:
             is_company_usd = rec.company_id.currency_id.name == 'USD'
             rate = rec.tax_today if rec.tax_today > 0 else 1.0
-            if not rec.credit == 0:
+            if not rec.credit == 0 or (is_company_usd and rec.amount_currency < 0):
                 if is_company_usd:
                     if rec.move_id.currency_id == rec.company_id.currency_id:
                         if rec.move_id and rec.move_id.is_invoice(include_receipts=True) and rec.account_id.account_type in ('asset_receivable', 'liability_payable') and rec.move_id.amount_total_usd:
                             rec.credit_usd = rec.move_id.amount_total_usd
                         else:
-                            rec.credit_usd = rec.credit * rate
+                            rec.credit_usd = abs(rec.amount_currency) * rate if rec.amount_currency else rec.credit * rate
                     else:
                         rec.credit_usd = abs(rec.amount_currency) if rec.amount_currency else abs(rec.credit)
                 else:
