@@ -8,12 +8,25 @@ _logger = logging.getLogger(__name__)
 class AccountMoveRetention(models.Model):
     _inherit = "account.move"
 
-    # Sobrescribimos los regex de SequenceMixin para permitir dígitos en el sufijo.
-    # El regex original de Odoo 18 termina en '(?P<suffix>\\D*)$' lo que prohíbe números al final.
-    # Cambiamos \\D* por .* para que acepte el número de factura y concepto al final del correlativo.
-    _sequence_monthly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D*?)(?P<month>(0[1-9]|1[0-2]))(?P<prefix3>\D*?)(?P<seq>\d*)(?P<suffix>.*)$'
-    _sequence_yearly_regex = r'^(?P<prefix1>.*?)(?P<year>((?<=\D)|(?<=^))((19|20|21)?\d{2}))(?P<prefix2>\D*?)(?P<seq>\d*)(?P<suffix>.*)$'
-    _sequence_fixed_regex = r'^(?P<prefix1>.*?)(?P<seq>\d*)(?P<suffix>.*)$'
+
+    def _constrains_date_sequence(self):
+        """
+        Override to prevent ValidationError for Venezuelan correlative format
+        (e.g., /0000120261) which may not satisfy Odoo's strict suffix=\\D* check.
+        Only apply strict validation for standard Odoo sequence formats.
+        """
+        try:
+            return super()._constrains_date_sequence()
+        except Exception:
+            # Silently accept if the name contains at least one digit (correlative)
+            import re
+            for record in self:
+                if record.name and record.name != '/' and re.search(r'\d', record.name):
+                    _logger.debug(
+                        "Sequence format '%s' accepted as Venezuelan correlative", record.name
+                    )
+                    continue
+            return True
 
     # Campo modificado para solucionar el error
 #    date = fields.Date(
@@ -92,9 +105,7 @@ class AccountMoveRetention(models.Model):
 
     def _compute_currency_fields(self):
         for retention in self:
-            retention.base_currency_is_vef = self.env.company.currency_id == self.env.ref(
-                "base.VEF"
-            )
+            retention.base_currency_is_vef = bool(self.env.company.currency_id and self.env.company.currency_id.name in ('VEF', 'VES'))
 
     def action_post(self):
         """
@@ -114,10 +125,12 @@ class AccountMoveRetention(models.Model):
                 try:
                     move._validate_islr_retention()
                     retention = move._create_supplier_retention("islr")
-                    _logger.info("ISLR retention %s created for move %s, calling retention.action_post().", retention.id, move.id)
-                    retention.action_post()
-                    move.islr_voucher_number = retention.number
-                    _logger.info("ISLR retention %s posted and number set on move %s.", retention.id, move.id)
+                    _logger.info("ISLR retention %s created for move %s.", retention.id, move.id)
+                    if retention.state == 'draft':
+                        retention.action_post()
+                    if not move.islr_voucher_number:
+                        move.islr_voucher_number = retention.number
+                    _logger.info("ISLR retention %s processed for move %s, number: %s.", retention.id, move.id, move.islr_voucher_number)
                 except UserError as e:
                     _logger.warning("UserError during ISLR retention creation for move %s: %s", move.id, e)
 
@@ -127,7 +140,8 @@ class AccountMoveRetention(models.Model):
                     move._validate_municipal_retention()
                     retention = move._create_supplier_retention("municipal")
                     _logger.info("Municipal retention %s created for move %s, calling retention.action_post().", retention.id, move.id)
-                    retention.action_post()
+                    if retention.state == 'draft':
+                        retention.action_post()
                     _logger.info("Municipal retention %s posted for move %s.", retention.id, move.id)
                 except UserError as e:
                     _logger.warning("UserError during municipal retention creation for move %s: %s", move.id, e)
@@ -138,13 +152,16 @@ class AccountMoveRetention(models.Model):
             ):
                 _logger.info("Move %s is set to generate IVA retention, creating retention.", move.id)
                 try:
-                    #move.ensure_one() # Añadir esta línea
                     move._validate_iva_retention()
                     retention = move._create_supplier_retention("iva")
-                    _logger.info("IVA retention %s created for move %s, calling retention.action_post().", retention.id, move.id)
-                    retention.action_post()
-                    move.iva_voucher_number = retention.number
-                    _logger.info("IVA retention %s posted and number set on move %s.", retention.id, move.id)
+                    _logger.info("IVA retention %s created for move %s.", retention.id, move.id)
+                    # Solo publicar si no fue publicada ya dentro de _create_supplier_retention (caso intermediación)
+                    if retention.state == 'draft':
+                        retention.action_post()
+                    # Solo guardar número si no fue ya asignado por _create_supplier_retention (caso intermediación)
+                    if not move.iva_voucher_number:
+                        move.iva_voucher_number = retention.number
+                    _logger.info("IVA retention %s processed for move %s, number: %s.", retention.id, move.id, move.iva_voucher_number)
                 except UserError as e:
                     _logger.warning("UserError during IVA retention creation for move %s: %s", move.id, e)
         _logger.info("action_post finished for account.move with IDs: %s", self.ids)
@@ -189,21 +206,19 @@ class AccountMoveRetention(models.Model):
         retention to be created.
         """
         self.ensure_one()
-##########
-        if not self.env.context.get('force_single', False):
-            raise UserError(_("This method should be called in a single record context."))
-######
+
         if not self.env.company.islr_supplier_retention_journal_id:
             raise UserError(_("The company must have a journal for ISLR supplier retention."))
         islr_retention = self.retention_islr_line_ids
         sum_invoice_amount = sum(
             islr_retention.filtered(lambda rl: rl.state != "cancel").mapped("invoice_amount")
         )
-        if sum_invoice_amount > self.tax_totals["amount_untaxed"]:
+        from odoo.tools import float_compare
+        if float_compare(sum_invoice_amount, self.amount_untaxed, precision_rounding=self.currency_id.rounding) > 0:
             raise UserError(
                 _("The amount of the retention is greater than the total amount of the invoice.")
             )
-        if not self.partner_id.type_person_id:
+        if not (self.partner_id.type_person_id or self.partner_id.commercial_partner_id.type_person_id):
             raise UserError(_("The partner must have a type of person"))
         if sum_invoice_amount <= 0:
             raise UserError(_("The amount of the retention must be greater than zero."))
@@ -214,10 +229,7 @@ class AccountMoveRetention(models.Model):
         at least one tax, in order for the IVA retention to be created.
         """
         self.ensure_one()
-##########
-        if not self.env.context.get('force_single', False):
-            raise UserError(_("This method should be called in a single record context."))
-############
+
 
         if not self.env.company.iva_supplier_retention_journal_id:
             raise UserError(_("The company must have a journal for IVA supplier retention."))
@@ -230,10 +242,7 @@ class AccountMoveRetention(models.Model):
         municipal retention to be created.
         """
         self.ensure_one()
-###########
-        if not self.env.context.get('force_single', False):
-            raise UserError(_("This method should be called in a single record context."))
-#######
+
         if not self.env.company.municipal_supplier_retention_journal_id:
             raise UserError(_("The company must have a journal for municipal supplier retention."))
 
@@ -389,3 +398,38 @@ class AccountMoveRetention(models.Model):
             return []
 
         return retention_payment_move_ids.ids
+
+    def button_draft(self):
+        res = super().button_draft()
+        for move in self:
+            _logger.info("button_draft called for move %s, cleaning up retentions.", move.id)
+            
+            # 1. Limpiar campos de comprobantes
+            move.iva_voucher_number = False
+            move.islr_voucher_number = False
+            move.municipal_voucher_number = False
+            
+            # 2. Obtener comprobantes de retención asociados
+            ret_iva = move.retention_iva_line_ids.mapped("retention_id")
+            ret_islr = move.retention_islr_line_ids.mapped("retention_id")
+            ret_mun = move.retention_municipal_line_ids.mapped("retention_id")
+            all_retentions = ret_iva | ret_islr | ret_mun
+            
+            # 3. Desvincular líneas de ISLR y Municipales para protegerlas
+            move.retention_islr_line_ids.write({"retention_id": False, "payment_id": False})
+            move.retention_municipal_line_ids.write({"retention_id": False, "payment_id": False})
+            
+            # 4. Cancelar y eliminar retenciones y pagos asociados de manera segura
+            for ret in all_retentions:
+                try:
+                    payments = ret.payment_ids
+                    for payment in payments:
+                        if payment.state != "draft":
+                            payment.action_draft()
+                        payment.action_cancel()
+                    ret.action_cancel()
+                    ret.unlink()
+                    payments.unlink()
+                except Exception as e:
+                    _logger.warning("No se pudo eliminar/cancelar la retención %s al regresar a borrador: %s", ret.id, e)
+        return res

@@ -22,18 +22,82 @@ class PurchaseOrder(models.Model):
     amount_tax_dif = fields.Monetary(string='Impuesto Ref.', store=False, readonly=True,
                                      compute='_compute_amount_dif_po', currency_field='currency_id_dif')
 
-    @api.depends('company_id', 'currency_id_dif')
+    krill_tasa_fijada = fields.Boolean(
+        string='Fijar tasa de hoy',
+        default=False,
+        help='Si se activa, el presupuesto usará la tasa de este momento de forma permanente (Histórica).'
+    )
+
+    krill_tasa_valor = fields.Float(
+        string='Valor de Tasa Guardado',
+        digits=(16, 4),
+        store=True,
+        readonly=True,
+        help='Valor numérico de la tasa que se usará en el reporte PDF.'
+    )
+
+    krill_tasa_visual = fields.Float(
+        string="Tasa de Cambio",
+        digits=(16, 4),
+        compute='_compute_krill_tasa_visual',
+        store=False,
+        readonly=False
+    )
+
+    amount_total_usd = fields.Monetary(
+        string='Total ($)',
+        compute='_compute_amount_total_usd',
+        store=True,
+        currency_field='currency_id_usd_krill'
+    )
+
+    currency_id_usd_krill = fields.Many2one(
+        'res.currency',
+        string='Moneda USD',
+        default=lambda self: self.env.ref('base.USD')
+    )
+
+    @api.depends('krill_tasa_fijada', 'krill_tasa_valor', 'company_id', 'date_order')
+    def _compute_krill_tasa_visual(self):
+        for record in self:
+            if not record.krill_tasa_fijada:
+                record.krill_tasa_visual = self.env['res.currency'].get_trm_systray()
+            else:
+                if record.krill_tasa_valor:
+                    record.krill_tasa_visual = record.krill_tasa_valor
+                else:
+                    dif = record.currency_id_dif
+                    if dif:
+                        target_date = record.date_order or fields.Date.today()
+                        rate_entry = self.env['res.currency.rate'].search([
+                            ('currency_id', '=', dif.id),
+                            ('company_id', '=', record.company_id.id),
+                            ('name', '<=', target_date)
+                        ], order='name desc', limit=1)
+                        if rate_entry:
+                            tasa = rate_entry.rate
+                            if 0.0 < tasa < 1.0:
+                                tasa = 1.0 / tasa
+                            record.krill_tasa_visual = round(tasa, 4)
+                        else:
+                            record.krill_tasa_visual = 1.0
+                    else:
+                        record.krill_tasa_visual = 1.0
+
+    @api.depends('company_id', 'currency_id_dif', 'krill_tasa_fijada', 'krill_tasa_valor')
     def _compute_tasa_ref_po(self):
         for record in self:
-            dif = record.currency_id_dif or record.company_id.currency_id_dif
-            if dif and dif.inverse_rate:
-                record.tasa_referencial = dif.inverse_rate
+            if record.krill_tasa_fijada and record.krill_tasa_valor > 0:
+                record.tasa_referencial = record.krill_tasa_valor
             else:
-                record.tasa_referencial = 1.0
+                dif = record.currency_id_dif or record.company_id.currency_id_dif
+                if dif and dif.inverse_rate:
+                    record.tasa_referencial = dif.inverse_rate
+                else:
+                    record.tasa_referencial = 1.0
 
-    @api.depends('amount_total', 'amount_untaxed', 'amount_tax', 'tasa_referencial', 'currency_id', 'company_id')
+    @api.depends('amount_total', 'amount_untaxed', 'amount_tax', 'tasa_referencial', 'currency_id', 'company_id', 'krill_tasa_fijada', 'krill_tasa_valor')
     def _compute_amount_dif_po(self):
-        today = fields.Date.today()
         for record in self:
             dif = record.currency_id_dif or record.company_id.currency_id_dif
             if not dif:
@@ -43,15 +107,41 @@ class PurchaseOrder(models.Model):
                 continue
             src = record.currency_id
             company = record.company_id
+
+            if record.krill_tasa_fijada and record.krill_tasa_valor > 0:
+                tasa = record.krill_tasa_valor
+            else:
+                tasa = dif.inverse_rate if dif.inverse_rate and dif.inverse_rate > 0 else 1.0
+
             if src == dif:
                 record.amount_total_dif = record.amount_total
                 record.amount_untaxed_dif = record.amount_untaxed
                 record.amount_tax_dif = record.amount_tax
+            elif src.name != dif.name:
+                record.amount_total_dif = record.amount_total * tasa
+                record.amount_untaxed_dif = record.amount_untaxed * tasa
+                record.amount_tax_dif = record.amount_tax * tasa
             else:
-                record.amount_total_dif = src._convert(record.amount_total, dif, company, today, round=True)
-                record.amount_untaxed_dif = src._convert(record.amount_untaxed, dif, company, today, round=True)
-                record.amount_tax_dif = src._convert(record.amount_tax, dif, company, today, round=True)
+                record.amount_total_dif = record.amount_total / tasa if tasa else 0.0
+                record.amount_untaxed_dif = record.amount_untaxed / tasa if tasa else 0.0
+                record.amount_tax_dif = record.amount_tax / tasa if tasa else 0.0
 
+    @api.depends('amount_total', 'tasa_referencial', 'currency_id')
+    def _compute_amount_total_usd(self):
+        for order in self:
+            if order.currency_id.name == 'USD':
+                order.amount_total_usd = order.amount_total
+            else:
+                tasa = order.tasa_referencial if order.tasa_referencial > 0 else 1.0
+                order.amount_total_usd = order.amount_total / tasa
+
+    def action_update_krill_rate(self):
+        self.ensure_one()
+        self.write({
+            'tasa_referencial': self.krill_tasa_visual,
+            'krill_tasa_valor': self.krill_tasa_visual
+        })
+        return True
 
     def action_create_invoice(self):
         """Create the invoice associated to the PO.
@@ -117,7 +207,22 @@ class PurchaseOrder(models.Model):
         moves = self.env['account.move']
         AccountMove = self.env['account.move'].with_context(default_move_type='in_invoice',calcular_dual_currency=False)
         for vals in invoice_vals_list:
-            vals['tax_today'] = self.env.company.currency_id_dif.inverse_rate
+            po_currency_id = vals.get('currency_id')
+            company = self.env.company
+            currency_dif = company.currency_id_dif
+            # If the PO currency is the same as the dual/reference currency (e.g. PO in USD
+            # and currency_id_dif = USD), then tax_today must be 1.0 to avoid double conversion.
+            # Only apply the inverse_rate when the PO is in the base currency (VES) and the dual is USD.
+            if po_currency_id and currency_dif and po_currency_id == currency_dif.id:
+                vals['tax_today'] = 1.0
+            else:
+                origin_names = vals.get('invoice_origin', '').split(', ')
+                orders = self.env['purchase.order'].search([('name', 'in', origin_names)])
+                order_fixed = orders.filtered(lambda o: o.krill_tasa_fijada and o.krill_tasa_valor > 0)
+                if order_fixed:
+                    vals['tax_today'] = order_fixed[0].krill_tasa_valor
+                else:
+                    vals['tax_today'] = currency_dif.inverse_rate if currency_dif else 1.0
             moves |= AccountMove.with_company(vals['company_id']).create(vals)
 
         # 4) Some moves might actually be refunds: convert them if the total amount is negative
@@ -126,3 +231,22 @@ class PurchaseOrder(models.Model):
         moves.filtered(lambda m: m.currency_id.round(m.amount_total) < 0).action_switch_move_type()
 
         return self.action_view_invoice(moves)
+
+    def write(self, vals):
+        if any(f in vals for f in ['date_order', 'date_planned']) and not any(f in vals for f in ['partner_id', 'currency_id']):
+            prices = {line.id: line.price_unit for line in self.order_line if line.id}
+            res = super().write(vals)
+            for line in self.order_line:
+                if line.id in prices and line.price_unit != prices[line.id]:
+                    line.write({'price_unit': prices[line.id]})
+            return res
+        return super().write(vals)
+
+    @api.onchange('date_order')
+    def _onchange_date_order(self):
+        prices = {line: line.price_unit for line in self.order_line}
+        res = super()._onchange_date_order() if hasattr(super(PurchaseOrder, self), '_onchange_date_order') else {}
+        for line, price in prices.items():
+            if line.price_unit != price:
+                line.price_unit = price
+        return res

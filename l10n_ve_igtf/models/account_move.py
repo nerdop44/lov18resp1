@@ -164,21 +164,36 @@ class AccountMove(models.Model):
             record.bi_igtf = amount
 
     def _get_payment_from_line(self, line):
-        """Método seguro para obtener el pago desde una línea"""
-        # Primero intenta con payment_id directo en la línea
+        """Método seguro para obtener el pago desde una línea.
+        
+        Odoo 18: account.partial.reconcile NO tiene campo payment_id directo.
+        Se navega de forma segura por debit_move_id/credit_move_id de cada partial.
+        Aplica tanto a facturas de clientes (out_invoice) como a facturas de proveedores (in_invoice).
+        """
+        # 1. Intenta con payment_id directo en la línea
         if hasattr(line, 'payment_id') and line.payment_id:
             return line.payment_id
-    
-        # Si no existe, busca pagos vinculados al asiento
+
+        # 2. Busca pagos vinculados al asiento de la línea directamente
         payment = self.env['account.payment'].search([
             ('move_id', '=', line.move_id.id)
         ], limit=1)
-    
-        # Si aún no hay pago, busca a través de conciliaciones
-        if not payment:
-            payment = line.matched_debit_ids.payment_id or line.matched_credit_ids.payment_id
-    
-        return payment
+        if payment:
+            return payment
+
+        # 3. Navega de forma segura por las conciliaciones parciales (debit side)
+        for partial in line.matched_debit_ids:
+            pmt = getattr(partial.debit_move_id, 'payment_id', None)
+            if pmt:
+                return pmt
+
+        # 4. Navega de forma segura por las conciliaciones parciales (credit side)
+        for partial in line.matched_credit_ids:
+            pmt = getattr(partial.credit_move_id, 'payment_id', None)
+            if pmt:
+                return pmt
+
+        return self.env['account.payment']
 
     def remove_igtf_from_move(self, partial_id):
         """Remove IGTF from move
@@ -198,15 +213,15 @@ class AccountMove(models.Model):
 #        payment_credit = partial.credit_move_id.payment_id
 #        payment_debit = partial.debit_move_id.payment_id
 
-        move_credit = partial.credit_move_id.payment_id.reconciled_invoice_ids
-        move_debit = partial.debit_move_id.payment_id.reconciled_invoice_ids
+        move_credit = payment_credit.reconciled_invoice_ids if payment_credit else self.env['account.move']
+        move_debit = payment_debit.reconciled_invoice_ids if payment_debit else self.env['account.move']
 
-        reverse_move_credit = partial.credit_move_id.payment_id.reconciled_bill_ids
-        reverse_move_debit = partial.debit_move_id.payment_id.reconciled_bill_ids
+        reverse_move_credit = payment_credit.reconciled_bill_ids if payment_credit else self.env['account.move']
+        reverse_move_debit = payment_debit.reconciled_bill_ids if payment_debit else self.env['account.move']
 
         for move in move_credit:
-            if payment_credit.is_igtf_on_foreign_exchange and move and move.bi_igtf > 0:
-                amount = partial.credit_move_id.payment_id.amount
+            if payment_credit and payment_credit.is_igtf_on_foreign_exchange and move and move.bi_igtf > 0:
+                amount = payment_credit.amount
                 if self.env.company.currency_id.id == self.env.ref("base.VEF").id:
                     amount = amount * move.foreign_rate
                 result = move.bi_igtf - amount
@@ -220,8 +235,8 @@ class AccountMove(models.Model):
                     move.write({"is_two_percentage": True})
 
         for move in move_debit:
-            if payment_debit.is_igtf_on_foreign_exchange and move and move.bi_igtf > 0:
-                amount = partial.debit_move_id.payment_id.amount
+            if payment_debit and payment_debit.is_igtf_on_foreign_exchange and move and move.bi_igtf > 0:
+                amount = payment_debit.amount
                 if self.env.company.currency_id.id == self.env.ref("base.VEF").id:
                     amount = amount * move.foreign_rate
                 result = move.bi_igtf - amount
@@ -235,11 +250,12 @@ class AccountMove(models.Model):
 
         for reverse_credit in reverse_move_credit:
             if (
-                payment_credit.is_igtf_on_foreign_exchange
+                payment_credit
+                and payment_credit.is_igtf_on_foreign_exchange
                 and reverse_credit
                 and reverse_credit.bi_igtf > 0
             ):
-                amount = partial.credit_move_id.payment_id.amount
+                amount = payment_credit.amount
                 if self.env.company.currency_id.id == self.env.ref("base.VEF").id:
                     amount = amount * reverse_credit.foreign_rate
                 result = reverse_credit.bi_igtf - amount
@@ -253,11 +269,12 @@ class AccountMove(models.Model):
 
         for reverse_debit in reverse_move_debit:
             if (
-                payment_debit.is_igtf_on_foreign_exchange
+                payment_debit
+                and payment_debit.is_igtf_on_foreign_exchange
                 and reverse_debit
                 and reverse_debit.bi_igtf > 0
             ):
-                amount = partial.debit_move_id.payment_id.amount
+                amount = payment_debit.amount
                 if self.env.company.currency_id.id == self.env.ref("base.VEF").id:
                     amount = amount * reverse_debit.foreign_rate
                 result = reverse_debit.bi_igtf - amount

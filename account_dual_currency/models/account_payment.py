@@ -51,19 +51,65 @@ class AccountPayment(models.Model):
         readonly=True)
 
     def _get_default_tasa(self):
-        return self.env.company.currency_id_dif.inverse_rate
+        """Devuelve la tasa de cambio por defecto.
+        
+        Para compañías con moneda base USD (como Krill Energy): devuelve la tasa
+        directa Bs/USD (currency_id_dif.rate → p.ej. 639.7).
+        Para compañías con moneda base VES: devuelve la inversa (USD/Bs).
+        """
+        company = self.env.company
+        currency_dif = company.currency_id_dif
+        if not currency_dif:
+            return 1.0
+        if company.currency_id.name == 'USD':
+            # Krill Energy: base USD, dual VES → tasa directa (cuántos Bs por 1 USD)
+            return currency_dif.rate or 1.0
+        else:
+            # Estándar Venezuela: base VES, dual USD → tasa inversa
+            return currency_dif.inverse_rate or 1.0
+
+    @api.onchange('tax_today')
+    def _onchange_tax_today_payment_sync(self):
+        """Sincroniza tax_today → foreign_rate en pagos, igual que en facturas."""
+        for rec in self:
+            if rec.tax_today > 0 and hasattr(rec, 'foreign_rate'):
+                rec.foreign_rate = rec.tax_today
+
+    @api.onchange('foreign_rate')
+    def _onchange_foreign_rate_payment_sync(self):
+        """Sincroniza foreign_rate → tax_today en pagos, igual que en facturas."""
+        for rec in self:
+            if hasattr(rec, 'foreign_rate') and rec.foreign_rate > 0:
+                rec.tax_today = rec.foreign_rate
 
     @api.depends('currency_id_dif','currency_id','amount','tax_today')
     def _currency_equal(self):
         for rec in self:
-            currency_equal = rec.currency_id_company != rec.currency_id
-            if currency_equal:
-                rec.amount_local = rec.amount * rec.tax_today
-                rec.amount_ref = rec.amount
+            is_company_usd = rec.currency_id_company.name == 'USD'
+            currencies_are_different = rec.currency_id_company != rec.currency_id
+            
+            if is_company_usd:
+                # Caso Krill: Moneda base USD, Moneda alterna VES (Bs.)
+                if currencies_are_different:
+                    # El pago está en VES (Bs.)
+                    rec.amount_local = (rec.amount / rec.tax_today) if rec.amount > 0 and rec.tax_today > 0 else 0
+                    rec.amount_ref = rec.amount
+                else:
+                    # El pago está en USD
+                    rec.amount_local = rec.amount
+                    rec.amount_ref = rec.amount * rec.tax_today
             else:
-                rec.amount_local = rec.amount
-                rec.amount_ref = (rec.amount / rec.tax_today) if rec.amount > 0 and rec.tax_today > 0 else 0
-            rec.currency_equal = currency_equal
+                # Caso estándar/Binaural: Moneda base VES (Bs.), Moneda alterna USD
+                if currencies_are_different:
+                    # El pago está en USD
+                    rec.amount_local = rec.amount * rec.tax_today
+                    rec.amount_ref = rec.amount
+                else:
+                    # El pago está en VES (Bs.)
+                    rec.amount_local = rec.amount
+                    rec.amount_ref = (rec.amount / rec.tax_today) if rec.amount > 0 and rec.tax_today > 0 else 0
+            
+            rec.currency_equal = currencies_are_different
 
             if rec.aplicar_igtf_divisa:
                 if rec.currency_id.name == 'USD':
@@ -107,8 +153,21 @@ class AccountPayment(models.Model):
 
     def register_move_igtf_divisa_payment(self):
         '''Este método realiza el asiento contable de la comisión según el porcentaje que indica la compañia'''
-        #self.env['ir.sequence'].with_context(ir_sequence_date=self.date_advance).next_by_code(sequence_code)
         diario = self.journal_igtf_id or self.journal_id
+        
+        # Lógica de conversión multimoneda adaptada a moneda base USD/Bs
+        is_company_usd = self.company_id.currency_id.name == 'USD'
+        if is_company_usd:
+            if self.currency_id.name == 'USD':
+                igtf_converted = self.mount_igtf
+            else:
+                igtf_converted = (self.mount_igtf / self.tax_today) if self.tax_today and self.mount_igtf else 0.0
+        else:
+            if self.currency_id.name == 'USD':
+                igtf_converted = self.mount_igtf * self.tax_today
+            else:
+                igtf_converted = self.mount_igtf
+
         vals = {
             'date': self.date,
             'journal_id': diario.id,
@@ -132,8 +191,8 @@ class AccountPayment(models.Model):
                     'partner_id': self.partner_id.id,
                     'name': "Comisión IGTF Divisa",
                     'journal_id': self.journal_id.id,
-                    'credit': float(self.mount_igtf * self.tax_today) if not self.payment_type == 'inbound' else float(0.0),
-                    'debit': float(self.mount_igtf * self.tax_today) if self.payment_type == 'inbound' else float(0.0),
+                    'credit': float(igtf_converted) if not self.payment_type == 'inbound' else float(0.0),
+                    'debit': float(igtf_converted) if self.payment_type == 'inbound' else float(0.0),
                     'amount_currency': -self.mount_igtf if not self.payment_type == 'inbound' else self.mount_igtf,
                 }),
                 (0,0,{
@@ -145,11 +204,10 @@ class AccountPayment(models.Model):
                     'date': self.date,
                     'name': "Comisión IGTF Divisa",
                     'journal_id': self.journal_id.id,
-                    'credit': float(self.mount_igtf * self.tax_today) if self.payment_type == 'inbound' else float(0.0),
-                    'debit': float(self.mount_igtf * self.tax_today) if not self.payment_type == 'inbound' else float(0.0),
+                    'credit': float(igtf_converted) if self.payment_type == 'inbound' else float(0.0),
+                    'debit': float(igtf_converted) if not self.payment_type == 'inbound' else float(0.0),
                     'amount_currency': -self.mount_igtf if self.payment_type == 'inbound' else self.mount_igtf,
                 })]
-        #print('lineas',line_ids)
         move_id.line_ids = line_ids
         if move_id:
             res = {'move_id_igtf_divisa': move_id.id}
@@ -173,19 +231,28 @@ class AccountPayment(models.Model):
             if 'credit' not in line:
                 line['credit'] = abs(line['balance']) if line.get('balance', 0) < 0 else 0
 
+        is_company_usd = self.currency_id_company.name == 'USD'
         for line in res:
             if line['account_id'] == self.outstanding_account_id.id:
                 line['tax_today'] = self.tax_today
                 if currencies_are_different:
-                    line['debit'] = (line['amount_currency'] * self.tax_today) if line['debit'] else 0
-                    line['credit'] = (abs(line['amount_currency']) * self.tax_today) if line['credit'] else 0
+                    if is_company_usd:
+                        line['debit'] = (line['amount_currency'] / self.tax_today) if line['debit'] and self.tax_today else 0
+                        line['credit'] = (abs(line['amount_currency']) / self.tax_today) if line['credit'] and self.tax_today else 0
+                    else:
+                        line['debit'] = (line['amount_currency'] * self.tax_today) if line['debit'] else 0
+                        line['credit'] = (abs(line['amount_currency']) * self.tax_today) if line['credit'] else 0
                     line['balance'] = line['debit'] - line['credit']
             elif line['account_id'] == self.destination_account_id.id:
                 tasa_factura = self.env.context.get('tasa_factura', self.tax_today)
                 line['tax_today'] = tasa_factura if write_off_line_vals else self.tax_today
                 if currencies_are_different:
-                    line['debit'] = (line['amount_currency'] * line['tax_today']) if line['debit'] else 0
-                    line['credit'] = (abs(line['amount_currency']) * line['tax_today']) if line['credit'] else 0
+                    if is_company_usd:
+                        line['debit'] = (line['amount_currency'] / line['tax_today']) if line['debit'] and line['tax_today'] else 0
+                        line['credit'] = (abs(line['amount_currency']) / line['tax_today']) if line['credit'] and line['tax_today'] else 0
+                    else:
+                        line['debit'] = (line['amount_currency'] * line['tax_today']) if line['debit'] else 0
+                        line['credit'] = (abs(line['amount_currency']) * line['tax_today']) if line['credit'] else 0
                     line['balance'] = line['debit'] - line['credit']
             else:
                 continue

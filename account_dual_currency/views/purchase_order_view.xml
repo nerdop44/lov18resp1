@@ -1,30 +1,50 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_purchase_order_form_inherit_dual_currency" model="ir.ui.view">
-    <field name="name">purchase.order.form.inherit.dual_currency</field>
-    <field name="model">purchase.order</field>
-    <field name="inherit_id" ref="purchase.purchase_order_form"/>
-    <field name="arch" type="xml">
-    <!-- Tasa en el header: usando currency_id que siempre existe tanto en RFQs como en Órdenes -->
-    <xpath expr="//field[@name='currency_id']" position="after">
-    <field name="currency_id_dif" invisible="1"/>
-    <field name="tasa_referencial" readonly="1" string="Tasa Ref. (BCV)"/>
-    </xpath>
-    <!-- Columnas opcionales en líneas -->
-    <xpath expr="//field[@name='price_unit']" position="after">
-    <field name="price_unit_dif" optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
-    </xpath>
-    <xpath expr="//field[@name='price_subtotal']" position="after">
-    <field name="price_subtotal_dif" optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
-    </xpath>
-    <!-- Panel de totales en moneda de referencia -->
-    <xpath expr="//field[@name='tax_totals']" position="before">
-    <group class="oe_subtotal_footer" name="purchase_total_ref">
-    <field name="amount_untaxed_dif" string="Base Ref." widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
-    <field name="amount_tax_dif" string="Impuesto Ref." widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
-    <field name="amount_total_dif" string="Total Ref." class="oe_subtotal_footer_separator" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
-    </group>
-    </xpath>
-    </field>
-    </record>
+    <data>
+        <record id="view_purchase_order_form_inherit_dual_currency" model="ir.ui.view">
+            <field name="name">purchase.order.form.inherit.dual_currency</field>
+            <field name="model">purchase.order</field>
+            <field name="inherit_id" ref="purchase.purchase_order_form"/>
+            <field name="arch" type="xml">
+                <!-- Tasa en el header con el switch y botón de actualizar -->
+                <xpath expr="//field[@name='currency_id']" position="after">
+                    <field name="currency_id_dif" invisible="1"/>
+                    <field name="krill_tasa_valor" invisible="1"/>
+                    <field name="currency_id_usd_krill" invisible="1"/>
+                    <field name="tasa_referencial" invisible="1"/>
+                    
+                    <label for="krill_tasa_fijada" string="Tasa de Cambio"/>
+                    <div class="o_row">
+                        <field name="krill_tasa_fijada" widget="boolean_toggle" readonly="1"/>
+                        <span class="fw-bold">
+                            <field name="krill_tasa_visual" nolabel="1" class="oe_inline" readonly="1"/> Bs/$
+                        </span>
+                        <button name="action_update_krill_rate" type="object" 
+                                string="(Actualizar Totales)" 
+                                class="btn-link o_form_uri p-0"
+                                invisible="krill_tasa_visual == tasa_referencial"/>
+                        
+                        <span class="text-muted" invisible="not krill_tasa_fijada">(Histórica)</span>
+                        <span class="text-muted" invisible="krill_tasa_fijada">(BCV)</span>
+                    </div>
+                </xpath>
+                <!-- Columnas opcionales en líneas -->
+                <xpath expr="//field[@name='price_unit']" position="after">
+                    <field name="price_unit_dif" optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                </xpath>
+                <xpath expr="//field[@name='price_subtotal']" position="after">
+                    <field name="price_subtotal_dif" optional="hide" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                </xpath>
+                <!-- Panel de totales en moneda de referencia -->
+                <xpath expr="//field[@name='tax_totals']" position="before">
+                    <group class="oe_subtotal_footer" name="purchase_total_ref" invisible="1">
+                        <field name="amount_untaxed_dif" string="Base Ref." widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="amount_tax_dif" string="Impuesto Ref." widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="amount_total_dif" string="Total Ref." class="oe_subtotal_footer_separator" widget="monetary" options="{'currency_field': 'currency_id_dif'}"/>
+                        <field name="amount_total_usd" widget="monetary" string="Total Ref. ($)" class="oe_subtotal_footer_separator" options="{'currency_field': 'currency_id_usd_krill'}"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+    </data>
 </odoo>

@@ -69,7 +69,7 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             "correlative": move.correlative,
             "reduced_aliquot": 0.08,
             "general_aliquot": 0.16,
-            "total_sales_iva": taxes.get("amount_taxed", 0),
+            "total_sales_iva": taxes.get("amount_untaxed", 0) + taxes.get("amount_taxed", 0),
             "total_sales_not_iva": taxes.get("tax_base_exempt_aliquot", 0) * multiplier,
             "amount_reduced_aliquot": taxes.get("amount_reduced_aliquot", 0) * multiplier,
             "amount_general_aliquot": taxes.get("amount_general_aliquot", 0) * multiplier,
@@ -95,7 +95,7 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
             "reduced_aliquot": 0.08,
             "extend_aliquot": 0.31,
             "general_aliquot": 0.16,
-            "total_purchases_iva": taxes.get("amount_taxed", 0),
+            "total_purchases_iva": taxes.get("amount_untaxed", 0) + taxes.get("amount_taxed", 0),
             "total_purchases_not_iva": taxes.get("tax_base_exempt_aliquot", 0) * multiplier,
             "amount_reduced_aliquot": taxes.get("amount_reduced_aliquot", 0) * multiplier,
             "amount_general_aliquot": taxes.get("amount_general_aliquot", 0) * multiplier,
@@ -581,6 +581,9 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
         return search_domain
 
     def generate_report(self):
+        moves = self.search_moves()
+        if not moves:
+            raise UserError(_("No hay registros en el rango de fechas seleccionado para este reporte."))
         is_sale = self.report == "sale"
 
         if is_sale:
@@ -1025,6 +1028,8 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
     def generate_sales_book(self, company_id):
         self.company_id = company_id
         sale_book_lines = self.parse_sale_book_data()
+        if not sale_book_lines:
+            raise UserError(_("No hay registros en el rango de fechas seleccionado para este reporte."))
         file = BytesIO()
 
         workbook = xlsxwriter.Workbook(file, {"in_memory": True, "nan_inf_to_errors": True})
@@ -1095,6 +1100,8 @@ class WizardAccountingReportsBinauralInvoice(models.TransientModel):
     def generate_purchases_book(self, company_id):
         self.company_id = company_id
         purchase_book_lines = self.parse_purchase_book_data()
+        if not purchase_book_lines:
+            raise UserError(_("No hay registros en el rango de fechas seleccionado para este reporte."))
         file = BytesIO()
 
         workbook = xlsxwriter.Workbook(file, {"in_memory": True, "nan_inf_to_errors": True})

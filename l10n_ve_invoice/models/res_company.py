@@ -14,3 +14,5 @@ class ResCompany(models.Model):
     show_tag_on_usd_invoice = fields.Boolean(default=True)
     activate_custom_margin = fields.Boolean(default=False)
     forma_libre_top_margin = fields.Float(string="Margen Superior Forma Libre (cm)", default=0.0)
+    invoice_line_font_size = fields.Integer(string="Tamaño de Fuente de Líneas (pt)", default=10)
+    invoice_line_line_height = fields.Float(string="Interlineado de Líneas (line-height)", default=1.2)

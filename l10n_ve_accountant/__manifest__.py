@@ -6,15 +6,13 @@
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Accounting/Localizations/Account Chart",
-    'version': "18.0.1.0.59",
+    'version': "18.0.1.0.74",
     # any module necessary for this one to work correctly
     "depends": [
         "base",
         "web",
         "account",
-        "account_dual_currency",
         "l10n_ve_tax",
-
         "l10n_ve_contact",
         "l10n_ve_rate",
         #####
@@ -31,6 +29,7 @@
     #    "views/account_move.xml",
         "views/account_move_line.xml",
         "views/account_payment.xml",
+        "views/account_sequence_menu.xml",
         "views/ir_property.xml",
         "report/account_invoice_details.xml",
         "report/all_payment_report.xml",

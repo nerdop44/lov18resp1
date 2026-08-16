@@ -39,6 +39,18 @@ class AccountMove(models.Model):
         default=default_alternate_currency,
     )
 
+    payment_id = fields.Many2one(
+        "account.payment",
+        string="Payment Reference",
+        compute="_compute_payment_id",
+        help="Technical field for backward compatibility to retrieve the associated payment.",
+    )
+
+    @api.depends("payment_ids")
+    def _compute_payment_id(self):
+        for move in self:
+            move.payment_id = move.payment_ids[:1]
+
     @api.onchange("move_type")
     def _onchange_move_type(self):
         self.invoice_date = False if self.move_type == "entry" else fields.Date.context_today(self)
@@ -336,7 +348,7 @@ class AccountMove(models.Model):
         """
         for vals in vals_list:
 
-            if 'name' in vals and vals['name'] != "/":
+            if 'name' in vals and vals['name'] and vals['name'] != "/":
                 existing_record = self.search([('name', '=', vals['name'])], limit=1)
                 if existing_record:
                     raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
@@ -366,12 +378,26 @@ class AccountMove(models.Model):
         """
         computes the foreign debit and foreign credit of the line_ids fields (journal entries) when
         the move is edited.
-        """
 
-        if 'name' in vals:
-            existing_record = self.search([('name', '=', vals['name']), ('id', '!=', self.id)], limit=1)
-            if existing_record:
-                raise ValidationError(_("The operation cannot be completed: Another entry with the same name already exists."))
+        FIX (2026-06-17): Se corrigió el uso de self.id que causaba ValueError: Expected singleton
+        cuando write() era invocado sobre un multi-recordset (ej: account.resequence.wizard).
+        La solución (Opción A) itera sobre self con 'for record in self:' y usa record.id.
+        Adicionalmente se agrega la guarda 'and vals['name']' para evitar la búsqueda
+        cuando el wizard resetea el nombre a False durante el proceso de re-secuenciación.
+        """
+        # FIX: Soportar multi-recordset — account.resequence.wizard llama write({'name': False})
+        # sobre un recordset de N registros. self.id solo funciona en singletons.
+        # La guarda 'and vals['name']' evita la búsqueda innecesaria cuando name=False.
+        if 'name' in vals and vals['name'] and vals['name'] != "/":
+            for record in self:
+                existing_record = self.search(
+                    [('name', '=', vals['name']), ('id', '!=', record.id)],
+                    limit=1
+                )
+                if existing_record:
+                    raise ValidationError(_(
+                        "The operation cannot be completed: Another entry with the same name already exists."
+                    ))
 
         if vals.get("foreign_rate", False):
             for move in self:
@@ -693,11 +719,26 @@ class AccountMove(models.Model):
         for move in documents:
             if move.manually_set_rate:
                 continue
+            
+            # Si el módulo de moneda dual tiene una tasa establecida y fue editada manualmente, priorizarla
+            tax_today = getattr(move, 'tax_today', 0.0)
+            tax_today_edited = getattr(move, 'tax_today_edited', False)
+            if tax_today > 0.0 and (move.manually_set_rate or tax_today_edited):
+                move.foreign_rate = tax_today
+                move.foreign_inverse_rate = 1.0 / tax_today
+                continue
+
             date_field = "invoice_date" if is_sale else "date"
             rate_date = getattr(move, date_field) or fields.Date.context_today(self)
             rate_values = Rate.compute_rate(move.foreign_currency_id.id, rate_date)
-            move.foreign_rate = rate_values.get("foreign_rate", 0)
-            move.foreign_inverse_rate = rate_values.get("foreign_inverse_rate", 0)
+            
+            foreign_rate = rate_values.get("foreign_rate", 0.0)
+            move.foreign_rate = foreign_rate
+            move.foreign_inverse_rate = rate_values.get("foreign_inverse_rate", 0.0)
+            
+            # Sincronizar de vuelta a tax_today si se obtuvo una tasa válida
+            if foreign_rate > 0.0 and hasattr(move, 'tax_today'):
+                move.tax_today = foreign_rate
 
     @api.depends("tax_totals")
     def _compute_foreign_taxable_income(self):
@@ -1002,20 +1043,22 @@ class AccountMove(models.Model):
                     )
 
                     for term in invoice_payment_terms["line_ids"]:
-                        for key in list(invoice.needed_terms.keys()):
-                            if key["date_maturity"] == fields.Date.to_date(
-                                term.get("date")
-                            ):
-                                invoice.needed_terms[key] = {
-                                    **invoice.needed_terms[key],
-                                    "foreign_balance": term["company_amount"],
-                                }
+                        if invoice.needed_terms:
+                            for key in list(invoice.needed_terms.keys()):
+                                if key["date_maturity"] == fields.Date.to_date(
+                                    term.get("date")
+                                ):
+                                    invoice.needed_terms[key] = {
+                                        **invoice.needed_terms[key],
+                                        "foreign_balance": term["company_amount"],
+                                    }
                 else:
-                    for key in list(invoice.needed_terms.keys()):
-                        invoice.needed_terms[key] = {
-                            **invoice.needed_terms[key],
-                            "foreign_balance": sign * invoice.foreign_total_billed,
-                        }
+                    if invoice.needed_terms:
+                        for key in list(invoice.needed_terms.keys()):
+                            invoice.needed_terms[key] = {
+                                **invoice.needed_terms[key],
+                                "foreign_balance": sign * invoice.foreign_total_billed,
+                            }
         return res
 
     def button_draft(self):
@@ -1031,8 +1074,7 @@ class AccountMove(models.Model):
             if moves.move_type == "entry":
                 continue
             for line in moves.invoice_line_ids:
-                if (
-                    len(line.product_id) != 1
-                    and line.display_type == "product"
-                ):
+                if line.display_type:
+                    continue
+                if not line.product_id and not line.currency_id.is_zero(line.price_subtotal):
                     raise ValidationError(_("All added lines must indicate the product."))

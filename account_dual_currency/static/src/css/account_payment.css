@@ -1,0 +1,9 @@
+/* Quitar truncamiento en el widget de pagos pendientes y conciliaciones de Odoo 18 */
+div[name="invoice_outstanding_credits_debits_widget"],
+div[name="invoice_outstanding_credits_debits_widget"] *,
+.oe_invoice_outstanding_credits_debits,
+.oe_invoice_outstanding_credits_debits * {
+    white-space: normal !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+}

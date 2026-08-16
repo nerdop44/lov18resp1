@@ -180,6 +180,12 @@ class AccountPayment(models.Model):
     def _compute_rate(self):
         Rate = self.env["res.currency.rate"]
         for payment in self:
+            tax_today = getattr(payment, 'tax_today', 0.0)
+            if tax_today > 0.0:
+                payment.foreign_rate = tax_today
+                payment.foreign_inverse_rate = 1.0 / tax_today
+                continue
+
             if not payment.foreign_currency_id:
                 payment.foreign_rate = 0.0
                 payment.foreign_inverse_rate = 0.0

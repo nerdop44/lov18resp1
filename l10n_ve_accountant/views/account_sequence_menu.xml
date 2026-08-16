@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Menú nativo de gestión de secuencias (ir.sequence) visible solo para
+        administradores de contabilidad (account.group_account_manager).
+        
+        Ubicación: Contabilidad → Configuración → Técnico → Secuencias
+        
+        Permite ver y corregir el prefix, number_next y padding de cada secuencia
+        sin necesidad de activar el modo desarrollador.
+        
+        Nota: Este menú expone la funcionalidad nativa de Odoo (ir.sequence),
+        no agrega lógica nueva. Es parte de la localización venezolana ya que
+        el control de correlativos (SENIAT) requiere acceso directo a secuencias.
+    -->
+
+    <!-- Acción para abrir la lista de secuencias -->
+    <record id="action_ir_sequence_accounting" model="ir.actions.act_window">
+        <field name="name">Secuencias de Contabilidad</field>
+        <field name="res_model">ir.sequence</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('code', 'like', '%')]</field>
+        <field name="context">{'search_default_group_code': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay secuencias configuradas.
+            </p>
+            <p>
+                Las secuencias controlan la numeración de facturas, retenciones y otros
+                documentos contables. Modifique el prefijo y el próximo número según
+                los requisitos del SENIAT.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menú Técnico raíz bajo Configuración (si no existe) -->
+    <menuitem
+        id="menu_account_config_technical"
+        name="Técnico"
+        parent="account.menu_finance_configuration"
+        sequence="100"
+        groups="account.group_account_manager"/>
+
+    <!-- Submenú Secuencias -->
+    <menuitem
+        id="menu_action_ir_sequence_accounting"
+        name="Secuencias"
+        parent="menu_account_config_technical"
+        action="action_ir_sequence_accounting"
+        sequence="10"
+        groups="account.group_account_manager"/>
+
+</odoo>

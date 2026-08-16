@@ -62,3 +62,18 @@ class SaleOrder(models.Model):
         
         # Simplemente forzar recálculo de lista de precios si cambia moneda
         self.order_line._compute_price_unit()
+
+    def _recompute_prices(self):
+        if not self.env.context.get('force_pricelist_recalc'):
+            current_prices = {line.id: line.price_unit for line in self.order_line if line.id}
+            res = super()._recompute_prices()
+            for line in self.order_line:
+                if line.id in current_prices:
+                    line.price_unit = current_prices[line.id]
+            return res
+        return super()._recompute_prices()
+
+    @api.onchange('pricelist_id', 'partner_id')
+    def _onchange_pricelist_partner_force(self):
+        self = self.with_context(force_pricelist_recalc=True)
+        return super(SaleOrder, self)._onchange_pricelist_id() if hasattr(super(SaleOrder, self), '_onchange_pricelist_id') else {}

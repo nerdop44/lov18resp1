@@ -18,7 +18,7 @@ class AccountMoveLine(models.Model):
 
     @api.onchange('product_id')
     def _onchange_product_id_intermediation(self):
-        """Heredar por defecto si el producto representa una comisión de intermediación."""
+        """Heredar por defecto si el producto representa una comisión de intermediación o tiene un intermediado."""
         for line in self:
             if line.product_id and line.move_id.is_intermediation:
                 # Si el producto contiene palabras clave como comisión, fee o corretaje, pre-marcar.
@@ -27,6 +27,10 @@ class AccountMoveLine(models.Model):
                     line.is_intermediation_commission = True
                 else:
                     line.is_intermediation_commission = False
+                
+                # Autocompletar el intermediado del producto si está definido
+                if line.product_id.mediated_partner_id:
+                    line.mediated_partner_id = line.product_id.mediated_partner_id.id
 
 
 class AccountMove(models.Model):
@@ -77,18 +81,22 @@ class AccountMove(models.Model):
             else:
                 move.intermediation_case_id = False
 
-    @api.depends('is_intermediation', 'intermediation_case_id', 'invoice_line_ids.mediated_partner_id')
+    @api.depends('is_intermediation', 'intermediation_case_id', 'invoice_line_ids.mediated_partner_id', 'invoice_line_ids.product_id.mediated_partner_id')
     def _compute_intermediation_warning(self):
         for move in self:
             if move.is_intermediation and move.move_type == 'in_invoice':
-                mediated_lines = move.invoice_line_ids.filtered(lambda l: not l.is_intermediation_commission and l.mediated_partner_id)
+                mediated_lines = move.invoice_line_ids.filtered(
+                    lambda l: not l.is_intermediation_commission and (l.mediated_partner_id or l.product_id.mediated_partner_id)
+                )
                 
                 msg = "<div class='alert alert-info' style='margin-bottom: 10px; margin-top: 10px;'>"
                 msg += "📢 <strong>Factura de Intermediación Comercial activa.</strong> Al publicarse, el sistema generará automáticamente comprobantes de retención separados:<br/>"
                 msg += f"• <strong>Retención A (Comisión/Fee):</strong> A nombre del intermediario <strong>{move.partner_id.name}</strong> (RIF: {move.partner_id.vat or 'N/A'}).<br/>"
                 
                 if mediated_lines:
-                    partners_names = ", ".join(set(mediated_lines.mapped('mediated_partner_id.name')))
+                    partners_names = ", ".join(set(mediated_lines.mapped(
+                        lambda l: (l.mediated_partner_id or l.product_id.mediated_partner_id).name
+                    )))
                     msg += f"• <strong>Retención B (Reembolso de Terceros):</strong> A nombre de: <strong>{partners_names}</strong>.<br/>"
                 else:
                     msg += "• <em>Aún no se han asignado proveedores intermediados (ej. Aerolínea) en las líneas de reembolso. Asigne un Sujeto Intermediado en las líneas de producto para generar las retenciones correspondientes.</em><br/>"
@@ -98,5 +106,6 @@ class AccountMove(models.Model):
                 move.intermediation_warning = msg
             else:
                 move.intermediation_warning = False
+
 
 

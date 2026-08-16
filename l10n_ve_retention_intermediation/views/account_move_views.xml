@@ -16,7 +16,7 @@
                     <!-- Campo técnico para control de visibilidad en UI -->
                     <field name="partner_is_intermediary" invisible="1"/>
                     
-                    <group string="Intermediación Comercial" invisible="not partner_is_intermediary">
+                    <group string="Intermediación Comercial" invisible="1">
                         <field name="is_intermediation" 
                                string="¿Es Factura de Intermediación?"
                                widget="boolean_toggle"/>
@@ -34,14 +34,15 @@
                     <field name="is_intermediation_commission"
                            string="¿Es Comisión?"
                            column_invisible="not parent.is_intermediation"
+                           invisible="display_type in ('line_section', 'line_note')"
                            help="Marque si esta línea corresponde al honorario o comisión de la Agencia."
                            optional="show"/>
                            
                     <field name="mediated_partner_id"
                            string="Sujeto Intermediado"
                            column_invisible="not parent.is_intermediation"
+                           invisible="display_type in ('line_section', 'line_note')"
                            options="{'no_create': True}"
-                           domain="[('is_intermediary', '=', True)]"
                            help="Asigne el prestador de servicio real (ej. la aerolínea nacional). Deje en blanco para aerolíneas internacionales (vuelos internacionales) exentos de retención."
                            optional="show"/>
                 </xpath>

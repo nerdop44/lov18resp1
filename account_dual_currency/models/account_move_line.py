@@ -79,7 +79,15 @@ class AccountMoveLine(models.Model):
             #     company=line.company_id,
             #     date=line.move_id.invoice_date or line.move_id.date or fields.Date.context_today(line),
             # )
-            line.currency_rate = 1 / line.move_id.tax_today if line.move_id.tax_today > 0 else 1
+            if line.currency_id == line.company_currency_id:
+                line.currency_rate = 1.0
+            else:
+                if line.company_currency_id.name == 'USD':
+                    raw_rate = line.move_id.tax_today if line.move_id.tax_today > 0 else 1.0
+                else:
+                    raw_rate = 1.0 / line.move_id.tax_today if line.move_id.tax_today > 0 else 1.0
+                from odoo.tools.float_utils import float_round as _fr
+                line.currency_rate = _fr(raw_rate, precision_digits=6)
 
     @api.onchange('amount_currency')
     def _onchange_amount_currency(self):
@@ -92,7 +100,10 @@ class AccountMoveLine(models.Model):
             if rec.move_id.currency_id != rec.company_id.currency_id:
                 rec.price_unit = rec.price_unit_usd
             else:
-                rec.price_unit = rec.price_unit_usd * rec.tax_today
+                if rec.company_id.currency_id.name == 'USD':
+                    rec.price_unit = rec.price_unit_usd / rec.tax_today if rec.tax_today > 0 else 0
+                else:
+                    rec.price_unit = rec.price_unit_usd * rec.tax_today
 
 
     @api.onchange('product_id')
@@ -106,43 +117,33 @@ class AccountMoveLine(models.Model):
             line.balance_usd = line.debit_usd - line.credit_usd
 
 
-    @api.depends('price_unit', 'product_id')
+    @api.depends('price_unit', 'product_id', 'tax_today', 'currency_id')
     def _price_unit_usd(self):
         for rec in self:
             if rec.price_unit > 0:
-                if rec.move_id.currency_id == self.env.company.currency_id:
-                    rec.price_unit_usd = (rec.price_unit / rec.tax_today) if rec.tax_today > 0 else 0
-                else:
+                if rec.currency_id == rec.company_id.currency_id_dif:
                     rec.price_unit_usd = rec.price_unit
+                else:
+                    if rec.company_id.currency_id.name == 'USD':
+                        rec.price_unit_usd = rec.price_unit * rec.tax_today
+                    else:
+                        rec.price_unit_usd = (rec.price_unit / rec.tax_today) if rec.tax_today > 0 else 0
             else:
                 rec.price_unit_usd = 0
 
-            # if rec.price_unit_usd > 0:
-            #     if rec.move_id.currency_id == self.env.company.currency_id:
-            #         rec.price_unit = rec.price_unit_usd * rec.tax_today
-            #     else:
-            #         rec.price_unit = rec.price_unit_usd
-            # else:
-            #     rec.price_unit = 0
-
-    @api.depends('price_subtotal')
+    @api.depends('price_subtotal', 'tax_today', 'currency_id')
     def _price_subtotal_usd(self):
         for rec in self:
             if rec.price_subtotal > 0:
-                if rec.move_id.currency_id == self.env.company.currency_id:
-                    rec.price_subtotal_usd = (rec.price_subtotal / rec.tax_today) if rec.tax_today > 0 else 0
-                else:
+                if rec.currency_id == rec.company_id.currency_id_dif:
                     rec.price_subtotal_usd = rec.price_subtotal
+                else:
+                    if rec.company_id.currency_id.name == 'USD':
+                        rec.price_subtotal_usd = rec.price_subtotal * rec.tax_today
+                    else:
+                        rec.price_subtotal_usd = (rec.price_subtotal / rec.tax_today) if rec.tax_today > 0 else 0
             else:
                 rec.price_subtotal_usd = 0
-
-            # if rec.price_subtotal_usd > 0:
-            #     if rec.move_id.currency_id == self.env.company.currency_id:
-            #         rec.price_subtotal = rec.price_subtotal_usd * rec.tax_today
-            #     else:
-            #         rec.price_subtotal = rec.price_subtotal_usd
-            # else:
-            #     rec.price_subtotal = 0
 
     @api.model
     def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
@@ -157,50 +158,31 @@ class AccountMoveLine(models.Model):
                 group['tax_today'] = 0
         return res
 
-    @api.depends('amount_currency', 'tax_today','debit')
+    @api.depends('amount_currency', 'tax_today','debit', 'currency_id')
     def _debit_usd(self):
         for rec in self:
-            if not rec.debit == 0:
-                if rec.move_id.currency_id == self.env.company.currency_id:
-                    amount_currency = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
-                    rec.debit_usd = (amount_currency / rec.tax_today) if rec.tax_today > 0 else 0
-                    #rec.debit = amount_currency
+            if rec.debit != 0:
+                if rec.currency_id == rec.company_id.currency_id_dif:
+                    rec.debit_usd = abs(rec.amount_currency)
                 else:
-                    rec.debit_usd = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
-
-                    # if not 'calcular_dual_currency' in self.env.context:
-                    #     if not rec.move_id.stock_move_id:
-                    #         module_dual_currency = self.env['ir.module.module'].sudo().search(
-                    #             [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
-                    #         if module_dual_currency:
-                    #             # rec.debit = ((rec.amount_currency * rec.tax_today) if rec.amount_currency > 0 else (
-                    #             #         (rec.amount_currency * -1) * rec.tax_today))
-                    #             rec.with_context(check_move_validity=False).debit = (rec.debit_usd * rec.tax_today)
-
+                    if rec.company_id.currency_id.name == 'USD':
+                        rec.debit_usd = rec.debit * rec.tax_today
+                    else:
+                        rec.debit_usd = (rec.debit / rec.tax_today) if rec.tax_today > 0 else 0
             else:
                 rec.debit_usd = 0
 
-    @api.depends('amount_currency', 'tax_today','credit')
+    @api.depends('amount_currency', 'tax_today','credit', 'currency_id')
     def _credit_usd(self):
         for rec in self:
-            # tmp = rec.credit_usd if rec.credit_usd > 0 else 0
-            if not rec.credit == 0:
-                if rec.move_id.currency_id == self.env.company.currency_id:
-                    amount_currency = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
-                    rec.credit_usd = (amount_currency / rec.tax_today) if rec.tax_today > 0 else 0
-                    #rec.credit = amount_currency
+            if rec.credit != 0:
+                if rec.currency_id == rec.company_id.currency_id_dif:
+                    rec.credit_usd = abs(rec.amount_currency)
                 else:
-                    rec.credit_usd = (rec.amount_currency if rec.amount_currency > 0 else (rec.amount_currency * -1))
-                    model = self.env.context.get('active_model')
-                    # if not 'calcular_dual_currency' in self.env.context:
-                    #     if not rec.move_id.stock_move_id:
-                    #         module_dual_currency = self.env['ir.module.module'].sudo().search(
-                    #             [('name', '=', 'account_dual_currency'), ('state', '=', 'installed')])
-                    #         if module_dual_currency:
-                    #             #rec.credit = ((rec.amount_currency * rec.tax_today) if rec.amount_currency > 0 else (
-                    #             #        (rec.amount_currency * -1) * rec.tax_today))
-                    #             rec.with_context(check_move_validity=False).credit = rec.credit_usd * rec.tax_today
-
+                    if rec.company_id.currency_id.name == 'USD':
+                        rec.credit_usd = rec.credit * rec.tax_today
+                    else:
+                        rec.credit_usd = (rec.credit / rec.tax_today) if rec.tax_today > 0 else 0
             else:
                 rec.credit_usd = 0
 
@@ -259,34 +241,41 @@ class AccountMoveLine(models.Model):
         """
 
         def get_odoo_rate(vals):
-            # if vals.get('record') and vals['record'].move_id.is_invoice(include_receipts=True):
-            #     exchange_rate_date = vals['record'].move_id.invoice_date
-            # else:
-            #     exchange_rate_date = vals['date']
-            # return recon_currency._get_conversion_rate(company_currency, recon_currency, vals['company'],
-            #                                            exchange_rate_date)
-            if vals.get('record') and vals['record'].move_id.is_invoice(include_receipts=True):
-                exchange_rate_date = vals['record'].move_id.invoice_date
+            aml = vals.get('aml') or vals.get('record')
+            move = aml.move_id if aml else None
+            
+            if move and move.is_invoice(include_receipts=True):
+                exchange_rate_date = move.invoice_date
             else:
-                exchange_rate_date = vals['date']
-            to_re = recon_currency._get_conversion_rate(company_currency, recon_currency, vals['company'],
-                                                        exchange_rate_date)
-            return  1 / vals['record'].move_id.tax_today if vals['record'].move_id.tax_today > 0 else 1
-            if debit_vals['record'].move_id.is_invoice(include_receipts=True):
-                return (1 / credit_vals['record'].move_id.tax_today if credit_vals['record'].move_id.tax_today > 0 else 1)
-            elif credit_vals['record'].move_id.is_invoice(include_receipts=True):
-                return 1 / debit_vals['record'].move_id.tax_today if debit_vals['record'].move_id.tax_today > 0 else 1
+                exchange_rate_date = vals.get('date') or (aml.date if aml else fields.Date.today())
+                
+            company = vals.get('company') or (aml.company_id if aml else self.env.company)
+            
+            to_re = recon_currency._get_conversion_rate(
+                company_currency, recon_currency, company, exchange_rate_date
+            )
+            
+            if move and move.tax_today > 0:
+                # Para compañías USD (como Krill Energy): la tasa de reconciliación
+                # es tax_today directamente (p.ej. 639.7 Bs/USD), NO su inversa.
+                # Aplica para facturas de clientes (out_invoice) y proveedores (in_invoice),
+                # y para retenciones tanto de IVA como de ISLR.
+                if company.currency_id.name == 'USD':
+                    return move.tax_today
+                else:
+                    return 1 / move.tax_today
             else:
                 return to_re
-
 
         def get_accounting_rate(vals):
             aml = vals.get('aml') or vals.get('record')
             currency = aml.currency_id if aml else vals.get('currency')
-            if company_currency.is_zero(vals['balance']) or (currency and currency.is_zero(vals['amount_currency'])):
+            balance = vals.get('balance') or (aml.balance if aml else 0.0)
+            amount_currency = vals.get('amount_currency') or (aml.amount_currency if aml else 0.0)
+            if company_currency.is_zero(balance) or (currency and currency.is_zero(amount_currency)):
                 return None
             else:
-                return abs(vals['amount_currency']) / abs(vals['balance'])
+                return abs(amount_currency) / abs(balance)
 
         # ==== Determine the currency in which the reconciliation will be done ====
         # In this part, we retrieve the residual amounts, check if they are zero or not and determine in which

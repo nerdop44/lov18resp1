@@ -6,7 +6,7 @@
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Accounting/Accounting",
-    "version": "18.0.1.0.92",
+    "version": "18.0.1.0.94",
     "depends": [
         "base",
         "account_dual_currency",
