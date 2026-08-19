@@ -143,6 +143,29 @@ class PurchaseOrder(models.Model):
         })
         return True
 
+    def _prepare_invoice(self):
+        invoice_vals = super()._prepare_invoice()
+        company = self.company_id or self.env.company
+        currency_dif = company.currency_id_dif
+
+        if self.krill_tasa_fijada and self.krill_tasa_valor > 0:
+            tasa_a_usar = self.krill_tasa_valor
+            invoice_vals['tax_today_edited'] = True
+        else:
+            tasa_a_usar = self.tasa_referencial or (currency_dif.rate if company.currency_id.name == 'USD' else currency_dif.inverse_rate if currency_dif else 1.0)
+
+        if 0.0 < tasa_a_usar < 1.0:
+            tasa_a_usar = 1.0 / tasa_a_usar
+
+        invoice_vals['tax_today'] = tasa_a_usar
+        invoice_vals['foreign_rate'] = tasa_a_usar
+        if company.currency_id.name == 'USD':
+            invoice_vals['foreign_inverse_rate'] = tasa_a_usar
+        else:
+            invoice_vals['foreign_inverse_rate'] = 1.0 / tasa_a_usar if tasa_a_usar > 0 else 1.0
+
+        return invoice_vals
+
     def action_create_invoice(self):
         """Create the invoice associated to the PO.
         """
@@ -207,22 +230,6 @@ class PurchaseOrder(models.Model):
         moves = self.env['account.move']
         AccountMove = self.env['account.move'].with_context(default_move_type='in_invoice',calcular_dual_currency=False)
         for vals in invoice_vals_list:
-            po_currency_id = vals.get('currency_id')
-            company = self.env.company
-            currency_dif = company.currency_id_dif
-            # If the PO currency is the same as the dual/reference currency (e.g. PO in USD
-            # and currency_id_dif = USD), then tax_today must be 1.0 to avoid double conversion.
-            # Only apply the inverse_rate when the PO is in the base currency (VES) and the dual is USD.
-            if po_currency_id and currency_dif and po_currency_id == currency_dif.id:
-                vals['tax_today'] = 1.0
-            else:
-                origin_names = vals.get('invoice_origin', '').split(', ')
-                orders = self.env['purchase.order'].search([('name', 'in', origin_names)])
-                order_fixed = orders.filtered(lambda o: o.krill_tasa_fijada and o.krill_tasa_valor > 0)
-                if order_fixed:
-                    vals['tax_today'] = order_fixed[0].krill_tasa_valor
-                else:
-                    vals['tax_today'] = currency_dif.inverse_rate if currency_dif else 1.0
             moves |= AccountMove.with_company(vals['company_id']).create(vals)
 
         # 4) Some moves might actually be refunds: convert them if the total amount is negative

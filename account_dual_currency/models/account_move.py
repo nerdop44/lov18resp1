@@ -238,18 +238,19 @@ class AccountMove(models.Model):
                     if module_dual_currency:
                         currency_dif = self.env.company.currency_id_dif
                         move_currency_id = val.get('currency_id')
-                        # If the invoice currency is the same as the dual reference currency (e.g. USD invoice),
-                        # tax_today must be 1.0 to avoid double currency conversion in the accounting lines.
-                        if move_currency_id and currency_dif and move_currency_id == currency_dif.id:
+                        company = self.env.company
+                        # If company base is NOT USD and invoice currency is dual reference (USD), tax_today = 1.0.
+                        # For USD base companies (e.g. Krill), VEF invoices must use the actual exchange rate.
+                        if company.currency_id.name != 'USD' and move_currency_id and currency_dif and move_currency_id == currency_dif.id:
                             val.update({'tax_today': 1.0})
                         else:
                             date_to_use = val.get('invoice_date') or val.get('date') or fields.Date.context_today(self)
-                            new_rate_ids = currency_dif._get_rates(self.env.company, date_to_use) if currency_dif else {}
+                            new_rate_ids = currency_dif._get_rates(company, date_to_use) if currency_dif else {}
                             if new_rate_ids and currency_dif.id in new_rate_ids:
                                 db_rate = new_rate_ids[currency_dif.id]
                             else:
                                 db_rate = currency_dif.inverse_rate if currency_dif else 1.0
-                            
+
                             if 0.0 < db_rate < 1.0:
                                 new_rate = 1.0 / db_rate
                             else:
