@@ -187,30 +187,26 @@ class AccountTax(models.Model):
             # Calcular totales foráneos directamente desde los registros de líneas
             # El 'record' en base_lines es un account.move.line con foreign_subtotal y foreign_price_total
             foreign_amount_untaxed = 0.0
-            foreign_amount_total = 0.0
             groups_by_foreign_subtotal = {}
 
             for base_line in base_lines:
                 record = base_line.get("record")
                 if not record:
                     continue
-                # Sumamos subtotal foráneo (sin impuestos) y total foráneo (con impuestos)
+                # Sumamos subtotal foráneo (sin impuestos)
                 if hasattr(record, 'foreign_subtotal'):
                     foreign_amount_untaxed += record.foreign_subtotal or 0.0
-                if hasattr(record, 'foreign_price_total'):
-                    foreign_amount_total += record.foreign_price_total or 0.0
 
                 # Construir groups_by_foreign_subtotal para los libros fiscales
                 # La estructura que espera el reporte es:
                 # { "Nombre subtotal": [{ "tax_group_id": id, "tax_group_base_amount": float, "tax_group_amount": float }] }
                 if hasattr(record, 'tax_ids') and record.tax_ids:
                     for tax in record.tax_ids:
-                        subtotal_name = tax.mapped('invoice_repartition_line_ids.factor_percent')
                         group_id = tax.tax_group_id.id if tax.tax_group_id else False
                         if not group_id:
                             continue
                         base_amount = record.foreign_subtotal or 0.0
-                        tax_amount = (record.foreign_price_total or 0.0) - base_amount
+                        tax_percent = tax.amount if tax.amount_type == 'percent' else 0.0
 
                         # Agregar al diccionario de grupos
                         for subtotal in res.get("subtotals", []):
@@ -222,18 +218,30 @@ class AccountTax(models.Model):
                             for entry in groups_by_foreign_subtotal[key]:
                                 if entry.get("tax_group_id") == group_id:
                                     entry["tax_group_base_amount"] += base_amount
-                                    entry["tax_group_amount"] += tax_amount
                                     found = True
                                     break
                             if not found:
                                 groups_by_foreign_subtotal[key].append({
                                     "tax_group_id": group_id,
                                     "tax_group_base_amount": base_amount,
-                                    "tax_group_amount": tax_amount,
+                                    "tax_group_amount": 0.0,
+                                    "tax_percent": tax_percent,
                                 })
 
+            # Calcular el IVA global acumulado por grupo sobre la Base Imponible Total (exigencia SENIAT)
+            # Esto evita desfases de centavos causados por la acumulación de redondeos por línea
+            foreign_tax_total_accum = 0.0
+            for key, entries in groups_by_foreign_subtotal.items():
+                for entry in entries:
+                    tax_rate = (entry.get('tax_percent') or 0.0) / 100.0
+                    calc_tax = round(entry.get('tax_group_base_amount', 0.0) * tax_rate, 2)
+                    entry['tax_group_amount'] = calc_tax
+                    foreign_tax_total_accum += calc_tax
+
+            foreign_amount_total = foreign_amount_untaxed + foreign_tax_total_accum
+
             res["foreign_amount_untaxed"] = foreign_amount_untaxed
-            res["foreign_amount_total"] = foreign_amount_total or (foreign_amount_untaxed + (foreign_amount_total - foreign_amount_untaxed if foreign_amount_total > foreign_amount_untaxed else 0.0))
+            res["foreign_amount_total"] = foreign_amount_total
             res["groups_by_foreign_subtotal"] = groups_by_foreign_subtotal
             res["foreign_subtotals"] = []
             res["foreign_formatted_amount_untaxed"] = formatLang(self.env, foreign_amount_untaxed, currency_obj=foreign_currency)
