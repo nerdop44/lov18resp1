@@ -142,8 +142,10 @@ class AccountMoveLine(models.Model):
             if not rec.debit == 0 or (is_company_usd and rec.amount_currency > 0):
                 if is_company_usd:
                     if rec.move_id.currency_id == rec.company_id.currency_id:
-                        if rec.move_id and rec.move_id.is_invoice(include_receipts=True) and rec.account_id.account_type in ('asset_receivable', 'liability_payable') and rec.move_id.amount_total_usd:
-                            rec.debit_usd = rec.move_id.amount_total_usd
+                        if rec.move_id and rec.move_id.is_invoice(include_receipts=True) and rec.account_id.account_type in ('asset_receivable', 'liability_payable'):
+                            other_lines = rec.move_id.line_ids.filtered(lambda l: l.id != rec.id)
+                            other_sum = sum(l.credit_usd for l in other_lines) if other_lines else 0.0
+                            rec.debit_usd = other_sum if other_sum > 0 else abs(rec.amount_currency) * rate
                         else:
                             rec.debit_usd = abs(rec.amount_currency) * rate if rec.amount_currency else rec.debit * rate
                     else:
@@ -166,8 +168,10 @@ class AccountMoveLine(models.Model):
             if not rec.credit == 0 or (is_company_usd and rec.amount_currency < 0):
                 if is_company_usd:
                     if rec.move_id.currency_id == rec.company_id.currency_id:
-                        if rec.move_id and rec.move_id.is_invoice(include_receipts=True) and rec.account_id.account_type in ('asset_receivable', 'liability_payable') and rec.move_id.amount_total_usd:
-                            rec.credit_usd = rec.move_id.amount_total_usd
+                        if rec.move_id and rec.move_id.is_invoice(include_receipts=True) and rec.account_id.account_type in ('asset_receivable', 'liability_payable'):
+                            other_lines = rec.move_id.line_ids.filtered(lambda l: l.id != rec.id)
+                            other_sum = sum(l.debit_usd for l in other_lines) if other_lines else 0.0
+                            rec.credit_usd = other_sum if other_sum > 0 else abs(rec.amount_currency) * rate
                         else:
                             rec.credit_usd = abs(rec.amount_currency) * rate if rec.amount_currency else rec.credit * rate
                     else:
