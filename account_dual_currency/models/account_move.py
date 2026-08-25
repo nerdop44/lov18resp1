@@ -379,7 +379,8 @@ class AccountMove(models.Model):
     def _amount_all_usd(self):
         for rec in self:
             is_company_usd = rec.company_id.currency_id.name == 'USD'
-            rate = rec.tax_today if rec.tax_today > 0 else 1.0
+            raw_rate = rec.tax_today if rec.tax_today > 0 else 1.0
+            rate = round(raw_rate, 2) if raw_rate > 0 else 1.0
             if rec.is_invoice(include_receipts=True) and rec.tax_totals:
                 amount_untaxed = rec.tax_totals.get('amount_untaxed', 0)
                 amount_tax = 0

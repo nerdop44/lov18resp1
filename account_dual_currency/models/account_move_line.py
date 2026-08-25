@@ -137,7 +137,8 @@ class AccountMoveLine(models.Model):
     def _debit_usd(self):
         for rec in self:
             is_company_usd = rec.company_id.currency_id.name == 'USD'
-            rate = rec.tax_today if rec.tax_today > 0 else 1.0
+            raw_rate = rec.tax_today if rec.tax_today > 0 else 1.0
+            rate = round(raw_rate, 2) if raw_rate > 0 else 1.0
             if not rec.debit == 0 or (is_company_usd and rec.amount_currency > 0):
                 if is_company_usd:
                     if rec.move_id.currency_id == rec.company_id.currency_id:
@@ -160,7 +161,8 @@ class AccountMoveLine(models.Model):
     def _credit_usd(self):
         for rec in self:
             is_company_usd = rec.company_id.currency_id.name == 'USD'
-            rate = rec.tax_today if rec.tax_today > 0 else 1.0
+            raw_rate = rec.tax_today if rec.tax_today > 0 else 1.0
+            rate = round(raw_rate, 2) if raw_rate > 0 else 1.0
             if not rec.credit == 0 or (is_company_usd and rec.amount_currency < 0):
                 if is_company_usd:
                     if rec.move_id.currency_id == rec.company_id.currency_id:
