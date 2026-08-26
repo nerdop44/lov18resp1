@@ -223,6 +223,7 @@ class AccountTax(models.Model):
                             if not found:
                                 groups_by_foreign_subtotal[key].append({
                                     "tax_group_id": group_id,
+                                    "tax_group_name": tax.tax_group_id.name if tax.tax_group_id else "IVA",
                                     "tax_group_base_amount": base_amount,
                                     "tax_group_amount": 0.0,
                                     "tax_percent": tax_percent,
@@ -236,6 +237,8 @@ class AccountTax(models.Model):
                     tax_rate = (entry.get('tax_percent') or 0.0) / 100.0
                     calc_tax = round(entry.get('tax_group_base_amount', 0.0) * tax_rate, 2)
                     entry['tax_group_amount'] = calc_tax
+                    entry['formatted_tax_group_amount'] = formatLang(self.env, calc_tax, currency_obj=foreign_currency)
+                    entry['formatted_tax_group_base_amount'] = formatLang(self.env, entry.get('tax_group_base_amount', 0.0), currency_obj=foreign_currency)
                     foreign_tax_total_accum += calc_tax
 
             foreign_amount_total = foreign_amount_untaxed + foreign_tax_total_accum

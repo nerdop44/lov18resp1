@@ -248,9 +248,9 @@
                              
                              <t t-if="o.currency_id == usd_currency">
                                   <!-- Invoice in USD, Convert to VEF -->
-                                  <t t-set="vef_untaxed" t-value="amount_untaxed * rate"/>
-                                  <t t-set="vef_tax" t-value="amount_tax * rate"/>
-                                  <t t-set="vef_total" t-value="amount_total * rate"/>
+                                  <t t-set="vef_untaxed" t-value="o.amount_untaxed_usd if o.amount_untaxed_usd else amount_untaxed * rate"/>
+                                  <t t-set="vef_tax" t-value="o.amount_tax_usd if o.amount_tax_usd else amount_tax * rate"/>
+                                  <t t-set="vef_total" t-value="o.amount_total_usd if o.amount_total_usd else amount_total * rate"/>
                              </t>
                              
 
