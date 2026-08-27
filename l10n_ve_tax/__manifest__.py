@@ -1,11 +1,11 @@
 {
-    "name": "Binaural Impuesto",
-    "summary": "Modulo para Impuestos Venezolanos",
+    "name": "Binaural Impuestos",
+    "summary": "Binaural Impuestos",
     "license": "LGPL-3",
     "author": "Binauraldev",
     "website": "https://binauraldev.com/",
     "category": "Accounting/Localizations/Account Chart",
-    "version": "18.0.1.0.95",
+    "version": "18.0.1.0.100",
     # any module necessary for this one to work correctly
     "depends": ["base", "account", "l10n_ve_rate"],
     # always loaded
