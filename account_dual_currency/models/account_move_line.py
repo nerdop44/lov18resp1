@@ -65,10 +65,24 @@ class AccountMoveLine(models.Model):
     @api.onchange('price_unit_usd')
     def _onchange_price_unit_usd(self):
         for rec in self:
-            if rec.move_id.currency_id != rec.company_id.currency_id:
-                rec.price_unit = rec.price_unit_usd
+            is_company_usd = rec.company_id.currency_id.name == 'USD'
+            rate = rec.tax_today if rec.tax_today > 0 else 1.0
+            if is_company_usd:
+                if rec.move_id.currency_id == rec.company_id.currency_id:
+                    # Factura en USD, price_unit_usd es en Bs.
+                    # Convertir Bs. a USD -> dividir entre rate
+                    rec.price_unit = (rec.price_unit_usd / rate) if rate > 0 else 0
+                else:
+                    # Factura en Bs., price_unit es en Bs.
+                    rec.price_unit = rec.price_unit_usd
             else:
-                rec.price_unit = rec.price_unit_usd * rec.tax_today
+                if rec.move_id.currency_id == rec.company_id.currency_id:
+                    # Factura en Bs., price_unit_usd es en USD.
+                    # Convertir USD a Bs. -> multiplicar por rate
+                    rec.price_unit = rec.price_unit_usd * rate
+                else:
+                    # Factura en USD, price_unit es en USD.
+                    rec.price_unit = rec.price_unit_usd
 
 
     @api.onchange('product_id')

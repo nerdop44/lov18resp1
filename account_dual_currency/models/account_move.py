@@ -180,28 +180,57 @@ class AccountMove(models.Model):
                 line._compute_amount_residual_usd()
             rec.verificar_pagos = True
 
+    def _get_tasa_for_date(self, target_date=None):
+        self.ensure_one()
+        if not target_date:
+            target_date = fields.Date.context_today(self)
+        elif hasattr(target_date, 'date'):
+            target_date = target_date.date()
+
+        company = self.company_id or self.env.company
+        usd_curr = self.env.ref('base.USD', raise_if_not_found=False) or self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+        vef_curr = company.currency_id_dif or self.env['res.currency'].search([('name', '=', 'VEF')], limit=1)
+
+        # 1. Buscar primero en VEF donde se guarda la tasa directa (ej. 798.326, 804.8109)
+        if vef_curr:
+            rate_rec_vef = self.env['res.currency.rate'].search([
+                ('currency_id', '=', vef_curr.id),
+                ('company_id', '=', company.id),
+                ('name', '<=', target_date)
+            ], order='name desc, id desc', limit=1)
+
+            if rate_rec_vef and rate_rec_vef.rate > 0:
+                rate_val = rate_rec_vef.rate
+                return rate_val if rate_val >= 1.0 else (1.0 / rate_val)
+
+        # 2. Si VEF no tiene factor, buscar en USD (ej. 0.001252)
+        if usd_curr:
+            rate_rec_usd = self.env['res.currency.rate'].search([
+                ('currency_id', '=', usd_curr.id),
+                ('company_id', '=', company.id),
+                ('name', '<=', target_date)
+            ], order='name desc, id desc', limit=1)
+
+            if rate_rec_usd and rate_rec_usd.rate > 0 and rate_rec_usd.rate != 1.0:
+                rate_val = rate_rec_usd.rate
+                return rate_val if rate_val >= 1.0 else (1.0 / rate_val)
+
+        return 1.0
+
     @api.depends('invoice_date', 'company_id')
     def _compute_date(self):
         res = super(AccountMove, self)._compute_date()
         for rec in self:
             date_to_use = rec.invoice_date or rec.date
             if date_to_use and rec.company_id.currency_id_dif and not rec.tax_today_edited:
-                new_rate_ids = rec.company_id.currency_id_dif._get_rates(rec.company_id, date_to_use)
-                if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
-                    rate_val = new_rate_ids[rec.company_id.currency_id_dif.id]
-                    if rate_val > 0:
-                        rec.tax_today = rate_val if rate_val >= 1 else (1 / rate_val)
+                rec.tax_today = rec._get_tasa_for_date(date_to_use)
 
     @api.onchange('invoice_date', 'date')
     def _onchange_invoice_date_dual_currency(self):
         for rec in self:
             date_to_use = rec.invoice_date or rec.date
             if date_to_use and rec.company_id.currency_id_dif and not rec.tax_today_edited:
-                new_rate_ids = rec.company_id.currency_id_dif._get_rates(rec.company_id, date_to_use)
-                if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
-                    rate_val = new_rate_ids[rec.company_id.currency_id_dif.id]
-                    if rate_val > 0:
-                        rec.tax_today = rate_val if rate_val >= 1 else (1 / rate_val)
+                rec.tax_today = rec._get_tasa_for_date(date_to_use)
 
 
     @api.model_create_multi
