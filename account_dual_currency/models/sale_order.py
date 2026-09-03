@@ -118,6 +118,16 @@ class SaleOrder(models.Model):
         self = self.with_context(force_pricelist_recalc=True)
         return super(SaleOrder, self)._onchange_pricelist_id() if hasattr(super(SaleOrder, self), '_onchange_pricelist_id') else {}
 
+    def write(self, vals):
+        res = super(SaleOrder, self).write(vals)
+        if any(f in vals for f in ['date_order', 'company_id']):
+            for order in self:
+                target_date = order.date_order or fields.Date.today()
+                tasa_correcta = order._get_tasa_for_date(target_date)
+                if abs(order.tasa_referencial - tasa_correcta) > 0.0001:
+                    order.tasa_referencial = tasa_correcta
+        return res
+
     def _prepare_invoice(self):
         invoice_vals = super(SaleOrder, self)._prepare_invoice()
         company = self.company_id or self.env.company

@@ -188,8 +188,8 @@ class AccountMove(models.Model):
             target_date = target_date.date()
 
         company = self.company_id or self.env.company
-        usd_curr = self.env.ref('base.USD', raise_if_not_found=False) or self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
         vef_curr = company.currency_id_dif or self.env['res.currency'].search([('name', '=', 'VEF')], limit=1)
+        usd_curr = self.env.ref('base.USD', raise_if_not_found=False) or self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
 
         # 1. Buscar primero en VEF donde se guarda la tasa directa (ej. 798.326, 804.8109)
         if vef_curr:
@@ -267,15 +267,23 @@ class AccountMove(models.Model):
                 val['line_ids'] = line_ids
 
 
-        if values:
-            for val in values:
-                if (not val.get('tax_today') or val.get('tax_today', 0) < 1) and not diferencia:
-                    val['tax_today'] = self._get_default_tax_today()
-
         res = super(AccountMove, self).create(values)
         for move in res:
-            if move.company_id.currency_id_dif and (not move.tax_today or move.tax_today < 1) and not move.tax_today_edited:
-                move.tax_today = move._get_default_tax_today()
+            if move.company_id.currency_id_dif and not move.tax_today_edited:
+                date_to_use = move.invoice_date or move.date or fields.Date.context_today(move)
+                tasa_correcta = move._get_tasa_for_date(date_to_use)
+                if abs(move.tax_today - tasa_correcta) > 0.0001:
+                    move.tax_today = tasa_correcta
+        return res
+
+    def write(self, vals):
+        res = super(AccountMove, self).write(vals)
+        for move in self:
+            if move.company_id.currency_id_dif and not move.tax_today_edited:
+                date_to_use = move.invoice_date or move.date or fields.Date.context_today(move)
+                tasa_correcta = move._get_tasa_for_date(date_to_use)
+                if abs(move.tax_today - tasa_correcta) > 0.0001:
+                    move.tax_today = tasa_correcta
         return res
 
     # def write(self, vals):
