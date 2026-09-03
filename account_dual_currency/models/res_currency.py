@@ -132,61 +132,74 @@ class ResCurrency(models.Model):
             )
 
     def get_bcv(self):
+        curr_name = self.name
+        if curr_name in ['VES', 'VEF']:
+            return 1.0
+
         url = "https://www.bcv.org.ve/"
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
-        }
+        val_usd = 0.0
+        val_eur = 0.0
+        success = False
+
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
             req = requests.get(url, headers=headers, verify=False, timeout=10)
+            if req.status_code == 200:
+                html = BeautifulSoup(req.text, "html.parser")
+
+                # --- USD ---
+                dolar_tag = html.find('div', {'id': 'dolar'})
+                if dolar_tag:
+                    dolar_strong = dolar_tag.find('strong')
+                    if dolar_strong and dolar_strong.text.strip():
+                        raw_dolar = dolar_strong.text.strip().replace('.', '').replace(',', '.')
+                        try:
+                            val_usd = float(raw_dolar)
+                            if val_usd > 0.0:
+                                success = True
+                        except ValueError:
+                            pass
+
+                # --- EUR ---
+                euro_tag = html.find('div', {'id': 'euro'})
+                if euro_tag:
+                    euro_strong = euro_tag.find('strong')
+                    if euro_strong and euro_strong.text.strip():
+                        raw_euro = euro_strong.text.strip().replace('.', '').replace(',', '.')
+                        try:
+                            val_eur = float(raw_euro)
+                        except ValueError:
+                            pass
         except Exception as e:
-            return False
+            _logger.warning(f"Error scraping BCV website: {e}")
 
-        status_code = req.status_code
-        if status_code == 200:
-            html = BeautifulSoup(req.text, "html.parser")
-            # Dolar
-            dolar_tag = html.find('div', {'id': 'dolar'})
-            if not dolar_tag:
-                return False
-            dolar_strong = dolar_tag.find('strong')
-            if not dolar_strong:
-                return False
-            raw_dolar = dolar_strong.text.strip().replace('.', '').replace(',', '.')
-            try:
-                val_usd = float(raw_dolar)
-            except ValueError:
-                return False
-
-            # Euro
-            euro_tag = html.find('div', {'id': 'euro'})
-            if not euro_tag:
-                val_eur = 0.0
-            else:
-                euro_strong = euro_tag.find('strong')
-                if euro_strong and euro_strong.text.strip():
-                    raw_euro = euro_strong.text.strip().replace('.', '').replace(',', '.')
-                    try:
-                        val_eur = float(raw_euro)
-                    except ValueError:
-                        val_eur = 0.0
-                else:
-                    val_eur = 0.0
-
-            curr_name = self.name
+        if success:
             if curr_name == 'USD':
                 return val_usd
-            elif curr_name == 'EUR':
+            elif curr_name == 'EUR' and val_eur > 0.0:
                 return val_eur
-            elif curr_name in ['VES', 'VEF']:
-                 # If we are strictly asking for VES rate, it's 1. 
-                 # But if we want the "Dolar" value, we should probably ask for USD currency.
-                 # For now, return 1.0 as standard behaviour, but get_trm_systray handles the fallback.
-                return 1.0
-            else:
-                return False
-        else:
-            return False
+
+        # Fallback a DolarApi si BCV no retornó valor
+        _logger.info("BCV scrape failed, attempting DolarApi fallback...")
+        try:
+            if curr_name == 'USD':
+                req_api = requests.get("https://ve.dolarapi.com/v1/dolares/oficial", timeout=15, verify=False)
+                if req_api.status_code == 200:
+                    val_fb = float(req_api.json().get('promedio', 0.0))
+                    if val_fb > 1:
+                        _logger.info(f"DolarApi fallback success for USD: {val_fb}")
+                        return val_fb
+            elif curr_name == 'EUR':
+                req_api = requests.get("https://ve.dolarapi.com/v1/euros/oficial", timeout=15, verify=False)
+                if req_api.status_code == 200:
+                    val_fb = float(req_api.json().get('promedio', 0.0))
+                    if val_fb > 1:
+                        _logger.info(f"DolarApi fallback success for EUR: {val_fb}")
+                        return val_fb
+        except Exception as api_err:
+            _logger.error(f"Fallback to DolarApi failed: {api_err}")
+
+        return False
 
 
     def get_dolar_today_promedio(self):

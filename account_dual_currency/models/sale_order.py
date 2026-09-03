@@ -101,9 +101,45 @@ class SaleOrder(models.Model):
         # Simplemente forzar recálculo de lista de precios si cambia moneda
         self.order_line._compute_price_unit()
 
+    def _recompute_prices(self):
+        """Proteger precios unitarios contra recálculo automático por pricelist.
+        Solo recalcular si se fuerza explícitamente con context force_pricelist_recalc."""
+        if not self.env.context.get('force_pricelist_recalc'):
+            current_prices = {line.id: line.price_unit for line in self.order_line if line.id}
+            res = super()._recompute_prices()
+            for line in self.order_line:
+                if line.id in current_prices:
+                    line.price_unit = current_prices[line.id]
+            return res
+        return super()._recompute_prices()
+
+    @api.onchange('pricelist_id', 'partner_id')
+    def _onchange_pricelist_partner_force(self):
+        self = self.with_context(force_pricelist_recalc=True)
+        return super(SaleOrder, self)._onchange_pricelist_id() if hasattr(super(SaleOrder, self), '_onchange_pricelist_id') else {}
+
     def _prepare_invoice(self):
         invoice_vals = super(SaleOrder, self)._prepare_invoice()
-        if self.tasa_referencial and self.tasa_referencial > 0:
-            invoice_vals['tax_today'] = self.tasa_referencial
-            invoice_vals['tax_today_edited'] = True
+        company = self.company_id or self.env.company
+
+        tasa_a_usar = self.tasa_referencial or 0.0
+        if not tasa_a_usar or tasa_a_usar <= 0:
+            currency_dif = company.currency_id_dif
+            if currency_dif:
+                tasa_a_usar = currency_dif.rate if company.currency_id.name == 'USD' else currency_dif.inverse_rate
+            else:
+                tasa_a_usar = 1.0
+
+        # Garantizar tasa >= 1.0
+        if 0.0 < tasa_a_usar < 1.0:
+            tasa_a_usar = 1.0 / tasa_a_usar
+
+        invoice_vals['tax_today'] = tasa_a_usar
+        invoice_vals['tax_today_edited'] = True
+        invoice_vals['foreign_rate'] = tasa_a_usar
+        if company.currency_id.name == 'USD':
+            invoice_vals['foreign_inverse_rate'] = tasa_a_usar
+        else:
+            invoice_vals['foreign_inverse_rate'] = 1.0 / tasa_a_usar if tasa_a_usar > 0 else 1.0
+
         return invoice_vals
