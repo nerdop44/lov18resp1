@@ -34,8 +34,8 @@ class SaleOrderLine(models.Model):
                     line.price_unit_dif = line.price_unit
                     line.price_subtotal_dif = line.price_subtotal
                 else:
-                    line.price_unit_dif = line.price_unit / tasa
-                    line.price_subtotal_dif = line.price_subtotal / tasa
+                    line.price_unit_dif = line.price_unit * tasa
+                    line.price_subtotal_dif = line.price_subtotal * tasa
             else:
                 line.price_unit_dif = 0.0
                 line.price_subtotal_dif = 0.0

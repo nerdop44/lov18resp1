@@ -137,6 +137,7 @@ class ResCurrency(models.Model):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
         }
         try:
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
             req = requests.get(url, headers=headers, verify=False, timeout=10)
         except Exception as e:
             return False
@@ -148,13 +149,12 @@ class ResCurrency(models.Model):
             dolar_tag = html.find('div', {'id': 'dolar'})
             if not dolar_tag:
                 return False
-            dolar = str(dolar_tag.find('strong')).split()
-            # Handle potential parsing errors if format changes
-            if len(dolar) < 2:
+            dolar_strong = dolar_tag.find('strong')
+            if not dolar_strong:
                 return False
-            dolar = str.replace(dolar[1], '.', '')
+            raw_dolar = dolar_strong.text.strip().replace('.', '').replace(',', '.')
             try:
-                val_usd = float(str.replace(dolar, ',', '.'))
+                val_usd = float(raw_dolar)
             except ValueError:
                 return False
 
@@ -163,11 +163,11 @@ class ResCurrency(models.Model):
             if not euro_tag:
                 val_eur = 0.0
             else:
-                euro = str(euro_tag.find('strong')).split()
-                if len(euro) > 1:
-                    euro = str.replace(euro[1], '.', '')
+                euro_strong = euro_tag.find('strong')
+                if euro_strong and euro_strong.text.strip():
+                    raw_euro = euro_strong.text.strip().replace('.', '').replace(',', '.')
                     try:
-                        val_eur = float(str.replace(euro, ',', '.'))
+                        val_eur = float(raw_euro)
                     except ValueError:
                         val_eur = 0.0
                 else:
@@ -264,17 +264,15 @@ class ResCurrency(models.Model):
 
     def recuperar_tasas_historicas(self):
         for rec in self:
-            if rec.name in ['VES', 'VEF']:
-                continue
-                
             today = fields.Date.context_today(self)
             company_ids = self.env['res.company'].search([])
             channel_id = self.env.ref('account_dual_currency.trm_channel')
             
             # 1. Determinar URL histórica según moneda
-            if rec.name == 'USD':
+            curr_name = 'USD' if rec.name in ['VES', 'VEF'] else rec.name
+            if curr_name == 'USD':
                 url = 'https://ve.dolarapi.com/v1/historicos/dolares/oficial'
-            elif rec.name == 'EUR':
+            elif curr_name == 'EUR':
                 url = 'https://ve.dolarapi.com/v1/historicos/euros/oficial'
             else:
                 continue
