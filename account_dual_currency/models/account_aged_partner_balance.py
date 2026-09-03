@@ -10,7 +10,7 @@ class AgedPartnerBalanceCustomHandler(models.AbstractModel):
     def _aged_partner_report_custom_engine_common(self, options, internal_type, current_groupby, next_groupby, offset=0, limit=None):
         report = self.env['account.report'].browse(options['report_id'])
         report._check_groupby_fields((next_groupby.split(',') if next_groupby else []) + ([current_groupby] if current_groupby else []))
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif') or self.env.company.currency_id.symbol
         def minus_days(date_obj, days):
             return fields.Date.to_string(date_obj - relativedelta(days=days))
 
@@ -68,7 +68,7 @@ class AgedPartnerBalanceCustomHandler(models.AbstractModel):
         # Build query
         tables, where_clause, where_params = report._query_get(options, 'strict_range', domain=[('account_id.account_type', '=', internal_type)])
 
-        currency_table = self.env['res.currency']._get_query_currency_table(options)
+        currency_table = report._get_query_currency_table(options)
         always_present_groupby = "period_table.period_index, currency_table.rate, currency_table.precision"
         if current_groupby:
             select_from_groupby = f"account_move_line.{current_groupby} AS grouping_key,"

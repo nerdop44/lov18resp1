@@ -16,8 +16,8 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
         queries = []
         params = []
         report = self.env.ref('account_reports.partner_ledger_report')
-        ct_query = self.env['res.currency']._get_query_currency_table(options)
-        currency_dif = options['currency_dif']
+        ct_query = self._get_query_currency_table(options)
+        currency_dif = options.get('currency_dif') or self.env.company.currency_id.symbol
         for column_group_key, column_group_options in report._split_options_per_column_group(options).items():
             # Get sums for the initial balance.
             # period: [('date' <= options['date_from'] - 1)]
@@ -129,8 +129,8 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
         report = self.env.ref('account_reports.partner_ledger_report')
 
         # Create the currency table.
-        ct_query = self.env['res.currency']._get_query_currency_table(options)
-        currency_dif = options['currency_dif']
+        ct_query = self._get_query_currency_table(options)
+        currency_dif = options.get('currency_dif') or self.env.company.currency_id.symbol
         for column_group_key, column_group_options in report._split_options_per_column_group(options).items():
             tables, where_clause, where_params = report._query_get(column_group_options, 'normal')
             params.append(column_group_key)
@@ -183,7 +183,7 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
             indirectly_linked_aml_partner_params.append(tuple(partner_ids_wo_none))
         directly_linked_aml_partner_clause = '(' + ' OR '.join(directly_linked_aml_partner_clauses) + ')'
 
-        ct_query = self.env['res.currency']._get_query_currency_table(options)
+        ct_query = self._get_query_currency_table(options)
         queries = []
         all_params = []
         lang = self.env.lang or get_lang(self.env).code
@@ -192,7 +192,7 @@ class PartnerLedgerCustomHandler(models.AbstractModel):
         account_name = f"COALESCE(account.name->>'{lang}', account.name->>'en_US')" if \
             self.pool['account.account'].name.translate else 'account.name'
         report = self.env.ref('account_reports.partner_ledger_report')
-        currency_dif = options['currency_dif']
+        currency_dif = options.get('currency_dif') or self.env.company.currency_id.symbol
         for column_group_key, group_options in report._split_options_per_column_group(options).items():
             tables, where_clause, where_params = report._query_get(group_options, 'strict_range')
 
