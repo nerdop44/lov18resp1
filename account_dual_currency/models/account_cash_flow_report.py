@@ -25,7 +25,13 @@ class CashFlowReportCustomHandler(models.AbstractModel):
             account_name = 'account_account.name'
 
         for column_group_key, column_group_options in report._split_options_per_column_group(options).items():
-            tables, where_clause, where_params = report._query_get(column_group_options, date_scope, domain=[('account_id', 'in', payment_account_ids)])
+            query_res = report._get_report_query(column_group_options, date_scope, domain=[('account_id', 'in', payment_account_ids)])
+            if hasattr(query_res, 'get_sql'):
+                tables, where_clause, where_params = query_res.get_sql()
+            else:
+                tables = query_res.from_clause
+                where_clause = query_res.where_clause
+                where_params = getattr(query_res, 'params', getattr(query_res, 'where_params', getattr(query_res, 'where_clause_params', [])))
             if currency_dif == self.env.company.currency_id.symbol:
                 queries.append(f'''
                     SELECT
