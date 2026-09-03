@@ -290,7 +290,7 @@ class ResCurrency(models.Model):
             else:
                 continue
                 
-            # 2. Consultar historial de tasas
+            # 2. Consultar historial de tasas de DolarApi
             historical_rates = {}
             try:
                 req = requests.get(url, verify=False, timeout=15)
@@ -308,27 +308,13 @@ class ResCurrency(models.Model):
             if not historical_rates:
                 continue
 
-            for c in company_ids:
-                # Obtener la última tasa registrada en el sistema
-                last_rate_rec = self.env['res.currency.rate'].sudo().search([
-                    ('currency_id', '=', rec.id),
-                    ('company_id', '=', c.id)
-                ], order='name desc', limit=1)
-                
-                dates_to_update = []
-                if last_rate_rec:
-                    last_date = last_rate_rec.name
-                    current_date = last_date + timedelta(days=1)
-                    max_past_date = today - timedelta(days=30)
-                    if current_date < max_past_date:
-                        current_date = max_past_date
-                    
-                    while current_date <= today:
-                        dates_to_update.append(current_date)
-                        current_date += timedelta(days=1)
-                else:
-                    dates_to_update.append(today)
+            # Evaluar los últimos 60 días hasta hoy para garantizar rellenar cualquier hueco histórico
+            days_back = 60
+            dates_to_update = [today - timedelta(days=i) for i in range(days_back + 1)]
+            dates_to_update.reverse()
 
+            for c in company_ids:
+                updated_count = 0
                 for d in dates_to_update:
                     # 3. Buscar tasa en el historial (retrocediendo hasta 5 días para fines de semana/feriados)
                     rate_val = None
@@ -340,10 +326,17 @@ class ResCurrency(models.Model):
                             break
                     
                     if not rate_val:
-                        continue  # Si no hay registro histórico, ignoramos
+                        continue
                     
-                    if c.currency_id.name == 'USD':
-                        odoo_rate = 1.0 / rate_val if rate_val > 0 else 1.0
+                    # Cálculo de odoo_rate según la moneda del registro (rec) y la moneda base de la compañía (c)
+                    if rec.name in ['VES', 'VEF']:
+                        # Para la moneda VEF/VES: la tasa en Bs por USD es directa (ej. 804.8109)
+                        odoo_rate = rate_val
+                    elif rec.name == 'USD':
+                        if c.currency_id.name in ['VES', 'VEF']:
+                            odoo_rate = 1.0 / rate_val if rate_val > 0 else 1.0
+                        else:
+                            odoo_rate = rate_val
                     else:
                         base_bcv = c.currency_id.get_bcv() or 1.0
                         odoo_rate = base_bcv / rate_val
@@ -354,7 +347,6 @@ class ResCurrency(models.Model):
                         ('company_id', '=', c.id)
                     ], limit=1)
                     
-                    nueva = False
                     if not tasa_actual:
                         self.env['res.currency.rate'].sudo().create({
                             'currency_id': rec.id,
@@ -362,19 +354,20 @@ class ResCurrency(models.Model):
                             'rate': odoo_rate,
                             'company_id': c.id,
                         })
-                        nueva = True
+                        updated_count += 1
                     else:
-                        if abs(tasa_actual.rate - odoo_rate) > 0.000001:
+                        if abs(tasa_actual.rate - odoo_rate) > 0.0001:
                             tasa_actual.rate = odoo_rate
-                            nueva = True
+                            updated_count += 1
                             
-                    if nueva:
-                        channel_id.message_post(
-                            body="Tasa HISTÓRICA recuperada para %s (%s): %s para la fecha %s." % (
-                                rec.name, c.name, odoo_rate, d.strftime("%d-%m-%Y")),
-                            message_type='notification',
-                            subtype_xmlid='mail.mt_comment',
-                        )
+                if updated_count > 0:
+                    channel_id.message_post(
+                        body="Recuperación de Tasas Históricas finalizada para %s (%s): %s tasas procesadas/actualizadas." % (
+                            rec.name, c.name, updated_count),
+                        message_type='notification',
+                        subtype_xmlid='mail.mt_comment',
+                    )
+
             if rec.act_productos:
                 rec.actualizar_productos()
 
