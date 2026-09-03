@@ -25,6 +25,9 @@ class SaleOrder(models.Model):
         self.ensure_one()
         if not target_date:
             target_date = fields.Date.context_today(self)
+        elif hasattr(target_date, 'date'):
+            target_date = target_date.date()
+
         dif = self.currency_id_dif or self.company_id.currency_id_dif
         if not dif:
             return 1.0
@@ -43,8 +46,7 @@ class SaleOrder(models.Model):
     @api.depends('company_id', 'currency_id_dif', 'date_order')
     def _compute_tasa_referencial(self):
         for record in self:
-            target_date = record.date_order.date() if record.date_order else fields.Date.context_today(record)
-            record.tasa_referencial = record._get_tasa_for_date(target_date)
+            record.tasa_referencial = record._get_tasa_for_date(record.date_order)
 
     @api.depends('amount_total', 'amount_untaxed', 'amount_tax', 'tasa_referencial', 'currency_id', 'company_id', 'date_order')
     def _compute_amount_total_dif(self):
