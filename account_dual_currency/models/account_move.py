@@ -293,28 +293,16 @@ class AccountMove(models.Model):
         for rec in self:
             if not rec.move_type == 'entry':
                 for l in rec.invoice_line_ids:
-                    l.price_unit = (l.price_unit_usd * rec.tax_today) if rec.currency_id == rec.company_id.currency_id else l.price_unit_usd
+                    l._price_unit_usd()
+                    l._price_subtotal_usd()
                 rec._onchange_quick_edit_total_amount()
                 rec._onchange_quick_edit_line_ids()
                 rec._compute_tax_totals()
-                #rec.line_ids._compute_currency_rate()
-                #rec.line_ids._compute_amount_currency()
                 rec.invoice_line_ids._compute_totals()
-
             else:
-                #print('por aqui si entra')
-                #model_active = self._context.get('active_model')
-                #print('model_active', self.env.context)
                 for aml in rec.with_context(check_move_validity=False).line_ids:
-                    ##print('aml', aml)
-                    #if aml.debit_usd > 0:
-                    #    pass
-                        #aml.with_context(check_move_validity=False).debit = aml.debit_usd * rec.tax_today
                     if aml.debit_usd == 0 and aml.debit > 0:
                         aml.with_context(check_move_validity=False).debit_usd = (aml.debit / rec.tax_today) if rec.tax_today > 0 else 0
-                    #if aml.credit_usd > 0:
-                    #    pass
-                        #aml.with_context(check_move_validity=False).credit = aml.credit_usd * rec.tax_today
                     if aml.credit_usd == 0 and aml.credit > 0:
                         aml.with_context(check_move_validity=False).credit_usd = (aml.credit / rec.tax_today) if rec.tax_today > 0 else 0
 
@@ -326,21 +314,11 @@ class AccountMove(models.Model):
     @api.onchange('currency_id')
     def _onchange_currency(self):
         for rec in self:
-            if rec.currency_id == self.env.company.currency_id:
-                for l in rec.invoice_line_ids:
-                    # pass
-                    l.currency_id = rec.currency_id
-                    l.price_unit = (l.price_unit_usd * (rec.tax_today if rec.tax_today > 0 else l.price_unit))
+            for l in rec.invoice_line_ids:
+                l.currency_id = rec.currency_id
+                l._price_unit_usd()
+                l._price_subtotal_usd()
 
-            else:
-                for l in rec.invoice_line_ids:
-                    # pass
-                    l.currency_id = rec.currency_id
-                    l.price_unit = l.price_unit_usd
-
-            #rec.invoice_line_ids._onchange_price_subtotal()
-
-            #rec._recompute_dynamic_lines(recompute_all_taxes=True)
             for aml in rec.line_ids:
                 aml.currency_id = rec.currency_id
                 aml._compute_currency_rate()
