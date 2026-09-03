@@ -235,10 +235,13 @@ class AccountTax(models.Model):
                         break
         elif order:
             # Obtener las tasas posibles del pedido (compra o venta)
-            rates_to_check = [
-                getattr(order, 'krill_tasa_valor', 0.0) or 0.0,
+            rates_to_check = []
+            if getattr(order, 'krill_tasa_fijada', False) and getattr(order, 'krill_tasa_valor', 0.0) > 0:
+                rates_to_check.append(order.krill_tasa_valor)
+            rates_to_check.extend([
                 getattr(order, 'tasa_referencial', 0.0) or 0.0,
-            ]
+                getattr(order, 'krill_tasa_valor', 0.0) or 0.0,
+            ])
             for r in rates_to_check:
                 if r > 1.0:
                     rate = r

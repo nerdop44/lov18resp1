@@ -717,15 +717,17 @@ class AccountMove(models.Model):
         Rate = self.env["res.currency.rate"]
 
         for move in documents:
-            if move.manually_set_rate:
+            if move.manually_set_rate or getattr(move, 'tax_today_edited', False):
+                tax_today = getattr(move, 'tax_today', 0.0)
+                if tax_today > 0.0:
+                    move.foreign_rate = tax_today
+                    move.foreign_inverse_rate = tax_today if self.env.company.currency_id.name == 'USD' else 1.0 / tax_today
                 continue
             
-            # Si el módulo de moneda dual tiene una tasa establecida y fue editada manualmente, priorizarla
             tax_today = getattr(move, 'tax_today', 0.0)
-            tax_today_edited = getattr(move, 'tax_today_edited', False)
-            if tax_today > 0.0 and (move.manually_set_rate or tax_today_edited):
+            if tax_today > 0.0:
                 move.foreign_rate = tax_today
-                move.foreign_inverse_rate = 1.0 / tax_today
+                move.foreign_inverse_rate = tax_today if self.env.company.currency_id.name == 'USD' else 1.0 / tax_today
                 continue
 
             date_field = "invoice_date" if is_sale else "date"

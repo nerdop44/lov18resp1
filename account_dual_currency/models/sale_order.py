@@ -77,3 +77,36 @@ class SaleOrder(models.Model):
     def _onchange_pricelist_partner_force(self):
         self = self.with_context(force_pricelist_recalc=True)
         return super(SaleOrder, self)._onchange_pricelist_id() if hasattr(super(SaleOrder, self), '_onchange_pricelist_id') else {}
+
+    def _prepare_invoice(self):
+        invoice_vals = super()._prepare_invoice()
+        company = self.company_id or self.env.company
+        currency_dif = company.currency_id_dif
+
+        krill_tasa_fijada = getattr(self, 'krill_tasa_fijada', False)
+        krill_tasa_valor = getattr(self, 'krill_tasa_valor', 0.0)
+
+        if krill_tasa_fijada and krill_tasa_valor > 0:
+            tasa_a_usar = krill_tasa_valor
+        else:
+            tasa_a_usar = getattr(self, 'tasa_referencial', 0.0)
+            if not tasa_a_usar or tasa_a_usar <= 0:
+                if currency_dif:
+                    tasa_a_usar = currency_dif.rate if company.currency_id.name == 'USD' else currency_dif.inverse_rate
+                else:
+                    tasa_a_usar = 1.0
+
+        if 0.0 < tasa_a_usar < 1.0:
+            tasa_a_usar = 1.0 / tasa_a_usar
+
+        invoice_vals['tax_today'] = tasa_a_usar
+        invoice_vals['foreign_rate'] = tasa_a_usar
+        invoice_vals['tax_today_edited'] = True
+        invoice_vals['manually_set_rate'] = True
+
+        if company.currency_id.name == 'USD':
+            invoice_vals['foreign_inverse_rate'] = tasa_a_usar
+        else:
+            invoice_vals['foreign_inverse_rate'] = 1.0 / tasa_a_usar if tasa_a_usar > 0 else 1.0
+
+        return invoice_vals

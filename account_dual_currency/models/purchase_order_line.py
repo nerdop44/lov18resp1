@@ -25,7 +25,7 @@ class PurchaseOrderLine(models.Model):
         store=False
     )
 
-    @api.depends('price_unit', 'price_subtotal', 'order_id.tasa_referencial', 'order_id.currency_id')
+    @api.depends('price_unit', 'price_subtotal', 'order_id.tasa_referencial', 'order_id.currency_id', 'order_id.company_id')
     def _compute_price_dif_pol(self):
         for line in self:
             tasa = line.order_id.tasa_referencial
@@ -34,8 +34,13 @@ class PurchaseOrderLine(models.Model):
                     line.price_unit_dif = line.price_unit
                     line.price_subtotal_dif = line.price_subtotal
                 else:
-                    line.price_unit_dif = line.price_unit / tasa
-                    line.price_subtotal_dif = line.price_subtotal / tasa
+                    company = line.order_id.company_id or self.env.company
+                    if company.currency_id.name == 'USD':
+                        line.price_unit_dif = line.price_unit * tasa
+                        line.price_subtotal_dif = line.price_subtotal * tasa
+                    else:
+                        line.price_unit_dif = line.price_unit / tasa
+                        line.price_subtotal_dif = line.price_subtotal / tasa
             else:
                 line.price_unit_dif = 0.0
                 line.price_subtotal_dif = 0.0
