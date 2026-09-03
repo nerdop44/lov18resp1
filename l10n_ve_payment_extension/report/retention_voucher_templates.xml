@@ -190,9 +190,7 @@
                         <!--Número de Factura -->
                         <div class="" style="width:7%;">
                             <t t-if="line.move_id.move_type in ['out_invoice','out_contingence', 'in_invoice']">
-                                <!--<span t-esc="line.move_id.name"/>-->
-                                <span t-esc="line.move_id.ref or '--'"/>
-                            
+                                <span t-esc="line.move_id.name if line.move_id.move_type == 'out_invoice' else (line.move_id.ref or line.move_id.name or '--')"/>
                             </t>
                             <t t-else="">
                                 <span>--</span>
@@ -535,8 +533,7 @@
                         <!-- Fact Nro -->
                         <div style="width:5%">
                             <t t-if="line.move_id.move_type in ('in_invoice','in_refund','out_invoice','out_contingence','out_debit')">
-                                <!--<span t-esc="line.move_id.name"/>-->
-                                <span t-esc="line.move_id.ref or '--'"/>
+                                <span t-esc="line.move_id.name if line.move_id.move_type == 'out_invoice' else (line.move_id.ref or line.move_id.name or '--')"/>
                             </t>
                             <t t-else="">
                                 <span>--</span>
