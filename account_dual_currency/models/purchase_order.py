@@ -150,7 +150,6 @@ class PurchaseOrder(models.Model):
 
         if self.krill_tasa_fijada and self.krill_tasa_valor > 0:
             tasa_a_usar = self.krill_tasa_valor
-            invoice_vals['tax_today_edited'] = True
         else:
             tasa_a_usar = self.tasa_referencial or (currency_dif.rate if company.currency_id.name == 'USD' else currency_dif.inverse_rate if currency_dif else 1.0)
 
@@ -159,6 +158,9 @@ class PurchaseOrder(models.Model):
 
         invoice_vals['tax_today'] = tasa_a_usar
         invoice_vals['foreign_rate'] = tasa_a_usar
+        invoice_vals['tax_today_edited'] = True
+        invoice_vals['manually_set_rate'] = True
+
         if company.currency_id.name == 'USD':
             invoice_vals['foreign_inverse_rate'] = tasa_a_usar
         else:
