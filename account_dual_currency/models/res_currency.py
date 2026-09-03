@@ -329,8 +329,11 @@ class ResCurrency(models.Model):
                     if not rate_val:
                         continue  # Si no hay registro histórico, ignoramos
                     
-                    base_bcv = c.currency_id.get_bcv() or 1.0
-                    odoo_rate = base_bcv / rate_val
+                    if c.currency_id.name == 'USD':
+                        odoo_rate = 1.0 / rate_val if rate_val > 0 else 1.0
+                    else:
+                        base_bcv = c.currency_id.get_bcv() or 1.0
+                        odoo_rate = base_bcv / rate_val
                     
                     tasa_actual = self.env['res.currency.rate'].sudo().search([
                         ('name', '=', d),

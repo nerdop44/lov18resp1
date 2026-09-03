@@ -28,19 +28,34 @@ class SaleOrder(models.Model):
         elif hasattr(target_date, 'date'):
             target_date = target_date.date()
 
-        dif = self.currency_id_dif or self.company_id.currency_id_dif
-        if not dif:
-            return 1.0
-        
-        # Buscar tasa registrada en la fecha objetivo o fecha anterior más reciente
-        rate_rec = self.env['res.currency.rate'].search([
-            ('company_id', '=', self.company_id.id),
-            ('name', '<=', target_date)
-        ], order='name desc, id desc', limit=1)
-        
-        if rate_rec and rate_rec.rate > 0:
-            rate_val = rate_rec.rate
-            return rate_val if rate_val >= 1.0 else (1.0 / rate_val)
+        company = self.company_id
+        usd_curr = self.env.ref('base.USD', raise_if_not_found=False) or self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
+        vef_curr = self.currency_id_dif or company.currency_id_dif
+
+        # 1. Buscar primero en USD donde se guardan los factores odoo (ej. 0.00127377)
+        if usd_curr:
+            rate_rec_usd = self.env['res.currency.rate'].search([
+                ('currency_id', '=', usd_curr.id),
+                ('company_id', '=', company.id),
+                ('name', '<=', target_date)
+            ], order='name desc, id desc', limit=1)
+
+            if rate_rec_usd and rate_rec_usd.rate > 0 and rate_rec_usd.rate != 1.0:
+                rate_val = rate_rec_usd.rate
+                return rate_val if rate_val >= 1.0 else (1.0 / rate_val)
+
+        # 2. Si USD no tiene factor o es 1.0, buscar en VEF donde se guarda la tasa directa (ej. 804.8109)
+        if vef_curr:
+            rate_rec_vef = self.env['res.currency.rate'].search([
+                ('currency_id', '=', vef_curr.id),
+                ('company_id', '=', company.id),
+                ('name', '<=', target_date)
+            ], order='name desc, id desc', limit=1)
+
+            if rate_rec_vef and rate_rec_vef.rate > 0:
+                rate_val = rate_rec_vef.rate
+                return rate_val if rate_val >= 1.0 else (1.0 / rate_val)
+
         return 1.0
 
     @api.depends('company_id', 'currency_id_dif', 'date_order')
