@@ -70,7 +70,7 @@ class AccountMove(models.Model):
     amount_untaxed_bs = fields.Monetary(currency_field='company_currency_id', string="Base imponible Bs.", store=True, copy=False,
                                         compute="_amount_all_usd")
     amount_tax_bs = fields.Monetary(currency_field='company_currency_id', string="Impuestos Bs.", store=True, copy=False,
-                                    readonly=True)
+                                    readonly=True, compute="_amount_all_usd")
     amount_total_bs = fields.Monetary(currency_field='company_currency_id', string='Total Bs.', store=True,
                                       readonly=True,
                                       compute='_amount_all_usd', copy=False)
@@ -988,6 +988,11 @@ class AccountMove(models.Model):
                 return move
 
     def write(self, vals):
+        # Guarda contra re-entrada: evitar recursión infinita cuando un campo
+        # computado dispara write() durante _track_prepare() de mail.thread
+        if self.env.context.get('_dual_currency_writing'):
+            return super(AccountMove, self).write(vals)
+
         # Si cambia la fecha y no hay tasa manual ni tasa explícita, recalcular tax_today
         new_date = vals.get('invoice_date') or vals.get('date')
         if new_date:
@@ -1045,7 +1050,7 @@ class AccountMove(models.Model):
                 vals['tax_today'] = 1.0 / foreign_inverse_rate
                 vals['foreign_rate'] = 1.0 / foreign_inverse_rate
 
-        return super(AccountMove, self).write(vals)
+        return super(AccountMove, self).with_context(_dual_currency_writing=True).write(vals)
 
     @api.onchange('invoice_date', 'date')
     def _onchange_invoice_date_or_date(self):
