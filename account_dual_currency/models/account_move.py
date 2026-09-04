@@ -444,38 +444,10 @@ class AccountMove(models.Model):
         'line_ids.balance_usd',
         'move_type'
     )
+    @api.depends('line_ids.debit', 'line_ids.credit', 'tax_today', 'currency_id', 'tax_totals')
     def _amount_all_usd(self):
         for rec in self:
-            # Sincronización proactiva y segura de tasas para evitar desalineación o tasa a 0
-            if rec.company_id.currency_id_dif and not rec.tax_today_edited:
-                # Si tax_today es 0 pero la localización tiene tasa, usarla
-                if (not rec.tax_today or rec.tax_today <= 0.0) and getattr(rec, 'foreign_rate', 0.0) > 0.0:
-                    rec.tax_today = rec.foreign_rate
-                
-                # Si sigue siendo 0, buscar de forma proactiva la tasa de cambio en Odoo
-                if not rec.tax_today or rec.tax_today <= 0.0:
-                    date_to_use = rec.invoice_date or rec.date or fields.Date.context_today(rec)
-                    new_rate_ids = rec.company_id.currency_id_dif._get_rates(rec.company_id, date_to_use)
-                    if new_rate_ids and rec.company_id.currency_id_dif.id in new_rate_ids:
-                        db_rate = new_rate_ids[rec.company_id.currency_id_dif.id]
-                        if 0.0 < db_rate < 1.0:
-                            new_rate = 1.0 / db_rate
-                        else:
-                            new_rate = db_rate
-                        if new_rate > 0.0:
-                            rec.tax_today = new_rate
-
-            # Alinear campos de la localización si tax_today es válido
-            if rec.tax_today > 0.0:
-                if hasattr(rec, 'foreign_rate') and rec.foreign_rate != rec.tax_today:
-                    rec.foreign_rate = rec.tax_today
-                if hasattr(rec, 'foreign_inverse_rate'):
-                    if rec.company_id.currency_id.name == 'USD':
-                        expected_inverse = rec.tax_today
-                    else:
-                        expected_inverse = 1.0 / rec.tax_today
-                    if abs(rec.foreign_inverse_rate - expected_inverse) > 1e-7:
-                        rec.foreign_inverse_rate = expected_inverse
+            effective_rate = rec.tax_today or getattr(rec, 'foreign_rate', 0.0) or 1.0
 
             rec.amount_untaxed_usd = 0
             rec.amount_tax_usd = 0
@@ -499,8 +471,8 @@ class AccountMove(models.Model):
                         rec.amount_total_usd = rec.amount_total
                         rec.amount_tax_usd = rec.amount_total - rec.amount_untaxed
                         
-                        rec.amount_untaxed_bs = untaxed_usd if untaxed_usd is not None else (rec.amount_untaxed * rec.tax_today)
-                        rec.amount_total_bs = total_usd if total_usd is not None else (rec.amount_total * rec.tax_today)
+                        rec.amount_untaxed_bs = untaxed_usd if untaxed_usd is not None else (rec.amount_untaxed * effective_rate)
+                        rec.amount_total_bs = total_usd if total_usd is not None else (rec.amount_total * effective_rate)
                         rec.amount_tax_bs = rec.amount_total_bs - rec.amount_untaxed_bs
                     else:
                         # Invoice is VES
@@ -508,8 +480,8 @@ class AccountMove(models.Model):
                         rec.amount_total_bs = rec.amount_total
                         rec.amount_tax_bs = rec.amount_total - rec.amount_untaxed
                         
-                        rec.amount_untaxed_usd = untaxed_usd if untaxed_usd is not None else ((rec.amount_untaxed / rec.tax_today) if rec.tax_today > 0 else 0)
-                        rec.amount_total_usd = total_usd if total_usd is not None else ((rec.amount_total / rec.tax_today) if rec.tax_today > 0 else 0)
+                        rec.amount_untaxed_usd = untaxed_usd if untaxed_usd is not None else ((rec.amount_untaxed / effective_rate) if effective_rate > 0 else 0)
+                        rec.amount_total_usd = total_usd if total_usd is not None else ((rec.amount_total / effective_rate) if effective_rate > 0 else 0)
                         rec.amount_tax_usd = rec.amount_total_usd - rec.amount_untaxed_usd
                 else:
                     # Company is VES
@@ -519,8 +491,8 @@ class AccountMove(models.Model):
                         rec.amount_total_bs = rec.amount_total
                         rec.amount_tax_bs = rec.amount_total - rec.amount_untaxed
                         
-                        rec.amount_untaxed_usd = untaxed_usd if untaxed_usd is not None else ((rec.amount_untaxed / rec.tax_today) if rec.tax_today > 0 else 0)
-                        rec.amount_total_usd = total_usd if total_usd is not None else ((rec.amount_total / rec.tax_today) if rec.tax_today > 0 else 0)
+                        rec.amount_untaxed_usd = untaxed_usd if untaxed_usd is not None else ((rec.amount_untaxed / effective_rate) if effective_rate > 0 else 0)
+                        rec.amount_total_usd = total_usd if total_usd is not None else ((rec.amount_total / effective_rate) if effective_rate > 0 else 0)
                         rec.amount_tax_usd = rec.amount_total_usd - rec.amount_untaxed_usd
                     else:
                         # Invoice is USD
@@ -528,8 +500,8 @@ class AccountMove(models.Model):
                         rec.amount_total_usd = rec.amount_total
                         rec.amount_tax_usd = rec.amount_total - rec.amount_untaxed
                         
-                        rec.amount_untaxed_bs = untaxed_usd if untaxed_usd is not None else (rec.amount_untaxed * rec.tax_today)
-                        rec.amount_total_bs = total_usd if total_usd is not None else (rec.amount_total * rec.tax_today)
+                        rec.amount_untaxed_bs = untaxed_usd if untaxed_usd is not None else (rec.amount_untaxed * effective_rate)
+                        rec.amount_total_bs = total_usd if total_usd is not None else (rec.amount_total * effective_rate)
                         rec.amount_tax_bs = rec.amount_total_bs - rec.amount_untaxed_bs
 
             # 2. Caso Asientos Manuales (MISC / entry)
