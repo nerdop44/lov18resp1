@@ -19,7 +19,7 @@ class AccountMoveLine(models.Model):
                                  readonly=False, )
     credit_usd = fields.Monetary(currency_field='currency_id_dif', string='Crédito Ref.', store=True,
                                  compute="_credit_usd", readonly=False)
-    tax_today = fields.Float(related="move_id.tax_today", store=True, string="Tasa del Asiento")
+    tax_today = fields.Float(related="move_id.tax_today", store=True, string="Tasa del Asiento", digits=(16, 4))
     currency_id_dif = fields.Many2one("res.currency", related="move_id.currency_id_dif", store=True)
     price_unit_usd = fields.Monetary(currency_field='currency_id_dif', string='Precio Ref.', store=True,
                                      compute='_price_unit_usd', readonly=False)

@@ -62,7 +62,7 @@ class AccountMove(models.Model):
             return 1 / inv
         return 1.0
 
-    tax_today = fields.Float(string="Tasa de Factura", store=True,
+    tax_today = fields.Float(string="Tasa de Factura", digits=(16, 4), store=True,
                              default=_get_default_tax_today,
                              tracking=True)
 
