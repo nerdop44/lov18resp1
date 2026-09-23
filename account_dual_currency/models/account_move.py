@@ -395,7 +395,7 @@ class AccountMove(models.Model):
         for rec in self:
             is_company_usd = rec.company_id.currency_id.name == 'USD'
             raw_rate = rec.tax_today if rec.tax_today > 0 else 1.0
-            rate = round(raw_rate, 2) if raw_rate > 0 else 1.0
+            rate = raw_rate if raw_rate > 0 else 1.0
             if rec.is_invoice(include_receipts=True) and rec.tax_totals:
                 amount_untaxed = rec.tax_totals.get('amount_untaxed', 0)
                 amount_tax = 0
